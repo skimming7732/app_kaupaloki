@@ -72,8 +72,8 @@ export const CLIENTES: Cliente[] = [
     codigo: "C0001-FRANZ",
     nombre: "FRANZ",
     ingresosCop: 51700000,
-    pagadoCop: 10000000,
-    pendienteCop: 41700000,
+    pagadoCop: 40000000,
+    pendienteCop: 11700000,
     fechaCreacion: "2026-10-30",
     numero: 1
   },
@@ -102,8 +102,8 @@ export const CLIENTES: Cliente[] = [
     codigo: "C0008-MIGUEL-COLORADO",
     nombre: "MIGUEL COLORADO",
     ingresosCop: 100800000,
-    pagadoCop: 0,
-    pendienteCop: 100800000,
+    pagadoCop: 15000000,
+    pendienteCop: 85800000,
     fechaCreacion: "2026-10-30",
     numero: 8
   },
@@ -132,8 +132,8 @@ export const CLIENTES: Cliente[] = [
     codigo: "C0012-DANNA-PEREZ",
     nombre: "DANNA PEREZ",
     ingresosCop: 95000000,
-    pagadoCop: 0,
-    pendienteCop: 95000000,
+    pagadoCop: 15000000,
+    pendienteCop: 80000000,
     fechaCreacion: "2026-11-03",
     numero: 12
   },
@@ -146,6 +146,36 @@ export const CLIENTES: Cliente[] = [
     pendienteCop: 0,
     fechaCreacion: "2026-11-03",
     numero: 13
+  },
+  {
+    id: "recP4vDZ5kMvmTJHh",
+    codigo: "C0014-TEST-TEST",
+    nombre: "TEST test",
+    ingresosCop: 0,
+    pagadoCop: 0,
+    pendienteCop: 0,
+    fechaCreacion: "2026-11-03",
+    numero: 14
+  },
+  {
+    id: "recuA3l5OLdpH5qTt",
+    codigo: "C0015-ALBERTA",
+    nombre: "ALBERTA",
+    ingresosCop: 0,
+    pagadoCop: 0,
+    pendienteCop: 0,
+    fechaCreacion: "2026-11-03",
+    numero: 15
+  },
+  {
+    id: "rec37J0iKAvTIKxIp",
+    codigo: "C0016-CLIENTE",
+    nombre: "Cliente 16",
+    ingresosCop: 0,
+    pagadoCop: 0,
+    pendienteCop: 0,
+    fechaCreacion: "2026-11-03",
+    numero: 16
   }
 ];
 
@@ -260,6 +290,17 @@ export const COMPRAS_USDT: CompraUSDT[] = [
     costo: 0.00245,
     tasa: 408.1633,
     numero: 6
+  },
+  {
+    id: "rec2E2GCwWBStJ4Y1",
+    codigo: "COP-03-11-26-0007",
+    fechaCompra: "2026-11-03",
+    divisaCodigo: "COP",
+    valorComprado: 0,
+    usdtComprado: 0,
+    costo: 0,
+    tasa: 0,
+    numero: 7
   }
 ];
 
@@ -498,14 +539,32 @@ export const PAGOS: Pago[] = [
   },
   {
     id: "recmAmn9kkFJjg4g8",
-    codigo: "P0007",
+    codigo: "D0007",
     clienteCodigo: "C0012-DANNA-PEREZ",
     clienteNombre: "DANNA PEREZ",
     montoCop: 15000000,
-    estado: "RECHAZADO",
-    comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793736000000/wmnSaQOGJicByEgT2JPoqQ/1MsSQFfY34sjp78eIPeIamUVMxeczyp_r1_4J_2JLuLo7raNKA7DRGJmeM-fF-mvX_GRT-Ka7G2Iqr43Pcr5YDwqKo1L1VJ-sKrYLfDzJhUIIkBS65u44J8qybi3wPyzzCToW2eJiuJ7--SxB8BY0y_ViWKOck5V7rwE9QxCIv4/fMqkmCLmOTpYpzEUS6KLsYv074dYpupbWOA3--aPK0s",
+    estado: "COMPLETADO",
+    comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793757600000/YSiQPnzRHG__OiuUf1KD7Q/ciT7WBV2BpcWnCok7KshZJU_z0xSXzOOiyU6RPDR6DfLkYb8TQF4EqwMM3a2fi15Jm_lE7xb9ubep0f1m-2bfT7qGxJMv59qw6BeWu0AJ6tvFfT_jyYV-i61318ra0uU-OL6bapcOsMJ_u6RJUD5ZKbemJCzk3d8s5e7suQz1ts/caTst_YhV08uZ5FRUpwXHaNyuVLawIZwZccwVzSwLt8",
     comprobanteNombre: "Logo Asteana.png",
     numero: 7
+  },
+  {
+    id: "recfKJe2s1lBJbRfu",
+    codigo: "D0008",
+    clienteCodigo: "C0008-MIGUEL-COLORADO",
+    clienteNombre: "MIGUEL COLORADO",
+    montoCop: 15000000,
+    estado: "COMPLETADO",
+    numero: 8
+  },
+  {
+    id: "recx3s6EbMHJKbrxd",
+    codigo: "D0009",
+    clienteCodigo: "C0001-FRANZ",
+    clienteNombre: "FRANZ",
+    montoCop: 30000000,
+    estado: "COMPLETADO",
+    numero: 9
   }
 ];
 
