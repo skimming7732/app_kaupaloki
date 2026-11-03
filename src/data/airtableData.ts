@@ -136,6 +136,16 @@ export const CLIENTES: Cliente[] = [
     pendienteCop: 95000000,
     fechaCreacion: "2026-11-03",
     numero: 12
+  },
+  {
+    id: "recxqfHVbftz9LYKm",
+    codigo: "C0013-JUAN-JUAN",
+    nombre: "juan juan",
+    ingresosCop: 0,
+    pagadoCop: 0,
+    pendienteCop: 0,
+    fechaCreacion: "2026-11-03",
+    numero: 13
   }
 ];
 
