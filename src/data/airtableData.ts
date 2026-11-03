@@ -56,6 +56,8 @@ export interface Pago {
   comprobanteUrl?: string;
   comprobanteNombre?: string;
   numero: number;
+  fechaCreacion?: string;
+  referencia?: string;
 }
 
 export interface Admin {
@@ -483,67 +485,81 @@ export const NEGOCIOS: Negocio[] = [
 export const PAGOS: Pago[] = [
   {
     id: "recwB1KUDNpKXm4uh",
-    codigo: "P0001",
+    codigo: "D0001",
     clienteCodigo: "C0001-FRANZ",
     clienteNombre: "FRANZ",
     montoCop: 10000000,
     estado: "COMPLETADO",
+    referencia: "Maximuelbes SA",
+    fechaCreacion: "2026-10-30",
     comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793736000000/kJlOwy5NtnuiziPQ7Hus6Q/hJsftjQm15wY0SZHDtOHHRiMv6z9EGXAymKchOyLS3RSKa5E2phOSggX0QnxuYQV4MXBx1u9jGvCxAIqmfFvjT9SsmsMIYocvHtd2QPKM8cyn4bfJluONAl1HCLlBTv9NLs5wWcxNSv1FNcfn_Hr6w/RZ-Vi3Y5yLJLR21ZXCheNK2GzbCNdo9wBfGZ940xLO4",
     comprobanteNombre: "image.png",
     numero: 1
   },
   {
     id: "recd0G5LiPho3qP2b",
-    codigo: "P0002",
+    codigo: "D0002",
     clienteCodigo: "C0006-DANIEL-LOPEZ",
     clienteNombre: "DANIEL LOPEZ",
     montoCop: 15000000,
     estado: "RECHAZADO",
+    referencia: "—",
+    fechaCreacion: "2026-10-30",
     numero: 2
   },
   {
     id: "rechFZhlcwgQe5EeV",
-    codigo: "P0003",
+    codigo: "D0003",
     clienteCodigo: "C0011-DR-N",
     clienteNombre: "DR N",
     montoCop: 29920000,
     estado: "COMPLETADO",
+    referencia: "—",
+    fechaCreacion: "2026-10-30",
     numero: 3
   },
   {
     id: "recQP8aCewBCYVSDA",
-    codigo: "P0004",
+    codigo: "D0004",
     clienteCodigo: "C0011-DR-N",
     clienteNombre: "DR N",
     montoCop: 19000000,
     estado: "COMPLETADO",
+    referencia: "—",
+    fechaCreacion: "2026-10-30",
     numero: 4
   },
   {
     id: "recZIudNCzoxcYgQ0",
-    codigo: "P0005",
+    codigo: "D0005",
     clienteCodigo: "C0011-DR-N",
     clienteNombre: "DR N",
     montoCop: 22959878,
     estado: "COMPLETADO",
+    referencia: "—",
+    fechaCreacion: "2026-10-30",
     numero: 5
   },
   {
     id: "recxJCQt3a3LRFdPq",
-    codigo: "P0006",
+    codigo: "D0006",
     clienteCodigo: "C0011-DR-N",
     clienteNombre: "DR N",
     montoCop: 25694301,
     estado: "COMPLETADO",
+    referencia: "—",
+    fechaCreacion: "2026-10-30",
     numero: 6
   },
   {
     id: "recmAmn9kkFJjg4g8",
     codigo: "D0007",
-    clienteCodigo: "C0012-DANNA-PEREZ",
-    clienteNombre: "DANNA PEREZ",
+    clienteCodigo: "C0008-MIGUEL-COLORADO",
+    clienteNombre: "MIGUEL COLORADO",
     montoCop: 15000000,
     estado: "COMPLETADO",
+    referencia: "—",
+    fechaCreacion: "2026-11-03",
     comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793757600000/YSiQPnzRHG__OiuUf1KD7Q/ciT7WBV2BpcWnCok7KshZJU_z0xSXzOOiyU6RPDR6DfLkYb8TQF4EqwMM3a2fi15Jm_lE7xb9ubep0f1m-2bfT7qGxJMv59qw6BeWu0AJ6tvFfT_jyYV-i61318ra0uU-OL6bapcOsMJ_u6RJUD5ZKbemJCzk3d8s5e7suQz1ts/caTst_YhV08uZ5FRUpwXHaNyuVLawIZwZccwVzSwLt8",
     comprobanteNombre: "Logo Asteana.png",
     numero: 7
@@ -551,10 +567,12 @@ export const PAGOS: Pago[] = [
   {
     id: "recfKJe2s1lBJbRfu",
     codigo: "D0008",
-    clienteCodigo: "C0008-MIGUEL-COLORADO",
-    clienteNombre: "MIGUEL COLORADO",
+    clienteCodigo: "C0012-DANNA-PEREZ",
+    clienteNombre: "DANNA PEREZ",
     montoCop: 15000000,
     estado: "COMPLETADO",
+    referencia: "—",
+    fechaCreacion: "2026-11-03",
     numero: 8
   },
   {
@@ -564,7 +582,20 @@ export const PAGOS: Pago[] = [
     clienteNombre: "FRANZ",
     montoCop: 30000000,
     estado: "COMPLETADO",
+    referencia: "Constructora SAS",
+    fechaCreacion: "2026-11-03",
     numero: 9
+  },
+  {
+    id: "recKmJBzwmUPmhKPI",
+    codigo: "D0010",
+    clienteCodigo: "C0001-FRANZ",
+    clienteNombre: "FRANZ",
+    montoCop: 0,
+    estado: "COMPLETADO",
+    referencia: "—",
+    fechaCreacion: "2026-11-03",
+    numero: 10
   }
 ];
 
