@@ -130,78 +130,78 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
           </div>
         </div>
 
-        <!-- KPIS CARDS (4 CARDS: NEGOCIOS, INGRESOS, DISPERSADO, PENDIENTE) -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px;">
+        <!-- KPIS CARDS (4 CARDS: COMPACT EXACT TO HORIZON UI DESIGN) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
           
           <!-- KPI 1: NUMERO DE NEGOCIOS -->
-          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
-            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; min-height: 74px;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
                 <line x1="12" y1="17" x2="12" y2="21"></line>
               </svg>
             </div>
-            <div>
-              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
-                NÚMERO DE NEGOCIOS
+            <div style="overflow: hidden;">
+              <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+                Número de Negocios
               </div>
-              <div id="kpi-num-negocios" style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-top: 4px;" class="font-mono">
+              <div id="kpi-num-negocios" style="font-size: 19px; font-weight: 800; color: var(--text-primary); line-height: 1.2;" class="font-mono">
                 0
               </div>
             </div>
           </div>
 
           <!-- KPI 2: TOTAL INGRESOS COP -->
-          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
-            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; min-height: 74px;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="1" x2="12" y2="23"></line>
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
               </svg>
             </div>
-            <div>
-              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
-                TOTAL INGRESOS COP
+            <div style="overflow: hidden;">
+              <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+                Total Ingresos COP
               </div>
-              <div id="kpi-total-ingreso-cop" style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin-top: 4px;" class="font-mono">
+              <div id="kpi-total-ingreso-cop" style="font-size: 18px; font-weight: 800; color: var(--text-primary); line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" class="font-mono">
                 $0
               </div>
             </div>
           </div>
 
           <!-- KPI 3: TOTAL DISPERSADO COP -->
-          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
-            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; min-height: 74px;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
             </div>
-            <div>
-              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
-                TOTAL DISPERSADO COP
+            <div style="overflow: hidden;">
+              <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+                Total Dispersado COP
               </div>
-              <div id="kpi-total-dispersado-cop" style="font-size: 22px; font-weight: 800; color: var(--success); margin-top: 4px;" class="font-mono">
+              <div id="kpi-total-dispersado-cop" style="font-size: 18px; font-weight: 800; color: var(--success); line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" class="font-mono">
                 $0
               </div>
             </div>
           </div>
 
           <!-- KPI 4: TOTAL PENDIENTE COP -->
-          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
-            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; min-height: 74px;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="8" x2="12" y2="12"></line>
                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
             </div>
-            <div>
-              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
-                TOTAL PENDIENTE COP
+            <div style="overflow: hidden;">
+              <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+                Total Pendiente COP
               </div>
-              <div id="kpi-total-pendiente-cop" style="font-size: 22px; font-weight: 800; color: var(--warning); margin-top: 4px;" class="font-mono">
+              <div id="kpi-total-pendiente-cop" style="font-size: 18px; font-weight: 800; color: var(--warning); line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" class="font-mono">
                 $0
               </div>
             </div>

@@ -32,92 +32,104 @@ function formatDecimal(amount: number, digits = 2): string {
   <div class="layout-wrapper" style="display: flex; min-height: 100vh;">
     
     <!-- ============================================================== -->
-    <!-- SIDEBAR (HORIZON UI STYLE) -->
     <!-- ============================================================== -->
-    <aside id="main-sidebar" style="width: 290px; background: var(--bg-sidebar); border-right: 1px solid var(--border-main); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 40; transition: transform 0.3s ease;">
-      <!-- Logo Container -->
-      <div style="padding: 28px 24px 22px 24px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border-main);">
-        <img src="/logo.png" alt="Kaupaloki" class="theme-logo-dark" style="max-height: 38px; width: auto; object-fit: contain;" />
-        <img src="/logo-blue.png" alt="Kaupaloki" class="theme-logo-light" style="max-height: 38px; width: auto; object-fit: contain;" />
+    <!-- SIDEBAR (HORIZON UI STYLE - COLLAPSIBLE) -->
+    <!-- ============================================================== -->
+    <aside id="main-sidebar" style="width: 290px; background: var(--bg-sidebar); border-right: 1px solid var(--border-main); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 40; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+      
+      <!-- Logo Container with Collapse Button -->
+      <div class="sidebar-logo-container" style="padding: 22px 20px 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-main); min-height: 74px; box-sizing: border-box;">
+        <div class="sidebar-brand-wrapper" style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+          <img src="/logo.png" alt="Kaupaloki" class="theme-logo-dark logo-full" style="max-height: 34px; width: auto; object-fit: contain;" />
+          <img src="/logo-blue.png" alt="Kaupaloki" class="theme-logo-light logo-full" style="max-height: 34px; width: auto; object-fit: contain;" />
+          <div class="logo-mini" style="display: none; width: 38px; height: 38px; border-radius: 12px; background: var(--brand-primary); color: #ffffff; font-weight: 800; font-size: 19px; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(67, 24, 255, 0.3);">
+            K
+          </div>
+        </div>
+        <button id="btn-toggle-sidebar" title="Comprimir menú" style="background: var(--bg-card); border: 1px solid var(--border-main); width: 32px; height: 32px; border-radius: 10px; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0; box-shadow: var(--shadow-card);">
+          <svg id="collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
       </div>
 
       <!-- Navigation Links -->
-      <div style="padding: 24px 16px; flex: 1; overflow-y: auto;">
-        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 0 16px 12px 16px;">
+      <div style="padding: 20px 14px; flex: 1; overflow-y: auto; overflow-x: hidden;">
+        <div class="sidebar-nav-title" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 0 16px 12px 16px;">
           Navegación Contable
         </div>
 
         <nav style="display: flex; flex-direction: column; gap: 6px;">
           <!-- Clientes -->
-          <button class="sidebar-link active" data-target="tab-clientes" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="sidebar-link active" data-target="tab-clientes" title="Clientes" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            <span style="flex: 1;">Clientes</span>
+            <span class="sidebar-text" style="flex: 1;">Clientes</span>
             <span class="count-badge" id="badge-count-clientes" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
               {CLIENTES.length}
             </span>
           </button>
 
           <!-- Negocios -->
-          <button class="sidebar-link" data-target="tab-negocios" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="sidebar-link" data-target="tab-negocios" title="Negocios" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
               <line x1="8" y1="21" x2="16" y2="21"></line>
               <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
-            <span style="flex: 1;">Negocios</span>
+            <span class="sidebar-text" style="flex: 1;">Negocios</span>
             <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
               {NEGOCIOS.length}
             </span>
           </button>
 
           <!-- Dispersiones -->
-          <button class="sidebar-link" data-target="tab-dispersiones" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="sidebar-link" data-target="tab-dispersiones" title="Dispersiones" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
               <line x1="1" y1="10" x2="23" y2="10"></line>
             </svg>
-            <span style="flex: 1;">Dispersiones</span>
+            <span class="sidebar-text" style="flex: 1;">Dispersiones</span>
             <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
               {PAGOS.length}
             </span>
           </button>
 
           <!-- Divisas -->
-          <button class="sidebar-link" data-target="tab-divisas" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="sidebar-link" data-target="tab-divisas" title="Divisas" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="2" y1="12" x2="22" y2="12"></line>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
-            <span style="flex: 1;">Divisas</span>
+            <span class="sidebar-text" style="flex: 1;">Divisas</span>
             <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
               {DIVISAS.length}
             </span>
           </button>
 
           <!-- Compra USDT -->
-          <button class="sidebar-link" data-target="tab-compras" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="sidebar-link" data-target="tab-compras" title="Compra USDT" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
               <polyline points="17 6 23 6 23 12"></polyline>
             </svg>
-            <span style="flex: 1;">Compra USDT</span>
+            <span class="sidebar-text" style="flex: 1;">Compra USDT</span>
             <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
               {COMPRAS_USDT.length}
             </span>
           </button>
 
           <!-- Admins -->
-          <button class="sidebar-link" data-target="tab-admins" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="sidebar-link" data-target="tab-admins" title="Administradores" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
-            <span style="flex: 1;">Administradores</span>
+            <span class="sidebar-text" style="flex: 1;">Administradores</span>
             <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
               {ADMINS.length}
             </span>
@@ -126,8 +138,8 @@ function formatDecimal(amount: number, digits = 2): string {
       </div>
 
       <!-- Bottom Card: Airtable Info -->
-      <div style="padding: 20px; border-top: 1px solid var(--border-main);">
-        <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+      <div class="sidebar-bottom-card" style="padding: 16px; border-top: 1px solid var(--border-main);">
+        <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px var(--success);"></span>
             <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Airtable Conectado</span>
@@ -146,20 +158,29 @@ function formatDecimal(amount: number, digits = 2): string {
     <!-- ============================================================== -->
     <!-- MAIN CONTENT AREA -->
     <!-- ============================================================== -->
-    <main style="flex: 1; margin-left: 290px; padding: 30px; min-width: 0;">
+    <main id="main-content" style="flex: 1; margin-left: 290px; padding: 30px; min-width: 0; transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
       
       <!-- ============================================================== -->
       <!-- TOP FLOATING NAVBAR (HORIZON UI EXACT TO DESIGN REFERENCE) -->
       <!-- ============================================================== -->
-      <header class="horizon-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 26px; padding: 6px 0;">
-        <!-- Left: Breadcrumb & Title -->
-        <div>
-          <div style="font-size: 14px; font-weight: 500; color: var(--text-secondary); margin-bottom: 4px;">
-            Pages / <span id="breadcrumb-title" style="color: var(--text-primary); font-weight: 600;">Clientes</span>
+      <header class="horizon-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; padding: 4px 0;">
+        <!-- Left: Toggle & Breadcrumb & Title -->
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button id="btn-navbar-sidebar-toggle" title="Alternar menú lateral" style="display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-main); color: var(--text-secondary); cursor: pointer; box-shadow: var(--shadow-card); transition: all 0.2s;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div>
+            <div style="font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 2px;">
+              Pages / <span id="breadcrumb-title" style="color: var(--text-primary); font-weight: 600;">Clientes</span>
+            </div>
+            <h1 id="page-heading" style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary); line-height: 1.15;">
+              Control de Clientes
+            </h1>
           </div>
-          <h1 id="page-heading" style="margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary); line-height: 1.15;">
-            Control de Clientes
-          </h1>
         </div>
 
         <!-- Right: Floating Horizon Capsule Island -->
@@ -261,93 +282,122 @@ function formatDecimal(amount: number, digits = 2): string {
       </header>
 
       <!-- ============================================================== -->
-      <!-- HORIZON UI METRIC CARDS -->
+      <!-- HORIZON UI METRIC CARDS (COMPACT EXACT TO HORIZON UI DESIGN) -->
       <!-- ============================================================== -->
-      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 28px;">
+      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px;">
+        
         <!-- Card 1: Ingresos -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
-          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 74px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="1" x2="12" y2="23"></line>
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
           </div>
-          <div>
-            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
-              Total Ingresos (COP)
+          <div style="overflow: hidden;">
+            <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+              Total Ingresos
             </div>
-            <div style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+            <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
               {formatCop(metricas.totalIngresosCop)}
-            </div>
-            <div style="font-size: 11px; font-weight: 600; color: var(--success); margin-top: 4px;">
-              {metricas.numNegocios} operaciones registradas
             </div>
           </div>
         </div>
 
         <!-- Card 2: Dispersado -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
-          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 74px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
           </div>
-          <div>
-            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
-              Total Dispersado (COP)
+          <div style="overflow: hidden;">
+            <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+              Total Dispersado
             </div>
-            <div style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+            <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
               {formatCop(metricas.totalPagadoCop)}
-            </div>
-            <div style="font-size: 11px; font-weight: 600; color: var(--success); margin-top: 4px;">
-              {metricas.numPagosCompletados} dispersiones verificadas
             </div>
           </div>
         </div>
 
         <!-- Card 3: Saldo Pendiente -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
-          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 74px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
           </div>
-          <div>
-            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
-              Saldo Pendiente Neto
+          <div style="overflow: hidden;">
+            <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+              Saldo Pendiente
             </div>
-            <div style="font-size: 22px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2;">
+            <div style="font-size: 18px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
               {formatCop(metricas.saldoPendienteNeto)}
-            </div>
-            <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-top: 4px;">
-              Ingresos vs Dispersiones en caja
             </div>
           </div>
         </div>
 
         <!-- Card 4: USDT Comprado -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
-          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 74px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
             </svg>
           </div>
-          <div>
-            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
-              USDT Total Comprado
+          <div style="overflow: hidden;">
+            <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+              Compra USDT
             </div>
-            <div style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
-              {formatDecimal(metricas.totalUsdtComprado, 2)} USDT
-            </div>
-            <div style="font-size: 11px; font-weight: 600; color: var(--info); margin-top: 4px;">
-              {metricas.numComprasUsdt} órdenes liquidadas
+            <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+              ${formatDecimal(metricas.totalUsdtComprado, 0)} <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">USDT</span>
             </div>
           </div>
         </div>
+
+        <!-- Card 5: Operaciones -->
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 74px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
+          <div style="overflow: hidden;">
+            <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+              Operaciones
+            </div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+              {metricas.numNegocios}
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6: Clientes Activos -->
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 74px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--bg-card-secondary); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div style="overflow: hidden;">
+            <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+              Total Clientes
+            </div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+              {CLIENTES.length}
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- ============================================================== -->
@@ -1007,6 +1057,56 @@ function formatDecimal(amount: number, digits = 2): string {
   :global(html:not(.dark)) .theme-logo-dark {
     display: none !important;
   }
+
+  /* Collapsible Sidebar Horizon UI */
+  #main-sidebar.collapsed {
+    width: 80px !important;
+  }
+  #main-content.sidebar-collapsed {
+    margin-left: 80px !important;
+  }
+  #main-sidebar.collapsed .sidebar-text,
+  #main-sidebar.collapsed .count-badge,
+  #main-sidebar.collapsed .sidebar-nav-title,
+  #main-sidebar.collapsed .sidebar-bottom-card,
+  #main-sidebar.collapsed .logo-full {
+    display: none !important;
+  }
+  #main-sidebar.collapsed .logo-mini {
+    display: flex !important;
+  }
+  #main-sidebar.collapsed .sidebar-logo-container {
+    padding: 16px 8px !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  #main-sidebar.collapsed .sidebar-link {
+    justify-content: center !important;
+    padding: 12px 0 !important;
+    gap: 0 !important;
+  }
+  #main-sidebar.collapsed .sidebar-link svg {
+    margin: 0 auto;
+  }
+  #main-sidebar.collapsed .sidebar-link.active::after {
+    height: 18px;
+    width: 3px;
+  }
+
+  @media (max-width: 900px) {
+    #main-sidebar {
+      transform: translateX(-100%);
+      width: 290px !important;
+    }
+    #main-sidebar.mobile-open {
+      transform: translateX(0);
+    }
+    #main-content {
+      margin-left: 0 !important;
+      padding: 16px !important;
+    }
+  }
 </style>
 
 <script>
@@ -1033,6 +1133,53 @@ function formatDecimal(amount: number, digits = 2): string {
   const pageHeading = document.getElementById('page-heading');
   const activeTableTitle = document.getElementById('active-table-title');
   const themeToggle = document.getElementById('btn-theme-toggle');
+
+  // ==========================================
+  // SIDEBAR COLLAPSE / EXPAND LOGIC
+  // ==========================================
+  const sidebar = document.getElementById('main-sidebar');
+  const mainContent = document.getElementById('main-content');
+  const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+  const btnNavbarSidebarToggle = document.getElementById('btn-navbar-sidebar-toggle');
+  const collapseChevron = document.getElementById('collapse-chevron');
+
+  function updateSidebarState(collapsed: boolean) {
+    if (collapsed) {
+      sidebar?.classList.add('collapsed');
+      mainContent?.classList.add('sidebar-collapsed');
+      if (collapseChevron) {
+        collapseChevron.innerHTML = '<polyline points="9 18 15 12 9 6"></polyline>';
+      }
+      btnToggleSidebar?.setAttribute('title', 'Expandir menú');
+    } else {
+      sidebar?.classList.remove('collapsed');
+      mainContent?.classList.remove('sidebar-collapsed');
+      if (collapseChevron) {
+        collapseChevron.innerHTML = '<polyline points="15 18 9 12 15 6"></polyline>';
+      }
+      btnToggleSidebar?.setAttribute('title', 'Comprimir menú');
+    }
+    try {
+      localStorage.setItem('kaupaloki_sidebar_collapsed', collapsed ? 'true' : 'false');
+    } catch (e) {}
+  }
+
+  // Restore saved state
+  if (localStorage.getItem('kaupaloki_sidebar_collapsed') === 'true') {
+    updateSidebarState(true);
+  }
+
+  function handleToggleSidebar() {
+    if (window.innerWidth <= 900) {
+      sidebar?.classList.toggle('mobile-open');
+    } else {
+      const isCurrentlyCollapsed = sidebar?.classList.contains('collapsed');
+      updateSidebarState(!isCurrentlyCollapsed);
+    }
+  }
+
+  btnToggleSidebar?.addEventListener('click', handleToggleSidebar);
+  btnNavbarSidebarToggle?.addEventListener('click', handleToggleSidebar);
 
   const titlesMap: Record<string, { breadcrumb: string, heading: string, table: string }> = {
     'tab-clientes': {
