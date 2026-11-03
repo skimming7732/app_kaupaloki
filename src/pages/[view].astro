@@ -1,0 +1,16 @@
+---
+import IndexPage from './index.astro';
+
+export function getStaticPaths() {
+  return [
+    { params: { view: 'clientes' } },
+    { params: { view: 'negocios' } },
+    { params: { view: 'dispersiones' } },
+    { params: { view: 'divisas' } },
+    { params: { view: 'compras' } },
+    { params: { view: 'gestores' } },
+    { params: { view: 'usuarios' } }
+  ];
+}
+---
+<IndexPage />

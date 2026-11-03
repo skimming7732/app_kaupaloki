@@ -1,0 +1,18 @@
+---
+import ClientePage from './index.astro';
+import { CLIENTES } from '../../data/airtableData';
+
+export function getStaticPaths() {
+  function slugify(text: string): string {
+    return text.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  const paths = CLIENTES.flatMap(c => [
+    { params: { id: `c-${slugify(c.codigo)}` } },
+    { params: { id: c.codigo.toLowerCase() } },
+    { params: { id: c.codigo } }
+  ]);
+  return paths;
+}
+---
+<ClientePage />

@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
+import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
 ---
 
 <Layout title="Portal de Cliente - Kaupaloki">
@@ -250,20 +250,50 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
           </div>
         </div>
 
-        <!-- CONTABLE TABLE -->
+        <!-- CONTABLE TABLE WITH SUB-TABS (NEGOCIOS Y DISPERSIONES) -->
         <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-card);">
-          <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-main); display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0;">
-                Detalle de Operaciones Contables
-              </h3>
-              <span id="filtered-records-count" style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
+          
+          <!-- Subtabs Header -->
+          <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <!-- Subtabs pill switch -->
+              <div style="display: flex; align-items: center; gap: 4px; background: var(--bg-card-secondary); padding: 4px; border-radius: 12px; border: 1px solid var(--border-main);">
+                <button 
+                  id="subtab-btn-negocios" 
+                  class="client-subtab-btn active"
+                  style="display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 9px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: var(--brand-primary); color: #fff;"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                  <span>Negocios</span>
+                  <span id="badge-count-subtab-negocios" style="font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: rgba(255,255,255,0.25); color: #fff;">0</span>
+                </button>
+
+                <button 
+                  id="subtab-btn-dispersiones" 
+                  class="client-subtab-btn"
+                  style="display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 9px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary);"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                  </svg>
+                  <span>Dispersiones</span>
+                  <span id="badge-count-subtab-dispersiones" style="font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card); color: var(--text-secondary);">0</span>
+                </button>
+              </div>
+
+              <span id="filtered-records-count" style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-muted); border: 1px solid var(--border-main);">
                 0 registros
               </span>
             </div>
           </div>
 
-          <div style="overflow-x: auto;">
+          <!-- SUB-VIEW 1: NEGOCIOS -->
+          <div id="subtab-content-negocios" class="subtab-content" style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
               <thead>
                 <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
@@ -283,11 +313,96 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
               </tfoot>
             </table>
           </div>
+
+          <!-- SUB-VIEW 2: DISPERSIONES -->
+          <div id="subtab-content-dispersiones" class="subtab-content" style="display: none; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Código</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Fecha</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: right;">Monto Dispersado (COP)</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: center;">Estado</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: center;">Comprobante (9:16)</th>
+                </tr>
+              </thead>
+              <tbody id="dispersiones-table-body">
+                <!-- Dispersiones injected dynamically via JS -->
+              </tbody>
+              <tfoot id="dispersiones-table-foot">
+                <!-- Totales consolidados -->
+              </tfoot>
+            </table>
+          </div>
+
         </div>
 
       </div>
 
     </main>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: VISOR DE COMPROBANTE 9:16 (MISMA PESTAÑA) -->
+    <!-- ============================================================== -->
+    <div id="comprobante-lightbox-modal" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.85); backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center; padding: 20px;">
+      <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 24px; width: 100%; max-width: 480px; max-height: 92vh; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-card); position: relative;">
+        
+        <button id="btn-close-lightbox" style="position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding-right: 36px;">
+          <div style="width: 40px; height: 40px; border-radius: 12px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <div style="overflow: hidden;">
+            <h3 id="lightbox-title" style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+              Comprobante de Dispersión
+            </h3>
+            <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">
+              Formato Vertical 9:16 • Vista previa sin salir de la pestaña
+            </p>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: center; background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 16px; padding: 12px; max-height: 62vh; overflow: hidden;">
+          <img 
+            id="lightbox-image" 
+            src="" 
+            alt="Comprobante" 
+            style="max-height: 58vh; max-width: 100%; aspect-ratio: 9/16; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" 
+          />
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 4px;">
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">
+            Presiona ESC o haz click afuera para cerrar
+          </span>
+          <a 
+            id="lightbox-download-btn" 
+            href="" 
+            download="comprobante.png" 
+            target="_blank" 
+            style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer;"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Descargar
+          </a>
+        </div>
+
+      </div>
+    </div>
 
     <!-- Footer -->
     <footer style="padding: 20px 28px; text-align: center; border-top: 1px solid var(--border-main); font-size: 12px; color: var(--text-muted); background: var(--bg-card);">
@@ -315,9 +430,10 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
     }
   </style>
 
-  <script define:vars={{ initialClientes: CLIENTES, initialNegocios: NEGOCIOS }}>
+  <script define:vars={{ initialClientes: CLIENTES, initialNegocios: NEGOCIOS, initialPagos: PAGOS }}>
     window.INITIAL_CLIENTES = initialClientes;
     window.INITIAL_NEGOCIOS = initialNegocios;
+    window.INITIAL_PAGOS = initialPagos;
   </script>
 
   <script>
@@ -374,7 +490,17 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
     const kpiTotalPendienteCop = document.getElementById('kpi-total-pendiente-cop');
     const operationsTableBody = document.getElementById('operations-table-body');
     const operationsTableFoot = document.getElementById('operations-table-foot');
+    const dispersionesTableBody = document.getElementById('dispersiones-table-body');
+    const dispersionesTableFoot = document.getElementById('dispersiones-table-foot');
     const filteredRecordsCount = document.getElementById('filtered-records-count');
+
+    // Subtabs elements
+    const subtabBtnNegocios = document.getElementById('subtab-btn-negocios');
+    const subtabBtnDispersiones = document.getElementById('subtab-btn-dispersiones');
+    const subtabContentNegocios = document.getElementById('subtab-content-negocios');
+    const subtabContentDispersiones = document.getElementById('subtab-content-dispersiones');
+    const badgeCountSubtabNegocios = document.getElementById('badge-count-subtab-negocios');
+    const badgeCountSubtabDispersiones = document.getElementById('badge-count-subtab-dispersiones');
 
     // Filter elements
     const filterDateFrom = document.getElementById('filter-date-from') as HTMLInputElement;
@@ -398,12 +524,16 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
       });
     });
 
-    // Read slug from URL query params
+    // Read slug from URL query params or path (supports /cliente/[id] and /cliente/?ref=...)
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const pathSlug = pathParts[0] === 'cliente' && pathParts[1] ? pathParts[1] : '';
     const urlParams = new URLSearchParams(window.location.search);
-    const slug = urlParams.get('ref') || urlParams.get('id') || urlParams.get('link') || '';
+    const slug = urlParams.get('ref') || urlParams.get('id') || urlParams.get('link') || pathSlug || '';
 
     let currentClient: any = null;
     let clientNegocios: any[] = [];
+    let clientDispersiones: any[] = [];
+    let activeSubtab: 'negocios' | 'dispersiones' = 'negocios';
 
     // Helper formatters
     function formatCop(amount: number): string {
@@ -420,6 +550,31 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
         maximumFractionDigits: digits
       }).format(amount);
     }
+
+    // Subtab switcher
+    function setSubtab(tab: 'negocios' | 'dispersiones') {
+      activeSubtab = tab;
+      if (tab === 'negocios') {
+        subtabBtnNegocios?.style.setProperty('background', 'var(--brand-primary)');
+        subtabBtnNegocios?.style.setProperty('color', '#fff');
+        subtabBtnDispersiones?.style.setProperty('background', 'transparent');
+        subtabBtnDispersiones?.style.setProperty('color', 'var(--text-secondary)');
+        if (subtabContentNegocios) subtabContentNegocios.style.display = 'block';
+        if (subtabContentDispersiones) subtabContentDispersiones.style.display = 'none';
+        if (filteredRecordsCount) filteredRecordsCount.textContent = `${clientNegocios.length} operaciones`;
+      } else {
+        subtabBtnDispersiones?.style.setProperty('background', 'var(--brand-primary)');
+        subtabBtnDispersiones?.style.setProperty('color', '#fff');
+        subtabBtnNegocios?.style.setProperty('background', 'transparent');
+        subtabBtnNegocios?.style.setProperty('color', 'var(--text-secondary)');
+        if (subtabContentDispersiones) subtabContentDispersiones.style.display = 'block';
+        if (subtabContentNegocios) subtabContentNegocios.style.display = 'none';
+        if (filteredRecordsCount) filteredRecordsCount.textContent = `${clientDispersiones.length} dispersiones`;
+      }
+    }
+
+    subtabBtnNegocios?.addEventListener('click', () => setSubtab('negocios'));
+    subtabBtnDispersiones?.addEventListener('click', () => setSubtab('dispersiones'));
 
     // Lock portal
     btnLockPortal?.addEventListener('click', () => {
@@ -497,6 +652,7 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
 
       const clientes: any[] = (window as any).INITIAL_CLIENTES || [];
       const negocios: any[] = (window as any).INITIAL_NEGOCIOS || [];
+      const pagos: any[] = (window as any).INITIAL_PAGOS || [];
 
       // Find client by client_id or code or name
       currentClient = clientes.find(c => 
@@ -519,6 +675,18 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
         n.clienteCodigo === linkRecord.client_id
       );
 
+      // Filter all dispersiones for this client
+      clientDispersiones = pagos.filter(p => 
+        p.clienteCodigo === currentClient.codigo || 
+        p.clienteNombre === currentClient.nombre ||
+        p.clienteCodigo === linkRecord.client_id ||
+        (currentClient.nombre && p.clienteNombre && p.clienteNombre.toLowerCase() === currentClient.nombre.toLowerCase())
+      );
+
+      // Update Subtabs Badges
+      if (badgeCountSubtabNegocios) badgeCountSubtabNegocios.textContent = clientNegocios.length.toString();
+      if (badgeCountSubtabDispersiones) badgeCountSubtabDispersiones.textContent = clientDispersiones.length.toString();
+
       // Populate currency filter options
       const currencies = Array.from(new Set(clientNegocios.map(n => n.divisaCodigo).filter(Boolean)));
       if (filterCurrency) {
@@ -532,6 +700,7 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
       }
 
       applyFiltersAndRender();
+      renderDispersiones();
     }
 
     function applyFiltersAndRender() {
@@ -551,7 +720,7 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
         filtered = filtered.filter(n => n.divisaCodigo === selectedCurrency);
       }
 
-      // Compute 4 KPIs (Negocios, Ingresos, Dispersado, Pendiente)
+      // Compute 4 KPIs (Negocios, Ingresos, Dispersado, Pendiente) - Stay identical for both subtabs
       const numNegocios = filtered.length;
       const totalIngresoCop = (currentClient && currentClient.ingresosCop !== undefined) 
         ? currentClient.ingresosCop 
@@ -577,7 +746,9 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
         }
       }
 
-      if (filteredRecordsCount) filteredRecordsCount.textContent = `${numNegocios} registros`;
+      if (filteredRecordsCount && activeSubtab === 'negocios') {
+        filteredRecordsCount.textContent = `${numNegocios} operaciones`;
+      }
 
       // Render table rows
       if (operationsTableBody) {
@@ -643,6 +814,102 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
       }
     }
 
+    // Render Dispersiones Table
+    function renderDispersiones() {
+      if (!dispersionesTableBody) return;
+      if (clientDispersiones.length === 0) {
+        dispersionesTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" style="padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px;">
+              No hay dispersiones registradas para este cliente.
+            </td>
+          </tr>
+        `;
+        if (dispersionesTableFoot) dispersionesTableFoot.innerHTML = '';
+        return;
+      }
+
+      dispersionesTableBody.innerHTML = clientDispersiones.map(p => {
+        const esCompletado = p.estado === 'COMPLETADO';
+        return `
+          <tr style="border-bottom: 1px solid var(--border-main); transition: background-color 0.15s ease;">
+            <td style="padding: 14px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; vertical-align: middle;">
+              ${p.codigo || '-'}
+            </td>
+            <td style="padding: 14px 20px; color: var(--text-secondary); vertical-align: middle;">
+              ${p.fecha || '-'}
+            </td>
+            <td style="padding: 14px 20px; font-weight: 800; color: ${esCompletado ? 'var(--success)' : 'var(--danger)'}; text-align: right; font-family: ui-monospace, monospace; font-size: 14px; vertical-align: middle;">
+              ${formatCop(p.montoCop)}
+            </td>
+            <td style="padding: 14px 20px; text-align: center; vertical-align: middle;">
+              <span class="status-pill ${esCompletado ? 'status-success' : 'status-danger'}">
+                ${p.estado || 'COMPLETADO'}
+              </span>
+            </td>
+            <td style="padding: 14px 20px; text-align: center; vertical-align: middle;">
+              ${p.comprobanteUrl ? `
+                <div 
+                  class="btn-open-lightbox" 
+                  data-url="${p.comprobanteUrl}" 
+                  data-title="Comprobante ${p.codigo}"
+                  title="Click para ver comprobante en la misma pestaña"
+                  style="cursor: pointer; display: inline-block; transition: transform 0.15s ease;"
+                >
+                  <img 
+                    src="${p.comprobanteUrl}" 
+                    alt="Comprobante ${p.codigo}" 
+                    loading="lazy"
+                    style="width: 44px; height: 78px; aspect-ratio: 9/16; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-main); box-shadow: 0 2px 8px rgba(0,0,0,0.12); display: block;" 
+                  />
+                </div>
+              ` : `
+                <div class="upload-voucher-container" style="display: inline-block;">
+                  <label 
+                    class="btn-upload-voucher" 
+                    title="Subir comprobante (9:16)" 
+                    style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 44px; height: 78px; aspect-ratio: 9/16; border-radius: 8px; border: 1.5px dashed var(--brand-primary); background: var(--bg-card-secondary); cursor: pointer; color: var(--brand-primary); transition: all 0.2s;"
+                  >
+                    <input 
+                      type="file" 
+                      accept="image/*,application/pdf" 
+                      class="voucher-upload-input" 
+                      style="display: none;" 
+                      data-pago-id="${p.id || ''}" 
+                      data-codigo="${p.codigo || ''}" 
+                    />
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span style="font-size: 8px; font-weight: 800; margin-top: 4px; text-transform: uppercase;">Subir</span>
+                  </label>
+                </div>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      if (dispersionesTableFoot) {
+        const totalDispersado = clientDispersiones.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + (Number(p.montoCop) || 0), 0);
+        dispersionesTableFoot.innerHTML = `
+          <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); border-top: 2px solid var(--border-main);">
+            <td colspan="2" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
+              TOTAL DISPERSADO (${clientDispersiones.length} DISP):
+            </td>
+            <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 15px;">
+              ${formatCop(totalDispersado)}
+            </td>
+            <td colspan="2" style="padding: 18px 20px; text-align: center; color: var(--text-muted); font-size: 12px;">
+              —
+            </td>
+          </tr>
+        `;
+      }
+    }
+
     // Filter listeners
     filterDateFrom?.addEventListener('change', applyFiltersAndRender);
     filterDateTo?.addEventListener('change', applyFiltersAndRender);
@@ -653,6 +920,86 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
       if (filterDateTo) filterDateTo.value = '';
       if (filterCurrency) filterCurrency.value = 'ALL';
       applyFiltersAndRender();
+    });
+
+    // ==============================================================
+    // COMPROBANTE LIGHTBOX MODAL (MISMA PESTAÑA, SIN NUEVA VENTANA)
+    // ==============================================================
+    const lightboxModal = document.getElementById('comprobante-lightbox-modal');
+    const lightboxImage = document.getElementById('lightbox-image') as HTMLImageElement | null;
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxDownloadBtn = document.getElementById('lightbox-download-btn') as HTMLAnchorElement | null;
+    const btnCloseLightbox = document.getElementById('btn-close-lightbox');
+
+    function openLightbox(url: string, title: string = 'Comprobante de Dispersión') {
+      if (!lightboxModal || !lightboxImage) return;
+      lightboxImage.src = url;
+      if (lightboxTitle) lightboxTitle.textContent = title;
+      if (lightboxDownloadBtn) {
+        lightboxDownloadBtn.href = url;
+        lightboxDownloadBtn.setAttribute('download', `${title.replace(/[^a-z0-9]/gi, '_')}.png`);
+      }
+      lightboxModal.style.display = 'flex';
+    }
+
+    function closeLightbox() {
+      if (lightboxModal) {
+        lightboxModal.style.display = 'none';
+        if (lightboxImage) lightboxImage.src = '';
+      }
+    }
+
+    btnCloseLightbox?.addEventListener('click', closeLightbox);
+    lightboxModal?.addEventListener('click', (e) => {
+      if (e.target === lightboxModal) closeLightbox();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && lightboxModal && lightboxModal.style.display === 'flex') {
+        closeLightbox();
+      }
+    });
+
+    document.addEventListener('click', (e: any) => {
+      const trigger = e.target.closest('.btn-open-lightbox');
+      if (trigger) {
+        const url = trigger.getAttribute('data-url');
+        const title = trigger.getAttribute('data-title') || 'Comprobante';
+        if (url) openLightbox(url, title);
+      }
+    });
+
+    document.addEventListener('change', (e: any) => {
+      if (e.target && e.target.classList.contains('voucher-upload-input')) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string;
+          const parent = e.target.closest('.upload-voucher-container');
+          if (parent && dataUrl) {
+            const pagoCodigo = e.target.getAttribute('data-codigo') || 'Dispersión';
+            parent.innerHTML = `
+              <div 
+                class="btn-open-lightbox" 
+                data-url="${dataUrl}" 
+                data-title="Comprobante ${pagoCodigo}"
+                title="Click para ver comprobante"
+                style="cursor: pointer; display: inline-block; position: relative;"
+              >
+                <img 
+                  src="${dataUrl}" 
+                  alt="Comprobante" 
+                  style="width: 44px; height: 78px; aspect-ratio: 9/16; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-main); box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: block;"
+                />
+                <span style="position: absolute; bottom: 2px; right: 2px; background: var(--success); color: #fff; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800;">✓</span>
+              </div>
+            `;
+            openLightbox(dataUrl, `Comprobante ${pagoCodigo}`);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     });
 
     // Check existing session
