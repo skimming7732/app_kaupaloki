@@ -1,0 +1,6 @@
+# Cloudflare assets ignore
+.git
+.DS_Store
+_worker.js
+_redirects
+_headers
