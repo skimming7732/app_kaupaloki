@@ -46,6 +46,12 @@ export interface Negocio {
   numero: number;
 }
 
+export interface ComprobanteItem {
+  id?: string;
+  url: string;
+  nombre?: string;
+}
+
 export interface Pago {
   id: string;
   codigo: string;
@@ -55,9 +61,11 @@ export interface Pago {
   estado: 'COMPLETADO' | 'RECHAZADO';
   comprobanteUrl?: string;
   comprobanteNombre?: string;
+  comprobantes?: ComprobanteItem[];
   numero: number;
   fechaCreacion?: string;
   referencia?: string;
+  origenFondos?: string;
 }
 
 export interface Admin {
@@ -491,9 +499,17 @@ export const PAGOS: Pago[] = [
     montoCop: 10000000,
     estado: "COMPLETADO",
     referencia: "Maximuelbes SA",
+    origenFondos: "—",
     fechaCreacion: "2026-10-30",
     comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793736000000/kJlOwy5NtnuiziPQ7Hus6Q/hJsftjQm15wY0SZHDtOHHRiMv6z9EGXAymKchOyLS3RSKa5E2phOSggX0QnxuYQV4MXBx1u9jGvCxAIqmfFvjT9SsmsMIYocvHtd2QPKM8cyn4bfJluONAl1HCLlBTv9NLs5wWcxNSv1FNcfn_Hr6w/RZ-Vi3Y5yLJLR21ZXCheNK2GzbCNdo9wBfGZ940xLO4",
     comprobanteNombre: "image.png",
+    comprobantes: [
+      {
+        id: "attaZsPwcd7b1oMrX",
+        url: "https://v5.airtableusercontent.com/v3/u/59/59/1793736000000/kJlOwy5NtnuiziPQ7Hus6Q/hJsftjQm15wY0SZHDtOHHRiMv6z9EGXAymKchOyLS3RSKa5E2phOSggX0QnxuYQV4MXBx1u9jGvCxAIqmfFvjT9SsmsMIYocvHtd2QPKM8cyn4bfJluONAl1HCLlBTv9NLs5wWcxNSv1FNcfn_Hr6w/RZ-Vi3Y5yLJLR21ZXCheNK2GzbCNdo9wBfGZ940xLO4",
+        nombre: "image.png"
+      }
+    ],
     numero: 1
   },
   {
@@ -504,7 +520,9 @@ export const PAGOS: Pago[] = [
     montoCop: 15000000,
     estado: "RECHAZADO",
     referencia: "—",
+    origenFondos: "—",
     fechaCreacion: "2026-10-30",
+    comprobantes: [],
     numero: 2
   },
   {
@@ -515,7 +533,9 @@ export const PAGOS: Pago[] = [
     montoCop: 29920000,
     estado: "COMPLETADO",
     referencia: "—",
+    origenFondos: "—",
     fechaCreacion: "2026-10-30",
+    comprobantes: [],
     numero: 3
   },
   {
@@ -526,7 +546,9 @@ export const PAGOS: Pago[] = [
     montoCop: 19000000,
     estado: "COMPLETADO",
     referencia: "—",
+    origenFondos: "—",
     fechaCreacion: "2026-10-30",
+    comprobantes: [],
     numero: 4
   },
   {
@@ -537,7 +559,9 @@ export const PAGOS: Pago[] = [
     montoCop: 22959878,
     estado: "COMPLETADO",
     referencia: "—",
+    origenFondos: "—",
     fechaCreacion: "2026-10-30",
+    comprobantes: [],
     numero: 5
   },
   {
@@ -548,7 +572,9 @@ export const PAGOS: Pago[] = [
     montoCop: 25694301,
     estado: "COMPLETADO",
     referencia: "—",
+    origenFondos: "—",
     fechaCreacion: "2026-10-30",
+    comprobantes: [],
     numero: 6
   },
   {
@@ -559,9 +585,17 @@ export const PAGOS: Pago[] = [
     montoCop: 15000000,
     estado: "COMPLETADO",
     referencia: "—",
+    origenFondos: "—",
     fechaCreacion: "2026-11-03",
     comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793757600000/YSiQPnzRHG__OiuUf1KD7Q/ciT7WBV2BpcWnCok7KshZJU_z0xSXzOOiyU6RPDR6DfLkYb8TQF4EqwMM3a2fi15Jm_lE7xb9ubep0f1m-2bfT7qGxJMv59qw6BeWu0AJ6tvFfT_jyYV-i61318ra0uU-OL6bapcOsMJ_u6RJUD5ZKbemJCzk3d8s5e7suQz1ts/caTst_YhV08uZ5FRUpwXHaNyuVLawIZwZccwVzSwLt8",
     comprobanteNombre: "Logo Asteana.png",
+    comprobantes: [
+      {
+        id: "attaRNQyRE9uHdSkG",
+        url: "https://v5.airtableusercontent.com/v3/u/59/59/1793757600000/YSiQPnzRHG__OiuUf1KD7Q/ciT7WBV2BpcWnCok7KshZJU_z0xSXzOOiyU6RPDR6DfLkYb8TQF4EqwMM3a2fi15Jm_lE7xb9ubep0f1m-2bfT7qGxJMv59qw6BeWu0AJ6tvFfT_jyYV-i61318ra0uU-OL6bapcOsMJ_u6RJUD5ZKbemJCzk3d8s5e7suQz1ts/caTst_YhV08uZ5FRUpwXHaNyuVLawIZwZccwVzSwLt8",
+        nombre: "Logo Asteana.png"
+      }
+    ],
     numero: 7
   },
   {
@@ -572,7 +606,9 @@ export const PAGOS: Pago[] = [
     montoCop: 15000000,
     estado: "COMPLETADO",
     referencia: "—",
+    origenFondos: "Coinsenda-Kaupaloki",
     fechaCreacion: "2026-11-03",
+    comprobantes: [],
     numero: 8
   },
   {
@@ -583,7 +619,9 @@ export const PAGOS: Pago[] = [
     montoCop: 30000000,
     estado: "COMPLETADO",
     referencia: "Constructora SAS",
+    origenFondos: "Coinsenda-Jero All Solutions",
     fechaCreacion: "2026-11-03",
+    comprobantes: [],
     numero: 9
   },
   {
@@ -591,10 +629,12 @@ export const PAGOS: Pago[] = [
     codigo: "D0010",
     clienteCodigo: "C0001-FRANZ",
     clienteNombre: "FRANZ",
-    montoCop: 0,
+    montoCop: 10000000,
     estado: "COMPLETADO",
-    referencia: "—",
+    referencia: "EFECTIVO",
+    origenFondos: "Efectivo-Dosquebradas",
     fechaCreacion: "2026-11-03",
+    comprobantes: [],
     numero: 10
   }
 ];

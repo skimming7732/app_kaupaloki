@@ -86,9 +86,29 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
         </div>
       </div>
 
-      <!-- STEP 2: DASHBOARD VIEW (Shown when PIN is verified) -->
+      <!-- STEP 2: DASHBOARD VIEW (Shown when PIN is verified or accessed internally) -->
       <div id="portal-dashboard" style="display: none; flex-direction: column; gap: 24px;">
         
+        <!-- Internal Access Banner (visible for logged-in operators / admins from platform) -->
+        <div id="internal-access-banner" style="display: none; align-items: center; justify-content: space-between; gap: 14px; background: rgba(67, 24, 255, 0.08); border: 1px solid rgba(67, 24, 255, 0.25); border-radius: 14px; padding: 12px 18px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: var(--brand-primary); color: #fff;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </span>
+            <span style="font-size: 13px; font-weight: 700; color: var(--brand-primary);">
+              Modo Interno • Visualización sin PIN (Sesión Dashboard)
+            </span>
+          </div>
+          <a href="/clientes" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--brand-primary); text-decoration: none; padding: 7px 14px; border-radius: 9px; background: var(--bg-card); border: 1px solid var(--border-main); box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Volver a Clientes
+          </a>
+        </div>
+
         <!-- Header Client Profile Info -->
         <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 24px 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; box-shadow: var(--shadow-card);">
           <div style="display: flex; align-items: center; gap: 18px;">
@@ -823,20 +843,51 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
       applyFiltersAndRender();
     });
 
-    // Check existing session
-    const savedPin = sessionStorage.getItem(`kaupaloki_portal_${slug}`);
-    if (savedPin && slug) {
-      supabase
-        .from('client_shared_links')
-        .select('*')
-        .eq('slug', slug)
-        .eq('is_active', true)
-        .single()
-        .then(({ data }) => {
-          if (data && data.pin === savedPin) {
-            loadClientPortalData(data);
-          }
-        });
+    // Check existing session or internal dashboard access (Bypasses PIN for internal users)
+    async function initClientAccess() {
+      const fromDashboard = urlParams.get('from') === 'dashboard' || sessionStorage.getItem('kaupaloki_internal_session') === 'true';
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session || fromDashboard) {
+        sessionStorage.setItem('kaupaloki_internal_session', 'true');
+        const clientes: any[] = (window as any).INITIAL_CLIENTES || [];
+        const clean = slug.toLowerCase().replace(/^c-/, '');
+        const target = clientes.find(c => 
+          c.codigo.toLowerCase() === slug.toLowerCase() ||
+          c.codigo.toLowerCase() === clean ||
+          c.codigo.toLowerCase().replace(/[^a-z0-9]/g, '-') === clean ||
+          c.id === slug ||
+          (c.nombre && c.nombre.toLowerCase().replace(/[^a-z0-9]/g, '-') === clean)
+        );
+
+        if (target) {
+          loadClientPortalData({
+            client_id: target.codigo,
+            client_name: target.nombre
+          });
+          const banner = document.getElementById('internal-access-banner');
+          if (banner) banner.style.display = 'flex';
+          return;
+        }
+      }
+
+      // If not internal, check PIN session for public links
+      const savedPin = sessionStorage.getItem(`kaupaloki_portal_${slug}`);
+      if (savedPin && slug) {
+        supabase
+          .from('client_shared_links')
+          .select('*')
+          .eq('slug', slug)
+          .eq('is_active', true)
+          .single()
+          .then(({ data }) => {
+            if (data && data.pin === savedPin) {
+              loadClientPortalData(data);
+            }
+          });
+      }
     }
+
+    initClientAccess();
   </script>
 </Layout>

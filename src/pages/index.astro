@@ -180,7 +180,8 @@ function formatDecimal(amount: number, digits = 2): string {
       <header class="horizon-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; padding: 4px 0;">
         <!-- Left: Toggle & Breadcrumb & Title -->
         <div style="display: flex; align-items: center; gap: 14px;">
-          <button id="btn-navbar-sidebar-toggle" title="Alternar menú lateral" style="display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-main); color: var(--text-secondary); cursor: pointer; box-shadow: var(--shadow-card); transition: all 0.2s;">
+          <!-- Mobile only menu button (oculto en PC) -->
+          <button id="btn-navbar-sidebar-toggle" class="mobile-only-toggle" title="Alternar menú lateral" style="display: none; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-main); color: var(--text-secondary); cursor: pointer; box-shadow: var(--shadow-card); transition: all 0.2s;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -469,11 +470,11 @@ function formatDecimal(amount: number, digits = 2): string {
                     </td>
                     <td style="padding: 16px 20px; text-align: center;">
                       <div style="display: inline-flex; align-items: center; gap: 8px;">
-                        <!-- Acción 1: Ver portal cliente /cliente/[id] -->
+                        <!-- Acción 1: Ver portal cliente /cliente/[id] (Acceso interno sin PIN) -->
                         <a 
-                          href={`/cliente/${clientSlug}`} 
+                          href={`/cliente/${clientSlug}?from=dashboard`} 
                           class="btn-view-portal"
-                          title={`Ver portal contable de ${c.nombre}`}
+                          title={`Ver portal contable de ${c.nombre} (Sin PIN)`}
                           style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -577,47 +578,66 @@ function formatDecimal(amount: number, digits = 2): string {
           <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
               <tr style="border-bottom: 1px solid var(--border-main);">
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cliente</th>
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto Dispersado (COP)</th>
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Comprobante (9:16)</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Fecha Creación</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cliente</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Referencia</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Origen Fondos</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto (COP)</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Comprobante(s)</th>
               </tr>
             </thead>
             <tbody>
               {PAGOS.map((p) => {
                 const esCompletado = p.estado === 'COMPLETADO';
+                const vouchers = (p.comprobantes && p.comprobantes.length > 0)
+                  ? p.comprobantes
+                  : (p.comprobanteUrl ? [{ url: p.comprobanteUrl, nombre: p.comprobanteNombre || `Comprobante ${p.codigo}` }] : []);
                 return (
                   <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
-                    <td style="padding: 14px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px; vertical-align: middle;">{p.numero}</td>
-                    <td style="padding: 14px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; vertical-align: middle;">{p.codigo}</td>
-                    <td style="padding: 14px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px; vertical-align: middle;">{p.clienteNombre}</td>
-                    <td style="padding: 14px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {esCompletado ? 'var(--success)' : 'var(--danger)'}; vertical-align: middle;">
+                    <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 12px; vertical-align: middle;">{p.numero}</td>
+                    <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; vertical-align: middle;">{p.codigo}</td>
+                    <td style="padding: 14px 18px; color: var(--text-secondary); font-size: 13px; vertical-align: middle;">{p.fechaCreacion || '—'}</td>
+                    <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 13px; vertical-align: middle;">{p.clienteNombre}</td>
+                    <td style="padding: 14px 18px; color: var(--text-primary); font-weight: 500; font-size: 13px; vertical-align: middle;">{p.referencia || '—'}</td>
+                    <td style="padding: 14px 18px; color: var(--text-secondary); font-size: 12px; vertical-align: middle;">
+                      <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; font-size: 11px;">
+                        {p.origenFondos || '—'}
+                      </span>
+                    </td>
+                    <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {esCompletado ? 'var(--success)' : 'var(--danger)'}; vertical-align: middle;">
                       {formatCop(p.montoCop)}
                     </td>
-                    <td style="padding: 14px 20px; text-align: center; vertical-align: middle;">
+                    <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
                       {esCompletado ? (
                         <span class="status-pill status-success">COMPLETADO</span>
                       ) : (
                         <span class="status-pill status-danger">RECHAZADO</span>
                       )}
                     </td>
-                    <td style="padding: 14px 20px; text-align: center; vertical-align: middle;">
-                      {p.comprobanteUrl ? (
+                    <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+                      {vouchers.length > 0 ? (
                         <div 
                           class="btn-open-lightbox" 
-                          data-url={p.comprobanteUrl} 
-                          data-title={`Comprobante ${p.codigo} - ${p.clienteNombre}`}
-                          title="Click para ver comprobante en la misma pestaña"
-                          style="cursor: pointer; display: inline-block; transition: transform 0.15s ease;"
+                          data-vouchers={JSON.stringify(vouchers)}
+                          data-url={vouchers[0].url} 
+                          data-title={`Dispersión ${p.codigo} • ${p.clienteNombre}`}
+                          title={`Click para ver ${vouchers.length > 1 ? vouchers.length + ' comprobantes' : 'comprobante'}`}
+                          style="cursor: pointer; display: inline-block; position: relative; transition: transform 0.15s ease;"
                         >
                           <img 
-                            src={p.comprobanteUrl} 
+                            src={vouchers[0].url} 
                             alt={`Comprobante ${p.codigo}`} 
                             loading="lazy"
                             style="width: 44px; height: 78px; aspect-ratio: 9/16; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-main); box-shadow: 0 2px 8px rgba(0,0,0,0.12); display: block;" 
                           />
+                          {vouchers.length > 1 && (
+                            <span style="position: absolute; top: -6px; right: -6px; background: var(--brand-primary); color: #fff; font-size: 10px; font-weight: 800; border-radius: 9999px; padding: 2px 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1.5px solid var(--bg-card);">
+                              +{vouchers.length}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <div class="upload-voucher-container" style="display: inline-block;">
@@ -650,7 +670,7 @@ function formatDecimal(amount: number, digits = 2): string {
             </tbody>
             <tfoot>
               <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
-                <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTAL DISPERSADO EN CAJA:</td>
+                <td colspan="6" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTAL DISPERSADO EN CAJA:</td>
                 <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 14px;">
                   {formatCop(PAGOS.filter(p => p.estado === 'COMPLETADO').reduce((a, b) => a + b.montoCop, 0))}
                 </td>
@@ -789,110 +809,47 @@ function formatDecimal(amount: number, digits = 2): string {
         <!-- ============================================================ -->
         <div id="tab-usuarios" class="tab-pane" style="display: none; padding: 24px;">
           
-          <!-- Card: Crear Usuario (Solo Admin) -->
-          <div id="admin-user-create-card" style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 18px; padding: 22px; margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 40px; height: 40px; border-radius: 12px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <line x1="19" y1="8" x2="19" y2="14"></line>
-                    <line x1="22" y1="11" x2="16" y2="11"></line>
-                  </svg>
-                </div>
-                <div>
-                  <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
-                    Crear Usuario
-                  </h3>
-                  <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">
-                    Registra credenciales con rol de Operador o Administrador en Supabase
-                  </p>
-                </div>
+          <!-- Banner Superior con Botón de Creación Modal -->
+          <div style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 18px; padding: 22px; margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <line x1="19" y1="8" x2="19" y2="14"></line>
+                  <line x1="22" y1="11" x2="16" y2="11"></line>
+                </svg>
               </div>
-              <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--brand-primary-light); color: var(--brand-primary); text-transform: uppercase;">
-                Admin Only
-              </span>
+              <div>
+                <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+                  Gestión de Usuarios y Accesos
+                </h3>
+                <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                  Crea usuarios, asigna roles y autoriza qué divisas pueden registrar los operadores
+                </p>
+              </div>
             </div>
 
-            <form id="create-user-view-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: end;">
-              <div>
-                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
-                  Nombre Completo
-                </label>
-                <input 
-                  type="text" 
-                  id="view-user-name" 
-                  required 
-                  placeholder="Ej. Juan Pérez" 
-                  style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
-                />
-              </div>
-
-              <div>
-                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
-                  Correo Electrónico
-                </label>
-                <input 
-                  type="email" 
-                  id="view-user-email" 
-                  required 
-                  placeholder="usuario@kaupaloki.com" 
-                  style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
-                />
-              </div>
-
-              <div>
-                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
-                  Contraseña
-                </label>
-                <input 
-                  type="password" 
-                  id="view-user-password" 
-                  required 
-                  placeholder="Mínimo 6 caracteres" 
-                  minlength="6" 
-                  style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
-                />
-              </div>
-
-              <div>
-                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
-                  Rol en Plataforma
-                </label>
-                <select 
-                  id="view-user-role" 
-                  style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; box-sizing: border-box;"
-                >
-                  <option value="operador">Operador (Clientes)</option>
-                  <option value="client">Cliente (Portal)</option>
-                  <option value="administrador">Administrador (Total)</option>
-                </select>
-              </div>
-
-              <div style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 6px;">
-                <span id="view-user-status" style="font-size: 13px; font-weight: 600;"></span>
-                <button 
-                  type="submit" 
-                  id="btn-view-submit-user" 
-                  style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 12px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35);"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  Crear Usuario
-                </button>
-              </div>
-            </form>
+            <!-- Botón para abrir modal de creación -->
+            <button 
+              id="btn-open-create-user-modal"
+              type="button"
+              style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 12px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35);"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Crear Usuario</span>
+            </button>
           </div>
 
           <!-- Section: Directorio de Usuarios -->
           <div style="border: 1px solid var(--border-main); border-radius: 16px; overflow: hidden; background: var(--bg-card);">
             <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-main); display: flex; justify-content: space-between; align-items: center; background: var(--bg-card-secondary);">
               <div>
-                <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
-                  Directorio Usuarios
+                <h3 style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+                  Directorio de Usuarios Supabase
                 </h3>
               </div>
               <button 
@@ -911,12 +868,12 @@ function formatDecimal(amount: number, digits = 2): string {
               <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
                 <thead>
                   <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
-                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); width: 40px;">#</th>
-                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Nombre</th>
-                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Correo Electrónico</th>
-                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Rol</th>
-                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Onboarding</th>
-                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Fecha Creación</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); width: 30px;">#</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Usuario</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Rol</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Divisas Autorizadas</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Acciones</th>
                   </tr>
                 </thead>
                 <tbody id="usuarios-view-table-body">
@@ -929,18 +886,17 @@ function formatDecimal(amount: number, digits = 2): string {
               </table>
             </div>
           </div>
-
         </div>
       </div>
 
       <!-- ============================================================== -->
-      <!-- MODAL: VISOR DE COMPROBANTE 9:16 (MISMA PESTAÑA) -->
+      <!-- MODAL: VISOR DE COMPROBANTE 9:16 (CON COPIAR Y MULTI-COMPROBANTE) -->
       <!-- ============================================================== -->
       <div id="comprobante-lightbox-modal" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.85); backdrop-filter: blur(8px); z-index: 120; align-items: center; justify-content: center; padding: 20px;">
-        <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 24px; width: 100%; max-width: 480px; max-height: 92vh; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-card); position: relative;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 22px 24px; width: 100%; max-width: 500px; max-height: 94vh; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow-card); position: relative;">
           
           <!-- Close button -->
-          <button id="btn-close-lightbox" style="position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <button id="btn-close-lightbox" style="position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -948,54 +904,247 @@ function formatDecimal(amount: number, digits = 2): string {
           </button>
 
           <!-- Header -->
-          <div style="display: flex; align-items: center; gap: 12px; padding-right: 36px;">
-            <div style="width: 40px; height: 40px; border-radius: 12px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
-              </svg>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding-right: 36px;">
+            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+              <div style="width: 38px; height: 38px; border-radius: 12px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <div style="overflow: hidden;">
+                <h3 id="lightbox-title" style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                  Comprobante de Dispersión
+                </h3>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">
+                  Formato Vertical 9:16
+                </p>
+              </div>
             </div>
-            <div style="overflow: hidden;">
-              <h3 id="lightbox-title" style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
-                Comprobante de Dispersión
-              </h3>
-              <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">
-                Formato Vertical 9:16 • Vista previa sin salir de la plataforma
-              </p>
-            </div>
+
+            <span id="lightbox-counter-badge" style="display: none; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; background: var(--bg-main); color: var(--brand-primary); border: 1px solid var(--border-main); white-space: nowrap;">
+              1 de 1
+            </span>
           </div>
 
-          <!-- 9:16 Preview Container -->
-          <div style="display: flex; align-items: center; justify-content: center; background: var(--bg-main); border: 1px solid var(--border-main); border-radius: 16px; padding: 12px; max-height: 62vh; overflow: hidden;">
+          <!-- 9:16 Preview Container with Prev/Next buttons -->
+          <div style="position: relative; display: flex; align-items: center; justify-content: center; background: var(--bg-main); border: 1px solid var(--border-main); border-radius: 16px; padding: 12px; max-height: 56vh; overflow: hidden;">
+            <button id="btn-lightbox-prev" title="Comprobante anterior" style="display: none; position: absolute; left: 10px; z-index: 10; width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; cursor: pointer; align-items: center; justify-content: center; transition: all 0.2s;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
             <img 
               id="lightbox-image" 
               src="" 
               alt="Comprobante" 
-              style="max-height: 58vh; max-width: 100%; aspect-ratio: 9/16; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" 
+              style="max-height: 52vh; max-width: 100%; aspect-ratio: 9/16; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);" 
             />
+
+            <button id="btn-lightbox-next" title="Siguiente comprobante" style="display: none; position: absolute; right: 10px; z-index: 10; width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; cursor: pointer; align-items: center; justify-content: center; transition: all 0.2s;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
           </div>
 
-          <!-- Actions -->
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 4px;">
+          <!-- Strip for multiple vouchers thumbnails -->
+          <div id="lightbox-thumbnails-strip" style="display: none; gap: 8px; overflow-x: auto; padding: 4px 2px; justify-content: center;"></div>
+
+          <!-- Actions: Copiar + Descargar -->
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding-top: 4px;">
             <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">
-              Presiona ESC o haz click afuera para cerrar
+              Presiona ESC para cerrar
             </span>
-            <a 
-              id="lightbox-download-btn" 
-              href="" 
-              download="comprobante.png" 
-              target="_blank" 
-              style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer;"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Descargar
-            </a>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <!-- Botón Copiar Comprobante -->
+              <button 
+                id="btn-copy-lightbox" 
+                type="button"
+                title="Copiar imagen al portapapeles"
+                style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 15px; border-radius: 10px; background: var(--bg-main); border: 1px solid var(--border-main); color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="btn-copy-lightbox-text">Copiar</span>
+              </button>
+
+              <!-- Botón Descargar -->
+              <a 
+                id="lightbox-download-btn" 
+                href="" 
+                download="comprobante.png" 
+                target="_blank" 
+                style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer;"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Descargar
+              </a>
+            </div>
           </div>
+
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- MODAL POPUP: CREAR USUARIO / ENVIAR INVITACIÓN CON DIVISAS -->
+      <!-- ============================================================== -->
+      <div id="modal-create-user-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.75); backdrop-filter: blur(8px); z-index: 130; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 28px 30px; width: 100%; max-width: 520px; box-shadow: var(--shadow-card); position: relative; max-height: 92vh; overflow-y: auto;">
+          
+          <button id="btn-close-create-user-modal" style="position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <!-- Modal Header -->
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
+            <div style="width: 44px; height: 44px; border-radius: 14px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <line x1="19" y1="8" x2="19" y2="14"></line>
+                <line x1="22" y1="11" x2="16" y2="11"></line>
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+                Invitar Nuevo Usuario
+              </h3>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                Recibirá un enlace seguro para crear su contraseña y acceder
+              </p>
+            </div>
+          </div>
+
+          <form id="form-modal-create-user" style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                Nombre Completo *
+              </label>
+              <input 
+                type="text" 
+                id="modal-user-name" 
+                required 
+                placeholder="Ej. Andrés Martínez" 
+                style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
+              />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                Correo Electrónico *
+              </label>
+              <input 
+                type="email" 
+                id="modal-user-email" 
+                required 
+                placeholder="operador@kaupaloki.com" 
+                style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
+              />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                Rol en la Plataforma *
+              </label>
+              <select 
+                id="modal-user-role" 
+                style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; box-sizing: border-box;"
+              >
+                <option value="operador">Operador (Gestión de Clientes y Negocios)</option>
+                <option value="administrador">Administrador (Control Total)</option>
+                <option value="client">Cliente</option>
+              </select>
+            </div>
+
+            <!-- Divisas Autorizadas para Registrar -->
+            <div id="container-authorized-currencies" style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 14px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-primary);">
+                  Divisas Autorizadas para Operar
+                </label>
+                <button type="button" id="btn-toggle-all-currencies" style="background: none; border: none; font-size: 11px; font-weight: 700; color: var(--brand-primary); cursor: pointer;">
+                  Seleccionar Todas
+                </button>
+              </div>
+              <p style="margin: 0 0 10px 0; font-size: 11px; color: var(--text-muted);">
+                Marca las divisas que este operador tiene permiso para registrar en negocios:
+              </p>
+              
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                {['USD', 'USDT', 'COP', 'BRL', 'PEN', 'CLP', 'ARS', 'HNL', 'VES'].map((curr) => (
+                  <label style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); cursor: pointer; font-size: 12px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--text-primary);">
+                    <input type="checkbox" name="authorized_currency" value={curr} checked style="accent-color: var(--brand-primary);" />
+                    <span>{curr}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <!-- Status message -->
+            <div id="modal-create-user-status" style="font-size: 12px; font-weight: 600; min-height: 18px;"></div>
+
+            <!-- Success Box with Link (Hidden initially) -->
+            <div id="modal-invitation-success-box" style="display: none; background: rgba(5, 205, 153, 0.1); border: 1px solid rgba(5, 205, 153, 0.3); border-radius: 14px; padding: 14px; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; color: var(--success); font-size: 13px; font-weight: 700;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>¡Invitación generada con éxito!</span>
+              </div>
+              <p style="margin: 0; font-size: 11px; color: var(--text-secondary);">
+                Puedes enviar el enlace directamente por WhatsApp o copiarlo para compartirlo:
+              </p>
+              <div style="display: flex; gap: 8px;">
+                <input 
+                  type="text" 
+                  id="modal-invitation-link-input" 
+                  readonly 
+                  style="flex: 1; padding: 8px 10px; font-size: 11px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-family: ui-monospace, monospace; outline: none;" 
+                />
+                <button 
+                  type="button" 
+                  id="btn-copy-invitation-link"
+                  style="padding: 8px 14px; border-radius: 8px; border: none; background: var(--brand-primary); color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;"
+                >
+                  Copiar Enlace
+                </button>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 6px;">
+              <button 
+                type="button" 
+                id="btn-cancel-create-user" 
+                style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;"
+              >
+                Cerrar
+              </button>
+              <button 
+                type="submit" 
+                id="btn-submit-create-user" 
+                style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 10px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35);"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                <span>Enviar Invitación</span>
+              </button>
+            </div>
+          </form>
 
         </div>
       </div>
@@ -1331,6 +1480,18 @@ function formatDecimal(amount: number, digits = 2): string {
     border-radius: 4px 0 0 4px;
   }
 
+  /* Navbar toggle button (oculto en PC) */
+  #btn-navbar-sidebar-toggle,
+  .mobile-only-toggle {
+    display: none !important;
+  }
+  @media (max-width: 900px) {
+    #btn-navbar-sidebar-toggle,
+    .mobile-only-toggle {
+      display: flex !important;
+    }
+  }
+
   /* Table styles */
   .horizon-row:hover {
     background: var(--bg-card-secondary);
@@ -1638,27 +1799,84 @@ function formatDecimal(amount: number, digits = 2): string {
   // ==============================================================
   // COMPROBANTE LIGHTBOX MODAL (MISMA PESTAÑA, SIN NUEVA VENTANA)
   // ==============================================================
+  // ==============================================================
+  // COMPROBANTE LIGHTBOX MODAL (MULTI-COMPROBANTE + COPIAR IMAGEN)
+  // ==============================================================
   const lightboxModal = document.getElementById('comprobante-lightbox-modal');
   const lightboxImage = document.getElementById('lightbox-image') as HTMLImageElement | null;
   const lightboxTitle = document.getElementById('lightbox-title');
+  const lightboxSubtitle = document.getElementById('lightbox-subtitle');
+  const lightboxCounterBadge = document.getElementById('lightbox-counter-badge');
   const lightboxDownloadBtn = document.getElementById('lightbox-download-btn') as HTMLAnchorElement | null;
   const btnCloseLightbox = document.getElementById('btn-close-lightbox');
+  const btnLightboxPrev = document.getElementById('btn-lightbox-prev');
+  const btnLightboxNext = document.getElementById('btn-lightbox-next');
+  const lightboxStrip = document.getElementById('lightbox-thumbnails-strip');
+  const btnCopyLightbox = document.getElementById('btn-copy-lightbox');
+  const btnCopyLightboxText = document.getElementById('btn-copy-lightbox-text');
 
-  function openLightbox(url: string, title: string = 'Comprobante de Dispersión') {
-    if (!lightboxModal || !lightboxImage) return;
-    lightboxImage.src = url;
-    if (lightboxTitle) lightboxTitle.textContent = title;
-    if (lightboxDownloadBtn) {
-      lightboxDownloadBtn.href = url;
-      lightboxDownloadBtn.setAttribute('download', `${title.replace(/[^a-z0-9]/gi, '_')}.png`);
+  let activeLightboxVouchers: Array<{ url: string; nombre?: string }> = [];
+  let activeLightboxIndex = 0;
+  let activeLightboxTitle = '';
+
+  function renderLightboxVoucher() {
+    if (!lightboxImage || activeLightboxVouchers.length === 0) return;
+    const current = activeLightboxVouchers[activeLightboxIndex];
+    lightboxImage.src = current.url;
+
+    if (lightboxTitle) lightboxTitle.textContent = activeLightboxTitle || current.nombre || 'Comprobante de Dispersión';
+    if (lightboxSubtitle) {
+      lightboxSubtitle.textContent = current.nombre ? `${current.nombre} • Formato Vertical 9:16` : 'Formato Vertical 9:16';
     }
-    lightboxModal.style.display = 'flex';
+
+    if (lightboxDownloadBtn) {
+      lightboxDownloadBtn.href = current.url;
+      lightboxDownloadBtn.setAttribute('download', (current.nombre || 'comprobante').replace(/[^a-z0-9.]/gi, '_'));
+    }
+
+    if (activeLightboxVouchers.length > 1) {
+      if (lightboxCounterBadge) {
+        lightboxCounterBadge.style.display = 'inline-block';
+        lightboxCounterBadge.textContent = `${activeLightboxIndex + 1} de ${activeLightboxVouchers.length}`;
+      }
+      if (btnLightboxPrev) btnLightboxPrev.style.display = 'flex';
+      if (btnLightboxNext) btnLightboxNext.style.display = 'flex';
+
+      if (lightboxStrip) {
+        lightboxStrip.style.display = 'flex';
+        lightboxStrip.innerHTML = activeLightboxVouchers.map((v, i) => `
+          <div 
+            class="lightbox-thumb-item" 
+            data-index="${i}"
+            style="cursor: pointer; border-radius: 6px; overflow: hidden; border: 2px solid ${i === activeLightboxIndex ? 'var(--brand-primary)' : 'transparent'}; opacity: ${i === activeLightboxIndex ? '1' : '0.55'}; width: 34px; height: 50px; flex-shrink: 0; transition: all 0.2s;"
+          >
+            <img src="${v.url}" alt="thumb" style="width: 100%; height: 100%; object-fit: cover;" />
+          </div>
+        `).join('');
+      }
+    } else {
+      if (lightboxCounterBadge) lightboxCounterBadge.style.display = 'none';
+      if (btnLightboxPrev) btnLightboxPrev.style.display = 'none';
+      if (btnLightboxNext) btnLightboxNext.style.display = 'none';
+      if (lightboxStrip) lightboxStrip.style.display = 'none';
+    }
+  }
+
+  function openLightboxWithVouchers(vouchers: Array<{ url: string; nombre?: string }>, title: string = 'Comprobante de Dispersión') {
+    if (!vouchers || vouchers.length === 0) return;
+    activeLightboxVouchers = vouchers;
+    activeLightboxIndex = 0;
+    activeLightboxTitle = title;
+    renderLightboxVoucher();
+    if (lightboxModal) lightboxModal.style.display = 'flex';
   }
 
   function closeLightbox() {
     if (lightboxModal) {
       lightboxModal.style.display = 'none';
       if (lightboxImage) lightboxImage.src = '';
+      activeLightboxVouchers = [];
+      activeLightboxIndex = 0;
     }
   }
 
@@ -1670,19 +1888,105 @@ function formatDecimal(amount: number, digits = 2): string {
     if (e.key === 'Escape' && lightboxModal && lightboxModal.style.display === 'flex') {
       closeLightbox();
     }
-  });
-
-  // Delegation para abrir lightbox al hacer click en cualquier thumbnail 9:16
-  document.addEventListener('click', (e: any) => {
-    const trigger = e.target.closest('.btn-open-lightbox');
-    if (trigger) {
-      const url = trigger.getAttribute('data-url');
-      const title = trigger.getAttribute('data-title') || 'Comprobante';
-      if (url) openLightbox(url, title);
+    if (lightboxModal && lightboxModal.style.display === 'flex' && activeLightboxVouchers.length > 1) {
+      if (e.key === 'ArrowLeft') {
+        activeLightboxIndex = (activeLightboxIndex - 1 + activeLightboxVouchers.length) % activeLightboxVouchers.length;
+        renderLightboxVoucher();
+      } else if (e.key === 'ArrowRight') {
+        activeLightboxIndex = (activeLightboxIndex + 1) % activeLightboxVouchers.length;
+        renderLightboxVoucher();
+      }
     }
   });
 
-  // Manejo de subida local de comprobante si estaba vacío
+  btnLightboxPrev?.addEventListener('click', () => {
+    if (activeLightboxVouchers.length <= 1) return;
+    activeLightboxIndex = (activeLightboxIndex - 1 + activeLightboxVouchers.length) % activeLightboxVouchers.length;
+    renderLightboxVoucher();
+  });
+
+  btnLightboxNext?.addEventListener('click', () => {
+    if (activeLightboxVouchers.length <= 1) return;
+    activeLightboxIndex = (activeLightboxIndex + 1) % activeLightboxVouchers.length;
+    renderLightboxVoucher();
+  });
+
+  lightboxStrip?.addEventListener('click', (e: any) => {
+    const thumb = e.target.closest('.lightbox-thumb-item');
+    if (thumb) {
+      const idx = parseInt(thumb.getAttribute('data-index') || '0', 10);
+      activeLightboxIndex = idx;
+      renderLightboxVoucher();
+    }
+  });
+
+  // Copiar Comprobante al Portapapeles (Imagen o enlace)
+  btnCopyLightbox?.addEventListener('click', async () => {
+    if (activeLightboxVouchers.length === 0) return;
+    const current = activeLightboxVouchers[activeLightboxIndex];
+
+    if (btnCopyLightboxText) btnCopyLightboxText.textContent = 'Copiando...';
+
+    try {
+      const response = await fetch(current.url);
+      const blob = await response.blob();
+
+      let pngBlob = blob;
+      if (blob.type !== 'image/png') {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = current.url;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0);
+        pngBlob = await new Promise(r => canvas.toBlob(r as any, 'image/png')) as Blob;
+      }
+
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': pngBlob })
+      ]);
+      if (btnCopyLightboxText) btnCopyLightboxText.textContent = '¡Copiado! ✓';
+    } catch (err) {
+      try {
+        await navigator.clipboard.writeText(current.url);
+        if (btnCopyLightboxText) btnCopyLightboxText.textContent = '¡Link Copiado! ✓';
+      } catch (e2) {
+        if (btnCopyLightboxText) btnCopyLightboxText.textContent = 'Error';
+      }
+    }
+
+    setTimeout(() => {
+      if (btnCopyLightboxText) btnCopyLightboxText.textContent = 'Copiar';
+    }, 2000);
+  });
+
+  // Abrir Lightbox desde tabla
+  document.addEventListener('click', (e: any) => {
+    const trigger = e.target.closest('.btn-open-lightbox');
+    if (trigger) {
+      const vouchersAttr = trigger.getAttribute('data-vouchers');
+      const title = trigger.getAttribute('data-title') || 'Comprobante';
+      if (vouchersAttr) {
+        try {
+          const parsed = JSON.parse(vouchersAttr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            openLightboxWithVouchers(parsed, title);
+            return;
+          }
+        } catch (e) {}
+      }
+      const url = trigger.getAttribute('data-url');
+      if (url) openLightboxWithVouchers([{ url, nombre: title }], title);
+    }
+  });
+
+  // Subida local de comprobante si estaba vacío
   document.addEventListener('change', (e: any) => {
     if (e.target && e.target.classList.contains('voucher-upload-input')) {
       const file = e.target.files?.[0];
@@ -1698,6 +2002,7 @@ function formatDecimal(amount: number, digits = 2): string {
             <div 
               class="btn-open-lightbox" 
               data-url="${dataUrl}" 
+              data-vouchers='${JSON.stringify([{ url: dataUrl, nombre: "Comprobante " + pagoCodigo }])}'
               data-title="Comprobante ${pagoCodigo}"
               title="Click para ver comprobante"
               style="cursor: pointer; display: inline-block; position: relative;"
@@ -1710,426 +2015,146 @@ function formatDecimal(amount: number, digits = 2): string {
               <span style="position: absolute; bottom: 2px; right: 2px; background: var(--success); color: #fff; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800;">✓</span>
             </div>
           `;
-          openLightbox(dataUrl, `Comprobante ${pagoCodigo}`);
+          openLightboxWithVouchers([{ url: dataUrl, nombre: `Comprobante ${pagoCodigo}` }], `Comprobante ${pagoCodigo}`);
         }
       };
       reader.readAsDataURL(file);
     }
   });
 
-  // Tema Claro / Oscuro
-  const sunIcon = document.querySelector('.sun-icon') as HTMLElement | null;
-  const moonIcon = document.querySelector('.moon-icon') as HTMLElement | null;
+  // ==============================================================
+  // GESTIÓN DE USUARIOS Y MODAL POPUP DE INVITACIÓN
+  // ==============================================================
+  const btnOpenCreateUserModal = document.getElementById('btn-open-create-user-modal');
+  const modalCreateUserBackdrop = document.getElementById('modal-create-user-backdrop');
+  const btnCloseCreateUserModal = document.getElementById('btn-close-create-user-modal');
+  const btnCancelCreateUser = document.getElementById('btn-cancel-create-user');
+  const formModalCreateUser = document.getElementById('form-modal-create-user') as HTMLFormElement | null;
+  const modalCreateUserStatus = document.getElementById('modal-create-user-status');
+  const modalInvitationSuccessBox = document.getElementById('modal-invitation-success-box');
+  const modalInvitationLinkInput = document.getElementById('modal-invitation-link-input') as HTMLInputElement | null;
+  const btnCopyInvitationLink = document.getElementById('btn-copy-invitation-link');
+  const btnToggleAllCurrencies = document.getElementById('btn-toggle-all-currencies');
 
-  function updateThemeToggleIcons() {
-    const isDark = document.documentElement.classList.contains('dark');
-    if (sunIcon && moonIcon) {
-      if (isDark) {
-        sunIcon.style.display = 'block';
-        moonIcon.style.display = 'none';
-      } else {
-        sunIcon.style.display = 'none';
-        moonIcon.style.display = 'block';
-      }
+  function openCreateUserModal() {
+    if (modalCreateUserBackdrop) {
+      modalCreateUserBackdrop.style.display = 'flex';
+      if (modalCreateUserStatus) modalCreateUserStatus.textContent = '';
+      if (modalInvitationSuccessBox) modalInvitationSuccessBox.style.display = 'none';
+      formModalCreateUser?.reset();
+      // By default all currencies checked
+      document.querySelectorAll('input[name="authorized_currency"]').forEach((el: any) => {
+        el.checked = true;
+      });
+      (document.getElementById('modal-user-name') as HTMLInputElement | null)?.focus();
     }
   }
-  updateThemeToggleIcons();
 
-  if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-      const isDark = document.documentElement.classList.contains('dark');
-      if (isDark) {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('kaupaloki_theme', 'light');
-      } else {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('kaupaloki_theme', 'dark');
-      }
-      updateThemeToggleIcons();
+  function closeCreateUserModal() {
+    if (modalCreateUserBackdrop) modalCreateUserBackdrop.style.display = 'none';
+  }
+
+  btnOpenCreateUserModal?.addEventListener('click', openCreateUserModal);
+  btnCloseCreateUserModal?.addEventListener('click', closeCreateUserModal);
+  btnCancelCreateUser?.addEventListener('click', closeCreateUserModal);
+
+  modalCreateUserBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalCreateUserBackdrop) closeCreateUserModal();
+  });
+
+  // Toggle all currencies
+  let allCurrenciesSelected = true;
+  btnToggleAllCurrencies?.addEventListener('click', () => {
+    allCurrenciesSelected = !allCurrenciesSelected;
+    document.querySelectorAll('input[name="authorized_currency"]').forEach((el: any) => {
+      el.checked = allCurrenciesSelected;
     });
-  }
+    if (btnToggleAllCurrencies) {
+      btnToggleAllCurrencies.textContent = allCurrenciesSelected ? 'Deseleccionar Todas' : 'Seleccionar Todas';
+    }
+  });
 
-  // Filtro de búsqueda en tiempo real
-  function filtrarTabla(query: string) {
-    const q = query.toLowerCase().trim();
-    const activePane = document.querySelector('.tab-pane.active');
-    if (!activePane) return;
+  // Copiar link de invitación desde el modal
+  btnCopyInvitationLink?.addEventListener('click', () => {
+    if (modalInvitationLinkInput && modalInvitationLinkInput.value) {
+      navigator.clipboard.writeText(modalInvitationLinkInput.value);
+      if (btnCopyInvitationLink) btnCopyInvitationLink.textContent = '¡Copiado! ✓';
+      setTimeout(() => {
+        if (btnCopyInvitationLink) btnCopyInvitationLink.textContent = 'Copiar Enlace';
+      }, 2000);
+    }
+  });
 
-    const rows = activePane.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-      const text = row.textContent?.toLowerCase() || '';
-      if (text.includes(q)) {
-        (row as HTMLElement).style.display = '';
-      } else {
-        (row as HTMLElement).style.display = 'none';
-      }
-    });
-  }
+  // Submit creación/invitación de usuario
+  formModalCreateUser?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nameInput = document.getElementById('modal-user-name') as HTMLInputElement;
+    const emailInput = document.getElementById('modal-user-email') as HTMLInputElement;
+    const roleSelect = document.getElementById('modal-user-role') as HTMLSelectElement;
 
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const val = (e.target as HTMLInputElement).value;
-      filtrarTabla(val);
-    });
-  }
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim().toLowerCase();
+    const role = roleSelect.value;
 
-  // Exportar la tabla activa a CSV
-  if (btnExport) {
-    btnExport.addEventListener('click', () => {
-      const activePane = document.querySelector('.tab-pane.active');
-      if (!activePane) return;
+    const checkedBoxes = Array.from(document.querySelectorAll('input[name="authorized_currency"]:checked')) as HTMLInputElement[];
+    const authorizedCurrencies = checkedBoxes.map(cb => cb.value);
 
-      const table = activePane.querySelector('table');
-      if (!table) return;
-
-      const rows = Array.from(table.querySelectorAll('tr'));
-      const csvContent = rows
-        .filter(r => (r as HTMLElement).style.display !== 'none')
-        .map(row => {
-          const cells = Array.from(row.querySelectorAll('th, td'));
-          return cells
-            .map(cell => {
-              const text = cell.textContent?.trim().replace(/"/g, '""') || '';
-              return `"${text}"`;
-            })
-            .join(',');
-        })
-        .join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const activeName = breadcrumbTitle?.textContent?.trim() || 'tabla';
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `kaupaloki-${activeName.toLowerCase()}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
-  }
-
-  // Formateador moneda
-  function formatMoney(amount: number) {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0
-    }).format(amount);
-  }
-
-  // Sincronización en tiempo real directa con Airtable API
-  async function sincronizarAirtableEnVivo() {
-    if (!btnSync || !syncIcon || !syncDot) return;
-
-    const token = getAirtableToken();
-    if (!token) {
-      syncDot.style.background = 'var(--warning)';
-      syncDot.style.boxShadow = '0 0 8px var(--warning)';
-      btnSync.title = 'Airtable: Clic aquí para conectar tu Personal Access Token (PAT)';
-      return;
+    if (modalCreateUserStatus) {
+      modalCreateUserStatus.style.color = 'var(--text-muted)';
+      modalCreateUserStatus.textContent = 'Enviando invitación y creando perfil...';
     }
 
     try {
-      syncIcon.classList.add('animate-spin');
-      syncDot.style.background = '#38bdf8';
-      syncDot.style.boxShadow = '0 0 8px #38bdf8';
-      btnSync.title = 'Actualizando desde Airtable...';
+      const inviteUrl = `${window.location.origin}/onboarding?email=${encodeURIComponent(email)}`;
 
-      const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLE_CLIENTES_ID}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      // Enviar enlace de invitación / OTP con Supabase
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: inviteUrl,
+          data: {
+            full_name: name,
+            role: role,
+            authorized_currencies: authorizedCurrencies,
+            onboarding_completed: false
+          }
         }
       });
 
-      if (!response.ok) {
-        throw new Error(`Airtable API error: ${response.status}`);
+      // Registrar perfil en tabla profiles
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: crypto.randomUUID(),
+        email: email,
+        full_name: name,
+        role: role,
+        authorized_currencies: authorizedCurrencies,
+        status: 'invitado',
+        onboarding_completed: false
+      }, { onConflict: 'email' });
+
+      if (modalCreateUserStatus) {
+        modalCreateUserStatus.style.color = 'var(--success)';
+        modalCreateUserStatus.textContent = `¡Invitación creada para ${email}!`;
       }
 
-      const data = await response.json();
-      const records = data.records || [];
-
-      // Actualizar tabla CLIENTES
-      const clientesTbody = document.querySelector('#tab-clientes tbody');
-      if (clientesTbody && records.length > 0) {
-        let totalIngresos = 0;
-        let totalPagado = 0;
-        let totalPendiente = 0;
-
-        clientesTbody.innerHTML = records.map((r: any) => {
-          const f = r.fields || {};
-          const num = f['#'] || '';
-          const codigo = f['Cliente'] || f['NOMBRE'] || r.id;
-          const nombre = f['NOMBRE'] || '—';
-          const ingresos = Number(f['INGRESOS'] || 0);
-          const pagado = Number(f['PAGADO'] || 0);
-          const pendiente = Number(f['PENDIENTE'] || (ingresos - pagado));
-
-          totalIngresos += ingresos;
-          totalPagado += pagado;
-          totalPendiente += pendiente;
-
-          const tieneSaldo = pendiente > 0;
-          const saldoAFavor = pendiente < 0;
-          const colorSaldo = tieneSaldo ? 'var(--warning)' : saldoAFavor ? 'var(--info)' : 'var(--text-muted)';
-
-          let badgeHtml = '';
-          if (tieneSaldo) {
-            badgeHtml = `<span class="status-pill status-warning">POR COBRAR</span>`;
-          } else if (saldoAFavor) {
-            badgeHtml = `<span class="status-pill status-info">SALDO A FAVOR</span>`;
-          } else {
-            badgeHtml = `<span class="status-pill status-success">AL DÍA</span>`;
-          }
-
-          return `
-            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
-              <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${num}</td>
-              <td style="padding: 16px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">${codigo}</td>
-              <td style="padding: 16px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${nombre}</td>
-              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">${formatMoney(ingresos)}</td>
-              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600; font-size: 14px;">${formatMoney(pagado)}</td>
-              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: ${colorSaldo};">${formatMoney(pendiente)}</td>
-              <td style="padding: 16px 20px; text-align: center;">${badgeHtml}</td>
-              <td style="padding: 16px 20px; text-align: center;">
-                <button 
-                  class="btn-share-client" 
-                  data-codigo="${codigo}" 
-                  data-nombre="${nombre}"
-                  data-id="${r.id}"
-                  title="Compartir enlace seguro con PIN de 4 dígitos"
-                  style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                  </svg>
-                  <span>Compartir</span>
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-
-        // Actualizar totales tfoot
-        const tfoot = document.querySelector('#tab-clientes tfoot');
-        if (tfoot) {
-          tfoot.innerHTML = `
-            <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
-              <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTALES CONSOLIDADOS:</td>
-              <td style="padding: 18px 20px; text-align: right; font-size: 14px;">${formatMoney(totalIngresos)}</td>
-              <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 14px;">${formatMoney(totalPagado)}</td>
-              <td style="padding: 18px 20px; text-align: right; color: var(--warning); font-size: 14px;">${formatMoney(totalPendiente)}</td>
-              <td></td>
-              <td></td>
-            </tr>
-          `;
-        }
-
-        // Actualizar contador del sidebar
-        const badgeClientes = document.getElementById('badge-count-clientes');
-        if (badgeClientes) {
-          badgeClientes.textContent = String(records.length);
-        }
+      if (modalInvitationSuccessBox && modalInvitationLinkInput) {
+        modalInvitationLinkInput.value = inviteUrl;
+        modalInvitationSuccessBox.style.display = 'flex';
       }
 
-      const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      syncDot.style.background = 'var(--success)';
-      syncDot.style.boxShadow = '0 0 8px var(--success)';
-      btnSync.title = `Sincronizado en tiempo real con Airtable (${hora})`;
-    } catch (err) {
-      console.error('Error al sincronizar con Airtable:', err);
-      syncDot.style.background = 'var(--danger)';
-      syncDot.style.boxShadow = '0 0 8px var(--danger)';
-      btnSync.title = 'Error de conexión con Airtable. Clic para verificar Token PAT.';
-    } finally {
-      syncIcon.classList.remove('animate-spin');
-    }
-  }
-
-  // Modal de configuración de Token Airtable
-  const modalAirtableBackdrop = document.getElementById('modal-airtable-backdrop');
-  const btnCloseAirtableModal = document.getElementById('btn-close-airtable-modal');
-  const inputAirtablePat = document.getElementById('input-airtable-pat') as HTMLInputElement | null;
-  const formAirtablePat = document.getElementById('airtable-pat-form');
-  const btnClearPat = document.getElementById('btn-clear-pat');
-
-  function openAirtableModal() {
-    if (modalAirtableBackdrop) {
-      modalAirtableBackdrop.style.display = 'flex';
-      if (inputAirtablePat) {
-        inputAirtablePat.value = localStorage.getItem('kaupaloki_airtable_pat') || ENV_PAT || '';
-        inputAirtablePat.focus();
+      loadUsersList();
+    } catch (err: any) {
+      if (modalCreateUserStatus) {
+        modalCreateUserStatus.style.color = 'var(--danger)';
+        modalCreateUserStatus.textContent = err.message || 'Error al invitar usuario';
       }
-    }
-  }
-
-  function closeAirtableModal() {
-    if (modalAirtableBackdrop) {
-      modalAirtableBackdrop.style.display = 'none';
-    }
-  }
-
-  // Event listener para el botón de sincronización en el header
-  if (btnSync) {
-    btnSync.addEventListener('click', () => {
-      const token = getAirtableToken();
-      if (!token) {
-        openAirtableModal();
-      } else {
-        sincronizarAirtableEnVivo();
-      }
-    });
-  }
-
-  btnCloseAirtableModal?.addEventListener('click', closeAirtableModal);
-
-  formAirtablePat?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (inputAirtablePat) {
-      const val = inputAirtablePat.value.trim();
-      if (val) {
-        localStorage.setItem('kaupaloki_airtable_pat', val);
-      } else {
-        localStorage.removeItem('kaupaloki_airtable_pat');
-      }
-      closeAirtableModal();
-      sincronizarAirtableEnVivo();
     }
   });
 
-  btnClearPat?.addEventListener('click', () => {
-    localStorage.removeItem('kaupaloki_airtable_pat');
-    if (inputAirtablePat) inputAirtablePat.value = '';
-    closeAirtableModal();
-    sincronizarAirtableEnVivo();
-  });
-
-  // Sincronización inicial y polling cada 30 segundos
-  sincronizarAirtableEnVivo();
-  setInterval(sincronizarAirtableEnVivo, 30000);
-
-  // ==============================================================
-  // AUTH GUARD & RBAC SUPABASE
-  // ==============================================================
-  let currentUserProfile: any = null;
-
-  async function checkAuthAndRBAC() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      window.location.href = '/login';
-      return;
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-
-    if (profile && !profile.onboarding_completed) {
-      window.location.href = '/onboarding';
-      return;
-    }
-
-    currentUserProfile = profile || {
-      id: session.user.id,
-      email: session.user.email,
-      full_name: session.user.email,
-      role: 'operador'
-    };
-
-    // Update UI elements in Navbar
-    const userNameDisplay = document.getElementById('user-name-display');
-    const userRoleBadge = document.getElementById('user-role-badge');
-    const userAvatarInitials = document.getElementById('user-avatar-initials');
-    const btnOpenUsersModal = document.getElementById('btn-open-users-modal');
-
-    if (userNameDisplay) userNameDisplay.textContent = currentUserProfile.full_name || currentUserProfile.email;
-    if (userRoleBadge) {
-      userRoleBadge.textContent = currentUserProfile.role.toUpperCase();
-      if (currentUserProfile.role === 'administrador') {
-        userRoleBadge.style.color = 'var(--brand-primary)';
-      }
-    }
-    if (userAvatarInitials) {
-      const name = currentUserProfile.full_name || currentUserProfile.email || 'A';
-      userAvatarInitials.textContent = name.charAt(0).toUpperCase();
-    }
-
-    // Si es administrador, permitir abrir gestión de usuarios y habilitar creación
-    const adminUserCreateCard = document.getElementById('admin-user-create-card');
-    if (currentUserProfile.role === 'administrador') {
-      const btnOpenUsers = document.getElementById('btn-open-users-modal');
-      if (btnOpenUsers) btnOpenUsers.style.display = 'flex';
-      if (adminUserCreateCard) adminUserCreateCard.style.display = 'block';
-    } else {
-      if (adminUserCreateCard) {
-        adminUserCreateCard.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-main);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">La creación de nuevos usuarios está reservada exclusivamente para Administradores.</span>
-          </div>
-        `;
-      }
-    }
-
-    loadUsersList();
-  }
-
-  checkAuthAndRBAC();
-
-  // User Avatar Popover Menu Toggle
-  const userAvatarBtn = document.getElementById('user-avatar-btn');
-  const userDropdownMenu = document.getElementById('user-dropdown-menu');
-
-  userAvatarBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (userDropdownMenu) {
-      userDropdownMenu.style.display = userDropdownMenu.style.display === 'block' ? 'none' : 'block';
-    }
-  });
-
-  document.addEventListener('click', (e: any) => {
-    if (userDropdownMenu && !userDropdownMenu.contains(e.target) && !userAvatarBtn?.contains(e.target)) {
-      userDropdownMenu.style.display = 'none';
-    }
-  });
-
-  // Sign out listener
-  const btnLogout = document.getElementById('btn-logout');
-  btnLogout?.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
-  });
-
-  // ==============================================================
-  // GESTIÓN DE USUARIOS (SOLO ADMINISTRADOR & TAB USUARIOS)
-  // ==============================================================
-  const btnOpenUsersModal = document.getElementById('btn-open-users-modal');
-  const btnCloseUsersModal = document.getElementById('btn-close-users-modal');
-  const modalUsersBackdrop = document.getElementById('modal-users-backdrop');
-  const createUserForm = document.getElementById('create-user-form');
-  const createUserStatus = document.getElementById('create-user-status');
-  const usersTableBody = document.getElementById('users-table-body');
+  // Actualizar lista de usuarios Supabase
   const usuariosViewTableBody = document.getElementById('usuarios-view-table-body');
-  const badgeCountUsuarios = document.getElementById('badge-count-usuarios');
   const btnRefreshUsersView = document.getElementById('btn-refresh-users-view');
-  const createUserViewForm = document.getElementById('create-user-view-form');
-  const viewUserStatus = document.getElementById('view-user-status');
-
-  btnOpenUsersModal?.addEventListener('click', () => {
-    if (userDropdownMenu) userDropdownMenu.style.display = 'none';
-    if (modalUsersBackdrop) modalUsersBackdrop.style.display = 'flex';
-    loadUsersList();
-  });
-
-  btnCloseUsersModal?.addEventListener('click', () => {
-    if (modalUsersBackdrop) modalUsersBackdrop.style.display = 'none';
-  });
+  const badgeCountUsuarios = document.getElementById('badge-count-usuarios');
 
   btnRefreshUsersView?.addEventListener('click', () => {
     loadUsersList();
@@ -2144,69 +2169,86 @@ function formatDecimal(amount: number, digits = 2): string {
 
     if (error || !users) {
       const errHtml = `<tr><td colspan="6" style="padding: 18px; text-align: center; color: var(--danger);">Error al cargar usuarios: ${error?.message}</td></tr>`;
-      if (usersTableBody) usersTableBody.innerHTML = errHtml;
       if (usuariosViewTableBody) usuariosViewTableBody.innerHTML = errHtml;
       return;
     }
 
-    // Modal table rows
-    if (usersTableBody) {
-      usersTableBody.innerHTML = users.map((u: any) => `
-        <tr style="border-bottom: 1px solid var(--border-main);">
-          <td style="padding: 10px 14px; font-weight: 600; color: var(--text-primary);">${u.full_name || '—'}</td>
-          <td style="padding: 10px 14px; font-family: ui-monospace, monospace; color: var(--text-secondary);">${u.email}</td>
-          <td style="padding: 10px 14px;">
-            <span style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: ${u.role === 'administrador' ? 'var(--brand-primary-light)' : 'var(--bg-main)'}; color: ${u.role === 'administrador' ? 'var(--brand-primary)' : 'var(--text-secondary)'}; text-transform: uppercase;">
-              ${u.role}
-            </span>
-          </td>
-          <td style="padding: 10px 14px;">
-            <span style="font-size: 11px; font-weight: 700; color: ${u.onboarding_completed ? 'var(--success)' : 'var(--warning)'};">
-              ${u.onboarding_completed ? 'Completado' : 'Pendiente'}
-            </span>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    // Full Tab View table rows
     if (usuariosViewTableBody) {
+      if (users.length === 0) {
+        usuariosViewTableBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">
+              No hay usuarios registrados aún.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
       usuariosViewTableBody.innerHTML = users.map((u: any, idx: number) => {
         const isAdm = u.role === 'administrador';
         const isOp = u.role === 'operador';
         const roleBg = isAdm ? 'var(--brand-primary-light)' : (isOp ? 'rgba(5, 205, 153, 0.12)' : 'var(--bg-card-secondary)');
         const roleColor = isAdm ? 'var(--brand-primary)' : (isOp ? 'var(--success)' : 'var(--text-secondary)');
-        const createdDate = u.created_at ? new Date(u.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-        const initial = (u.full_name || u.email || 'U').charAt(0).toUpperCase();
+        const currencies: string[] = Array.isArray(u.authorized_currencies) ? u.authorized_currencies : [];
+        const isCompleted = u.onboarding_completed || u.status === 'activo';
+        const inviteLink = `${window.location.origin}/onboarding?email=${encodeURIComponent(u.email)}`;
 
         return `
           <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
-            <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${idx + 1}</td>
-            <td style="padding: 16px 20px;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 34px; height: 34px; border-radius: 50%; background: ${isAdm ? 'linear-gradient(135deg, #868CFF 0%, #4318FF 100%)' : 'var(--bg-card-secondary)'}; color: ${isAdm ? '#fff' : 'var(--brand-primary)'}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">
-                  ${initial}
+            <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 12px; vertical-align: middle;">
+              ${idx + 1}
+            </td>
+            <td style="padding: 14px 18px; vertical-align: middle;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: ${isAdm ? 'linear-gradient(135deg, #868CFF 0%, #4318FF 100%)' : 'var(--bg-card-secondary)'}; color: ${isAdm ? '#fff' : 'var(--brand-primary)'}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+                  ${(u.full_name || u.email || 'U').charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style="font-weight: 700; color: var(--text-primary); font-size: 14px;">${u.full_name || 'Sin Nombre'}</div>
-                  <div style="font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace;">${u.id ? u.id.slice(0, 8) + '...' : ''}</div>
+                  <div style="font-weight: 700; color: var(--text-primary); font-size: 13px;">${u.full_name || 'Sin Nombre'}</div>
+                  <div style="font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace;">${u.email}</div>
                 </div>
               </div>
             </td>
-            <td style="padding: 16px 20px; font-family: ui-monospace, monospace; color: var(--text-secondary); font-size: 13px;">${u.email}</td>
-            <td style="padding: 16px 20px; text-align: center;">
+            <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
               <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 6px; background: ${roleBg}; color: ${roleColor}; text-transform: uppercase;">
                 ${u.role}
               </span>
             </td>
-            <td style="padding: 16px 20px; text-align: center;">
-              <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: ${u.onboarding_completed ? 'var(--success)' : 'var(--warning)'};">
-                <span style="width: 7px; height: 7px; border-radius: 50%; background: currentColor;"></span>
-                ${u.onboarding_completed ? 'Completado' : 'Pendiente'}
+            <td style="padding: 14px 18px; vertical-align: middle;">
+              <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                ${isAdm ? `
+                  <span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main);">
+                    Todas (Admin)
+                  </span>
+                ` : (currencies.length > 0 ? currencies.map(c => `
+                  <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px; background: var(--brand-primary-light); color: var(--brand-primary); font-family: ui-monospace, monospace;">
+                    ${c}
+                  </span>
+                `).join('') : `
+                  <span style="font-size: 10px; color: var(--text-muted);">Sin asignar</span>
+                `)}
+              </div>
+            </td>
+            <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+              <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: ${isCompleted ? 'var(--success)' : 'var(--warning)'};">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor;"></span>
+                ${isCompleted ? 'Activo' : 'Invitado'}
               </span>
             </td>
-            <td style="padding: 16px 20px; text-align: center; color: var(--text-secondary); font-size: 13px;">
-              ${createdDate}
+            <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+              <button 
+                class="btn-copy-user-invite" 
+                data-link="${inviteLink}" 
+                title="Copiar link de invitación"
+                style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Copiar Link</span>
+              </button>
             </td>
           </tr>
         `;
@@ -2214,62 +2256,20 @@ function formatDecimal(amount: number, digits = 2): string {
     }
   }
 
-  // Helper para registrar usuario
-  async function registrarNuevoUsuario(name: string, email: string, password: string, role: string, statusEl: HTMLElement | null, formEl: HTMLFormElement | null) {
-    if (!statusEl) return;
-    statusEl.style.color = 'var(--text-muted)';
-    statusEl.textContent = 'Creando usuario...';
-
-    try {
-      const tempAuthClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      });
-      const { data, error } = await tempAuthClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-            role: role,
-            onboarding_completed: false
-          }
-        }
-      });
-
-      if (error) {
-        statusEl.style.color = 'var(--danger)';
-        statusEl.textContent = error.message;
-        return;
+  // Delegación para copiar link de invitación desde la lista
+  document.addEventListener('click', (e: any) => {
+    const btn = e.target.closest('.btn-copy-user-invite');
+    if (btn) {
+      const link = btn.getAttribute('data-link');
+      if (link) {
+        navigator.clipboard.writeText(link);
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline><span>¡Copiado!</span>';
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+        }, 1800);
       }
-
-      statusEl.style.color = 'var(--success)';
-      statusEl.textContent = '¡Usuario creado exitosamente!';
-      if (formEl) formEl.reset();
-      setTimeout(loadUsersList, 600);
-    } catch (err: any) {
-      statusEl.style.color = 'var(--danger)';
-      statusEl.textContent = err.message || 'Error al crear usuario';
     }
-  }
-
-  // Submit desde el modal
-  createUserForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = (document.getElementById('new-user-name') as HTMLInputElement).value.trim();
-    const email = (document.getElementById('new-user-email') as HTMLInputElement).value.trim();
-    const password = (document.getElementById('new-user-password') as HTMLInputElement).value;
-    const role = (document.getElementById('new-user-role') as HTMLSelectElement).value;
-    await registrarNuevoUsuario(name, email, password, role, createUserStatus, createUserForm as HTMLFormElement);
-  });
-
-  // Submit desde la vista tab-usuarios
-  createUserViewForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = (document.getElementById('view-user-name') as HTMLInputElement).value.trim();
-    const email = (document.getElementById('view-user-email') as HTMLInputElement).value.trim();
-    const password = (document.getElementById('view-user-password') as HTMLInputElement).value;
-    const role = (document.getElementById('view-user-role') as HTMLSelectElement).value;
-    await registrarNuevoUsuario(name, email, password, role, viewUserStatus, createUserViewForm as HTMLFormElement);
   });
 
   // ==============================================================
