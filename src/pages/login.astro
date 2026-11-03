@@ -323,7 +323,9 @@ import Layout from '../layouts/Layout.astro';
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: window.location.origin + '/'
+            emailRedirectTo: window.location.hostname.includes('localhost') 
+              ? window.location.origin + '/' 
+              : 'https://app.kaupaloki.co/'
           }
         });
 
