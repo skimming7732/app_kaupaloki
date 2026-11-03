@@ -28,234 +28,321 @@ function formatDecimal(amount: number, digits = 2): string {
 }
 ---
 
-<Layout title="Kaupaloki - Plataforma Contable y Cambiaria">
-  <!-- Container principal -->
-  <div style="max-width: 1440px; margin: 0 auto; padding: 24px 20px;">
+<Layout title="Kaupaloki - Horizon UI Dashboard Contable">
+  <div class="layout-wrapper" style="display: flex; min-height: 100vh;">
     
-    <!-- Encabezado Contable -->
-    <header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #1f2937;">
-      <div>
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
-          <!-- Icono Contable SVG -->
-          <div style="display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 8px; background: #0f172a; border: 1px solid #38bdf8;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/>
-              <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
-              <path d="M12 6V4"/>
-              <path d="M12 18v2"/>
-            </svg>
-          </div>
-          <div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #f8fafc;">
-              KAUPALOKI
-            </h1>
-          </div>
-          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
-            SISTEMA CONTABLE
-          </span>
-        </div>
-        <p style="margin: 0; font-size: 13px; color: #94a3b8; font-family: ui-monospace, monospace;">
-          Base de Datos: <span style="color: #cbd5e1;">appncUKgTkDojFj4B</span> (KAUPALOKI) &bull; Conexión Activa
-        </p>
+    <!-- ============================================================== -->
+    <!-- SIDEBAR (HORIZON UI STYLE) -->
+    <!-- ============================================================== -->
+    <aside id="main-sidebar" style="width: 290px; background: var(--bg-sidebar); border-right: 1px solid var(--border-main); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 40; transition: transform 0.3s ease;">
+      <!-- Logo Container -->
+      <div style="padding: 28px 24px 22px 24px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border-main);">
+        <img src="/logo.png" alt="Kaupaloki" style="max-height: 38px; width: auto; object-fit: contain;" />
       </div>
 
-      <!-- Acciones de cabecera -->
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-        <div id="sync-status" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; background: #0f172a; border: 1px solid #1e293b; font-size: 12px; color: #10b981;">
-          <span id="sync-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-          <span id="sync-text">En vivo: Conectado</span>
+      <!-- Navigation Links -->
+      <div style="padding: 24px 16px; flex: 1; overflow-y: auto;">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 0 16px 12px 16px;">
+          Navegación Contable
         </div>
 
-        <button id="btn-sync-now" style="display: flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 6px; background: #0369a1; border: 1px solid #38bdf8; color: #f0f9ff; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s ease;">
-          <svg id="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 2v6h-6"></path>
-            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-            <path d="M3 22v-6h6"></path>
-            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-          </svg>
-          <span id="btn-sync-label">Sincronizar ahora</span>
-        </button>
-
-        <button id="btn-export-csv" style="display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 6px; background: #1e293b; border: 1px solid #334155; color: #f1f5f9; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s ease;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          Exportar Tabla (CSV)
-        </button>
-      </div>
-    </header>
-
-    <!-- Tarjetas de Métricas Contables -->
-    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 28px;">
-      <!-- Tarjeta 1: Total Ingresos -->
-      <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 18px 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">
-            Total Ingresos (COP)
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-        </div>
-        <div style="font-size: 24px; font-weight: 700; color: #f8fafc; font-family: ui-monospace, monospace; margin-bottom: 6px;">
-          {formatCop(metricas.totalIngresosCop)}
-        </div>
-        <div style="font-size: 12px; color: #64748b;">
-          Consolidado en {metricas.numNegocios} operaciones registradas
-        </div>
-      </div>
-
-      <!-- Tarjeta 2: Total Pagado -->
-      <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 18px 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">
-            Total Pagos Recibidos
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-        </div>
-        <div style="font-size: 24px; font-weight: 700; color: #10b981; font-family: ui-monospace, monospace; margin-bottom: 6px;">
-          {formatCop(metricas.totalPagadoCop)}
-        </div>
-        <div style="font-size: 12px; color: #64748b;">
-          {metricas.numPagosCompletados} pagos verificados con estado COMPLETADO
-        </div>
-      </div>
-
-      <!-- Tarjeta 3: Saldo Pendiente -->
-      <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 18px 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">
-            Saldo Pendiente Neto
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-        </div>
-        <div style="font-size: 24px; font-weight: 700; color: #f59e0b; font-family: ui-monospace, monospace; margin-bottom: 6px;">
-          {formatCop(metricas.saldoPendienteNeto)}
-        </div>
-        <div style="font-size: 12px; color: #64748b;">
-          Diferencia neta (Ingresos - Pagos acreditados)
-        </div>
-      </div>
-
-      <!-- Tarjeta 4: USDT Comprado -->
-      <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 18px 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">
-            Total USDT Comprado
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-          </svg>
-        </div>
-        <div style="font-size: 24px; font-weight: 700; color: #c084fc; font-family: ui-monospace, monospace; margin-bottom: 6px;">
-          {formatDecimal(metricas.totalUsdtComprado, 2)} USDT
-        </div>
-        <div style="font-size: 12px; color: #64748b;">
-          Acumulado en {metricas.numComprasUsdt} compras ejecutadas
-        </div>
-      </div>
-    </section>
-
-    <!-- Controles y Pestañas de Tablas -->
-    <div style="background: #0d1424; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);">
-      
-      <!-- Barra Superior de Navegación por Pestañas -->
-      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; background: #0b1120; padding: 6px 12px; gap: 12px;">
-        <!-- Tabs -->
-        <nav style="display: flex; flex-wrap: wrap; gap: 4px;" role="tablist">
-          <button class="nav-tab active" data-target="tab-clientes" style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <nav style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- Clientes -->
+          <button class="sidebar-link active" data-target="tab-clientes" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            CLIENTES ({CLIENTES.length})
+            <span style="flex: 1;">Clientes</span>
+            <span class="count-badge" id="badge-count-clientes" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
+              {CLIENTES.length}
+            </span>
           </button>
 
-          <button class="nav-tab" data-target="tab-negocios" style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Negocios -->
+          <button class="sidebar-link" data-target="tab-negocios" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
               <line x1="8" y1="21" x2="16" y2="21"></line>
               <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
-            NEGOCIOS ({NEGOCIOS.length})
+            <span style="flex: 1;">Negocios</span>
+            <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
+              {NEGOCIOS.length}
+            </span>
           </button>
 
-          <button class="nav-tab" data-target="tab-pagos" style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Pagos -->
+          <button class="sidebar-link" data-target="tab-pagos" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
               <line x1="1" y1="10" x2="23" y2="10"></line>
             </svg>
-            PAGOS ({PAGOS.length})
+            <span style="flex: 1;">Pagos</span>
+            <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
+              {PAGOS.length}
+            </span>
           </button>
 
-          <button class="nav-tab" data-target="tab-divisas" style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Divisas -->
+          <button class="sidebar-link" data-target="tab-divisas" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="2" y1="12" x2="22" y2="12"></line>
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
-            DIVISAS ({DIVISAS.length})
+            <span style="flex: 1;">Divisas</span>
+            <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
+              {DIVISAS.length}
+            </span>
           </button>
 
-          <button class="nav-tab" data-target="tab-compras" style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Compra USDT -->
+          <button class="sidebar-link" data-target="tab-compras" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
               <polyline points="17 6 23 6 23 12"></polyline>
             </svg>
-            COMPRA-USDT ({COMPRAS_USDT.length})
+            <span style="flex: 1;">Compra USDT</span>
+            <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
+              {COMPRAS_USDT.length}
+            </span>
           </button>
 
-          <button class="nav-tab" data-target="tab-admins" style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Admins -->
+          <button class="sidebar-link" data-target="tab-admins" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
-            ADMINS ({ADMINS.length})
+            <span style="flex: 1;">Administradores</span>
+            <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
+              {ADMINS.length}
+            </span>
           </button>
         </nav>
-
-        <!-- Buscador en tiempo real -->
-        <div style="display: flex; align-items: center; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 0 10px; width: 280px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input 
-            type="text" 
-            id="table-search" 
-            placeholder="Filtrar registros..." 
-            style="background: transparent; border: none; color: #f8fafc; font-size: 13px; padding: 7px 8px; outline: none; width: 100%;"
-          />
-        </div>
       </div>
 
-      <!-- ========================================== -->
-      <!-- TAB 1: CLIENTES -->
-      <!-- ========================================== -->
-      <div id="tab-clientes" class="tab-pane active" style="padding: 0;">
-        <div style="overflow-x: auto;">
-          <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+      <!-- Bottom Card: Airtable Info -->
+      <div style="padding: 20px; border-top: 1px solid var(--border-main);">
+        <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px var(--success);"></span>
+            <span style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Airtable Conectado</span>
+          </div>
+          <p style="margin: 0; font-size: 11px; color: var(--text-secondary); font-family: ui-monospace, monospace; word-break: break-all;">
+            Base: appncUKgTkDojFj4B
+          </p>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-main); padding-top: 8px;">
+            <span>Cloudflare Pages</span>
+            <span>v1.2.0</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============================================================== -->
+    <!-- MAIN CONTENT AREA -->
+    <!-- ============================================================== -->
+    <main style="flex: 1; margin-left: 290px; padding: 30px; min-width: 0;">
+      
+      <!-- ============================================================== -->
+      <!-- TOP FLOATING NAVBAR (HORIZON UI) -->
+      <!-- ============================================================== -->
+      <header class="horizon-navbar" style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 14px 24px; box-shadow: var(--shadow-nav); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 28px;">
+        <!-- Left: Breadcrumb & Title -->
+        <div>
+          <div style="font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px;">
+            Pages / <span id="breadcrumb-title" style="color: var(--text-primary); font-weight: 600;">Clientes</span>
+          </div>
+          <h1 id="page-heading" style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary);">
+            Control de Clientes & Balances
+          </h1>
+        </div>
+
+        <!-- Right: Actions Control Island -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <!-- Search Input Pill -->
+          <div style="display: flex; align-items: center; background: var(--bg-main); border: 1px solid var(--border-main); border-radius: 30px; padding: 0 14px; width: 240px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="text" 
+              id="table-search" 
+              placeholder="Buscar registro..." 
+              style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; padding: 9px 8px; outline: none; width: 100%; font-family: inherit;"
+            />
+          </div>
+
+          <!-- Live Sync Status Pill -->
+          <div id="sync-status" style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 30px; background: var(--bg-main); border: 1px solid var(--border-main); font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+            <span id="sync-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success);"></span>
+            <span id="sync-text">En vivo</span>
+          </div>
+
+          <!-- Sync Button -->
+          <button id="btn-sync-now" title="Sincronizar ahora con Airtable" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--brand-primary); color: #ffffff; border: none; cursor: pointer; transition: transform 0.2s ease, opacity 0.2s ease;">
+            <svg id="sync-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2v6h-6"></path>
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+              <path d="M3 22v-6h6"></path>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+            </svg>
+          </button>
+
+          <!-- Theme Toggle Button -->
+          <button id="btn-theme-toggle" title="Cambiar tema Claro / Oscuro" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--bg-main); border: 1px solid var(--border-main); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;">
+            <!-- Sun Icon (visible in dark mode) -->
+            <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ============================================================== -->
+      <!-- HORIZON UI METRIC CARDS -->
+      <!-- ============================================================== -->
+      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 28px;">
+        <!-- Card 1: Ingresos -->
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
+              Total Ingresos (COP)
+            </div>
+            <div style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+              {formatCop(metricas.totalIngresosCop)}
+            </div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--success); margin-top: 4px;">
+              {metricas.numNegocios} operaciones registradas
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Pagado -->
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
+              Pagos Acreditados
+            </div>
+            <div style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+              {formatCop(metricas.totalPagadoCop)}
+            </div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--success); margin-top: 4px;">
+              {metricas.numPagosCompletados} comprobantes verificados
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Saldo Pendiente -->
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
+              Saldo Pendiente Neto
+            </div>
+            <div style="font-size: 22px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2;">
+              {formatCop(metricas.saldoPendienteNeto)}
+            </div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-top: 4px;">
+              Ingresos vs Pagos en caja
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: USDT Comprado -->
+        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
+              USDT Total Comprado
+            </div>
+            <div style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+              {formatDecimal(metricas.totalUsdtComprado, 2)} USDT
+            </div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--info); margin-top: 4px;">
+              {metricas.numComprasUsdt} órdenes liquidadas
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- DATA TABLE CARD (HORIZON UI "COMPLEX TABLE" STYLE) -->
+      <!-- ============================================================== -->
+      <div style="background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-main); box-shadow: var(--shadow-card); overflow: hidden;">
+        
+        <!-- Table Action Header -->
+        <div style="padding: 22px 26px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+          <div>
+            <h2 id="active-table-title" style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+              Tabla de Clientes
+            </h2>
+            <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted);">
+              Visualización contable sincronizada directamente desde Airtable
+            </p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button id="btn-export-csv" style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 12px; background: var(--bg-main); border: 1px solid var(--border-main); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Exportar CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- TAB 1: CLIENTES -->
+        <!-- ============================================================ -->
+        <div id="tab-clientes" class="tab-pane active" style="overflow-x: auto;">
+          <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-              <tr style="background: #090e1a; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
-                <th style="padding: 12px 16px;">#</th>
-                <th style="padding: 12px 16px;">Código Cliente</th>
-                <th style="padding: 12px 16px;">Nombre</th>
-                <th style="padding: 12px 16px; text-align: right;">Ingresos Totales (COP)</th>
-                <th style="padding: 12px 16px; text-align: right;">Pagado (COP)</th>
-                <th style="padding: 12px 16px; text-align: right;">Saldo Pendiente (COP)</th>
-                <th style="padding: 12px 16px; text-align: center;">Estado Contable</th>
+              <tr style="border-bottom: 1px solid var(--border-main);">
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Nombre</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Ingresos Totales (COP)</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Pagado (COP)</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Saldo Pendiente (COP)</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -263,34 +350,24 @@ function formatDecimal(amount: number, digits = 2): string {
                 const tieneSaldo = c.pendienteCop > 0;
                 const saldoAFavor = c.pendienteCop < 0;
                 return (
-                  <tr class="table-row" style="border-bottom: 1px solid #172033; transition: background 0.1s ease;">
-                    <td style="padding: 12px 16px; color: #64748b; font-family: ui-monospace, monospace;">{c.numero}</td>
-                    <td style="padding: 12px 16px; font-weight: 600; color: #38bdf8; font-family: ui-monospace, monospace;">{c.codigo}</td>
-                    <td style="padding: 12px 16px; font-weight: 500; color: #f1f5f9;">{c.nombre}</td>
-                    <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #e2e8f0;">
-                      {formatCop(c.ingresosCop)}
-                    </td>
-                    <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #10b981;">
-                      {formatCop(c.pagadoCop)}
-                    </td>
-                    <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: {tieneSaldo ? '#f59e0b' : saldoAFavor ? '#38bdf8' : '#94a3b8'};">
+                  <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+                    <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">{c.numero}</td>
+                    <td style="padding: 16px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{c.codigo}</td>
+                    <td style="padding: 16px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px;">{c.nombre}</td>
+                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">{formatCop(c.ingresosCop)}</td>
+                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600; font-size: 14px;">{formatCop(c.pagadoCop)}</td>
+                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {tieneSaldo ? 'var(--warning)' : saldoAFavor ? 'var(--info)' : 'var(--text-muted)'};">
                       {formatCop(c.pendienteCop)}
                     </td>
-                    <td style="padding: 12px 16px; text-align: center;">
+                    <td style="padding: 16px 20px; text-align: center;">
                       {tieneSaldo && (
-                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
-                          POR COBRAR
-                        </span>
+                        <span class="status-pill status-warning">POR COBRAR</span>
                       )}
                       {saldoAFavor && (
-                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
-                          SALDO A FAVOR
-                        </span>
+                        <span class="status-pill status-info">SALDO A FAVOR</span>
                       )}
                       {!tieneSaldo && !saldoAFavor && (
-                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);">
-                          AL DÍA
-                        </span>
+                        <span class="status-pill status-success">AL DÍA</span>
                       )}
                     </td>
                   </tr>
@@ -298,150 +375,119 @@ function formatDecimal(amount: number, digits = 2): string {
               })}
             </tbody>
             <tfoot>
-              <tr style="background: #090e1a; font-weight: 700; font-family: ui-monospace, monospace; border-top: 2px solid #1e293b; color: #f8fafc;">
-                <td colspan="3" style="padding: 14px 16px; text-transform: uppercase; font-size: 12px; color: #94a3b8;">TOTALES CONSOLIDADOS:</td>
-                <td style="padding: 14px 16px; text-align: right; color: #f8fafc;">
-                  {formatCop(CLIENTES.reduce((a, b) => a + b.ingresosCop, 0))}
-                </td>
-                <td style="padding: 14px 16px; text-align: right; color: #10b981;">
-                  {formatCop(CLIENTES.reduce((a, b) => a + b.pagadoCop, 0))}
-                </td>
-                <td style="padding: 14px 16px; text-align: right; color: #f59e0b;">
-                  {formatCop(CLIENTES.reduce((a, b) => a + b.pendienteCop, 0))}
-                </td>
+              <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
+                <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTALES CONSOLIDADOS:</td>
+                <td style="padding: 18px 20px; text-align: right; font-size: 14px;">{formatCop(CLIENTES.reduce((a, b) => a + b.ingresosCop, 0))}</td>
+                <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 14px;">{formatCop(CLIENTES.reduce((a, b) => a + b.pagadoCop, 0))}</td>
+                <td style="padding: 18px 20px; text-align: right; color: var(--warning); font-size: 14px;">{formatCop(CLIENTES.reduce((a, b) => a + b.pendienteCop, 0))}</td>
                 <td></td>
               </tr>
             </tfoot>
           </table>
         </div>
-      </div>
 
-      <!-- ========================================== -->
-      <!-- TAB 2: NEGOCIOS -->
-      <!-- ========================================== -->
-      <div id="tab-negocios" class="tab-pane" style="display: none; padding: 0;">
-        <div style="overflow-x: auto;">
-          <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+        <!-- ============================================================ -->
+        <!-- TAB 2: NEGOCIOS -->
+        <!-- ============================================================ -->
+        <div id="tab-negocios" class="tab-pane" style="display: none; overflow-x: auto;">
+          <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-              <tr style="background: #090e1a; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
-                <th style="padding: 12px 14px;">#</th>
-                <th style="padding: 12px 14px;">Código Negocio</th>
-                <th style="padding: 12px 14px;">Fecha</th>
-                <th style="padding: 12px 14px;">Cliente</th>
-                <th style="padding: 12px 14px; text-align: center;">Divisa</th>
-                <th style="padding: 12px 14px; text-align: right;">Monto Divisa</th>
-                <th style="padding: 12px 14px; text-align: right;">Tasa</th>
-                <th style="padding: 12px 14px; text-align: right;">Ingreso (COP)</th>
-                <th style="padding: 12px 14px;">Compra Rel</th>
-                <th style="padding: 12px 14px; text-align: right;">USDT x Divisa</th>
-                <th style="padding: 12px 14px; text-align: right;">Precio Compra</th>
+              <tr style="border-bottom: 1px solid var(--border-main);">
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Fecha</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cliente</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Divisa</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto Divisa</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Tasa</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Ingreso (COP)</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Compra Rel</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">USDT x Divisa</th>
               </tr>
             </thead>
             <tbody>
               {NEGOCIOS.map((n) => (
-                <tr class="table-row" style="border-bottom: 1px solid #172033; transition: background 0.1s ease;">
-                  <td style="padding: 11px 14px; color: #64748b; font-family: ui-monospace, monospace;">{n.numero}</td>
-                  <td style="padding: 11px 14px; font-weight: 600; color: #38bdf8; font-family: ui-monospace, monospace;">{n.codigo}</td>
-                  <td style="padding: 11px 14px; color: #94a3b8; font-family: ui-monospace, monospace;">{n.fechaRegistro}</td>
-                  <td style="padding: 11px 14px; font-weight: 500; color: #f1f5f9;">{n.clienteNombre}</td>
-                  <td style="padding: 11px 14px; text-align: center;">
-                    <span style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155;">
+                <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+                  <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">{n.numero}</td>
+                  <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{n.codigo}</td>
+                  <td style="padding: 14px 18px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">{n.fechaRegistro}</td>
+                  <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">{n.clienteNombre}</td>
+                  <td style="padding: 14px 18px; text-align: center;">
+                    <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main);">
                       {n.divisaCodigo}
                     </span>
                   </td>
-                  <td style="padding: 11px 14px; text-align: right; font-family: ui-monospace, monospace; color: #f8fafc;">
-                    {formatDecimal(n.montoDivisa, 0)}
-                  </td>
-                  <td style="padding: 11px 14px; text-align: right; font-family: ui-monospace, monospace; color: #94a3b8;">
-                    ${formatDecimal(n.tasa, 2)}
-                  </td>
-                  <td style="padding: 11px 14px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: #10b981;">
-                    {formatCop(n.ingresoCop)}
-                  </td>
-                  <td style="padding: 11px 14px; font-family: ui-monospace, monospace; color: #cbd5e1; font-size: 12px;">
-                    {n.compraRelCodigo || <span style="color: #64748b;">—</span>}
-                  </td>
-                  <td style="padding: 11px 14px; text-align: right; font-family: ui-monospace, monospace; color: #c084fc;">
-                    {n.usdtPorDivisa > 0 ? formatDecimal(n.usdtPorDivisa, 2) : <span style="color: #64748b;">0</span>}
-                  </td>
-                  <td style="padding: 11px 14px; text-align: right; font-family: ui-monospace, monospace; color: #e2e8f0;">
-                    {n.precioCompra ? `$${formatDecimal(n.precioCompra, 2)}` : <span style="color: #64748b;">—</span>}
+                  <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">{formatDecimal(n.montoDivisa, 0)}</td>
+                  <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary); font-size: 14px;">${formatDecimal(n.tasa, 2)}</td>
+                  <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--success); font-size: 14px;">{formatCop(n.ingresoCop)}</td>
+                  <td style="padding: 14px 18px; font-family: ui-monospace, monospace; color: var(--text-muted); font-size: 12px;">{n.compraRelCodigo || '—'}</td>
+                  <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: var(--info); font-size: 14px;">
+                    {n.usdtPorDivisa > 0 ? `${formatDecimal(n.usdtPorDivisa, 2)}` : '0'}
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr style="background: #090e1a; font-weight: 700; font-family: ui-monospace, monospace; border-top: 2px solid #1e293b; color: #f8fafc;">
-                <td colspan="7" style="padding: 14px 14px; text-transform: uppercase; font-size: 12px; color: #94a3b8;">TOTALES CONSOLIDADOS:</td>
-                <td style="padding: 14px 14px; text-align: right; color: #10b981;">
-                  {formatCop(NEGOCIOS.reduce((a, b) => a + b.ingresoCop, 0))}
-                </td>
+              <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
+                <td colspan="7" style="padding: 18px 18px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTALES CONSOLIDADOS:</td>
+                <td style="padding: 18px 18px; text-align: right; color: var(--success); font-size: 14px;">{formatCop(NEGOCIOS.reduce((a, b) => a + b.ingresoCop, 0))}</td>
                 <td></td>
-                <td style="padding: 14px 14px; text-align: right; color: #c084fc;">
-                  {formatDecimal(NEGOCIOS.reduce((a, b) => a + b.usdtPorDivisa, 0), 2)}
-                </td>
-                <td></td>
+                <td style="padding: 18px 18px; text-align: right; color: var(--info); font-size: 14px;">{formatDecimal(NEGOCIOS.reduce((a, b) => a + b.usdtPorDivisa, 0), 2)}</td>
               </tr>
             </tfoot>
           </table>
         </div>
-      </div>
 
-      <!-- ========================================== -->
-      <!-- TAB 3: PAGOS -->
-      <!-- ========================================== -->
-      <div id="tab-pagos" class="tab-pane" style="display: none; padding: 0;">
-        <div style="overflow-x: auto;">
-          <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+        <!-- ============================================================ -->
+        <!-- TAB 3: PAGOS -->
+        <!-- ============================================================ -->
+        <div id="tab-pagos" class="tab-pane" style="display: none; overflow-x: auto;">
+          <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-              <tr style="background: #090e1a; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
-                <th style="padding: 12px 16px;">#</th>
-                <th style="padding: 12px 16px;">Código Pago</th>
-                <th style="padding: 12px 16px;">Cliente</th>
-                <th style="padding: 12px 16px; text-align: right;">Monto (COP)</th>
-                <th style="padding: 12px 16px; text-align: center;">Estado</th>
-                <th style="padding: 12px 16px; text-align: center;">Comprobante</th>
+              <tr style="border-bottom: 1px solid var(--border-main);">
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cliente</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto (COP)</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Comprobante</th>
               </tr>
             </thead>
             <tbody>
               {PAGOS.map((p) => {
                 const esCompletado = p.estado === 'COMPLETADO';
                 return (
-                  <tr class="table-row" style="border-bottom: 1px solid #172033; transition: background 0.1s ease;">
-                    <td style="padding: 12px 16px; color: #64748b; font-family: ui-monospace, monospace;">{p.numero}</td>
-                    <td style="padding: 12px 16px; font-weight: 600; color: #38bdf8; font-family: ui-monospace, monospace;">{p.codigo}</td>
-                    <td style="padding: 12px 16px; font-weight: 500; color: #f1f5f9;">{p.clienteNombre}</td>
-                    <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: {esCompletado ? '#10b981' : '#f43f5e'};">
+                  <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+                    <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">{p.numero}</td>
+                    <td style="padding: 16px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{p.codigo}</td>
+                    <td style="padding: 16px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px;">{p.clienteNombre}</td>
+                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {esCompletado ? 'var(--success)' : 'var(--danger)'};">
                       {formatCop(p.montoCop)}
                     </td>
-                    <td style="padding: 12px 16px; text-align: center;">
+                    <td style="padding: 16px 20px; text-align: center;">
                       {esCompletado ? (
-                        <span style="font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
-                          COMPLETADO
-                        </span>
+                        <span class="status-pill status-success">COMPLETADO</span>
                       ) : (
-                        <span style="font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: rgba(244, 63, 94, 0.12); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3);">
-                          RECHAZADO
-                        </span>
+                        <span class="status-pill status-danger">RECHAZADO</span>
                       )}
                     </td>
-                    <td style="padding: 12px 16px; text-align: center;">
+                    <td style="padding: 16px 20px; text-align: center;">
                       {p.comprobanteUrl ? (
                         <a 
                           href={p.comprobanteUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 5px; background: #1e293b; color: #38bdf8; border: 1px solid #334155; text-decoration: none; font-size: 12px;"
+                          style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 8px; background: var(--bg-card-secondary); color: var(--brand-primary); border: 1px solid var(--border-main); text-decoration: none; font-size: 12px; font-weight: 600;"
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                           </svg>
-                          Ver Adjunto
+                          Ver Archivo
                         </a>
                       ) : (
-                        <span style="color: #64748b; font-size: 12px;">Sin archivo</span>
+                        <span style="color: var(--text-muted); font-size: 12px;">Sin adjunto</span>
                       )}
                     </td>
                   </tr>
@@ -449,61 +495,55 @@ function formatDecimal(amount: number, digits = 2): string {
               })}
             </tbody>
             <tfoot>
-              <tr style="background: #090e1a; font-weight: 700; font-family: ui-monospace, monospace; border-top: 2px solid #1e293b; color: #f8fafc;">
-                <td colspan="3" style="padding: 14px 16px; text-transform: uppercase; font-size: 12px; color: #94a3b8;">TOTAL COMPLETADO EN CAJA:</td>
-                <td style="padding: 14px 16px; text-align: right; color: #10b981;">
+              <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
+                <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTAL COMPLETADO EN CAJA:</td>
+                <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 14px;">
                   {formatCop(PAGOS.filter(p => p.estado === 'COMPLETADO').reduce((a, b) => a + b.montoCop, 0))}
                 </td>
-                <td colspan="2" style="padding: 14px 16px; font-size: 12px; color: #64748b; text-align: right;">
+                <td colspan="2" style="padding: 18px 20px; text-align: right; font-size: 12px; color: var(--text-muted);">
                   Rechazados: {formatCop(PAGOS.filter(p => p.estado === 'RECHAZADO').reduce((a, b) => a + b.montoCop, 0))}
                 </td>
               </tr>
             </tfoot>
           </table>
         </div>
-      </div>
 
-      <!-- ========================================== -->
-      <!-- TAB 4: DIVISAS -->
-      <!-- ========================================== -->
-      <div id="tab-divisas" class="tab-pane" style="display: none; padding: 0;">
-        <div style="overflow-x: auto;">
-          <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+        <!-- ============================================================ -->
+        <!-- TAB 4: DIVISAS -->
+        <!-- ============================================================ -->
+        <div id="tab-divisas" class="tab-pane" style="display: none; overflow-x: auto;">
+          <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-              <tr style="background: #090e1a; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
-                <th style="padding: 12px 16px;">Código Moneda</th>
-                <th style="padding: 12px 16px; text-align: right;">Total Recibido</th>
-                <th style="padding: 12px 16px; text-align: right;">Total Comprado (USDT)</th>
-                <th style="padding: 12px 16px; text-align: right;">Total Pendiente en Custodia</th>
-                <th style="padding: 12px 16px; text-align: center;">Estado Balanza</th>
+              <tr style="border-bottom: 1px solid var(--border-main);">
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Moneda</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Total Recibido</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Total Comprado (USDT)</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Saldo en Custodia</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Balanza</th>
               </tr>
             </thead>
             <tbody>
               {DIVISAS.map((d) => {
                 const tienePendiente = d.totalPendiente > 0;
                 return (
-                  <tr class="table-row" style="border-bottom: 1px solid #172033; transition: background 0.1s ease;">
-                    <td style="padding: 12px 16px; font-weight: 700; color: #38bdf8; font-family: ui-monospace, monospace; font-size: 14px;">
+                  <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+                    <td style="padding: 16px 20px; font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 15px;">
                       {d.codigo}
                     </td>
-                    <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #f8fafc;">
+                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">
                       {formatDecimal(d.totalRecibido, 2)}
                     </td>
-                    <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #10b981;">
+                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600; font-size: 14px;">
                       {formatDecimal(d.totalComprado, 2)}
                     </td>
-                    <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: {tienePendiente ? '#f59e0b' : '#94a3b8'};">
+                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {tienePendiente ? 'var(--warning)' : 'var(--text-muted)'};">
                       {formatDecimal(d.totalPendiente, 2)}
                     </td>
-                    <td style="padding: 12px 16px; text-align: center;">
+                    <td style="padding: 16px 20px; text-align: center;">
                       {tienePendiente ? (
-                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
-                          COMPRA PENDIENTE
-                        </span>
+                        <span class="status-pill status-warning">COMPRA PENDIENTE</span>
                       ) : (
-                        <span style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);">
-                          CUBIERTA AL 100%
-                        </span>
+                        <span class="status-pill status-success">CUBIERTA 100%</span>
                       )}
                     </td>
                   </tr>
@@ -512,56 +552,46 @@ function formatDecimal(amount: number, digits = 2): string {
             </tbody>
           </table>
         </div>
-      </div>
 
-      <!-- ========================================== -->
-      <!-- TAB 5: COMPRA-USDT -->
-      <!-- ========================================== -->
-      <div id="tab-compras" class="tab-pane" style="display: none; padding: 0;">
-        <div style="overflow-x: auto;">
-          <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+        <!-- ============================================================ -->
+        <!-- TAB 5: COMPRA-USDT -->
+        <!-- ============================================================ -->
+        <div id="tab-compras" class="tab-pane" style="display: none; overflow-x: auto;">
+          <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-              <tr style="background: #090e1a; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
-                <th style="padding: 12px 16px;">#</th>
-                <th style="padding: 12px 16px;">Código Compra</th>
-                <th style="padding: 12px 16px;">Fecha Compra</th>
-                <th style="padding: 12px 16px; text-align: center;">Divisa</th>
-                <th style="padding: 12px 16px; text-align: right;">Valor Comprado</th>
-                <th style="padding: 12px 16px; text-align: right;">USDT Obtenido</th>
-                <th style="padding: 12px 16px; text-align: right;">Costo USDT</th>
-                <th style="padding: 12px 16px; text-align: right;">Tasa Ejecutada</th>
+              <tr style="border-bottom: 1px solid var(--border-main);">
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Fecha</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Divisa</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Valor Comprado</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">USDT Obtenido</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Costo</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Tasa</th>
               </tr>
             </thead>
             <tbody>
               {COMPRAS_USDT.map((c) => (
-                <tr class="table-row" style="border-bottom: 1px solid #172033; transition: background 0.1s ease;">
-                  <td style="padding: 12px 16px; color: #64748b; font-family: ui-monospace, monospace;">{c.numero}</td>
-                  <td style="padding: 12px 16px; font-weight: 600; color: #38bdf8; font-family: ui-monospace, monospace;">{c.codigo}</td>
-                  <td style="padding: 12px 16px; color: #94a3b8; font-family: ui-monospace, monospace;">{c.fechaCompra}</td>
-                  <td style="padding: 12px 16px; text-align: center;">
-                    <span style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155;">
+                <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+                  <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">{c.numero}</td>
+                  <td style="padding: 16px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{c.codigo}</td>
+                  <td style="padding: 16px 20px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">{c.fechaCompra}</td>
+                  <td style="padding: 16px 20px; text-align: center;">
+                    <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main);">
                       {c.divisaCodigo}
                     </span>
                   </td>
-                  <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #f8fafc;">
-                    {formatDecimal(c.valorComprado, 2)}
-                  </td>
-                  <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: #c084fc;">
-                    {formatDecimal(c.usdtComprado, 2)} USDT
-                  </td>
-                  <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #94a3b8;">
-                    ${formatDecimal(c.costo, 4)}
-                  </td>
-                  <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #38bdf8;">
-                    ${formatDecimal(c.tasa, 4)}
-                  </td>
+                  <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">{formatDecimal(c.valorComprado, 2)}</td>
+                  <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--info); font-size: 14px;">{formatDecimal(c.usdtComprado, 2)} USDT</td>
+                  <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary); font-size: 13px;">${formatDecimal(c.costo, 4)}</td>
+                  <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: var(--brand-primary); font-size: 13px;">${formatDecimal(c.tasa, 4)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr style="background: #090e1a; font-weight: 700; font-family: ui-monospace, monospace; border-top: 2px solid #1e293b; color: #f8fafc;">
-                <td colspan="5" style="padding: 14px 16px; text-transform: uppercase; font-size: 12px; color: #94a3b8;">TOTAL USDT CONSOLIDADO:</td>
-                <td style="padding: 14px 16px; text-align: right; color: #c084fc;">
+              <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
+                <td colspan="5" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTAL USDT CONSOLIDADO:</td>
+                <td style="padding: 18px 20px; text-align: right; color: var(--info); font-size: 14px;">
                   {formatDecimal(COMPRAS_USDT.reduce((a, b) => a + b.usdtComprado, 0), 2)} USDT
                 </td>
                 <td colspan="2"></td>
@@ -569,30 +599,28 @@ function formatDecimal(amount: number, digits = 2): string {
             </tfoot>
           </table>
         </div>
-      </div>
 
-      <!-- ========================================== -->
-      <!-- TAB 6: ADMINS -->
-      <!-- ========================================== -->
-      <div id="tab-admins" class="tab-pane" style="display: none; padding: 0;">
-        <div style="overflow-x: auto;">
-          <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+        <!-- ============================================================ -->
+        <!-- TAB 6: ADMINS -->
+        <!-- ============================================================ -->
+        <div id="tab-admins" class="tab-pane" style="display: none; overflow-x: auto;">
+          <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-              <tr style="background: #090e1a; border-bottom: 1px solid #1e293b; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
-                <th style="padding: 12px 16px;">#</th>
-                <th style="padding: 12px 16px;">Código Administrador</th>
-                <th style="padding: 12px 16px;">Nombre</th>
-                <th style="padding: 12px 16px; text-align: center;">País</th>
+              <tr style="border-bottom: 1px solid var(--border-main);">
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Nombre</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">País</th>
               </tr>
             </thead>
             <tbody>
               {ADMINS.map((a) => (
-                <tr class="table-row" style="border-bottom: 1px solid #172033; transition: background 0.1s ease;">
-                  <td style="padding: 12px 16px; color: #64748b; font-family: ui-monospace, monospace;">{a.numero}</td>
-                  <td style="padding: 12px 16px; font-weight: 600; color: #38bdf8; font-family: ui-monospace, monospace;">{a.codigo}</td>
-                  <td style="padding: 12px 16px; font-weight: 500; color: #f1f5f9;">{a.nombre}</td>
-                  <td style="padding: 12px 16px; text-align: center;">
-                    <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: #0284c7; color: #f0f9ff;">
+                <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+                  <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">{a.numero}</td>
+                  <td style="padding: 16px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{a.codigo}</td>
+                  <td style="padding: 16px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px;">{a.nombre}</td>
+                  <td style="padding: 16px 20px; text-align: center;">
+                    <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 6px; background: var(--brand-primary-light); color: var(--brand-primary);">
                       {a.pais}
                     </span>
                   </td>
@@ -601,40 +629,83 @@ function formatDecimal(amount: number, digits = 2): string {
             </tbody>
           </table>
         </div>
+
       </div>
 
-    </div>
+      <!-- Footer Horizon -->
+      <footer style="margin-top: 36px; padding: 20px 0; border-top: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; font-size: 13px; color: var(--text-muted);">
+        <div>
+          &copy; 2026 <strong style="color: var(--text-primary);">Kaupaloki</strong> &bull; Sistema Contable y Cambiario
+        </div>
+        <div style="font-family: ui-monospace, monospace; font-size: 12px;">
+          Diseñado con Horizon UI Design System
+        </div>
+      </footer>
 
-    <!-- Pie Contable -->
-    <footer style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #1e293b; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; color: #64748b;">
-      <div>
-        Kaupaloki &bull; Sistema Contable y Cambiario &bull; Cloudflare Pages Deployment
-      </div>
-      <div style="font-family: ui-monospace, monospace;">
-        Generado sin autenticación de usuario (Acceso de solo lectura público / interno)
-      </div>
-    </footer>
-
+    </main>
   </div>
 </Layout>
 
 <style>
-  .nav-tab {
+  /* Sidebar styles Horizon */
+  .sidebar-link {
     background: transparent;
-    color: #94a3b8;
+    color: var(--text-secondary);
+    position: relative;
   }
-  .nav-tab:hover {
-    background: #172033;
-    color: #f1f5f9;
+  .sidebar-link:hover {
+    background: var(--bg-card-secondary);
+    color: var(--text-primary);
   }
-  .nav-tab.active {
-    background: #1e293b;
-    color: #38bdf8;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  .sidebar-link.active {
+    background: var(--brand-primary-light);
+    color: var(--brand-primary);
+    font-weight: 700;
   }
-  .table-row:hover {
-    background: rgba(30, 41, 59, 0.45);
+  .sidebar-link.active::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 24px;
+    background: var(--brand-primary);
+    border-radius: 4px 0 0 4px;
   }
+
+  /* Table styles */
+  .horizon-row:hover {
+    background: var(--bg-card-secondary);
+  }
+
+  /* Status Pills Horizon */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: 9999px;
+  }
+  .status-success {
+    background: var(--success-light);
+    color: var(--success);
+  }
+  .status-warning {
+    background: var(--warning-light);
+    color: var(--warning);
+  }
+  .status-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+  }
+  .status-info {
+    background: var(--info-light);
+    color: var(--info);
+  }
+
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -653,8 +724,8 @@ function formatDecimal(amount: number, digits = 2): string {
     return localStorage.getItem('kaupaloki_airtable_pat') || ENV_PAT;
   }
 
-  // Manejo de cambio de pestañas (Tabs)
-  const tabs = document.querySelectorAll('.nav-tab');
+  // Manejo de cambio de pestañas (Sidebar Links)
+  const links = document.querySelectorAll('.sidebar-link');
   const panes = document.querySelectorAll('.tab-pane');
   const searchInput = document.getElementById('table-search') as HTMLInputElement | null;
   const btnExport = document.getElementById('btn-export-csv');
@@ -662,31 +733,90 @@ function formatDecimal(amount: number, digits = 2): string {
   const syncIcon = document.getElementById('sync-icon');
   const syncText = document.getElementById('sync-text');
   const syncDot = document.getElementById('sync-dot');
+  const breadcrumbTitle = document.getElementById('breadcrumb-title');
+  const pageHeading = document.getElementById('page-heading');
+  const activeTableTitle = document.getElementById('active-table-title');
+  const themeToggle = document.getElementById('btn-theme-toggle');
 
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const targetId = tab.getAttribute('data-target');
+  const titlesMap: Record<string, { breadcrumb: string, heading: string, table: string }> = {
+    'tab-clientes': {
+      breadcrumb: 'Clientes',
+      heading: 'Control de Clientes & Balances',
+      table: 'Tabla de Clientes'
+    },
+    'tab-negocios': {
+      breadcrumb: 'Negocios',
+      heading: 'Operaciones Cambiarias & Tasas',
+      table: 'Libro Diario de Negocios'
+    },
+    'tab-pagos': {
+      breadcrumb: 'Pagos',
+      heading: 'Control de Caja & Comprobantes',
+      table: 'Registro de Pagos y Recaudos'
+    },
+    'tab-divisas': {
+      breadcrumb: 'Divisas',
+      heading: 'Inventario de Monedas Extranjeras',
+      table: 'Balance Consolidado de Divisas'
+    },
+    'tab-compras': {
+      breadcrumb: 'Compra USDT',
+      heading: 'Adquisición de Cripto & Tasas de Cambio',
+      table: 'Historial de Compras USDT'
+    },
+    'tab-admins': {
+      breadcrumb: 'Administradores',
+      heading: 'Gestores por Territorio',
+      table: 'Directorio de Administradores'
+    }
+  };
+
+  links.forEach(link => {
+    link.addEventListener('click', () => {
+      const targetId = link.getAttribute('data-target');
+      if (!targetId) return;
       
-      tabs.forEach(t => t.classList.remove('active'));
+      links.forEach(l => l.classList.remove('active'));
       panes.forEach(p => {
         (p as HTMLElement).style.display = 'none';
         p.classList.remove('active');
       });
 
-      tab.classList.add('active');
-      const targetPane = document.getElementById(targetId || '');
+      link.classList.add('active');
+      const targetPane = document.getElementById(targetId);
       if (targetPane) {
         targetPane.style.display = 'block';
         targetPane.classList.add('active');
       }
 
-      // Reiniciar búsqueda al cambiar de pestaña
+      // Actualizar textos en Navbar y Header
+      if (titlesMap[targetId]) {
+        if (breadcrumbTitle) breadcrumbTitle.textContent = titlesMap[targetId].breadcrumb;
+        if (pageHeading) pageHeading.textContent = titlesMap[targetId].heading;
+        if (activeTableTitle) activeTableTitle.textContent = titlesMap[targetId].table;
+      }
+
+      // Reiniciar búsqueda
       if (searchInput) {
         searchInput.value = '';
         filtrarTabla('');
       }
     });
   });
+
+  // Tema Claro / Oscuro
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('kaupaloki_theme', 'light');
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('kaupaloki_theme', 'dark');
+      }
+    });
+  }
 
   // Filtro de búsqueda en tiempo real
   function filtrarTabla(query: string) {
@@ -737,10 +867,10 @@ function formatDecimal(amount: number, digits = 2): string {
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      const activeTab = document.querySelector('.nav-tab.active')?.textContent?.trim().split(' ')[0] || 'tabla';
+      const activeName = breadcrumbTitle?.textContent?.trim() || 'tabla';
       const a = document.createElement('a');
       a.href = url;
-      a.download = `kaupaloki-${activeTab.toLowerCase()}.csv`;
+      a.download = `kaupaloki-${activeName.toLowerCase()}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -748,7 +878,7 @@ function formatDecimal(amount: number, digits = 2): string {
     });
   }
 
-  // Formateadores contables cliente
+  // Formateador moneda
   function formatMoney(amount: number) {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -757,7 +887,7 @@ function formatDecimal(amount: number, digits = 2): string {
     }).format(amount);
   }
 
-  // Sincronización en tiempo real directa con la API de Airtable
+  // Sincronización en tiempo real directa con Airtable API
   async function sincronizarAirtableEnVivo() {
     if (!btnSync || !syncIcon || !syncText || !syncDot) return;
 
@@ -769,7 +899,7 @@ function formatDecimal(amount: number, digits = 2): string {
 
     try {
       syncIcon.classList.add('animate-spin');
-      syncText.textContent = 'Actualizando en vivo...';
+      syncText.textContent = 'Actualizando...';
       syncDot.style.background = '#38bdf8';
       syncDot.style.boxShadow = '0 0 8px #38bdf8';
 
@@ -786,7 +916,7 @@ function formatDecimal(amount: number, digits = 2): string {
       const data = await response.json();
       const records = data.records || [];
 
-      // Actualizar la tabla de CLIENTES dinámicamente
+      // Actualizar tabla CLIENTES
       const clientesTbody = document.querySelector('#tab-clientes tbody');
       if (clientesTbody && records.length > 0) {
         let totalIngresos = 0;
@@ -808,68 +938,60 @@ function formatDecimal(amount: number, digits = 2): string {
 
           const tieneSaldo = pendiente > 0;
           const saldoAFavor = pendiente < 0;
-          const colorSaldo = tieneSaldo ? '#f59e0b' : saldoAFavor ? '#38bdf8' : '#94a3b8';
+          const colorSaldo = tieneSaldo ? 'var(--warning)' : saldoAFavor ? 'var(--info)' : 'var(--text-muted)';
 
           let badgeHtml = '';
           if (tieneSaldo) {
-            badgeHtml = `<span style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">POR COBRAR</span>`;
+            badgeHtml = `<span class="status-pill status-warning">POR COBRAR</span>`;
           } else if (saldoAFavor) {
-            badgeHtml = `<span style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">SALDO A FAVOR</span>`;
+            badgeHtml = `<span class="status-pill status-info">SALDO A FAVOR</span>`;
           } else {
-            badgeHtml = `<span style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);">AL DÍA</span>`;
+            badgeHtml = `<span class="status-pill status-success">AL DÍA</span>`;
           }
 
           return `
-            <tr class="table-row" style="border-bottom: 1px solid #172033; transition: background 0.1s ease;">
-              <td style="padding: 12px 16px; color: #64748b; font-family: ui-monospace, monospace;">${num}</td>
-              <td style="padding: 12px 16px; font-weight: 600; color: #38bdf8; font-family: ui-monospace, monospace;">${codigo}</td>
-              <td style="padding: 12px 16px; font-weight: 500; color: #f1f5f9;">${nombre}</td>
-              <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #e2e8f0;">${formatMoney(ingresos)}</td>
-              <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; color: #10b981;">${formatMoney(pagado)}</td>
-              <td style="padding: 12px 16px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: ${colorSaldo};">${formatMoney(pendiente)}</td>
-              <td style="padding: 12px 16px; text-align: center;">${badgeHtml}</td>
+            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+              <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${num}</td>
+              <td style="padding: 16px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">${codigo}</td>
+              <td style="padding: 16px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${nombre}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">${formatMoney(ingresos)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600; font-size: 14px;">${formatMoney(pagado)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: ${colorSaldo};">${formatMoney(pendiente)}</td>
+              <td style="padding: 16px 20px; text-align: center;">${badgeHtml}</td>
             </tr>
           `;
         }).join('');
 
-        // Actualizar el pie con totales
+        // Actualizar totales tfoot
         const tfoot = document.querySelector('#tab-clientes tfoot');
         if (tfoot) {
           tfoot.innerHTML = `
-            <tr style="background: #090e1a; font-weight: 700; font-family: ui-monospace, monospace; border-top: 2px solid #1e293b; color: #f8fafc;">
-              <td colspan="3" style="padding: 14px 16px; text-transform: uppercase; font-size: 12px; color: #94a3b8;">TOTALES CONSOLIDADOS:</td>
-              <td style="padding: 14px 16px; text-align: right; color: #f8fafc;">${formatMoney(totalIngresos)}</td>
-              <td style="padding: 14px 16px; text-align: right; color: #10b981;">${formatMoney(totalPagado)}</td>
-              <td style="padding: 14px 16px; text-align: right; color: #f59e0b;">${formatMoney(totalPendiente)}</td>
+            <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
+              <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTALES CONSOLIDADOS:</td>
+              <td style="padding: 18px 20px; text-align: right; font-size: 14px;">${formatMoney(totalIngresos)}</td>
+              <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 14px;">${formatMoney(totalPagado)}</td>
+              <td style="padding: 18px 20px; text-align: right; color: var(--warning); font-size: 14px;">${formatMoney(totalPendiente)}</td>
               <td></td>
             </tr>
           `;
         }
 
-        // Actualizar el contador en la pestaña
-        const tabClientesBtn = document.querySelector('.nav-tab[data-target="tab-clientes"]');
-        if (tabClientesBtn) {
-          tabClientesBtn.innerHTML = `
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            CLIENTES (${records.length})
-          `;
+        // Actualizar contador del sidebar
+        const badgeClientes = document.getElementById('badge-count-clientes');
+        if (badgeClientes) {
+          badgeClientes.textContent = String(records.length);
         }
       }
 
       const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       syncText.textContent = `En vivo: ${hora}`;
-      syncDot.style.background = '#10b981';
-      syncDot.style.boxShadow = '0 0 8px #10b981';
+      syncDot.style.background = 'var(--success)';
+      syncDot.style.boxShadow = '0 0 8px var(--success)';
     } catch (err) {
-      console.error('Error al sincronizar con Airtable en vivo:', err);
+      console.error('Error al sincronizar con Airtable:', err);
       syncText.textContent = 'En vivo: Datos en caché';
-      syncDot.style.background = '#f59e0b';
-      syncDot.style.boxShadow = '0 0 8px #f59e0b';
+      syncDot.style.background = 'var(--warning)';
+      syncDot.style.boxShadow = '0 0 8px var(--warning)';
     } finally {
       syncIcon.classList.remove('animate-spin');
     }
@@ -891,7 +1013,7 @@ function formatDecimal(amount: number, digits = 2): string {
     });
   }
 
-  // Sincronización automática al cargar y cada 30 segundos
+  // Sincronización inicial y polling cada 30 segundos
   sincronizarAirtableEnVivo();
   setInterval(sincronizarAirtableEnVivo, 30000);
 </script>
