@@ -134,6 +134,20 @@ function formatDecimal(amount: number, digits = 2): string {
               {ADMINS.length}
             </span>
           </button>
+
+          <!-- Usuarios (Supabase Auth & Roles) -->
+          <button class="sidebar-link" data-target="tab-usuarios" title="Usuarios" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span class="sidebar-text" style="flex: 1;">Usuarios</span>
+            <span class="count-badge" id="badge-count-usuarios" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
+              —
+            </span>
+          </button>
         </nav>
       </div>
 
@@ -178,7 +192,7 @@ function formatDecimal(amount: number, digits = 2): string {
               Pages / <span id="breadcrumb-title" style="color: var(--text-primary); font-weight: 600;">Clientes</span>
             </div>
             <h1 id="page-heading" style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary); line-height: 1.15;">
-              Control de Clientes
+              Control Clientes
             </h1>
           </div>
         </div>
@@ -389,7 +403,7 @@ function formatDecimal(amount: number, digits = 2): string {
         <div style="padding: 22px 26px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
           <div>
             <h2 id="active-table-title" style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
-              Tabla de Clientes
+              Tabla Clientes
             </h2>
             <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted);">
               Visualización contable sincronizada directamente desde Airtable
@@ -730,6 +744,153 @@ function formatDecimal(amount: number, digits = 2): string {
           </table>
         </div>
 
+        <!-- ============================================================ -->
+        <!-- TAB 7: USUARIOS (SUPABASE AUTH & ROLES) -->
+        <!-- ============================================================ -->
+        <div id="tab-usuarios" class="tab-pane" style="display: none; padding: 24px;">
+          
+          <!-- Card: Crear Usuario (Solo Admin) -->
+          <div id="admin-user-create-card" style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 18px; padding: 22px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 12px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <line x1="19" y1="8" x2="19" y2="14"></line>
+                    <line x1="22" y1="11" x2="16" y2="11"></line>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+                    Crear Usuario
+                  </h3>
+                  <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                    Registra credenciales con rol de Operador o Administrador en Supabase
+                  </p>
+                </div>
+              </div>
+              <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--brand-primary-light); color: var(--brand-primary); text-transform: uppercase;">
+                Admin Only
+              </span>
+            </div>
+
+            <form id="create-user-view-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: end;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                  Nombre Completo
+                </label>
+                <input 
+                  type="text" 
+                  id="view-user-name" 
+                  required 
+                  placeholder="Ej. Juan Pérez" 
+                  style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
+                />
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                  Correo Electrónico
+                </label>
+                <input 
+                  type="email" 
+                  id="view-user-email" 
+                  required 
+                  placeholder="usuario@kaupaloki.com" 
+                  style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
+                />
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                  Contraseña
+                </label>
+                <input 
+                  type="password" 
+                  id="view-user-password" 
+                  required 
+                  placeholder="Mínimo 6 caracteres" 
+                  minlength="6" 
+                  style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
+                />
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                  Rol en Plataforma
+                </label>
+                <select 
+                  id="view-user-role" 
+                  style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; box-sizing: border-box;"
+                >
+                  <option value="operador">Operador (Clientes)</option>
+                  <option value="client">Cliente (Portal)</option>
+                  <option value="administrador">Administrador (Total)</option>
+                </select>
+              </div>
+
+              <div style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 6px;">
+                <span id="view-user-status" style="font-size: 13px; font-weight: 600;"></span>
+                <button 
+                  type="submit" 
+                  id="btn-view-submit-user" 
+                  style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 12px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35);"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Crear Usuario
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Section: Directorio de Usuarios -->
+          <div style="border: 1px solid var(--border-main); border-radius: 16px; overflow: hidden; background: var(--bg-card);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-main); display: flex; justify-content: space-between; align-items: center; background: var(--bg-card-secondary);">
+              <div>
+                <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+                  Directorio Usuarios
+                </h3>
+              </div>
+              <button 
+                id="btn-refresh-users-view" 
+                title="Actualizar lista de usuarios"
+                style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer;"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                Actualizar
+              </button>
+            </div>
+            
+            <div style="overflow-x: auto;">
+              <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
+                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); width: 40px;">#</th>
+                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Nombre</th>
+                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Correo Electrónico</th>
+                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Rol</th>
+                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Onboarding</th>
+                    <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Fecha Creación</th>
+                  </tr>
+                </thead>
+                <tbody id="usuarios-view-table-body">
+                  <tr>
+                    <td colspan="6" style="padding: 24px; text-align: center; color: var(--text-muted);">
+                      Cargando usuarios de Supabase...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
       </div>
 
       <!-- ============================================================== -->
@@ -1242,33 +1403,38 @@ function formatDecimal(amount: number, digits = 2): string {
   const titlesMap: Record<string, { breadcrumb: string, heading: string, table: string }> = {
     'tab-clientes': {
       breadcrumb: 'Clientes',
-      heading: 'Control de Clientes & Balances',
-      table: 'Tabla de Clientes'
+      heading: 'Control Clientes',
+      table: 'Tabla Clientes'
     },
     'tab-negocios': {
       breadcrumb: 'Negocios',
-      heading: 'Operaciones Cambiarias & Tasas',
-      table: 'Libro Diario de Negocios'
+      heading: 'Operaciones Negocios',
+      table: 'Tabla Negocios'
     },
     'tab-dispersiones': {
       breadcrumb: 'Dispersiones',
-      heading: 'Control de Dispersiones & Comprobantes',
-      table: 'Registro de Dispersiones'
+      heading: 'Control Dispersiones',
+      table: 'Tabla Dispersiones'
     },
     'tab-divisas': {
       breadcrumb: 'Divisas',
-      heading: 'Inventario de Monedas Extranjeras',
-      table: 'Balance Consolidado de Divisas'
+      heading: 'Balance Divisas',
+      table: 'Tabla Divisas'
     },
     'tab-compras': {
-      breadcrumb: 'Compra USDT',
-      heading: 'Adquisición de Cripto & Tasas de Cambio',
-      table: 'Historial de Compras USDT'
+      breadcrumb: 'Compras',
+      heading: 'Compras Cripto',
+      table: 'Tabla Compras'
     },
     'tab-admins': {
-      breadcrumb: 'Administradores',
-      heading: 'Gestores por Territorio',
-      table: 'Directorio de Administradores'
+      breadcrumb: 'Gestores',
+      heading: 'Gestores Territorio',
+      table: 'Tabla Gestores'
+    },
+    'tab-usuarios': {
+      breadcrumb: 'Usuarios',
+      heading: 'Control Usuarios',
+      table: 'Tabla Usuarios'
     }
   };
 
@@ -1295,6 +1461,10 @@ function formatDecimal(amount: number, digits = 2): string {
         if (breadcrumbTitle) breadcrumbTitle.textContent = titlesMap[targetId].breadcrumb;
         if (pageHeading) pageHeading.textContent = titlesMap[targetId].heading;
         if (activeTableTitle) activeTableTitle.textContent = titlesMap[targetId].table;
+      }
+
+      if (targetId === 'tab-usuarios') {
+        loadUsersList();
       }
 
       // Reiniciar búsqueda
@@ -1648,11 +1818,24 @@ function formatDecimal(amount: number, digits = 2): string {
       userAvatarInitials.textContent = name.charAt(0).toUpperCase();
     }
 
-    // Si es administrador, permitir abrir gestión de usuarios
+    // Si es administrador, permitir abrir gestión de usuarios y habilitar creación
+    const adminUserCreateCard = document.getElementById('admin-user-create-card');
     if (currentUserProfile.role === 'administrador') {
       const btnOpenUsers = document.getElementById('btn-open-users-modal');
       if (btnOpenUsers) btnOpenUsers.style.display = 'flex';
+      if (adminUserCreateCard) adminUserCreateCard.style.display = 'block';
+    } else {
+      if (adminUserCreateCard) {
+        adminUserCreateCard.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-main);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">La creación de nuevos usuarios está reservada exclusivamente para Administradores.</span>
+          </div>
+        `;
+      }
     }
+
+    loadUsersList();
   }
 
   checkAuthAndRBAC();
@@ -1682,7 +1865,7 @@ function formatDecimal(amount: number, digits = 2): string {
   });
 
   // ==============================================================
-  // GESTIÓN DE USUARIOS (SOLO ADMINISTRADOR)
+  // GESTIÓN DE USUARIOS (SOLO ADMINISTRADOR & TAB USUARIOS)
   // ==============================================================
   const btnOpenUsersModal = document.getElementById('btn-open-users-modal');
   const btnCloseUsersModal = document.getElementById('btn-close-users-modal');
@@ -1690,6 +1873,11 @@ function formatDecimal(amount: number, digits = 2): string {
   const createUserForm = document.getElementById('create-user-form');
   const createUserStatus = document.getElementById('create-user-status');
   const usersTableBody = document.getElementById('users-table-body');
+  const usuariosViewTableBody = document.getElementById('usuarios-view-table-body');
+  const badgeCountUsuarios = document.getElementById('badge-count-usuarios');
+  const btnRefreshUsersView = document.getElementById('btn-refresh-users-view');
+  const createUserViewForm = document.getElementById('create-user-view-form');
+  const viewUserStatus = document.getElementById('view-user-status');
 
   btnOpenUsersModal?.addEventListener('click', () => {
     if (userDropdownMenu) userDropdownMenu.style.display = 'none';
@@ -1701,44 +1889,96 @@ function formatDecimal(amount: number, digits = 2): string {
     if (modalUsersBackdrop) modalUsersBackdrop.style.display = 'none';
   });
 
+  btnRefreshUsersView?.addEventListener('click', () => {
+    loadUsersList();
+  });
+
   async function loadUsersList() {
-    if (!usersTableBody) return;
     const { data: users, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    
+    if (badgeCountUsuarios) {
+      badgeCountUsuarios.textContent = users ? users.length.toString() : '0';
+    }
+
     if (error || !users) {
-      usersTableBody.innerHTML = `<tr><td colspan="4" style="padding: 16px; text-align: center; color: var(--danger);">Error cargando usuarios: ${error?.message}</td></tr>`;
+      const errHtml = `<tr><td colspan="6" style="padding: 18px; text-align: center; color: var(--danger);">Error al cargar usuarios: ${error?.message}</td></tr>`;
+      if (usersTableBody) usersTableBody.innerHTML = errHtml;
+      if (usuariosViewTableBody) usuariosViewTableBody.innerHTML = errHtml;
       return;
     }
-    usersTableBody.innerHTML = users.map((u: any) => `
-      <tr style="border-bottom: 1px solid var(--border-main);">
-        <td style="padding: 10px 14px; font-weight: 600; color: var(--text-primary);">${u.full_name || '—'}</td>
-        <td style="padding: 10px 14px; font-family: ui-monospace, monospace; color: var(--text-secondary);">${u.email}</td>
-        <td style="padding: 10px 14px;">
-          <span style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: ${u.role === 'administrador' ? 'var(--brand-primary-light)' : 'var(--bg-main)'}; color: ${u.role === 'administrador' ? 'var(--brand-primary)' : 'var(--text-secondary)'}; text-transform: uppercase;">
-            ${u.role}
-          </span>
-        </td>
-        <td style="padding: 10px 14px;">
-          <span style="font-size: 11px; font-weight: 700; color: ${u.onboarding_completed ? 'var(--success)' : 'var(--warning)'};">
-            ${u.onboarding_completed ? 'Completado' : 'Pendiente'}
-          </span>
-        </td>
-      </tr>
-    `).join('');
+
+    // Modal table rows
+    if (usersTableBody) {
+      usersTableBody.innerHTML = users.map((u: any) => `
+        <tr style="border-bottom: 1px solid var(--border-main);">
+          <td style="padding: 10px 14px; font-weight: 600; color: var(--text-primary);">${u.full_name || '—'}</td>
+          <td style="padding: 10px 14px; font-family: ui-monospace, monospace; color: var(--text-secondary);">${u.email}</td>
+          <td style="padding: 10px 14px;">
+            <span style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: ${u.role === 'administrador' ? 'var(--brand-primary-light)' : 'var(--bg-main)'}; color: ${u.role === 'administrador' ? 'var(--brand-primary)' : 'var(--text-secondary)'}; text-transform: uppercase;">
+              ${u.role}
+            </span>
+          </td>
+          <td style="padding: 10px 14px;">
+            <span style="font-size: 11px; font-weight: 700; color: ${u.onboarding_completed ? 'var(--success)' : 'var(--warning)'};">
+              ${u.onboarding_completed ? 'Completado' : 'Pendiente'}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Full Tab View table rows
+    if (usuariosViewTableBody) {
+      usuariosViewTableBody.innerHTML = users.map((u: any, idx: number) => {
+        const isAdm = u.role === 'administrador';
+        const isOp = u.role === 'operador';
+        const roleBg = isAdm ? 'var(--brand-primary-light)' : (isOp ? 'rgba(5, 205, 153, 0.12)' : 'var(--bg-card-secondary)');
+        const roleColor = isAdm ? 'var(--brand-primary)' : (isOp ? 'var(--success)' : 'var(--text-secondary)');
+        const createdDate = u.created_at ? new Date(u.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+        const initial = (u.full_name || u.email || 'U').charAt(0).toUpperCase();
+
+        return `
+          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+            <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${idx + 1}</td>
+            <td style="padding: 16px 20px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 34px; height: 34px; border-radius: 50%; background: ${isAdm ? 'linear-gradient(135deg, #868CFF 0%, #4318FF 100%)' : 'var(--bg-card-secondary)'}; color: ${isAdm ? '#fff' : 'var(--brand-primary)'}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">
+                  ${initial}
+                </div>
+                <div>
+                  <div style="font-weight: 700; color: var(--text-primary); font-size: 14px;">${u.full_name || 'Sin Nombre'}</div>
+                  <div style="font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace;">${u.id ? u.id.slice(0, 8) + '...' : ''}</div>
+                </div>
+              </div>
+            </td>
+            <td style="padding: 16px 20px; font-family: ui-monospace, monospace; color: var(--text-secondary); font-size: 13px;">${u.email}</td>
+            <td style="padding: 16px 20px; text-align: center;">
+              <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 6px; background: ${roleBg}; color: ${roleColor}; text-transform: uppercase;">
+                ${u.role}
+              </span>
+            </td>
+            <td style="padding: 16px 20px; text-align: center;">
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: ${u.onboarding_completed ? 'var(--success)' : 'var(--warning)'};">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: currentColor;"></span>
+                ${u.onboarding_completed ? 'Completado' : 'Pendiente'}
+              </span>
+            </td>
+            <td style="padding: 16px 20px; text-align: center; color: var(--text-secondary); font-size: 13px;">
+              ${createdDate}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
   }
 
-  createUserForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!createUserStatus) return;
-    const name = (document.getElementById('new-user-name') as HTMLInputElement).value.trim();
-    const email = (document.getElementById('new-user-email') as HTMLInputElement).value.trim();
-    const password = (document.getElementById('new-user-password') as HTMLInputElement).value;
-    const role = (document.getElementById('new-user-role') as HTMLSelectElement).value;
-
-    createUserStatus.style.color = 'var(--text-muted)';
-    createUserStatus.textContent = 'Creando usuario...';
+  // Helper para registrar usuario
+  async function registrarNuevoUsuario(name: string, email: string, password: string, role: string, statusEl: HTMLElement | null, formEl: HTMLFormElement | null) {
+    if (!statusEl) return;
+    statusEl.style.color = 'var(--text-muted)';
+    statusEl.textContent = 'Creando usuario...';
 
     try {
-      // Cliente no persistente para no desloguear al admin
       const tempAuthClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: { persistSession: false, autoRefreshToken: false }
       });
@@ -1755,19 +1995,39 @@ function formatDecimal(amount: number, digits = 2): string {
       });
 
       if (error) {
-        createUserStatus.style.color = 'var(--danger)';
-        createUserStatus.textContent = error.message;
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = error.message;
         return;
       }
 
-      createUserStatus.style.color = 'var(--success)';
-      createUserStatus.textContent = '¡Usuario creado exitosamente!';
-      (createUserForm as HTMLFormElement).reset();
+      statusEl.style.color = 'var(--success)';
+      statusEl.textContent = '¡Usuario creado exitosamente!';
+      if (formEl) formEl.reset();
       setTimeout(loadUsersList, 600);
     } catch (err: any) {
-      createUserStatus.style.color = 'var(--danger)';
-      createUserStatus.textContent = err.message || 'Error al crear usuario';
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = err.message || 'Error al crear usuario';
     }
+  }
+
+  // Submit desde el modal
+  createUserForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = (document.getElementById('new-user-name') as HTMLInputElement).value.trim();
+    const email = (document.getElementById('new-user-email') as HTMLInputElement).value.trim();
+    const password = (document.getElementById('new-user-password') as HTMLInputElement).value;
+    const role = (document.getElementById('new-user-role') as HTMLSelectElement).value;
+    await registrarNuevoUsuario(name, email, password, role, createUserStatus, createUserForm as HTMLFormElement);
+  });
+
+  // Submit desde la vista tab-usuarios
+  createUserViewForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = (document.getElementById('view-user-name') as HTMLInputElement).value.trim();
+    const email = (document.getElementById('view-user-email') as HTMLInputElement).value.trim();
+    const password = (document.getElementById('view-user-password') as HTMLInputElement).value;
+    const role = (document.getElementById('view-user-role') as HTMLSelectElement).value;
+    await registrarNuevoUsuario(name, email, password, role, viewUserStatus, createUserViewForm as HTMLFormElement);
   });
 
   // ==============================================================
