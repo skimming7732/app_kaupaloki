@@ -75,13 +75,13 @@ function formatDecimal(amount: number, digits = 2): string {
             </span>
           </button>
 
-          <!-- Pagos -->
-          <button class="sidebar-link" data-target="tab-pagos" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <!-- Dispersiones -->
+          <button class="sidebar-link" data-target="tab-dispersiones" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
               <line x1="1" y1="10" x2="23" y2="10"></line>
             </svg>
-            <span style="flex: 1;">Pagos</span>
+            <span style="flex: 1;">Dispersiones</span>
             <span class="count-badge" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
               {PAGOS.length}
             </span>
@@ -285,7 +285,7 @@ function formatDecimal(amount: number, digits = 2): string {
           </div>
         </div>
 
-        <!-- Card 2: Pagado -->
+        <!-- Card 2: Dispersado -->
         <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px; border: 1px solid var(--border-main);">
           <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -295,13 +295,13 @@ function formatDecimal(amount: number, digits = 2): string {
           </div>
           <div>
             <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px;">
-              Pagos Acreditados
+              Total Dispersado (COP)
             </div>
             <div style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
               {formatCop(metricas.totalPagadoCop)}
             </div>
             <div style="font-size: 11px; font-weight: 600; color: var(--success); margin-top: 4px;">
-              {metricas.numPagosCompletados} comprobantes verificados
+              {metricas.numPagosCompletados} dispersiones verificadas
             </div>
           </div>
         </div>
@@ -323,7 +323,7 @@ function formatDecimal(amount: number, digits = 2): string {
               {formatCop(metricas.saldoPendienteNeto)}
             </div>
             <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-top: 4px;">
-              Ingresos vs Pagos en caja
+              Ingresos vs Dispersiones en caja
             </div>
           </div>
         </div>
@@ -389,7 +389,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Nombre</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Ingresos Totales (COP)</th>
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Pagado (COP)</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Dispersado (COP)</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Saldo Pendiente (COP)</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Acciones</th>
@@ -509,16 +509,16 @@ function formatDecimal(amount: number, digits = 2): string {
         </div>
 
         <!-- ============================================================ -->
-        <!-- TAB 3: PAGOS -->
+        <!-- TAB 3: DISPERSIONES -->
         <!-- ============================================================ -->
-        <div id="tab-pagos" class="tab-pane" style="display: none; overflow-x: auto;">
+        <div id="tab-dispersiones" class="tab-pane" style="display: none; overflow-x: auto;">
           <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
               <tr style="border-bottom: 1px solid var(--border-main);">
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cliente</th>
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto (COP)</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto Dispersado (COP)</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Comprobante</th>
               </tr>
@@ -566,7 +566,7 @@ function formatDecimal(amount: number, digits = 2): string {
             </tbody>
             <tfoot>
               <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
-                <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTAL COMPLETADO EN CAJA:</td>
+                <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTAL DISPERSADO EN CAJA:</td>
                 <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 14px;">
                   {formatCop(PAGOS.filter(p => p.estado === 'COMPLETADO').reduce((a, b) => a + b.montoCop, 0))}
                 </td>
@@ -1045,10 +1045,10 @@ function formatDecimal(amount: number, digits = 2): string {
       heading: 'Operaciones Cambiarias & Tasas',
       table: 'Libro Diario de Negocios'
     },
-    'tab-pagos': {
-      breadcrumb: 'Pagos',
-      heading: 'Control de Caja & Comprobantes',
-      table: 'Registro de Pagos y Recaudos'
+    'tab-dispersiones': {
+      breadcrumb: 'Dispersiones',
+      heading: 'Control de Dispersiones & Comprobantes',
+      table: 'Registro de Dispersiones'
     },
     'tab-divisas': {
       breadcrumb: 'Divisas',

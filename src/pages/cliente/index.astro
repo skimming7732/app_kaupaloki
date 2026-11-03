@@ -130,12 +130,12 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
           </div>
         </div>
 
-        <!-- KPIS CARDS (3 CARDS AS REQUESTED) -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+        <!-- KPIS CARDS (4 CARDS: NEGOCIOS, INGRESOS, DISPERSADO, PENDIENTE) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px;">
           
           <!-- KPI 1: NUMERO DE NEGOCIOS -->
-          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px;">
-            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
+            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -152,31 +152,9 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
             </div>
           </div>
 
-          <!-- KPI 2: TOTAL MONTO (POR DIVISA) -->
-          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px;">
-            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-              </svg>
-            </div>
-            <div>
-              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
-                TOTAL MONTO
-              </div>
-              <div id="kpi-total-monto" style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin-top: 4px;" class="font-mono">
-                $0.00
-              </div>
-              <div id="kpi-monto-breakdown" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                Desglose por divisa
-              </div>
-            </div>
-          </div>
-
-          <!-- KPI 3: TOTAL INGRESO COP -->
-          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 18px;">
-            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center;">
+          <!-- KPI 2: TOTAL INGRESOS COP -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
+            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="1" x2="12" y2="23"></line>
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
@@ -184,9 +162,46 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
             </div>
             <div>
               <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
-                TOTAL INGRESO COP
+                TOTAL INGRESOS COP
               </div>
-              <div id="kpi-total-ingreso-cop" style="font-size: 24px; font-weight: 800; color: var(--success); margin-top: 4px;" class="font-mono">
+              <div id="kpi-total-ingreso-cop" style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin-top: 4px;" class="font-mono">
+                $0
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 3: TOTAL DISPERSADO COP -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
+            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
+                TOTAL DISPERSADO COP
+              </div>
+              <div id="kpi-total-dispersado-cop" style="font-size: 22px; font-weight: 800; color: var(--success); margin-top: 4px;" class="font-mono">
+                $0
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 4: TOTAL PENDIENTE COP -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
+            <div style="width: 52px; height: 52px; border-radius: 16px; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);">
+                TOTAL PENDIENTE COP
+              </div>
+              <div id="kpi-total-pendiente-cop" style="font-size: 22px; font-weight: 800; color: var(--warning); margin-top: 4px;" class="font-mono">
                 $0
               </div>
             </div>
@@ -263,6 +278,9 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
               <tbody id="operations-table-body">
                 <!-- Rows injected dynamically via JS -->
               </tbody>
+              <tfoot id="operations-table-foot">
+                <!-- Totales consolidados -->
+              </tfoot>
             </table>
           </div>
         </div>
@@ -351,10 +369,11 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
     const clientNameTitle = document.getElementById('client-name-title');
     const clientCodeBadge = document.getElementById('client-code-badge');
     const kpiNumNegocios = document.getElementById('kpi-num-negocios');
-    const kpiTotalMonto = document.getElementById('kpi-total-monto');
-    const kpiMontoBreakdown = document.getElementById('kpi-monto-breakdown');
     const kpiTotalIngresoCop = document.getElementById('kpi-total-ingreso-cop');
+    const kpiTotalDispersadoCop = document.getElementById('kpi-total-dispersado-cop');
+    const kpiTotalPendienteCop = document.getElementById('kpi-total-pendiente-cop');
     const operationsTableBody = document.getElementById('operations-table-body');
+    const operationsTableFoot = document.getElementById('operations-table-foot');
     const filteredRecordsCount = document.getElementById('filtered-records-count');
 
     // Filter elements
@@ -532,33 +551,30 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
         filtered = filtered.filter(n => n.divisaCodigo === selectedCurrency);
       }
 
-      // Compute KPIs
+      // Compute 4 KPIs (Negocios, Ingresos, Dispersado, Pendiente)
       const numNegocios = filtered.length;
-      const totalIngresoCop = filtered.reduce((acc, n) => acc + (Number(n.ingresoCop) || 0), 0);
-
-      // Group totals by currency
-      const totalsByCurrency: Record<string, number> = {};
-      filtered.forEach(n => {
-        const curr = n.divisaCodigo || 'USD';
-        totalsByCurrency[curr] = (totalsByCurrency[curr] || 0) + (Number(n.montoDivisa) || 0);
-      });
+      const totalIngresoCop = (currentClient && currentClient.ingresosCop !== undefined) 
+        ? currentClient.ingresosCop 
+        : filtered.reduce((acc, n) => acc + (Number(n.ingresoCop) || 0), 0);
+      const totalDispersadoCop = (currentClient && currentClient.pagadoCop !== undefined)
+        ? currentClient.pagadoCop
+        : 0;
+      const totalPendienteCop = (currentClient && currentClient.pendienteCop !== undefined)
+        ? currentClient.pendienteCop
+        : (totalIngresoCop - totalDispersadoCop);
 
       if (kpiNumNegocios) kpiNumNegocios.textContent = numNegocios.toString();
       if (kpiTotalIngresoCop) kpiTotalIngresoCop.textContent = formatCop(totalIngresoCop);
-
-      const currencyKeys = Object.keys(totalsByCurrency);
-      if (currencyKeys.length === 0) {
-        if (kpiTotalMonto) kpiTotalMonto.textContent = '$0.00';
-        if (kpiMontoBreakdown) kpiMontoBreakdown.textContent = 'Sin operaciones registradas';
-      } else if (currencyKeys.length === 1) {
-        const curr = currencyKeys[0];
-        if (kpiTotalMonto) kpiTotalMonto.textContent = `${formatNumber(totalsByCurrency[curr])} ${curr}`;
-        if (kpiMontoBreakdown) kpiMontoBreakdown.textContent = `Total en ${curr}`;
-      } else {
-        const mainCurr = currencyKeys[0];
-        if (kpiTotalMonto) kpiTotalMonto.textContent = `${formatNumber(totalsByCurrency[mainCurr])} ${mainCurr}`;
-        const parts = currencyKeys.map(c => `${formatNumber(totalsByCurrency[c])} ${c}`).join(' | ');
-        if (kpiMontoBreakdown) kpiMontoBreakdown.textContent = parts;
+      if (kpiTotalDispersadoCop) kpiTotalDispersadoCop.textContent = formatCop(totalDispersadoCop);
+      if (kpiTotalPendienteCop) {
+        kpiTotalPendienteCop.textContent = formatCop(totalPendienteCop);
+        if (totalPendienteCop > 0) {
+          kpiTotalPendienteCop.style.color = 'var(--warning)';
+        } else if (totalPendienteCop < 0) {
+          kpiTotalPendienteCop.style.color = 'var(--info)';
+        } else {
+          kpiTotalPendienteCop.style.color = 'var(--success)';
+        }
       }
 
       if (filteredRecordsCount) filteredRecordsCount.textContent = `${numNegocios} registros`;
@@ -573,6 +589,7 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
               </td>
             </tr>
           `;
+          if (operationsTableFoot) operationsTableFoot.innerHTML = '';
           return;
         }
 
@@ -600,6 +617,29 @@ import { CLIENTES, NEGOCIOS } from '../../data/airtableData';
             </td>
           </tr>
         `).join('');
+
+        // Fila de TOTALES al final de la tabla
+        if (operationsTableFoot) {
+          const totalMontoVisible = filtered.reduce((acc, n) => acc + (Number(n.montoDivisa) || 0), 0);
+          const totalIngresoVisible = filtered.reduce((acc, n) => acc + (Number(n.ingresoCop) || 0), 0);
+          
+          operationsTableFoot.innerHTML = `
+            <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); border-top: 2px solid var(--border-main);">
+              <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
+                TOTALES CONSOLIDADOS (${numNegocios} OPS):
+              </td>
+              <td style="padding: 18px 20px; text-align: right; font-size: 14px; color: var(--text-primary);">
+                ${formatNumber(totalMontoVisible)}
+              </td>
+              <td style="padding: 18px 20px; text-align: right; color: var(--text-muted); font-size: 12px;">
+                —
+              </td>
+              <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 15px;">
+                ${formatCop(totalIngresoVisible)}
+              </td>
+            </tr>
+          `;
+        }
       }
     }
 
