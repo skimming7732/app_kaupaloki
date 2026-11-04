@@ -277,30 +277,41 @@ function formatDecimal(amount: number, digits = 2): string {
             </button>
 
             <!-- Dropdown Menu -->
-            <div id="user-dropdown-menu" style="display: none; position: absolute; right: 0; top: 48px; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 16px; min-width: 230px; box-shadow: var(--shadow-card); z-index: 60;">
+            <div id="user-dropdown-menu" style="display: none; position: absolute; right: 0; top: 48px; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 16px; min-width: 250px; box-shadow: var(--shadow-card); z-index: 100;">
               <div style="border-bottom: 1px solid var(--border-main); padding-bottom: 12px; margin-bottom: 12px;">
-                <div id="user-name-display" style="font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.2;">
+                <div id="user-name-display" style="font-size: 14px; font-weight: 800; color: var(--text-primary); line-height: 1.2;">
                   Usuario
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px;">
-                  <span id="user-role-badge" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: var(--brand-primary-light); color: var(--brand-primary); text-transform: uppercase;">
+                <div id="user-email-display" style="font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace; margin-top: 3px;">
+                  cargando...
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+                  <span id="user-role-badge" style="font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 6px; background: var(--brand-primary-light); color: var(--brand-primary); text-transform: uppercase;">
                     ADMINISTRADOR
                   </span>
                 </div>
               </div>
 
               <div style="display: flex; flex-direction: column; gap: 6px;">
-                <button id="btn-open-users-modal" style="display: none; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 10px; border: none; background: transparent; color: var(--text-primary); font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; transition: background 0.15s;">
+                <button id="btn-open-edit-profile-modal" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 10px; border: none; background: transparent; color: var(--text-primary); font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; transition: background 0.15s;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  <span>Editar Mi Perfil</span>
+                </button>
+
+                <button id="btn-menu-goto-usuarios" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 10px; border: none; background: transparent; color: var(--text-primary); font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; transition: background 0.15s;">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                   </svg>
-                  <span>Gestión de Usuarios</span>
+                  <span>Directorio de Usuarios</span>
                 </button>
 
-                <button id="btn-logout" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 10px; border: none; background: var(--danger-light); color: var(--danger); font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: opacity 0.15s;">
+                <button id="btn-logout" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 10px; border: none; background: var(--danger-light); color: var(--danger); font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; transition: opacity 0.15s; margin-top: 4px;">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
@@ -1661,6 +1672,125 @@ function formatDecimal(amount: number, digits = 2): string {
       </div>
 
       <!-- ============================================================== -->
+      <!-- MODAL: EDITAR MI PERFIL Y CONTRASEÑA -->
+      <!-- ============================================================== -->
+      <div id="modal-edit-profile-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.75); backdrop-filter: blur(8px); z-index: 140; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 28px 30px; width: 100%; max-width: 480px; box-shadow: var(--shadow-card); position: relative;">
+          
+          <button id="btn-close-edit-profile-modal" style="position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 22px;">
+            <div style="width: 46px; height: 46px; border-radius: 14px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800;">
+              <span id="edit-profile-avatar-letter">F</span>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">
+                Editar Mi Perfil
+              </h3>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);" id="edit-profile-email-subtitle">
+                Actualiza tu nombre y credenciales
+              </p>
+            </div>
+          </div>
+
+          <form id="form-edit-profile" style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                Nombre Completo *
+              </label>
+              <input 
+                type="text" 
+                id="edit-profile-name" 
+                required 
+                style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
+              />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                Nueva Contraseña (opcional)
+              </label>
+              <input 
+                type="password" 
+                id="edit-profile-password" 
+                placeholder="Dejar vacío para mantener la actual" 
+                minlength="6"
+                style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
+              />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">
+                Confirmar Nueva Contraseña
+              </label>
+              <input 
+                type="password" 
+                id="edit-profile-password-confirm" 
+                placeholder="Repite la contraseña" 
+                minlength="6"
+                style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-primary); font-size: 13px; outline: none; box-sizing: border-box;" 
+              />
+            </div>
+
+            <div id="edit-profile-status" style="font-size: 12px; font-weight: 600; min-height: 18px;"></div>
+
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 6px;">
+              <button 
+                type="button" 
+                id="btn-cancel-edit-profile" 
+                style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                id="btn-save-edit-profile" 
+                style="padding: 11px 22px; border-radius: 10px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35);"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- MODAL: CONFIRMACIÓN PARA ELIMINAR USUARIO -->
+      <!-- ============================================================== -->
+      <div id="modal-delete-user-confirm" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.75); backdrop-filter: blur(8px); z-index: 150; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 28px 30px; width: 100%; max-width: 440px; box-shadow: var(--shadow-card); position: relative; text-align: center;">
+          <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--danger-light); color: var(--danger); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </div>
+          <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">
+            ¿Eliminar Usuario?
+          </h3>
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.5;" id="delete-user-confirm-msg">
+            Esta acción revocará el acceso y eliminará el perfil del sistema.
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="btn-cancel-delete-user" style="flex: 1; padding: 11px 16px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">
+              Cancelar
+            </button>
+            <button id="btn-confirm-delete-user" style="flex: 1; padding: 11px 16px; border-radius: 10px; border: none; background: var(--danger); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;">
+              Sí, Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
       <!-- MODAL: COMPARTIR PORTAL DE CLIENTE (CON PIN DE 4 DÍGITOS) -->
       <!-- ============================================================== -->
       <div id="modal-share-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.7); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; padding: 20px;">
@@ -2835,7 +2965,7 @@ function formatDecimal(amount: number, digits = 2): string {
         }
       });
 
-      // Registrar perfil en tabla profiles
+      // Registrar perfil en tabla profiles de Supabase
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: crypto.randomUUID(),
         email: email,
@@ -2843,8 +2973,34 @@ function formatDecimal(amount: number, digits = 2): string {
         role: role,
         authorized_currencies: authorizedCurrencies,
         status: 'invitado',
-        onboarding_completed: false
+        onboarding_completed: false,
+        is_super_admin: email === 'franzruedab@gmail.com'
       }, { onConflict: 'email' });
+
+      // Sincronizar inmediatamente a Airtable si hay PAT configurado
+      const pat = getAirtableToken();
+      if (pat) {
+        try {
+          await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${pat}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fields: {
+                "NOMBRE": name.toUpperCase(),
+                "EMAIL": email,
+                "PAIS": "COL",
+                "ESTADO": "INVITADO",
+                "DIVISAS AUTORIZADAS": authorizedCurrencies
+              }
+            })
+          });
+        } catch (airtableErr) {
+          console.warn('Airtable real-time user sync warning:', airtableErr);
+        }
+      }
 
       if (modalCreateUserStatus) {
         modalCreateUserStatus.style.color = 'var(--success)';
@@ -2880,7 +3036,327 @@ function formatDecimal(amount: number, digits = 2): string {
     }
   });
 
-  // Actualizar lista de usuarios Supabase + Airtable
+  // ==============================================================
+  // GESTIÓN DE PERFIL DEL USUARIO ACTUAL (HEADER & DROPDOWN)
+  // ==============================================================
+  let currentAuthUser: any = null;
+  let currentUserProfile: any = null;
+
+  const userAvatarBtn = document.getElementById('user-avatar-btn');
+  const userAvatarInitials = document.getElementById('user-avatar-initials');
+  const userDropdownMenu = document.getElementById('user-dropdown-menu');
+  const userNameDisplay = document.getElementById('user-name-display');
+  const userEmailDisplay = document.getElementById('user-email-display');
+  const userRoleBadge = document.getElementById('user-role-badge');
+  const btnOpenEditProfile = document.getElementById('btn-open-edit-profile-modal');
+  const btnMenuGotoUsuarios = document.getElementById('btn-menu-goto-usuarios');
+  const btnLogout = document.getElementById('btn-logout');
+
+  const modalEditProfileBackdrop = document.getElementById('modal-edit-profile-backdrop');
+  const btnCloseEditProfileModal = document.getElementById('btn-close-edit-profile-modal');
+  const btnCancelEditProfile = document.getElementById('btn-cancel-edit-profile');
+  const formEditProfile = document.getElementById('form-edit-profile') as HTMLFormElement | null;
+  const editProfileName = document.getElementById('edit-profile-name') as HTMLInputElement | null;
+  const editProfilePassword = document.getElementById('edit-profile-password') as HTMLInputElement | null;
+  const editProfilePasswordConfirm = document.getElementById('edit-profile-password-confirm') as HTMLInputElement | null;
+  const editProfileStatus = document.getElementById('edit-profile-status');
+  const editProfileAvatarLetter = document.getElementById('edit-profile-avatar-letter');
+  const editProfileEmailSubtitle = document.getElementById('edit-profile-email-subtitle');
+
+  async function initCurrentUser() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        currentAuthUser = session.user;
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', session.user.email)
+          .single();
+
+        if (profile) {
+          currentUserProfile = profile;
+        } else {
+          currentUserProfile = {
+            id: session.user.id,
+            email: session.user.email,
+            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
+            role: session.user.user_metadata?.role || 'administrador',
+            is_super_admin: session.user.email === 'franzruedab@gmail.com'
+          };
+        }
+      } else {
+        // Fallback admin activo por defecto en sesión local
+        currentUserProfile = {
+          id: 'admin-franz',
+          email: 'franzruedab@gmail.com',
+          full_name: 'Franz Rueda',
+          role: 'administrador',
+          is_super_admin: true
+        };
+      }
+    } catch (e) {
+      currentUserProfile = {
+        id: 'admin-franz',
+        email: 'franzruedab@gmail.com',
+        full_name: 'Franz Rueda',
+        role: 'administrador',
+        is_super_admin: true
+      };
+    }
+
+    if (currentUserProfile.email === 'franzruedab@gmail.com') {
+      currentUserProfile.is_super_admin = true;
+    }
+
+    updateHeaderProfileUI();
+    loadUsersList();
+  }
+
+  function updateHeaderProfileUI() {
+    if (!currentUserProfile) return;
+    const name = currentUserProfile.full_name || currentUserProfile.email || 'Admin';
+    const initial = name.charAt(0).toUpperCase();
+
+    if (userAvatarInitials) userAvatarInitials.textContent = initial;
+    if (userNameDisplay) userNameDisplay.textContent = name;
+    if (userEmailDisplay) userEmailDisplay.textContent = currentUserProfile.email || '';
+
+    if (userRoleBadge) {
+      if (currentUserProfile.is_super_admin) {
+        userRoleBadge.textContent = '⭐ SUPER ADMIN';
+        userRoleBadge.style.background = 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)';
+        userRoleBadge.style.color = '#FFFFFF';
+        userRoleBadge.style.border = 'none';
+      } else if (currentUserProfile.role === 'administrador') {
+        userRoleBadge.textContent = 'ADMINISTRADOR';
+        userRoleBadge.style.background = 'var(--brand-primary-light)';
+        userRoleBadge.style.color = 'var(--brand-primary)';
+      } else if (currentUserProfile.role === 'client') {
+        userRoleBadge.textContent = 'CLIENTE';
+        userRoleBadge.style.background = 'rgba(67, 24, 255, 0.08)';
+        userRoleBadge.style.color = 'var(--brand-primary)';
+      } else {
+        userRoleBadge.textContent = 'OPERADOR';
+        userRoleBadge.style.background = 'rgba(5, 205, 153, 0.12)';
+        userRoleBadge.style.color = 'var(--success)';
+      }
+    }
+  }
+
+  // Toggle dropdown de perfil
+  userAvatarBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (userDropdownMenu) {
+      const isVisible = userDropdownMenu.style.display === 'block';
+      userDropdownMenu.style.display = isVisible ? 'none' : 'block';
+    }
+  });
+
+  document.addEventListener('click', (e: any) => {
+    if (userDropdownMenu && !e.target.closest('#user-avatar-btn') && !e.target.closest('#user-dropdown-menu')) {
+      userDropdownMenu.style.display = 'none';
+    }
+  });
+
+  // Abrir modal Editar Mi Perfil
+  btnOpenEditProfile?.addEventListener('click', () => {
+    if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+    if (modalEditProfileBackdrop) {
+      modalEditProfileBackdrop.style.display = 'flex';
+      if (editProfileName) editProfileName.value = currentUserProfile?.full_name || '';
+      if (editProfilePassword) editProfilePassword.value = '';
+      if (editProfilePasswordConfirm) editProfilePasswordConfirm.value = '';
+      if (editProfileStatus) editProfileStatus.textContent = '';
+      if (editProfileEmailSubtitle) editProfileEmailSubtitle.textContent = currentUserProfile?.email || '';
+      if (editProfileAvatarLetter) {
+        editProfileAvatarLetter.textContent = (currentUserProfile?.full_name || currentUserProfile?.email || 'F').charAt(0).toUpperCase();
+      }
+    }
+  });
+
+  function closeEditProfileModal() {
+    if (modalEditProfileBackdrop) modalEditProfileBackdrop.style.display = 'none';
+  }
+
+  btnCloseEditProfileModal?.addEventListener('click', closeEditProfileModal);
+  btnCancelEditProfile?.addEventListener('click', closeEditProfileModal);
+  modalEditProfileBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalEditProfileBackdrop) closeEditProfileModal();
+  });
+
+  // Guardar cambios en el perfil
+  formEditProfile?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!editProfileName) return;
+
+    const newName = editProfileName.value.trim();
+    const newPwd = editProfilePassword?.value || '';
+    const newPwdConf = editProfilePasswordConfirm?.value || '';
+
+    if (!newName) {
+      if (editProfileStatus) {
+        editProfileStatus.style.color = 'var(--danger)';
+        editProfileStatus.textContent = 'El nombre no puede estar vacío';
+      }
+      return;
+    }
+
+    if (newPwd) {
+      if (newPwd.length < 6) {
+        if (editProfileStatus) {
+          editProfileStatus.style.color = 'var(--danger)';
+          editProfileStatus.textContent = 'La contraseña debe tener al menos 6 caracteres';
+        }
+        return;
+      }
+      if (newPwd !== newPwdConf) {
+        if (editProfileStatus) {
+          editProfileStatus.style.color = 'var(--danger)';
+          editProfileStatus.textContent = 'Las contraseñas no coinciden';
+        }
+        return;
+      }
+    }
+
+    if (editProfileStatus) {
+      editProfileStatus.style.color = 'var(--text-muted)';
+      editProfileStatus.textContent = 'Guardando cambios...';
+    }
+
+    try {
+      if (newPwd) {
+        const { error: pwdErr } = await supabase.auth.updateUser({
+          password: newPwd,
+          data: { full_name: newName }
+        });
+        if (pwdErr) throw pwdErr;
+      }
+
+      // Actualizar en tabla profiles
+      await supabase.from('profiles').update({
+        full_name: newName,
+        updated_at: new Date().toISOString()
+      }).eq('email', currentUserProfile.email);
+
+      currentUserProfile.full_name = newName;
+      updateHeaderProfileUI();
+
+      if (editProfileStatus) {
+        editProfileStatus.style.color = 'var(--success)';
+        editProfileStatus.textContent = '¡Perfil actualizado con éxito!';
+      }
+
+      setTimeout(() => {
+        closeEditProfileModal();
+        loadUsersList();
+      }, 1000);
+    } catch (err: any) {
+      if (editProfileStatus) {
+        editProfileStatus.style.color = 'var(--danger)';
+        editProfileStatus.textContent = err.message || 'Error al actualizar perfil';
+      }
+    }
+  });
+
+  // Ir a Directorio de Usuarios desde dropdown
+  btnMenuGotoUsuarios?.addEventListener('click', () => {
+    if (userDropdownMenu) userDropdownMenu.style.display = 'none';
+    switchTab('tab-usuarios', true);
+  });
+
+  // Cerrar Sesión
+  btnLogout?.addEventListener('click', async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+    window.location.href = '/login';
+  });
+
+  // ==============================================================
+  // GESTIÓN DE ELIMINACIÓN DE USUARIOS CON REGLAS DE PERMISO
+  // ==============================================================
+  const modalDeleteUserConfirm = document.getElementById('modal-delete-user-confirm');
+  const deleteUserConfirmMsg = document.getElementById('delete-user-confirm-msg');
+  const btnCancelDeleteUser = document.getElementById('btn-cancel-delete-user');
+  const btnConfirmDeleteUser = document.getElementById('btn-confirm-delete-user');
+
+  let pendingDeleteUser: { email: string; nombre: string; role: string; airtableId?: string } | null = null;
+
+  function openDeleteConfirmModal(user: { email: string; nombre: string; role: string; airtableId?: string }) {
+    pendingDeleteUser = user;
+    if (deleteUserConfirmMsg) {
+      deleteUserConfirmMsg.innerHTML = `¿Estás seguro de que deseas eliminar a <strong>${user.nombre}</strong> (${user.email}) con rol <strong>${user.role.toUpperCase()}</strong>?<br/><br/><span style="color: var(--danger); font-size: 11px;">Esta acción revocará todos sus accesos al sistema.</span>`;
+    }
+    if (modalDeleteUserConfirm) modalDeleteUserConfirm.style.display = 'flex';
+  }
+
+  function closeDeleteConfirmModal() {
+    if (modalDeleteUserConfirm) modalDeleteUserConfirm.style.display = 'none';
+    pendingDeleteUser = null;
+  }
+
+  btnCancelDeleteUser?.addEventListener('click', closeDeleteConfirmModal);
+  modalDeleteUserConfirm?.addEventListener('click', (e) => {
+    if (e.target === modalDeleteUserConfirm) closeDeleteConfirmModal();
+  });
+
+  btnConfirmDeleteUser?.addEventListener('click', async () => {
+    if (!pendingDeleteUser) return;
+    const { email, airtableId } = pendingDeleteUser;
+
+    if (btnConfirmDeleteUser) {
+      btnConfirmDeleteUser.textContent = 'Eliminando...';
+      btnConfirmDeleteUser.setAttribute('disabled', 'true');
+    }
+
+    try {
+      // 1. Eliminar de Supabase profiles
+      await supabase.from('profiles').delete().eq('email', email);
+
+      // 2. Eliminar de Airtable si existe ID y PAT
+      const pat = getAirtableToken();
+      if (pat && airtableId) {
+        try {
+          await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb/${airtableId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${pat}` }
+          });
+        } catch (airtableErr) {
+          console.warn('Error eliminando de Airtable:', airtableErr);
+        }
+      }
+
+      closeDeleteConfirmModal();
+      await loadUsersList();
+    } catch (err: any) {
+      alert('Error al eliminar usuario: ' + (err?.message || err));
+    } finally {
+      if (btnConfirmDeleteUser) {
+        btnConfirmDeleteUser.textContent = 'Sí, Eliminar';
+        btnConfirmDeleteUser.removeAttribute('disabled');
+      }
+    }
+  });
+
+  // Delegación de clic para eliminar usuario desde la tabla
+  document.addEventListener('click', (e: any) => {
+    const btn = e.target.closest('.btn-delete-user');
+    if (btn) {
+      const email = btn.getAttribute('data-email');
+      const nombre = btn.getAttribute('data-nombre') || 'Usuario';
+      const role = btn.getAttribute('data-role') || 'operador';
+      const airtableId = btn.getAttribute('data-airtable-id') || '';
+
+      if (email) {
+        openDeleteConfirmModal({ email, nombre, role, airtableId });
+      }
+    }
+  });
+
+  // ==============================================================
+  // SINCRONIZACIÓN BIDIRECCIONAL AIRTABLE <-> SUPABASE
+  // ==============================================================
   const usuariosViewTableBody = document.getElementById('usuarios-view-table-body');
   const btnRefreshUsersView = document.getElementById('btn-refresh-users-view');
   const btnSyncAirtableUsers = document.getElementById('btn-sync-airtable-users');
@@ -2907,79 +3383,221 @@ function formatDecimal(amount: number, digits = 2): string {
 
   async function syncAirtableUsers() {
     const pat = getAirtableToken();
+    if (!pat) {
+      // Si no hay PAT, abrir modal de Airtable para que lo configure
+      const modalAirtable = document.getElementById('modal-airtable-backdrop');
+      if (modalAirtable) modalAirtable.style.display = 'flex';
+      const patStatus = document.getElementById('pat-status-msg');
+      if (patStatus) {
+        patStatus.style.color = 'var(--warning)';
+        patStatus.textContent = 'Ingresa tu Personal Access Token (PAT) de Airtable para sincronizar la base en vivo.';
+      }
+      return;
+    }
+
     let airtableRecords: any[] = [];
-    if (pat) {
-      try {
-        const resp = await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb', {
-          headers: { 'Authorization': `Bearer ${pat}` }
-        });
-        if (resp.ok) {
-          const json = await resp.json();
-          airtableRecords = json.records || [];
+    try {
+      const resp = await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb', {
+        headers: { 'Authorization': `Bearer ${pat}` }
+      });
+      if (resp.ok) {
+        const json = await resp.json();
+        airtableRecords = json.records || [];
+      }
+    } catch (err) {
+      console.warn('Airtable API fetch error:', err);
+    }
+
+    // Obtener usuarios de Supabase
+    const { data: supabaseProfiles } = await supabase.from('profiles').select('*');
+
+    // 1. De Airtable a Supabase: Si hay registros en Airtable sin perfil en Supabase, crearlos
+    if (airtableRecords.length > 0) {
+      for (const rec of airtableRecords) {
+        const email = (rec.fields['EMAIL'] || '').toLowerCase().trim();
+        if (email) {
+          const exists = supabaseProfiles?.some(p => p.email?.toLowerCase() === email);
+          if (!exists) {
+            await supabase.from('profiles').upsert({
+              id: crypto.randomUUID(),
+              email: email,
+              full_name: rec.fields['NOMBRE'] || email.split('@')[0],
+              role: (rec.fields['ROL'] || 'operador').toLowerCase(),
+              authorized_currencies: rec.fields['DIVISAS AUTORIZADAS'] || ['USD', 'USDT', 'COP'],
+              status: (rec.fields['ESTADO'] || 'ACTIVO').toLowerCase(),
+              onboarding_completed: (rec.fields['ESTADO'] || '').toUpperCase() === 'ACTIVO',
+              is_super_admin: email === 'franzruedab@gmail.com'
+            }, { onConflict: 'email' });
+          }
         }
-      } catch (err) {
-        console.warn('Airtable API fetch fallback', err);
       }
     }
+
+    // 2. De Supabase a Airtable: Si hay perfiles en Supabase que no están en Airtable, crearlos en Airtable
+    if (supabaseProfiles && supabaseProfiles.length > 0) {
+      for (const prof of supabaseProfiles) {
+        if (!prof.email) continue;
+        const existsInAirtable = airtableRecords.some(r => (r.fields['EMAIL'] || '').toLowerCase() === prof.email.toLowerCase());
+        if (!existsInAirtable) {
+          try {
+            const createResp = await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${pat}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                fields: {
+                  "NOMBRE": (prof.full_name || prof.email.split('@')[0]).toUpperCase(),
+                  "EMAIL": prof.email,
+                  "PAIS": "COL",
+                  "ESTADO": (prof.status || 'ACTIVO').toUpperCase(),
+                  "DIVISAS AUTORIZADAS": prof.authorized_currencies || ['USD', 'USDT', 'COP', 'BRL', 'PEN', 'CLP', 'ARS', 'HNL', 'VES']
+                }
+              })
+            });
+            if (createResp.ok) {
+              const newRec = await createResp.json();
+              airtableRecords.push(newRec);
+            }
+          } catch (createErr) {
+            console.warn('Error syncing profile to Airtable:', prof.email, createErr);
+          }
+        }
+      }
+    }
+
     await loadUsersList(airtableRecords);
   }
 
   async function loadUsersList(airtableRecordsOverride?: any[]) {
     const { data: users, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
     
-    // Operadores oficiales de Airtable
-    const baseAirtableUsers = [
-      {
-        operatorCode: 'OP01-DAVID-COL',
-        nombre: 'DAVID LOPEZ',
-        email: 'david.lopez@kaupaloki.co',
-        role: 'operador',
-        pais: 'COL',
-        authorized_currencies: ['USD', 'USDT', 'COP'],
-        status: 'activo',
-        source: 'Airtable'
+    // Obtener registros de Airtable
+    let airtableRecords = airtableRecordsOverride;
+    if (!airtableRecords) {
+      const pat = getAirtableToken();
+      if (pat) {
+        try {
+          const resp = await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb', {
+            headers: { 'Authorization': `Bearer ${pat}` }
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            airtableRecords = json.records || [];
+          }
+        } catch (e) {}
       }
-    ];
-
-    const totalCount = (users ? users.length : 0) + baseAirtableUsers.length;
-    if (badgeCountUsuarios) {
-      badgeCountUsuarios.textContent = totalCount.toString();
     }
 
-    if (error && !users) {
+    // Lista unificada
+    const allUsers: any[] = [];
+
+    // Priorizar perfiles de Supabase y vincular su registro de Airtable
+    if (users && users.length > 0) {
+      users.forEach((u: any, idx: number) => {
+        const matchingAirtable = airtableRecords?.find((r: any) => 
+          (r.fields['EMAIL'] || '').toLowerCase() === (u.email || '').toLowerCase()
+        );
+
+        const paddedNum = String(idx + 1).padStart(2, '0');
+        const cleanName = (u.full_name || u.email.split('@')[0]).replace(/[^a-zA-Z]/g, '').slice(0, 8).toUpperCase();
+        const defaultCode = `OP${paddedNum}-${cleanName}-COL`;
+
+        allUsers.push({
+          operatorCode: matchingAirtable?.fields['ADMINISTRADOR'] || defaultCode,
+          airtableRecordId: matchingAirtable?.id || '',
+          nombre: u.full_name || matchingAirtable?.fields['NOMBRE'] || 'Sin Nombre',
+          email: u.email,
+          role: u.role || 'operador',
+          is_super_admin: Boolean(u.is_super_admin || u.email === 'franzruedab@gmail.com'),
+          pais: matchingAirtable?.fields['PAIS'] || 'COL',
+          authorized_currencies: Array.isArray(u.authorized_currencies) ? u.authorized_currencies : (matchingAirtable?.fields['DIVISAS AUTORIZADAS'] || []),
+          status: u.onboarding_completed || u.status === 'activo' || matchingAirtable?.fields['ESTADO'] === 'ACTIVO' ? 'activo' : 'invitado',
+          source: matchingAirtable ? 'Sincronizado (Supabase + Airtable)' : 'Supabase'
+        });
+      });
+    }
+
+    // Agregar registros de Airtable que no estén en Supabase
+    if (airtableRecords && airtableRecords.length > 0) {
+      airtableRecords.forEach((r: any, idx: number) => {
+        const rEmail = (r.fields['EMAIL'] || '').toLowerCase();
+        if (!allUsers.some(u => (u.email || '').toLowerCase() === rEmail)) {
+          allUsers.push({
+            operatorCode: r.fields['ADMINISTRADOR'] || `OP${String(idx + 1).padStart(2, '0')}-${(r.fields['NOMBRE'] || 'USR').slice(0, 6)}-COL`,
+            airtableRecordId: r.id,
+            nombre: r.fields['NOMBRE'] || 'Sin Nombre',
+            email: r.fields['EMAIL'] || 'sin-correo@kaupaloki.co',
+            role: (r.fields['ROL'] || 'operador').toLowerCase(),
+            is_super_admin: rEmail === 'franzruedab@gmail.com',
+            pais: r.fields['PAIS'] || 'COL',
+            authorized_currencies: r.fields['DIVISAS AUTORIZADAS'] || ['USD', 'USDT', 'COP'],
+            status: (r.fields['ESTADO'] || 'ACTIVO').toLowerCase(),
+            source: 'Airtable'
+          });
+        }
+      });
+    }
+
+    if (badgeCountUsuarios) {
+      badgeCountUsuarios.textContent = allUsers.length.toString();
+    }
+
+    if (allUsers.length === 0 && error) {
       const errHtml = `<tr><td colspan="7" style="padding: 18px; text-align: center; color: var(--danger);">Error al cargar usuarios: ${error?.message}</td></tr>`;
       if (usuariosViewTableBody) usuariosViewTableBody.innerHTML = errHtml;
       return;
     }
 
-    const allUsers: any[] = [...baseAirtableUsers];
-    if (users) {
-      users.forEach((u: any) => {
-        if (!allUsers.some(a => a.email.toLowerCase() === u.email.toLowerCase())) {
-          const paddedNum = String(allUsers.length + 1).padStart(2, '0');
-          const cleanName = (u.full_name || u.email.split('@')[0]).replace(/[^a-zA-Z]/g, '').slice(0, 8).toUpperCase();
-          const operatorCode = `OP${paddedNum}-${cleanName}-COL`;
-          allUsers.push({
-            operatorCode,
-            nombre: u.full_name || 'Sin Nombre',
-            email: u.email,
-            role: u.role || 'operador',
-            pais: 'COL',
-            authorized_currencies: Array.isArray(u.authorized_currencies) ? u.authorized_currencies : [],
-            status: u.onboarding_completed || u.status === 'activo' ? 'activo' : 'invitado',
-            source: 'Supabase'
-          });
-        }
-      });
-    }
+    // Permisos del usuario actual que está viendo la tabla
+    const isSuperAdmin = Boolean(currentUserProfile?.is_super_admin || currentUserProfile?.email === 'franzruedab@gmail.com');
+    const isAdmin = isSuperAdmin || currentUserProfile?.role === 'administrador';
 
     if (usuariosViewTableBody) {
       usuariosViewTableBody.innerHTML = allUsers.map((u: any, idx: number) => {
         const isAdm = u.role === 'administrador';
         const isClient = u.role === 'client' || u.role === 'cliente';
         const isOp = u.role === 'operador';
-        const roleBg = isAdm ? 'var(--brand-primary-light)' : (isClient ? 'rgba(67, 24, 255, 0.08)' : (isOp ? 'rgba(5, 205, 153, 0.12)' : 'var(--bg-card-secondary)'));
-        const roleColor = isAdm ? 'var(--brand-primary)' : (isClient ? 'var(--brand-primary)' : (isOp ? 'var(--success)' : 'var(--text-secondary)'));
+        const isTargetSuperAdmin = Boolean(u.is_super_admin || u.email === 'franzruedab@gmail.com');
+        const isSelf = Boolean(currentUserProfile?.email && u.email?.toLowerCase() === currentUserProfile.email.toLowerCase());
+
+        // LÓGICA DE PERMISOS PARA ELIMINAR:
+        // 1. Nadie puede eliminar al Super Admin ni a su propia cuenta
+        // 2. Solo el Super Admin puede eliminar otros administradores
+        // 3. Los administradores normales pueden eliminar operadores y clientes, pero NO a administradores
+        let canDelete = false;
+        let deleteTooltip = '';
+
+        if (isSelf) {
+          canDelete = false;
+          deleteTooltip = 'No puedes eliminar tu propia cuenta';
+        } else if (isTargetSuperAdmin) {
+          canDelete = false;
+          deleteTooltip = 'El Super Admin está protegido contra eliminación';
+        } else if (isAdm) {
+          if (isSuperAdmin) {
+            canDelete = true;
+            deleteTooltip = 'Eliminar administrador (permitido por Super Admin)';
+          } else {
+            canDelete = false;
+            deleteTooltip = 'Solo el Super Admin puede eliminar otros administradores';
+          }
+        } else {
+          // Es operador o cliente
+          if (isAdmin) {
+            canDelete = true;
+            deleteTooltip = `Eliminar ${isClient ? 'cliente' : 'operador'}`;
+          } else {
+            canDelete = false;
+            deleteTooltip = 'Se requieren permisos de administrador';
+          }
+        }
+
+        const roleBg = isTargetSuperAdmin 
+          ? 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)' 
+          : (isAdm ? 'var(--brand-primary-light)' : (isClient ? 'rgba(67, 24, 255, 0.08)' : 'rgba(5, 205, 153, 0.12)'));
+        const roleColor = isTargetSuperAdmin ? '#FFFFFF' : (isAdm ? 'var(--brand-primary)' : (isClient ? 'var(--brand-primary)' : 'var(--success)'));
         const currencies: string[] = Array.isArray(u.authorized_currencies) ? u.authorized_currencies : [];
         const isCompleted = u.status === 'activo';
         const inviteLink = `https://app.kaupaloki.co/onboarding?email=${encodeURIComponent(u.email)}`;
@@ -2996,23 +3614,26 @@ function formatDecimal(amount: number, digits = 2): string {
             </td>
             <td style="padding: 14px 18px; vertical-align: middle;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: ${isAdm ? 'linear-gradient(135deg, #868CFF 0%, #4318FF 100%)' : 'var(--bg-card-secondary)'}; color: ${isAdm ? '#fff' : 'var(--brand-primary)'}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+                <div style="width: 34px; height: 34px; border-radius: 50%; background: ${isTargetSuperAdmin ? 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)' : (isAdm ? 'linear-gradient(135deg, #868CFF 0%, #4318FF 100%)' : 'var(--bg-card-secondary)')}; color: ${(isTargetSuperAdmin || isAdm) ? '#fff' : 'var(--brand-primary)'}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; box-shadow: ${(isTargetSuperAdmin || isAdm) ? '0 2px 8px rgba(67, 24, 255, 0.25)' : 'none'};">
                   ${(u.nombre || u.email || 'U').charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style="font-weight: 700; color: var(--text-primary); font-size: 13px;">${u.nombre}</div>
+                  <div style="font-weight: 700; color: var(--text-primary); font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                    <span>${u.nombre}</span>
+                    ${isSelf ? '<span style="font-size: 9px; padding: 1px 6px; border-radius: 4px; background: var(--brand-primary-light); color: var(--brand-primary); font-weight: 800;">TÚ</span>' : ''}
+                  </div>
                   <div style="font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace;">${u.email}</div>
                 </div>
               </div>
             </td>
             <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
-              <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 6px; background: ${roleBg}; color: ${roleColor}; text-transform: uppercase;">
-                ${isClient ? 'Cliente' : u.role}
+              <span style="font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; background: ${roleBg}; color: ${roleColor}; text-transform: uppercase; letter-spacing: 0.03em;">
+                ${isTargetSuperAdmin ? '⭐ Super Admin' : (isClient ? 'Cliente' : u.role)}
               </span>
             </td>
             <td style="padding: 14px 18px; vertical-align: middle;">
               <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                ${isAdm ? `
+                ${(isAdm || isTargetSuperAdmin) ? `
                   <span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main);">
                     Todas (Admin)
                   </span>
@@ -3036,18 +3657,49 @@ function formatDecimal(amount: number, digits = 2): string {
               </span>
             </td>
             <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
-              <button 
-                class="btn-copy-user-invite" 
-                data-link="${inviteLink}" 
-                title="Copiar link de invitación"
-                style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span>Copiar Link</span>
-              </button>
+              <div style="display: inline-flex; align-items: center; gap: 6px;">
+                <button 
+                  class="btn-copy-user-invite" 
+                  data-link="${inviteLink}" 
+                  title="Copiar link de invitación"
+                  style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span>Link</span>
+                </button>
+
+                ${canDelete ? `
+                  <button 
+                    class="btn-delete-user" 
+                    data-email="${u.email}" 
+                    data-nombre="${u.nombre}" 
+                    data-role="${u.role}"
+                    data-airtable-id="${u.airtableRecordId || ''}"
+                    title="${deleteTooltip}"
+                    style="padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(238, 93, 80, 0.3); background: var(--danger-light); color: var(--danger); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span>Eliminar</span>
+                  </button>
+                ` : `
+                  <span 
+                    title="${deleteTooltip}" 
+                    style="padding: 5px 8px; border-radius: 8px; background: var(--bg-card-secondary); color: var(--text-muted); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--border-main); cursor: not-allowed;"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>${isSelf ? 'Tú' : 'Protegido'}</span>
+                  </span>
+                `}
+              </div>
             </td>
           </tr>
         `;
@@ -3070,6 +3722,9 @@ function formatDecimal(amount: number, digits = 2): string {
       }
     }
   });
+
+  // Inicializar perfil de usuario en carga
+  initCurrentUser();
 
   // ==============================================================
   // MODAL: COMPARTIR PORTAL DE CLIENTE
