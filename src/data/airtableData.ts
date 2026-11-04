@@ -199,6 +199,19 @@ export const CLIENTES: Cliente[] = [
     saldoCop: 0,
     fechaCreacion: "2026-11-04",
     numero: 18
+  },
+  {
+    id: "recAx9MTO2zhScoSP",
+    codigo: "C0019-CLIENTE-PRUEBA-VERIFICADO",
+    idCliente: "C0019-CLIENTE-PRUEBA-VERIFICADO",
+    nombre: "CLIENTE PRUEBA VERIFICADO",
+    ingresosCop: 0,
+    pagadoCop: 0,
+    pendienteCop: 0,
+    pendientePorPagarCop: 0,
+    saldoCop: 0,
+    fechaCreacion: "2026-11-04",
+    numero: 19
   }
 ];
 
