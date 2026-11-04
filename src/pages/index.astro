@@ -4227,6 +4227,25 @@ function formatDecimal(amount: number, digits = 2): string {
     return (email || '').toLowerCase().trim() === SUPER_ADMIN_EMAIL;
   }
 
+  function computeUserAirtableCode(name: string, role: string, country: string, num: number = 1): string {
+    let rolePrefix = 'OP';
+    const r = (role || '').toUpperCase();
+    if (r.includes('SUPER') || r === 'SUPER ADMIN') {
+      rolePrefix = 'SA';
+    } else if (r.includes('ADMIN') || r === 'ADMINISTRADOR') {
+      rolePrefix = 'AD';
+    } else if (r.includes('CLIENT') || r === 'CLIENTE') {
+      rolePrefix = 'CL';
+    } else {
+      rolePrefix = 'OP';
+    }
+    const paddedNum = String(num || 1).padStart(3, '0');
+    const firstWord = (name || 'USR').trim().split(/\s+/)[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'USR';
+    const cleanCountry = (country || 'COL').trim().slice(0, 3).toUpperCase();
+    return `U${rolePrefix}${paddedNum}-${firstWord}-${cleanCountry}`;
+  }
+
+
   function updateRoleSelection(selectedRole: string) {
     if (roleInput) roleInput.value = selectedRole;
 
@@ -4710,13 +4729,49 @@ function formatDecimal(amount: number, digits = 2): string {
         if (pwdErr) throw pwdErr;
       }
 
-      // Actualizar en tabla profiles
+      // Actualizar en tabla profiles con código recalcula
+      const newCode = computeUserAirtableCode(newName, currentUserProfile.role, currentUserProfile.pais || 'COL', 1);
       await supabase.from('profiles').update({
         full_name: newName,
+        operator_code: newCode,
         updated_at: new Date().toISOString()
       }).eq('email', currentUserProfile.email);
 
+      // Actualizar en Airtable si hay PAT
+      const pat = getAirtableToken();
+      if (pat) {
+        try {
+          let recId = currentUserProfile.airtableRecordId;
+          if (!recId) {
+            const sRes = await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb?filterByFormula=LOWER({EMAIL})='${encodeURIComponent(currentUserProfile.email)}'`, {
+              headers: { 'Authorization': `Bearer ${pat}` }
+            });
+            if (sRes.ok) {
+              const sJson = await sRes.json();
+              if (sJson.records?.[0]) recId = sJson.records[0].id;
+            }
+          }
+          if (recId) {
+            await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb/${recId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${pat}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                fields: {
+                  "NOMBRE": newName.toUpperCase()
+                }
+              })
+            });
+          }
+        } catch (airtableErr) {
+          console.warn('Error sincronizando nombre en Airtable:', airtableErr);
+        }
+      }
+
       currentUserProfile.full_name = newName;
+      currentUserProfile.operator_code = newCode;
       updateHeaderProfileUI();
 
       if (editProfileStatus) {
@@ -4993,12 +5048,12 @@ function formatDecimal(amount: number, digits = 2): string {
           (r.fields['EMAIL'] || '').toLowerCase() === (u.email || '').toLowerCase()
         );
 
-        const paddedNum = String(idx + 1).padStart(2, '0');
-        const cleanName = (u.full_name || u.email.split('@')[0]).replace(/[^a-zA-Z]/g, '').slice(0, 8).toUpperCase();
-        const defaultCode = `OP${paddedNum}-${cleanName}-COL`;
+        const userNum = idx + 1;
+        const fallbackCode = u.operator_code || computeUserAirtableCode(u.full_name, u.role, u.pais || matchingAirtable?.fields['PAIS'], userNum);
+        const resolvedCode = matchingAirtable?.fields['ADMINISTRADOR'] || fallbackCode;
 
         allUsers.push({
-          operatorCode: matchingAirtable?.fields['ADMINISTRADOR'] || defaultCode,
+          operatorCode: resolvedCode,
           airtableRecordId: matchingAirtable?.id || '',
           nombre: u.full_name || matchingAirtable?.fields['NOMBRE'] || 'Sin Nombre',
           email: u.email,
@@ -5019,7 +5074,7 @@ function formatDecimal(amount: number, digits = 2): string {
         const rEmail = (r.fields['EMAIL'] || '').toLowerCase();
         if (!allUsers.some(u => (u.email || '').toLowerCase() === rEmail)) {
           allUsers.push({
-            operatorCode: r.fields['ADMINISTRADOR'] || `OP${String(idx + 1).padStart(2, '0')}-${(r.fields['NOMBRE'] || 'USR').slice(0, 6)}-COL`,
+            operatorCode: r.fields['ADMINISTRADOR'] || computeUserAirtableCode(r.fields['NOMBRE'], r.fields['ROL'], r.fields['PAIS'], idx + 1),
             airtableRecordId: r.id,
             nombre: r.fields['NOMBRE'] || 'Sin Nombre',
             email: r.fields['EMAIL'] || 'sin-correo@kaupaloki.co',

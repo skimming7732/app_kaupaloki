@@ -69,6 +69,7 @@ import Layout from '../layouts/Layout.astro';
                 <h1 id="perfil-hero-name" style="margin: 0; font-size: 24px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;">
                   Cargando perfil...
                 </h1>
+                <span id="perfil-hero-code-badge" style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 10px; border-radius: 8px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2);"></span>
                 <span id="perfil-hero-role-badge" style="font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; background: var(--brand-primary-light); color: var(--brand-primary); text-transform: uppercase;">
                   ...
                 </span>
@@ -258,6 +259,25 @@ import Layout from '../layouts/Layout.astro';
     return (email || '').toLowerCase().trim() === SUPER_ADMIN_EMAIL;
   }
 
+  function computeUserAirtableCode(name: string, role: string, country: string, num: number = 1): string {
+    let rolePrefix = 'OP';
+    const r = (role || '').toUpperCase();
+    if (r.includes('SUPER') || r === 'SUPER ADMIN') {
+      rolePrefix = 'SA';
+    } else if (r.includes('ADMIN') || r === 'ADMINISTRADOR') {
+      rolePrefix = 'AD';
+    } else if (r.includes('CLIENT') || r === 'CLIENTE') {
+      rolePrefix = 'CL';
+    } else {
+      rolePrefix = 'OP';
+    }
+    const paddedNum = String(num || 1).padStart(3, '0');
+    const firstWord = (name || 'USR').trim().split(/\s+/)[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'USR';
+    const cleanCountry = (country || 'COL').trim().slice(0, 3).toUpperCase();
+    return `U${rolePrefix}${paddedNum}-${firstWord}-${cleanCountry}`;
+  }
+
+
   // Elementos DOM
   const heroAvatar = document.getElementById('perfil-hero-avatar');
   const heroName = document.getElementById('perfil-hero-name');
@@ -347,6 +367,10 @@ import Layout from '../layouts/Layout.astro';
     if (heroAvatar) heroAvatar.textContent = initial;
     if (heroName) heroName.textContent = name;
     if (heroEmail) heroEmail.textContent = currentProfile.email;
+    const heroCodeBadge = document.getElementById('perfil-hero-code-badge');
+    if (heroCodeBadge) {
+      heroCodeBadge.textContent = currentProfile.operator_code || computeUserAirtableCode(name, role, country);
+    }
 
     if (heroRoleBadge) {
       if (isSuper) {
@@ -467,17 +491,60 @@ import Layout from '../layouts/Layout.astro';
         if (pwdErr) throw pwdErr;
       }
 
+      // Calcular nuevo código de usuario en base a nombre y país
+      const newCode = computeUserAirtableCode(newName, currentProfile.role, newCountry, currentProfile.numero || 1);
+
       // 2. Actualizar en tabla profiles de Supabase
       const { error: profErr } = await supabase.from('profiles').update({
         full_name: newName,
         pais: newCountry,
+        operator_code: newCode,
         updated_at: new Date().toISOString()
       }).eq('email', currentProfile.email);
 
       if (profErr) throw profErr;
 
+      // 3. Sincronizar inmediatamente a Airtable USUARIOS
+      const pat = localStorage.getItem('kaupaloki_airtable_pat') || (import.meta.env.PUBLIC_AIRTABLE_PAT || "");
+      if (pat) {
+        try {
+          // Buscar registro en Airtable por email o por ID
+          let airtableRecId = currentProfile.airtable_id;
+          if (!airtableRecId) {
+            const sRes = await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb?filterByFormula=LOWER({EMAIL})='${encodeURIComponent(currentProfile.email)}'`, {
+              headers: { 'Authorization': `Bearer ${pat}` }
+            });
+            if (sRes.ok) {
+              const sJson = await sRes.json();
+              if (sJson.records && sJson.records.length > 0) {
+                airtableRecId = sJson.records[0].id;
+              }
+            }
+          }
+
+          if (airtableRecId) {
+            await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb/${airtableRecId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${pat}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                fields: {
+                  "NOMBRE": newName.toUpperCase(),
+                  "PAIS": newCountry
+                }
+              })
+            });
+          }
+        } catch (airtableErr) {
+          console.warn('Error sincronizando nombre en Airtable:', airtableErr);
+        }
+      }
+
       currentProfile.full_name = newName;
       currentProfile.pais = newCountry;
+      currentProfile.operator_code = newCode;
       renderProfileUI();
 
       if (inputPwd) inputPwd.value = '';

@@ -786,8 +786,8 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
 export const ADMINS: Admin[] = [
   {
     id: "recL83WqXLLheg5zZ",
-    codigo: "USA003-ADMINISTRADOR-COL",
-    nombre: "ADMINISTRADOR JERO",
+    codigo: "USA003-JERO-COL",
+    nombre: "JERO ADMIN",
     email: "desarrollor@jeroallsolutions.com",
     pais: "COL",
     rol: "SUPER ADMIN",
@@ -818,7 +818,7 @@ export const ADMINS: Admin[] = [
     numero: 2
   },
   {
-    id: "rec74079466-ba44-450a",
+    id: "recc4RrjOxntSbHZT",
     codigo: "UAD004-DANI-COL",
     nombre: "DANI",
     email: "daniel-r.a.p@hotmail.com",
