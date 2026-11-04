@@ -1667,7 +1667,7 @@ function formatDecimal(amount: number, digits = 2): string {
           <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
               <tr style="border-bottom: 1px solid var(--border-main);">
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Moneda</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Divisa / País</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Total Recibido</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Total Comprado (USDT)</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Saldo en Custodia</th>
@@ -1677,13 +1677,30 @@ function formatDecimal(amount: number, digits = 2): string {
             <tbody id="divisas-table-tbody">
               {DIVISAS.map((d) => {
                 const tienePendiente = d.totalPendiente > 0;
+                const flagImg = d.banderaUrl || d.fallbackBanderaUrl || '';
+                const fallbackImg = d.fallbackBanderaUrl || '';
                 return (
                   <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
-                    <td style="padding: 16px 20px; font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 15px;">
-                      <span style="display: inline-flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 18px;">{getCurrencyFlag(d.codigo)}</span>
-                        <span>{d.codigo}</span>
-                      </span>
+                    <td style="padding: 14px 20px;">
+                      <div style="display: inline-flex; align-items: center; gap: 12px;">
+                        <img 
+                          src={flagImg} 
+                          alt={d.codigo}
+                          onerror={fallbackImg ? `this.onerror=null;this.src="${fallbackImg}";` : undefined}
+                          style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); flex-shrink: 0;"
+                        />
+                        <div>
+                          <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{d.codigo}</span>
+                            {d.nombreDivisa && (
+                              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">{d.nombreDivisa}</span>
+                            )}
+                          </div>
+                          {d.pais && (
+                            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 1px;">{d.pais}</div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">
                       {formatDecimal(d.totalRecibido, 2)}
@@ -2881,7 +2898,7 @@ function formatDecimal(amount: number, digits = 2): string {
           </div>
 
           <form id="form-modal-create-negocio" style="display: flex; flex-direction: column; gap: 18px;">
-            <!-- Campo 1: Fecha de Operación (Custom iOS-Ready Date Picker) -->
+            <!-- Campo 1: Fecha de Operación (Minimalista) -->
             <div style="position: relative;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
                 <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.06em;">
@@ -2905,21 +2922,16 @@ function formatDecimal(amount: number, digits = 2): string {
                 style="width: 100%; box-sizing: border-box; padding: 12px 15px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; text-align: left; -webkit-appearance: none; appearance: none;"
               >
                 <div style="display: flex; align-items: center; gap: 11px;">
-                  <div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                       <line x1="16" y1="2" x2="16" y2="6"></line>
                       <line x1="8" y1="2" x2="8" y2="6"></line>
                       <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                   </div>
-                  <div>
-                    <div id="custom-date-display-human" style="font-size: 14px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
-                      Seleccionar fecha
-                    </div>
-                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">
-                      Calendario optimizado para iPhone / iOS & Desktop
-                    </div>
+                  <div id="custom-date-display-human" style="font-size: 14px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+                    Seleccionar fecha
                   </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -2932,7 +2944,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 </div>
               </button>
 
-              <!-- Popover de Calendario Interactivo iOS-Ready -->
+              <!-- Popover de Calendario Interactivo -->
               <div 
                 id="custom-calendar-popover" 
                 style="display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 180; background: var(--bg-card); border: 1.5px solid var(--border-main); border-radius: 20px; padding: 16px; box-shadow: 0 20px 45px rgba(11, 20, 55, 0.38);"
@@ -2972,23 +2984,12 @@ function formatDecimal(amount: number, digits = 2): string {
               </div>
             </div>
 
-            <!-- Campo 2: Seleccionar Cliente (Código + Nombre + Buscador Interno + Botón Agregar Cliente) -->
+            <!-- Campo 2: Seleccionar Cliente (Sin botón externo, ya está dentro del desplegable) -->
             <div style="position: relative;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
                 <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.06em;">
                   2. Seleccionar Cliente *
                 </label>
-                <button 
-                  type="button" 
-                  id="btn-negocio-open-add-client"
-                  style="display: inline-flex; align-items: center; gap: 5px; border: 1px solid rgba(67, 24, 255, 0.25); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 11px; font-weight: 800; cursor: pointer; padding: 4px 10px; border-radius: 999px; transition: all 0.2s;"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>+ Agregar Cliente</span>
-                </button>
               </div>
 
               <!-- Select oculto sincronizado para compatibilidad -->
@@ -3087,23 +3088,76 @@ function formatDecimal(amount: number, digits = 2): string {
               </div>
             </div>
 
-            <!-- Campo 3: Divisa (Solo las autorizadas, si es 1 bloqueado) -->
-            <div>
+            <!-- Campo 3: Divisa (Modal/Desplegable con foto de bandera de Airtable, nombre y país) -->
+            <div style="position: relative;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <label for="modal-negocio-divisa" style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.06em;">
-                  3. Divisa Autorizada *
+                <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.06em;">
+                  3. Divisa *
                 </label>
                 <span id="modal-negocio-divisa-hint" style="display: none; font-size: 10px; font-weight: 700; color: var(--brand-primary); background: var(--brand-primary-light); padding: 2px 6px; border-radius: 4px;">
-                  🔒 Divisa única autorizada
+                  🔒 Divisa única asignada
                 </span>
               </div>
-              <select 
-                id="modal-negocio-divisa" 
-                required 
-                style="width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 14px; font-weight: 700; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none; cursor: pointer; transition: all 0.2s;"
-              >
+
+              <!-- Select oculto sincronizado -->
+              <select id="modal-negocio-divisa" required style="display: none;">
                 <option value="">-- Seleccionar Divisa --</option>
               </select>
+
+              <!-- Trigger del Selector de Divisa con Foto de Bandera -->
+              <button 
+                type="button" 
+                id="divisa-picker-trigger"
+                style="width: 100%; box-sizing: border-box; padding: 11px 15px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; text-align: left;"
+              >
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                  <img 
+                    id="divisa-picker-selected-flag" 
+                    src="https://flagcdn.com/w80/us.png" 
+                    alt="Bandera" 
+                    style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card); flex-shrink: 0; display: none;" 
+                  />
+                  <span id="divisa-picker-selected-code" style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 9px; border-radius: 8px; background: rgba(67, 24, 255, 0.14); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.25); white-space: nowrap; display: none;">
+                    USD
+                  </span>
+                  <div style="min-width: 0;">
+                    <div id="divisa-picker-selected-name" style="font-size: 14px; font-weight: 800; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      Seleccionar divisa...
+                    </div>
+                    <div id="divisa-picker-selected-pais" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: none;"></div>
+                  </div>
+                </div>
+                <svg id="divisa-picker-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); flex-shrink: 0; transition: transform 0.2s;">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              <!-- Modal / Desplegable de Selección de Divisa con Banderas de Airtable -->
+              <div 
+                id="divisa-picker-dropdown" 
+                style="display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 176; background: var(--bg-card); border: 1.5px solid var(--border-main); border-radius: 20px; padding: 12px; box-shadow: 0 20px 45px rgba(11, 20, 55, 0.38);"
+              >
+                <div style="position: relative; margin-bottom: 8px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input 
+                    type="text" 
+                    id="divisa-picker-search" 
+                    placeholder="Buscar por código, nombre o país..." 
+                    autocomplete="off"
+                    style="width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none;"
+                  />
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 10px 6px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border-main);">
+                  <span>Bandera &bull; Divisa &bull; País</span>
+                  <span>Seleccionar</span>
+                </div>
+
+                <div id="divisa-picker-list" style="max-height: 215px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 6px 0;"></div>
+              </div>
             </div>
 
             <!-- Campo 4: Monto -->
@@ -4502,24 +4556,28 @@ function formatDecimal(amount: number, digits = 2): string {
 
 
   // ==============================================================
-  // METADATOS DE DIVISAS Y RELACIÓN AIRTABLE
+  // METADATOS DE DIVISAS Y RELACIÓN AIRTABLE (CON BANDERAS, NOMBRE Y PAÍS)
   // ==============================================================
-  const AIRTABLE_CURRENCIES_META: Record<string, { id: string; name: string; flag: string }> = {
-    'USD': { id: 'recYp1VcNnt28sXvM', name: 'Dólar Estadounidense', flag: '🇺🇸' },
-    'USDT': { id: 'recX2WcOyLsk8YcJN', name: 'Tether USD', flag: '🟢' },
-    'COP': { id: 'recqs25uNy07U35kP', name: 'Peso Colombiano', flag: '🇨🇴' },
-    'BRL': { id: 'rec5f7Xzww3xl88nq', name: 'Real Brasileño', flag: '🇧🇷' },
-    'PEN': { id: 'rec7tYgRg0cJZunNW', name: 'Sol Peruano', flag: '🇵🇪' },
-    'CLP': { id: 'recjr5hVAnG5bObTV', name: 'Peso Chileno', flag: '🇨🇱' },
-    'ARS': { id: 'recdSG05fjNiX8bDs', name: 'Peso Argentino', flag: '🇦🇷' },
-    'HNL': { id: 'recQ2kNgwFWmex2PB', name: 'Lempira Hondureño', flag: '🇭🇳' },
-    'VES': { id: 'recRmGKl2978gcJC2', name: 'Bolívar Venezolano', flag: '🇻🇪' },
-    'MXN': { id: 'recspIsJStEPlOGid', name: 'Peso Mexicano', flag: '🇲🇽' },
-    'UYU': { id: 'recepkOr8IFlifNdc', name: 'Peso Uruguayo', flag: '🇺🇾' }
+  const USDT_SVG_URI = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%2326A17B'/%3E%3Cpath fill='%23FFF' d='M35.8 27.6v-4.8h11V15H17.2v7.8h11v4.8c-8.9.4-15.6 2.1-15.6 4.2s6.7 3.8 15.6 4.2v15h7.6V36c8.9-.4 15.6-2.1 15.6-4.2s-6.7-3.8-15.6-4.2zm0 7.1v-.1c-.6 0-2.5.1-3.8.1-1.6 0-3.2-.1-3.8-.1v.1c-7.5-.3-13.1-1.6-13.1-3.1s5.6-2.8 13.1-3.1v4.9c.6 0 2.3.1 3.9.1 1.4 0 3.2-.1 3.7-.1v-4.9c7.5.3 13.1 1.6 13.1 3.1s-5.6 2.8-13.1 3.1z'/%3E%3C/svg%3E";
+
+  const AIRTABLE_CURRENCIES_META: Record<string, { id: string; name: string; pais: string; flag: string; banderaUrl: string; fallbackBanderaUrl: string }> = {
+    'USD': { id: 'recYp1VcNnt28sXvM', name: 'Dólar Estadounidense', pais: 'Estados Unidos (USA)', flag: '🇺🇸', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/1FKGhvqfCzPkLIjMCUbo4w/6xifOwYWTPJEAMf2Uni5dZ88hZi1AO1Lyqum0wlxLhXeFqh46vkDXuObTMzQsKv5-IuYY70JQEahYXT6JjdBU2h-NW5cAB4WbuUrP1xUZ0sDIsvP7gM9SXl_5oP9WS8-_S8Xff71wRkurZ00UbnMJQ/z9AMQukLP9_1d1MbDH3AzDrX7_5co2X8kZyRABPnSos', fallbackBanderaUrl: 'https://flagcdn.com/w80/us.png' },
+    'USDT': { id: 'recX2WcOyLsk8YcJN', name: 'Tether USDT', pais: 'Cripto / Global (USDT)', flag: '🟢', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/jLj5_BlNKnYevfOFziTcqg/7LKW_Eh2B3g1Xb0SgLea3wemXW99B9ATk12dHAYRVBZbomoxMl-UEFjRIG1rDspwH6haqKG0W8VyAD4J0XCySZZH20aSWdApJGxrHOJ_KAi58P9dcZu7UvepWPNDLFrZPpJHcuMJEFeahlQadPRtUQ/Anzn--bPDpGjV2udlgrXZetodJ6RAZnWqAQaQ7vRYqc', fallbackBanderaUrl: USDT_SVG_URI },
+    'COP': { id: 'recqs25uNy07U35kP', name: 'Peso Colombiano', pais: 'Colombia (COL)', flag: '🇨🇴', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/Xoy4OMNbr66nbQflYW5Cdg/O8mWAIixm0KO1kdUTHQEmzck0zQGRToFyzcYZdlXIdnV4J5TtGmzYvcH6V6JShyk13tAwgGfqFxL5A42fzDphd_rAz4jQEQn9Lm3PIPv8V9L0f42Lds248r_mXWRzaeWFC_UD3UXJCrSSfeEuxpFog/Jn5uHR5knBKWWF3hKV0eKaGqzktPQXcukPJ8-TUtu6w', fallbackBanderaUrl: 'https://flagcdn.com/w80/co.png' },
+    'BRL': { id: 'rec5f7Xzww3xl88nq', name: 'Real Brasileño', pais: 'Brasil (BRA)', flag: '🇧🇷', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/bk0FSfdXN_7YUr3SqEoLiw/qZKZRhzwiVCNuQ0bzcHlrE8n2XuA6nhIIvxd_Jr8ULB61pmtRUeYcCYxoW2AjxRITGQN9h7GcmqdEfiYlvJHAhpfcTHl0DAU7plJrphe7nYQqMfCI_vw5wG0YK0pX6OtVN-8KR4GDZMYArMV8_ih-Q/DLauIWVMs1U1Xv6VsRE2GbZu0DhnhM_4L9YPNlNuKYc', fallbackBanderaUrl: 'https://flagcdn.com/w80/br.png' },
+    'PEN': { id: 'rec7tYgRg0cJZunNW', name: 'Sol Peruano', pais: 'Perú (PER)', flag: '🇵🇪', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/2exJDnXPByffSOkCF3mpWg/B-fDAhmD3hntKlDyr1rRkDrofLBFJpyLcBibwJFU1KUaBmbQCqbbLYuBZ5GtLAidzf9WKME_0w-x5y-N4Fp_-BifAVlary7r3qLvtaw2q1RtLdGiTfEry7-4HFvEsCyqWyFKMerN5sRcAeGu09wWlg/x8W5kkosXpeSNHaw2Rv_1l9fqG7KIcA0Er_AZru4Hz4', fallbackBanderaUrl: 'https://flagcdn.com/w80/pe.png' },
+    'CLP': { id: 'recjr5hVAnG5bObTV', name: 'Peso Chileno', pais: 'Chile (CHL)', flag: '🇨🇱', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/oB5I5OFMlPcJxrGFCQX19A/KzQwjqyLpUllIm5oYNb9DoKYjT1qwDzdVNuMpCzeTaAYNLVTd9WVqAJVN507Nwrzrmgott0MKkK8XNjPG9l_QHP4OcpotVK96Sv1Qs--2-bT1cgMpzib7rFsqCtXu6729SGYUpc6uPWACJyIeYnsgg/Vjqz0Jkuq2RxcHr2vzFJQlQIpxu5R9-LOEn5lZGip2o', fallbackBanderaUrl: 'https://flagcdn.com/w80/cl.png' },
+    'ARS': { id: 'recdSG05fjNiX8bDs', name: 'Peso Argentino', pais: 'Argentina (ARG)', flag: '🇦🇷', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/gW85vZf6BmPsIcAnfUWhng/PfwLBoYKhneaLqxmznttXnJHWV8bP1WC2dHXZhrZX4cUkwGq5wFBbLmhB7tDU_EedG3eTumw4VpS13py0oXmayCjEFqsphj48-2OVd9lWgE2sDazjJqa8TrcBq3BU9ISGxHO367M3C7i6fFBeP36PA/VSF4Dv4eWAJRR8DWeQHbKayTe64St2fXLZSGor0WhD4', fallbackBanderaUrl: 'https://flagcdn.com/w80/ar.png' },
+    'MXN': { id: 'recspIsJStEPlOGid', name: 'Peso Mexicano', pais: 'México (MEX)', flag: '🇲🇽', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/GLQfIJm-Y4w2R315qXw70A/3XXnWlXY_14bUyNTXT3XWyFMn85xLs_Josa7OWMTDgBSkJvydoLi4a0MJ7P_nBP4CTFHiz6i4xqYRoraYCk2c0cceBTjU0nfaWuLkzPyIUrwh0gWiPnMaNoL_Y4oYhpmqL8letzT2cuVdVMkdaWORg/jNbWBYydm4G_efJDp2qpG6GteEUgBZr393QuD4hSwUY', fallbackBanderaUrl: 'https://flagcdn.com/w80/mx.png' },
+    'UYU': { id: 'recepkOr8IFlifNdc', name: 'Peso Uruguayo', pais: 'Uruguay (URY)', flag: '🇺🇾', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/luKZaXj77PZbW7LRDVnNOA/cPi04nqW6ee9IIHYJ9nnQInopUfOO9FufvjrHV8ZMQLNURbQ2P3F4X2pCtCI16srG1vms0FjtSxEVVgGJ-OQsBymUZlewX-HmHKxvl1KSRf73KvyJ82oovwzuFmYzAs375REfPOYhvnhtkr4s4Ehjw/Ye1KrqgSmzDm2wuyk5yvyHwkbqG9LZkiOkf2AbsXUcc', fallbackBanderaUrl: 'https://flagcdn.com/w80/uy.png' },
+    'HNL': { id: 'recQ2kNgwFWmex2PB', name: 'Lempira Hondureño', pais: 'Honduras (HND)', flag: '🇭🇳', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/aYUSi1zpSmcwFYBHJylUqQ/0DT-WV-Gx_Uo65fnoZj4khucBek_dIw5siKgqJ2BEPbabV1SukWuGJlU6YSWfQJq6CTQzfZAotyitjGH99Kj0vPTP58eH-yBtGA9ANpPEl_YDJpJlGEVRXTOxE2kiUM9iNAUHrgjMveVhIqvFVEc6Q/fESk-3ALKl-MdnNBa4UhnuYKVH5wV2sbaFmjlWdcxxc', fallbackBanderaUrl: 'https://flagcdn.com/w80/hn.png' },
+    'VES': { id: 'recRmGKl2978gcJC2', name: 'Bolívar Venezolano', pais: 'Venezuela (VEN)', flag: '🇻🇪', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/eCqRRnJW6X_0VFSbUqEw9A/PwwakpnRxXwN0HKD2nE7k8YwvUj1QJXHYLKCWMkIGUYUnSyEephCJyJoZlTr92wtD0Uu0KI--aWKfUF0V9v3Psr4wcQqt2WE9zrJ1R-cPVnTSpapNRrjrMQszB-7fQdrZYYDxwi0gfTHM-haB2zaFg/X5R4sdaDsEqnx-0aQZmMK98ZiwhATw_8PQDN3hHChKU', fallbackBanderaUrl: 'https://flagcdn.com/w80/ve.png' },
+    'USD-EC': { id: 'recDPXxhnRfDFeAlq', name: 'Dólar Estadounidense (Ecuador)', pais: 'Ecuador (ECU)', flag: '🇪🇨', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/_VthV3FLZ6lBouqvsdlQHw/ayvRjWQz1ECLps-w3n0c5_Vl7KRQwXCnH4jMOKvGfERPMms9tdq0zHAN1btfHU2FHVv7N-e-Li9EMa9GB8a5hq1DZssMzUJOVQyBnT70BCixume_1WxPMFr6WBWus_2eRxFMPSeQkGa5e3Yn8YV8_w/Gtk7Smjte7sVF1N1D_QtaDh56Y38IULOIVDX80gEw4g', fallbackBanderaUrl: 'https://flagcdn.com/w80/ec.png' },
+    'USD-PY': { id: 'recXQYhhIbCw0xqKt', name: 'Dólar Estadounidense (Panamá)', pais: 'Panamá (PAN)', flag: '🇵🇦', banderaUrl: 'https://v5.airtableusercontent.com/v3/u/59/59/1793844000000/iasijrZP2RMQIIsG463k4Q/zS0yvjQNyVkHF7gFZ4Ao0Z0uAIOl1DFlMJbV3x3qJUzFNAuEEOv3VpblC3LYuKt8nYYODxpoIuqIGf5nk8tDX5UuKrix8erCf6b-DVlXAsTdvfUZn0Nu485LUW5VuHGmaKX1TMk2N2E2vjMxvurQEw/8wvNSsNGj2a83pVq6JqHj4jHq3K0BHojDKCdbYO33fQ', fallbackBanderaUrl: 'https://flagcdn.com/w80/pa.png' }
   };
 
   // ==============================================================
-  // GESTIÓN DE NEGOCIOS (MODAL HORIZON UI + CALENDARIO iOS + BUSCADOR DE CLIENTES)
+  // GESTIÓN DE NEGOCIOS (MODAL HORIZON UI + CALENDARIO + BUSCADOR CLIENTE Y DIVISA)
   // ==============================================================
   const btnOpenCreateNegocioModal = document.getElementById('btn-open-create-negocio-modal');
   const modalCreateNegocioBackdrop = document.getElementById('modal-create-negocio-backdrop');
@@ -4532,8 +4590,18 @@ function formatDecimal(amount: number, digits = 2): string {
   const modalNegocioDivisaHint = document.getElementById('modal-negocio-divisa-hint');
   const modalNegocioMonto = document.getElementById('modal-negocio-monto') as HTMLInputElement | null;
   const modalNegocioStatus = document.getElementById('modal-negocio-status');
-  const btnNegocioOpenAddClient = document.getElementById('btn-negocio-open-add-client');
   const negociosTableTbody = document.getElementById('negocios-table-tbody');
+
+  // --- Elementos del Selector de Divisa con Foto de Bandera ---
+  const divisaPickerTrigger = document.getElementById('divisa-picker-trigger') as HTMLButtonElement | null;
+  const divisaPickerSelectedFlag = document.getElementById('divisa-picker-selected-flag') as HTMLImageElement | null;
+  const divisaPickerSelectedCode = document.getElementById('divisa-picker-selected-code');
+  const divisaPickerSelectedName = document.getElementById('divisa-picker-selected-name');
+  const divisaPickerSelectedPais = document.getElementById('divisa-picker-selected-pais');
+  const divisaPickerChevron = document.getElementById('divisa-picker-chevron');
+  const divisaPickerDropdown = document.getElementById('divisa-picker-dropdown');
+  const divisaPickerSearch = document.getElementById('divisa-picker-search') as HTMLInputElement | null;
+  const divisaPickerList = document.getElementById('divisa-picker-list');
 
   // --- Elementos del Selector de Fecha Custom (iOS Ready) ---
   const customDateTrigger = document.getElementById('custom-date-picker-trigger');
@@ -4826,7 +4894,165 @@ function formatDecimal(amount: number, digits = 2): string {
     openCreateClientModal();
   });
 
-  // Cerrar popovers de fecha y cliente al hacer clic fuera
+  // --- Lógica del Selector / Modal de Divisa con Foto de Bandera de Airtable ---
+  let isDivisaLockedSingle = false;
+
+  function toggleDivisaPickerDropdown(forceOpen?: boolean) {
+    if (!divisaPickerDropdown || isDivisaLockedSingle) return;
+    const isOpen = forceOpen !== undefined ? forceOpen : divisaPickerDropdown.style.display === 'none';
+    divisaPickerDropdown.style.display = isOpen ? 'block' : 'none';
+    if (divisaPickerChevron) {
+      divisaPickerChevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+    if (isOpen) {
+      toggleCalendarPopover(false);
+      toggleClientPickerDropdown(false);
+      if (divisaPickerSearch) {
+        divisaPickerSearch.value = '';
+        filterDivisaPickerList('');
+        setTimeout(() => divisaPickerSearch.focus(), 40);
+      }
+    }
+  }
+
+  function selectDivisaInPicker(code: string) {
+    const meta = AIRTABLE_CURRENCIES_META[code];
+    if (modalNegocioDivisa) {
+      let existingOpt = Array.from(modalNegocioDivisa.options).find(o => o.value === code);
+      if (!existingOpt && code) {
+        existingOpt = document.createElement('option');
+        existingOpt.value = code;
+        existingOpt.textContent = code;
+        modalNegocioDivisa.appendChild(existingOpt);
+      }
+      modalNegocioDivisa.value = code;
+    }
+
+    if (code && meta) {
+      if (divisaPickerSelectedFlag) {
+        divisaPickerSelectedFlag.src = meta.banderaUrl || meta.fallbackBanderaUrl;
+        divisaPickerSelectedFlag.onerror = () => {
+          divisaPickerSelectedFlag.onerror = null;
+          divisaPickerSelectedFlag.src = meta.fallbackBanderaUrl;
+        };
+        divisaPickerSelectedFlag.style.display = 'block';
+      }
+      if (divisaPickerSelectedCode) {
+        divisaPickerSelectedCode.textContent = code;
+        divisaPickerSelectedCode.style.display = 'inline-block';
+      }
+      if (divisaPickerSelectedName) {
+        divisaPickerSelectedName.textContent = meta.name || code;
+        divisaPickerSelectedName.style.color = 'var(--text-primary)';
+      }
+      if (divisaPickerSelectedPais) {
+        divisaPickerSelectedPais.textContent = meta.pais || '';
+        divisaPickerSelectedPais.style.display = meta.pais ? 'block' : 'none';
+      }
+    } else {
+      if (divisaPickerSelectedFlag) divisaPickerSelectedFlag.style.display = 'none';
+      if (divisaPickerSelectedCode) divisaPickerSelectedCode.style.display = 'none';
+      if (divisaPickerSelectedName) {
+        divisaPickerSelectedName.textContent = 'Seleccionar divisa...';
+        divisaPickerSelectedName.style.color = 'var(--text-muted)';
+      }
+      if (divisaPickerSelectedPais) divisaPickerSelectedPais.style.display = 'none';
+    }
+
+    document.querySelectorAll('.divisa-picker-option').forEach((el: any) => {
+      const isMatch = el.getAttribute('data-code') === code;
+      el.classList.toggle('selected', isMatch);
+      const checkEl = el.querySelector('.divisa-check-indicator') as HTMLElement | null;
+      if (checkEl) checkEl.textContent = isMatch ? '✓' : '';
+    });
+
+    toggleDivisaPickerDropdown(false);
+  }
+
+  function renderDivisaPickerOptions(allowedCodes: string[]) {
+    if (!divisaPickerList) return;
+    const currentVal = modalNegocioDivisa?.value || '';
+    divisaPickerList.innerHTML = allowedCodes.map((code) => {
+      const meta = AIRTABLE_CURRENCIES_META[code] || {
+        id: code,
+        name: code,
+        pais: '',
+        flag: '🌐',
+        banderaUrl: '',
+        fallbackBanderaUrl: 'https://flagcdn.com/w80/un.png'
+      };
+      const isSelected = code === currentVal;
+      const imgSrc = meta.banderaUrl || meta.fallbackBanderaUrl;
+      const fallbackSrc = meta.fallbackBanderaUrl;
+      return `
+        <button 
+          type="button"
+          class="client-picker-option divisa-picker-option ${isSelected ? 'selected' : ''}"
+          data-code="${code}"
+          data-name="${meta.name}"
+          data-pais="${meta.pais}"
+          style="width: 100%; padding: 9px 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; text-align: left; transition: all 0.15s;"
+        >
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <img 
+              src="${imgSrc}" 
+              alt="${code}" 
+              onerror="this.onerror=null;this.src='${fallbackSrc}';"
+              style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); flex-shrink: 0;" 
+            />
+            <span style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 3px 8px; border-radius: 7px; background: var(--bg-card-secondary); color: var(--brand-primary); border: 1px solid var(--border-main); white-space: nowrap;">
+              ${code}
+            </span>
+            <div style="min-width: 0;">
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${meta.name}
+              </div>
+              ${meta.pais ? `<div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">${meta.pais}</div>` : ''}
+            </div>
+          </div>
+          <span class="divisa-check-indicator" style="font-size: 12px; font-weight: 800; color: var(--brand-primary);">
+            ${isSelected ? '✓' : ''}
+          </span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  function filterDivisaPickerList(query: string) {
+    const q = (query || '').toLowerCase().trim();
+    const options = divisaPickerList?.querySelectorAll('.divisa-picker-option');
+    if (!options) return;
+    options.forEach((opt: any) => {
+      const code = (opt.getAttribute('data-code') || '').toLowerCase();
+      const name = (opt.getAttribute('data-name') || '').toLowerCase();
+      const pais = (opt.getAttribute('data-pais') || '').toLowerCase();
+      const match = !q || code.includes(q) || name.includes(q) || pais.includes(q);
+      opt.style.display = match ? 'flex' : 'none';
+    });
+  }
+
+  divisaPickerTrigger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleDivisaPickerDropdown();
+  });
+
+  divisaPickerSearch?.addEventListener('input', (e) => {
+    filterDivisaPickerList((e.target as HTMLInputElement).value);
+  });
+
+  divisaPickerDropdown?.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  divisaPickerList?.addEventListener('click', (e: any) => {
+    const opt = e.target.closest('.divisa-picker-option');
+    if (opt) {
+      const code = opt.getAttribute('data-code') || '';
+      if (code) selectDivisaInPicker(code);
+    }
+  });
+
+  // Cerrar popovers de fecha, cliente y divisa al hacer clic fuera
   document.addEventListener('click', (e: any) => {
     if (customCalendarPopover && customCalendarPopover.style.display !== 'none') {
       if (!e.target.closest('#custom-calendar-popover') && !e.target.closest('#custom-date-picker-trigger')) {
@@ -4838,15 +5064,21 @@ function formatDecimal(amount: number, digits = 2): string {
         toggleClientPickerDropdown(false);
       }
     }
+    if (divisaPickerDropdown && divisaPickerDropdown.style.display !== 'none') {
+      if (!e.target.closest('#divisa-picker-dropdown') && !e.target.closest('#divisa-picker-trigger')) {
+        toggleDivisaPickerDropdown(false);
+      }
+    }
   });
 
   function openCreateNegocioModal() {
     if (!modalCreateNegocioBackdrop) return;
 
-    // 1. Establecer fecha de hoy por defecto con nuestro calendario iOS-ready
+    // 1. Establecer fecha de hoy por defecto
     setNegocioDate(getLocalIsoDate(0));
     toggleCalendarPopover(false);
     toggleClientPickerDropdown(false);
+    toggleDivisaPickerDropdown(false);
 
     // Reset cliente seleccionado si estaba vacío
     if (!modalNegocioCliente?.value) {
@@ -4867,14 +5099,19 @@ function formatDecimal(amount: number, digits = 2): string {
           return `<option value="${code}">${meta.flag} ${code} - ${meta.name}</option>`;
         }).join('');
 
-      // Regla estricta: Si solo tiene una divisa autorizada, queda bloqueada y preseleccionada
+      renderDivisaPickerOptions(allowed);
+
+      // Si solo tiene una divisa asignada, queda preseleccionada y bloqueada
       if (allowed.length === 1) {
-        modalNegocioDivisa.value = allowed[0];
-        modalNegocioDivisa.disabled = true;
+        isDivisaLockedSingle = true;
+        selectDivisaInPicker(allowed[0]);
         if (modalNegocioDivisaHint) modalNegocioDivisaHint.style.display = 'inline-block';
+        if (divisaPickerTrigger) divisaPickerTrigger.style.cursor = 'not-allowed';
       } else {
-        modalNegocioDivisa.disabled = false;
+        isDivisaLockedSingle = false;
+        selectDivisaInPicker(allowed[0] || 'USD');
         if (modalNegocioDivisaHint) modalNegocioDivisaHint.style.display = 'none';
+        if (divisaPickerTrigger) divisaPickerTrigger.style.cursor = 'pointer';
       }
     }
 
@@ -4888,6 +5125,7 @@ function formatDecimal(amount: number, digits = 2): string {
     if (modalCreateNegocioBackdrop) modalCreateNegocioBackdrop.style.display = 'none';
     toggleCalendarPopover(false);
     toggleClientPickerDropdown(false);
+    toggleDivisaPickerDropdown(false);
   }
 
   btnOpenCreateNegocioModal?.addEventListener('click', openCreateNegocioModal);
@@ -7432,21 +7670,67 @@ function formatDecimal(amount: number, digits = 2): string {
       }
     }
 
-    // 11. Actualizar Divisas (2 decimales)
+    // 11. Actualizar Divisas (2 decimales + Banderas, Nombre y País en vivo desde Airtable)
     if (divisas.length > 0) {
+      divisas.forEach((div: any) => {
+        const code = div.codigo || div.divisa || '';
+        if (code && AIRTABLE_CURRENCIES_META[code]) {
+          if (div.id) AIRTABLE_CURRENCIES_META[code].id = div.id;
+          if (div.banderaUrl) AIRTABLE_CURRENCIES_META[code].banderaUrl = div.banderaUrl;
+          if (div.nombreDivisa) AIRTABLE_CURRENCIES_META[code].name = div.nombreDivisa;
+          if (div.pais) AIRTABLE_CURRENCIES_META[code].pais = div.pais;
+        } else if (code) {
+          AIRTABLE_CURRENCIES_META[code] = {
+            id: div.id || code,
+            name: div.nombreDivisa || code,
+            pais: div.pais || '',
+            flag: '🌐',
+            banderaUrl: div.banderaUrl || '',
+            fallbackBanderaUrl: 'https://flagcdn.com/w80/un.png'
+          };
+        }
+      });
+
       const divisasTbody = document.getElementById('divisas-table-tbody');
       if (divisasTbody) {
         divisasTbody.innerHTML = divisas.map((div: any) => {
           const code = div.codigo || div.divisa || '';
+          const meta = AIRTABLE_CURRENCIES_META[code] || ({} as any);
           const totRec = Number(div.totalRecibido ?? div.ingresoEnDivisa) || 0;
           const totComp = Number(div.totalComprado ?? div.egresoEnDivisa) || 0;
           const totPend = Number(div.totalPendiente ?? div.saldo) || 0;
+          const tienePendiente = totPend > 0;
+          const flagImg = div.banderaUrl || meta.banderaUrl || meta.fallbackBanderaUrl || '';
+          const fallbackImg = meta.fallbackBanderaUrl || '';
+          const nombreDivisa = div.nombreDivisa || meta.name || '';
+          const paisDivisa = div.pais || meta.pais || '';
           return `
             <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
-              <td style="padding: 16px 20px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--brand-primary);">${code}</td>
+              <td style="padding: 14px 20px;">
+                <div style="display: inline-flex; align-items: center; gap: 12px;">
+                  <img 
+                    src="${flagImg}" 
+                    alt="${code}" 
+                    onerror="this.onerror=null;this.src='${fallbackImg}';"
+                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); flex-shrink: 0;"
+                  />
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <span style="font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">${code}</span>
+                      ${nombreDivisa ? `<span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">${nombreDivisa}</span>` : ''}
+                    </div>
+                    ${paisDivisa ? `<div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 1px;">${paisDivisa}</div>` : ''}
+                  </div>
+                </div>
+              </td>
               <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary);">${fmtNumClient(totRec, 2)}</td>
               <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">${fmtNumClient(totComp, 2)}</td>
-              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: ${totPend > 0 ? 'var(--warning)' : 'var(--text-muted)'};">${fmtNumClient(totPend, 2)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: ${tienePendiente ? 'var(--warning)' : 'var(--text-muted)'};">${fmtNumClient(totPend, 2)}</td>
+              <td style="padding: 16px 20px; text-align: center;">
+                ${tienePendiente
+                  ? '<span class="status-pill status-warning">COMPRA PENDIENTE</span>'
+                  : '<span class="status-pill status-success">CUBIERTA 100%</span>'}
+              </td>
             </tr>
           `;
         }).join('');
