@@ -1115,19 +1115,17 @@ function formatDecimal(amount: number, digits = 2): string {
           </div>
 
           <div style="display: flex; align-items: center; gap: 10px;">
-            <!-- Botón Agregar Usuario antes del icono CSV -->
+            <!-- Botón Dinámico de Acción según la Vista Activa -->
             <button 
-              id="btn-open-create-user-modal"
-              class="btn-open-add-user"
+              id="btn-header-action"
               type="button"
-              title="Agregar nuevo usuario"
-              style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 12px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.25);"
+              style="display: none; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 12px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.25);"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              <span>+ Agregar Usuario</span>
+              <span id="btn-header-action-text">+ Agregar</span>
             </button>
 
             <!-- Solo icono de CSV -->
@@ -1391,18 +1389,6 @@ function formatDecimal(amount: number, digits = 2): string {
                 Clientes registrados con portales contables y acceso protegido
               </p>
             </div>
-            <button 
-              type="button"
-              id="btn-open-create-client-modal"
-              title="Registrar nuevo cliente"
-              style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(67, 24, 255, 0.25);"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>+ Agregar Cliente</span>
-            </button>
           </div>
 
           <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
@@ -1511,18 +1497,6 @@ function formatDecimal(amount: number, digits = 2): string {
                 Operaciones de divisa registradas por operadores autorizados
               </p>
             </div>
-            <button 
-              type="button"
-              id="btn-open-create-negocio-modal"
-              title="Registrar nuevo negocio"
-              style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(67, 24, 255, 0.25);"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>+ Agregar Negocio</span>
-            </button>
           </div>
 
           <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
@@ -2457,20 +2431,6 @@ function formatDecimal(amount: number, digits = 2): string {
                 </p>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <!-- Botón Agregar Usuario en la cabecera de la tabla -->
-                <button 
-                  type="button"
-                  class="btn-open-add-user"
-                  title="Crear o invitar nuevo usuario"
-                  style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(67, 24, 255, 0.25);"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>+ Agregar Usuario</span>
-                </button>
-
                 <button 
                   id="btn-sync-airtable-users" 
                   title="Sincronizar con tabla USUARIOS de Airtable"
@@ -3924,6 +3884,48 @@ function formatDecimal(amount: number, digits = 2): string {
     'gestores': 'tab-usuarios'
   };
 
+  const tabActionsMap: Record<string, { label: string, action: 'user' | 'client' | 'negocio' } | null> = {
+    'tab-dashboard': null,
+    'tab-clientes': { label: '+ Agregar Cliente', action: 'client' },
+    'tab-negocios': { label: '+ Agregar Negocio', action: 'negocio' },
+    'tab-compras': null,
+    'tab-ventas': null,
+    'tab-activos': null,
+    'tab-activos-digitales': null,
+    'tab-divisas': null,
+    'tab-usuarios': { label: '+ Agregar Usuario', action: 'user' },
+    'tab-dispersiones': null
+  };
+
+  const btnHeaderAction = document.getElementById('btn-header-action');
+  const btnHeaderActionText = document.getElementById('btn-header-action-text');
+
+  function updateHeaderActionButton(targetId: string) {
+    if (!btnHeaderAction || !btnHeaderActionText) return;
+    const actionConfig = tabActionsMap[targetId];
+    if (actionConfig) {
+      btnHeaderAction.style.display = 'inline-flex';
+      btnHeaderActionText.textContent = actionConfig.label;
+      btnHeaderAction.setAttribute('data-action', actionConfig.action);
+      btnHeaderAction.setAttribute('title', actionConfig.label);
+    } else {
+      btnHeaderAction.style.display = 'none';
+      btnHeaderAction.removeAttribute('data-action');
+    }
+  }
+
+  btnHeaderAction?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const action = btnHeaderAction.getAttribute('data-action');
+    if (action === 'user') {
+      openCreateUserModal();
+    } else if (action === 'client') {
+      openCreateClientModal();
+    } else if (action === 'negocio') {
+      openCreateNegocioModal();
+    }
+  });
+
   function switchTab(targetId: string, updateUrl: boolean = true) {
     if (!targetId) return;
     
@@ -3961,6 +3963,9 @@ function formatDecimal(amount: number, digits = 2): string {
       if (pageHeading) pageHeading.textContent = titlesMap[targetId].heading;
       if (activeTableTitle) activeTableTitle.textContent = titlesMap[targetId].table;
     }
+
+    // Actualizar el único botón de acción contextual de la cabecera
+    updateHeaderActionButton(targetId);
 
     if (targetId === 'tab-usuarios') {
       loadUsersList();
