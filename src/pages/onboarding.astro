@@ -56,29 +56,78 @@ import Layout from '../layouts/Layout.astro';
         </div>
 
         <div>
-          <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">
-            Crea tu Contraseña *
-          </label>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+              Crea tu Contraseña *
+            </label>
+            <span id="pwd-strength-badge" style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: var(--bg-card-secondary); color: var(--text-muted); transition: all 0.2s;">
+              Sin evaluar
+            </span>
+          </div>
           <div style="position: relative;">
             <input 
               type="password" 
               id="password-input" 
               required 
-              minlength="6" 
-              placeholder="Mínimo 6 caracteres" 
-              style="width: 100%; padding: 13px 16px 13px 42px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 14px; font-weight: 500; outline: none; transition: border-color 0.2s; box-sizing: border-box;" 
+              minlength="8" 
+              placeholder="Mínimo 8 caracteres recomendados" 
+              autocomplete="new-password"
+              style="width: 100%; padding: 13px 44px 13px 42px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 14px; font-weight: 500; outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;" 
             />
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted); pointer-events: none;">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
+            <button type="button" id="toggle-pwd-1" aria-label="Mostrar u ocultar contraseña" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Medidor visual de 4 niveles + Checklist de sugerencias -->
+          <div id="pwd-Feedback-panel" style="margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--bg-card-secondary); border: 1px solid var(--border-main);">
+            <!-- Barras de fortaleza -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;">
+              <div id="pwd-bar-1" style="height: 5px; border-radius: 999px; background: var(--border-main); transition: background 0.25s;"></div>
+              <div id="pwd-bar-2" style="height: 5px; border-radius: 999px; background: var(--border-main); transition: background 0.25s;"></div>
+              <div id="pwd-bar-3" style="height: 5px; border-radius: 999px; background: var(--border-main); transition: background 0.25s;"></div>
+              <div id="pwd-bar-4" style="height: 5px; border-radius: 999px; background: var(--border-main); transition: background 0.25s;"></div>
+            </div>
+
+            <div id="pwd-suggestion-text" style="font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.4;">
+              Sugerencia: combina letras mayúsculas, minúsculas, números y símbolos.
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 11.5px; font-weight: 600;">
+              <div id="req-length" class="pwd-req-item" style="display: flex; align-items: center; gap: 6px; color: var(--text-muted); transition: color 0.2s;">
+                <span class="req-dot" style="width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0;">•</span>
+                <span>Mín. 8 caracteres</span>
+              </div>
+              <div id="req-cases" class="pwd-req-item" style="display: flex; align-items: center; gap: 6px; color: var(--text-muted); transition: color 0.2s;">
+                <span class="req-dot" style="width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0;">•</span>
+                <span>Mayúscula y minúscula</span>
+              </div>
+              <div id="req-number" class="pwd-req-item" style="display: flex; align-items: center; gap: 6px; color: var(--text-muted); transition: color 0.2s;">
+                <span class="req-dot" style="width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0;">•</span>
+                <span>Al menos 1 número (0-9)</span>
+              </div>
+              <div id="req-symbol" class="pwd-req-item" style="display: flex; align-items: center; gap: 6px; color: var(--text-muted); transition: color 0.2s;">
+                <span class="req-dot" style="width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0;">•</span>
+                <span>Símbolo (@, #, $, !, *)</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <div>
-          <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">
-            Confirmar Contraseña *
-          </label>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+              Confirmar Contraseña *
+            </label>
+            <span id="pwd-match-hint" style="font-size: 11px; font-weight: 700; color: var(--text-muted);"></span>
+          </div>
           <div style="position: relative;">
             <input 
               type="password" 
@@ -86,11 +135,18 @@ import Layout from '../layouts/Layout.astro';
               required 
               minlength="6" 
               placeholder="Repite tu contraseña" 
-              style="width: 100%; padding: 13px 16px 13px 42px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 14px; font-weight: 500; outline: none; transition: border-color 0.2s; box-sizing: border-box;" 
+              autocomplete="new-password"
+              style="width: 100%; padding: 13px 44px 13px 42px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 14px; font-weight: 500; outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;" 
             />
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted); pointer-events: none;">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
+            <button type="button" id="toggle-pwd-2" aria-label="Mostrar u ocultar confirmación" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -134,6 +190,138 @@ import Layout from '../layouts/Layout.astro';
     const passwordConfirm = document.getElementById('password-confirm') as HTMLInputElement;
     const submitBtn = document.getElementById('btn-submit') as HTMLButtonElement;
     const form = document.getElementById('onboarding-form');
+
+    const strengthBadge = document.getElementById('pwd-strength-badge');
+    const suggestionText = document.getElementById('pwd-suggestion-text');
+    const matchHint = document.getElementById('pwd-match-hint');
+    const bars = [
+      document.getElementById('pwd-bar-1'),
+      document.getElementById('pwd-bar-2'),
+      document.getElementById('pwd-bar-3'),
+      document.getElementById('pwd-bar-4'),
+    ];
+    const reqLength = document.getElementById('req-length');
+    const reqCases = document.getElementById('req-cases');
+    const reqNumber = document.getElementById('req-number');
+    const reqSymbol = document.getElementById('req-symbol');
+
+    function setReqState(el: HTMLElement | null, met: boolean) {
+      if (!el) return;
+      const dot = el.querySelector('.req-dot') as HTMLElement | null;
+      if (met) {
+        el.style.color = '#05CD99';
+        if (dot) {
+          dot.textContent = '✓';
+          dot.style.background = 'rgba(5, 205, 153, 0.14)';
+          dot.style.borderColor = '#05CD99';
+          dot.style.fontWeight = '900';
+        }
+      } else {
+        el.style.color = 'var(--text-muted)';
+        if (dot) {
+          dot.textContent = '•';
+          dot.style.background = 'transparent';
+          dot.style.borderColor = 'currentColor';
+          dot.style.fontWeight = '600';
+        }
+      }
+    }
+
+    function evaluatePasswordStrength() {
+      const val = passwordInput?.value || '';
+      const conf = passwordConfirm?.value || '';
+
+      const hasLen8 = val.length >= 8;
+      const hasCases = /[a-z]/.test(val) && /[A-Z]/.test(val);
+      const hasNum = /[0-9]/.test(val);
+      const hasSym = /[^A-Za-z0-9]/.test(val);
+
+      setReqState(reqLength, hasLen8);
+      setReqState(reqCases, hasCases);
+      setReqState(reqNumber, hasNum);
+      setReqState(reqSymbol, hasSym);
+
+      const score = [hasLen8, hasCases, hasNum, hasSym].filter(Boolean).length;
+
+      const palette: Record<number, { color: string; bg: string; label: string }> = {
+        0: { color: 'var(--text-muted)', bg: 'var(--bg-card-secondary)', label: 'Sin evaluar' },
+        1: { color: '#EE5D50', bg: 'rgba(238, 93, 80, 0.14)', label: 'Contraseña Débil' },
+        2: { color: '#FFB547', bg: 'rgba(255, 181, 71, 0.16)', label: 'Seguridad Media' },
+        3: { color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.15)', label: 'Contraseña Segura' },
+        4: { color: '#05CD99', bg: 'rgba(5, 205, 153, 0.15)', label: '¡Muy Segura!' },
+      };
+
+      const activeState = val.length === 0 ? palette[0] : palette[Math.max(1, score)];
+
+      bars.forEach((bar, idx) => {
+        if (!bar) return;
+        if (val.length > 0 && idx < Math.max(1, score)) {
+          bar.style.background = activeState.color;
+        } else {
+          bar.style.background = 'var(--border-main)';
+        }
+      });
+
+      if (strengthBadge) {
+        strengthBadge.textContent = activeState.label;
+        strengthBadge.style.color = activeState.color;
+        strengthBadge.style.background = activeState.bg;
+      }
+
+      if (suggestionText) {
+        if (val.length === 0) {
+          suggestionText.textContent = 'Sugerencia: combina letras mayúsculas, minúsculas, números y símbolos.';
+          suggestionText.style.color = 'var(--text-secondary)';
+        } else if (!hasLen8) {
+          suggestionText.textContent = `Sugerencia: te faltan ${8 - val.length} caracteres más para alcanzar los 8 recomendados.`;
+          suggestionText.style.color = '#FFB547';
+        } else if (!hasCases) {
+          suggestionText.textContent = 'Sugerencia: incluye al menos una letra MAYÚSCULA y una minúscula.';
+          suggestionText.style.color = '#FFB547';
+        } else if (!hasNum) {
+          suggestionText.textContent = 'Sugerencia: agrega al menos un número (0-9) para reforzar tu clave.';
+          suggestionText.style.color = '#3B82F6';
+        } else if (!hasSym) {
+          suggestionText.textContent = 'Sugerencia: agrega un carácter especial (@, #, $, !, *, .) para nivel máximo.';
+          suggestionText.style.color = '#3B82F6';
+        } else {
+          suggestionText.textContent = 'Excelente: tu contraseña cumple todos los estándares de seguridad de Kaupaloki.';
+          suggestionText.style.color = '#05CD99';
+        }
+      }
+
+      if (matchHint) {
+        if (!conf) {
+          matchHint.textContent = '';
+          if (passwordConfirm) passwordConfirm.style.borderColor = 'var(--border-main)';
+        } else if (val === conf) {
+          matchHint.textContent = '✓ Las contraseñas coinciden';
+          matchHint.style.color = '#05CD99';
+          if (passwordConfirm) passwordConfirm.style.borderColor = '#05CD99';
+        } else {
+          matchHint.textContent = '✕ No coinciden todavía';
+          matchHint.style.color = '#EE5D50';
+          if (passwordConfirm) passwordConfirm.style.borderColor = '#EE5D50';
+        }
+      }
+
+      return { score, hasLen8, hasCases, hasNum, hasSym };
+    }
+
+    passwordInput?.addEventListener('input', evaluatePasswordStrength);
+    passwordConfirm?.addEventListener('input', evaluatePasswordStrength);
+
+    function bindPasswordToggle(btnId: string, inputEl: HTMLInputElement | null) {
+      const btn = document.getElementById(btnId);
+      btn?.addEventListener('click', () => {
+        if (!inputEl) return;
+        const isPwd = inputEl.type === 'password';
+        inputEl.type = isPwd ? 'text' : 'password';
+        btn.style.color = isPwd ? 'var(--brand-primary)' : 'var(--text-muted)';
+      });
+    }
+    bindPasswordToggle('toggle-pwd-1', passwordInput);
+    bindPasswordToggle('toggle-pwd-2', passwordConfirm);
 
     const alertBox = document.getElementById('alert-box');
     const alertText = document.getElementById('alert-text');
@@ -238,8 +426,14 @@ import Layout from '../layouts/Layout.astro';
         return;
       }
 
-      if (!pwd || pwd.length < 6) {
-        showAlert('La contraseña debe tener al menos 6 caracteres', 'error');
+      if (!pwd || pwd.length < 8) {
+        showAlert('La contraseña debe tener al menos 8 caracteres para ser segura', 'error');
+        return;
+      }
+
+      const { score } = evaluatePasswordStrength();
+      if (score < 3) {
+        showAlert('Por seguridad, tu contraseña debe cumplir al menos 3 de las 4 recomendaciones indicadas abajo', 'error');
         return;
       }
 
