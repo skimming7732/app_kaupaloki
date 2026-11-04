@@ -832,6 +832,34 @@ export const ADMINS: Admin[] = [
 
 export const USUARIOS_AIRTABLE: UsuarioAirtable[] = ADMINS;
 
+export const CURRENCY_FLAGS: Record<string, string> = {
+  'USD': '🇺🇸',
+  'USD-EC': '🇺🇸',
+  'USD-PY': '🇺🇸',
+  'USDT': '🟢',
+  'COP': '🇨🇴',
+  'BRL': '🇧🇷',
+  'PEN': '🇵🇪',
+  'CLP': '🇨🇱',
+  'ARS': '🇦🇷',
+  'HNL': '🇭🇳',
+  'VES': '🇻🇪',
+  'MXN': '🇲🇽',
+  'UYU': '🇺🇾',
+  'EUR': '🇪🇺'
+};
+
+export function getCurrencyFlag(code: string): string {
+  if (!code) return '🌐';
+  const clean = code.trim().toUpperCase();
+  return CURRENCY_FLAGS[clean] || '🌐';
+}
+
+export function formatCurrencyWithFlag(code: string): string {
+  if (!code) return '';
+  return `${getCurrencyFlag(code)} ${code.toUpperCase()}`;
+}
+
 // Métricas de consolidación contable para Panel de Control
 export function getMetricasContables() {
   const totalIngresosCop = NEGOCIOS.reduce((acc, n) => acc + n.ingresoCop, 0);

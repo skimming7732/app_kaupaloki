@@ -10,6 +10,9 @@ import {
   ACTIVOS_LIQUIDOS,
   USUARIOS_AIRTABLE,
   ADMINS, 
+  CURRENCY_FLAGS,
+  getCurrencyFlag,
+  formatCurrencyWithFlag,
   getMetricasContables 
 } from '../data/airtableData';
 
@@ -1294,6 +1297,30 @@ function formatDecimal(amount: number, digits = 2): string {
         <!-- TAB 1: CLIENTES -->
         <!-- ============================================================ -->
         <div id="tab-clientes" class="tab-pane" style="display: none; overflow-x: auto;">
+          <!-- Header Bar de Clientes -->
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-card-secondary);">
+            <div>
+              <h3 style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+                Directorio y Cartera de Clientes
+              </h3>
+              <p style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted);">
+                Clientes registrados con portales contables y acceso protegido
+              </p>
+            </div>
+            <button 
+              type="button"
+              id="btn-open-create-client-modal"
+              title="Registrar nuevo cliente"
+              style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(67, 24, 255, 0.25);"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Agregar Cliente</span>
+            </button>
+          </div>
+
           <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
               <tr style="border-bottom: 1px solid var(--border-main);">
@@ -1306,7 +1333,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Acciones</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="clientes-table-tbody">
               {CLIENTES.map((c) => {
                 const tieneSaldo = c.pendienteCop > 0;
                 const saldoAFavor = c.pendienteCop < 0;
@@ -1390,6 +1417,30 @@ function formatDecimal(amount: number, digits = 2): string {
         <!-- TAB 2: NEGOCIOS -->
         <!-- ============================================================ -->
         <div id="tab-negocios" class="tab-pane" style="display: none; overflow-x: auto;">
+          <!-- Header Bar de Negocios -->
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-card-secondary);">
+            <div>
+              <h3 style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+                Control de Negocios
+              </h3>
+              <p style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted);">
+                Operaciones de divisa registradas por operadores autorizados
+              </p>
+            </div>
+            <button 
+              type="button"
+              id="btn-open-create-negocio-modal"
+              title="Registrar nuevo negocio"
+              style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(67, 24, 255, 0.25);"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Agregar Negocio</span>
+            </button>
+          </div>
+
           <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
               <tr style="border-bottom: 1px solid var(--border-main);">
@@ -1405,7 +1456,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">USDT x Divisa</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="negocios-table-tbody">
               {NEGOCIOS.map((n) => (
                 <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
                   <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">{n.numero}</td>
@@ -1413,8 +1464,9 @@ function formatDecimal(amount: number, digits = 2): string {
                   <td style="padding: 14px 18px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">{n.fechaRegistro}</td>
                   <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">{n.clienteNombre}</td>
                   <td style="padding: 14px 18px; text-align: center;">
-                    <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main);">
-                      {n.divisaCodigo}
+                    <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 4px;">
+                      <span>{getCurrencyFlag(n.divisaCodigo)}</span>
+                      <span>{n.divisaCodigo}</span>
                     </span>
                   </td>
                   <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">{formatDecimal(n.montoDivisa, 0)}</td>
@@ -1569,7 +1621,10 @@ function formatDecimal(amount: number, digits = 2): string {
                 return (
                   <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
                     <td style="padding: 16px 20px; font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 15px;">
-                      {d.codigo}
+                      <span style="display: inline-flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">{getCurrencyFlag(d.codigo)}</span>
+                        <span>{d.codigo}</span>
+                      </span>
                     </td>
                     <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">
                       {formatDecimal(d.totalRecibido, 2)}
@@ -1618,8 +1673,9 @@ function formatDecimal(amount: number, digits = 2): string {
                   <td style="padding: 16px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{c.codigo}</td>
                   <td style="padding: 16px 20px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">{c.fechaCompra}</td>
                   <td style="padding: 16px 20px; text-align: center;">
-                    <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main);">
-                      {c.divisaCodigo}
+                    <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 4px;">
+                      <span>{getCurrencyFlag(c.divisaCodigo)}</span>
+                      <span>{c.divisaCodigo}</span>
                     </span>
                   </td>
                   <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">{formatDecimal(c.valorComprado, 2)}</td>
@@ -2440,6 +2496,243 @@ function formatDecimal(amount: number, digits = 2): string {
                   <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                 </svg>
                 <span>Enviar Invitación</span>
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- MODAL: AGREGAR NEGOCIO -->
+      <!-- ============================================================== -->
+      <div id="modal-create-negocio-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.75); backdrop-filter: blur(8px); z-index: 135; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 28px 30px; width: 100%; max-width: 500px; box-shadow: var(--shadow-card); position: relative;">
+          
+          <button id="btn-close-create-negocio-modal" type="button" style="position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 22px;">
+            <div style="width: 46px; height: 46px; border-radius: 14px; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+                Agregar Negocio
+              </h3>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                Registra una nueva operación de divisa
+              </p>
+            </div>
+          </div>
+
+          <form id="form-modal-create-negocio" style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Campo 1: Fecha -->
+            <div>
+              <label for="modal-negocio-fecha" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.05em;">
+                Fecha de Operación *
+              </label>
+              <input 
+                type="date" 
+                id="modal-negocio-fecha" 
+                required 
+                style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none; transition: all 0.2s;"
+              />
+            </div>
+
+            <!-- Campo 2: Modal Cliente -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label for="modal-negocio-cliente" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em;">
+                  Cliente *
+                </label>
+                <button 
+                  type="button" 
+                  id="btn-negocio-open-add-client"
+                  style="display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; color: var(--brand-primary); font-size: 11px; font-weight: 700; cursor: pointer; padding: 0;"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>+ Agregar Cliente</span>
+                </button>
+              </div>
+              <select 
+                id="modal-negocio-cliente" 
+                required 
+                style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none; cursor: pointer; transition: all 0.2s;"
+              >
+                <option value="">-- Seleccionar Cliente --</option>
+                {CLIENTES.map(c => (
+                  <option value={c.id}>{c.nombre} ({c.codigo})</option>
+                ))}
+              </select>
+            </div>
+
+            <!-- Campo 3: Divisa (Solo las autorizadas, si es 1 bloqueado) -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label for="modal-negocio-divisa" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em;">
+                  Divisa Autorizada *
+                </label>
+                <span id="modal-negocio-divisa-hint" style="display: none; font-size: 10px; font-weight: 700; color: var(--brand-primary); background: var(--brand-primary-light); padding: 2px 6px; border-radius: 4px;">
+                  🔒 Divisa única autorizada
+                </span>
+              </div>
+              <select 
+                id="modal-negocio-divisa" 
+                required 
+                style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none; cursor: pointer; transition: all 0.2s;"
+              >
+                <option value="">-- Seleccionar Divisa --</option>
+              </select>
+            </div>
+
+            <!-- Campo 4: Monto -->
+            <div>
+              <label for="modal-negocio-monto" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.05em;">
+                Monto *
+              </label>
+              <input 
+                type="number" 
+                step="any" 
+                min="0.01" 
+                id="modal-negocio-monto" 
+                placeholder="0.00" 
+                required 
+                style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 14px; font-weight: 700; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: ui-monospace, monospace; outline: none; transition: all 0.2s;"
+              />
+            </div>
+
+            <!-- Mensaje de estado -->
+            <div id="modal-negocio-status" style="font-size: 12px; min-height: 18px; text-align: center; font-weight: 600;"></div>
+
+            <!-- Botones de acción -->
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 8px;">
+              <button 
+                type="button" 
+                id="btn-cancel-create-negocio" 
+                style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                id="btn-submit-create-negocio" 
+                style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 10px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35);"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Guardar Negocio</span>
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- MODAL: AGREGAR CLIENTE -->
+      <!-- ============================================================== -->
+      <div id="modal-create-client-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.8); backdrop-filter: blur(10px); z-index: 150; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 28px 30px; width: 100%; max-width: 460px; box-shadow: var(--shadow-card); position: relative;">
+          
+          <button id="btn-close-create-client-modal" type="button" style="position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 22px;">
+            <div style="width: 46px; height: 46px; border-radius: 14px; background: rgba(5, 205, 153, 0.12); color: var(--success); display: flex; align-items: center; justify-content: center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+                Agregar Cliente
+              </h3>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                Crea el perfil contable del cliente
+              </p>
+            </div>
+          </div>
+
+          <form id="form-modal-create-client" style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label for="modal-client-name" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.05em;">
+                Nombre Completo o Razón Social *
+              </label>
+              <input 
+                type="text" 
+                id="modal-client-name" 
+                required 
+                placeholder="Ej: JUAN PEREZ o COMERCIALIZADORA SAS" 
+                style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none; transition: all 0.2s;"
+              />
+            </div>
+
+            <div>
+              <label for="modal-client-country" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.05em;">
+                País de Residencia / Operación *
+              </label>
+              <select 
+                id="modal-client-country" 
+                required 
+                style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none; cursor: pointer; transition: all 0.2s;"
+              >
+                <option value="COL">🇨🇴 Colombia (COL)</option>
+                <option value="BRA">🇧🇷 Brasil (BRA)</option>
+                <option value="PER">🇵🇪 Perú (PER)</option>
+                <option value="CHL">🇨🇱 Chile (CHL)</option>
+                <option value="ARG">🇦🇷 Argentina (ARG)</option>
+                <option value="HND">🇭🇳 Honduras (HND)</option>
+                <option value="VEN">🇻🇪 Venezuela (VEN)</option>
+                <option value="MEX">🇲🇽 México (MEX)</option>
+                <option value="URY">🇺🇾 Uruguay (URY)</option>
+                <option value="USA">🇺🇸 Estados Unidos (USA)</option>
+                <option value="ESP">🇪🇸 España (ESP)</option>
+                <option value="OTR">🌐 Otro País</option>
+              </select>
+            </div>
+
+            <!-- Mensaje de estado -->
+            <div id="modal-client-status" style="font-size: 12px; min-height: 18px; text-align: center; font-weight: 600;"></div>
+
+            <!-- Botones de acción -->
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 8px;">
+              <button 
+                type="button" 
+                id="btn-cancel-create-client" 
+                style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                id="btn-submit-create-client" 
+                style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 10px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35);"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Guardar Cliente</span>
               </button>
             </div>
           </form>
@@ -3551,6 +3844,365 @@ function formatDecimal(amount: number, digits = 2): string {
     }
   });
 
+
+  // ==============================================================
+  // METADATOS DE DIVISAS Y RELACIÓN AIRTABLE
+  // ==============================================================
+  const AIRTABLE_CURRENCIES_META: Record<string, { id: string; name: string; flag: string }> = {
+    'USD': { id: 'recYp1VcNnt28sXvM', name: 'Dólar Estadounidense', flag: '🇺🇸' },
+    'USDT': { id: 'recX2WcOyLsk8YcJN', name: 'Tether USD', flag: '🟢' },
+    'COP': { id: 'recqs25uNy07U35kP', name: 'Peso Colombiano', flag: '🇨🇴' },
+    'BRL': { id: 'rec5f7Xzww3xl88nq', name: 'Real Brasileño', flag: '🇧🇷' },
+    'PEN': { id: 'rec7tYgRg0cJZunNW', name: 'Sol Peruano', flag: '🇵🇪' },
+    'CLP': { id: 'recjr5hVAnG5bObTV', name: 'Peso Chileno', flag: '🇨🇱' },
+    'ARS': { id: 'recdSG05fjNiX8bDs', name: 'Peso Argentino', flag: '🇦🇷' },
+    'HNL': { id: 'recQ2kNgwFWmex2PB', name: 'Lempira Hondureño', flag: '🇭🇳' },
+    'VES': { id: 'recRmGKl2978gcJC2', name: 'Bolívar Venezolano', flag: '🇻🇪' },
+    'MXN': { id: 'recspIsJStEPlOGid', name: 'Peso Mexicano', flag: '🇲🇽' },
+    'UYU': { id: 'recepkOr8IFlifNdc', name: 'Peso Uruguayo', flag: '🇺🇾' }
+  };
+
+  // ==============================================================
+  // GESTIÓN DE NEGOCIOS (MODAL Y REGISTRO)
+  // ==============================================================
+  const btnOpenCreateNegocioModal = document.getElementById('btn-open-create-negocio-modal');
+  const modalCreateNegocioBackdrop = document.getElementById('modal-create-negocio-backdrop');
+  const btnCloseCreateNegocioModal = document.getElementById('btn-close-create-negocio-modal');
+  const btnCancelCreateNegocio = document.getElementById('btn-cancel-create-negocio');
+  const formModalCreateNegocio = document.getElementById('form-modal-create-negocio') as HTMLFormElement | null;
+  const modalNegocioFecha = document.getElementById('modal-negocio-fecha') as HTMLInputElement | null;
+  const modalNegocioCliente = document.getElementById('modal-negocio-cliente') as HTMLSelectElement | null;
+  const modalNegocioDivisa = document.getElementById('modal-negocio-divisa') as HTMLSelectElement | null;
+  const modalNegocioDivisaHint = document.getElementById('modal-negocio-divisa-hint');
+  const modalNegocioMonto = document.getElementById('modal-negocio-monto') as HTMLInputElement | null;
+  const modalNegocioStatus = document.getElementById('modal-negocio-status');
+  const btnNegocioOpenAddClient = document.getElementById('btn-negocio-open-add-client');
+  const negociosTableTbody = document.getElementById('negocios-table-tbody');
+
+  function openCreateNegocioModal() {
+    if (!modalCreateNegocioBackdrop) return;
+
+    // 1. Establecer fecha de hoy por defecto
+    if (modalNegocioFecha) {
+      modalNegocioFecha.value = new Date().toISOString().split('T')[0];
+    }
+
+    // 2. Filtrar divisas por divisas autorizadas del usuario logueado
+    if (modalNegocioDivisa) {
+      const isAdm = currentUserProfile?.role === 'administrador' || currentUserProfile?.is_super_admin;
+      let allowed: string[] = currentUserProfile?.authorized_currencies;
+      if (isAdm || !allowed || allowed.length === 0) {
+        allowed = Object.keys(AIRTABLE_CURRENCIES_META);
+      }
+
+      modalNegocioDivisa.innerHTML = '<option value="">-- Seleccionar Divisa --</option>' + 
+        allowed.map((code: string) => {
+          const meta = AIRTABLE_CURRENCIES_META[code] || { flag: '🌐', name: code };
+          return `<option value="${code}">${meta.flag} ${code} - ${meta.name}</option>`;
+        }).join('');
+
+      // Regla estricta: Si solo tiene una divisa autorizada, queda bloqueada y preseleccionada
+      if (allowed.length === 1) {
+        modalNegocioDivisa.value = allowed[0];
+        modalNegocioDivisa.disabled = true;
+        if (modalNegocioDivisaHint) modalNegocioDivisaHint.style.display = 'inline-block';
+      } else {
+        modalNegocioDivisa.disabled = false;
+        if (modalNegocioDivisaHint) modalNegocioDivisaHint.style.display = 'none';
+      }
+    }
+
+    if (modalNegocioMonto) modalNegocioMonto.value = '';
+    if (modalNegocioStatus) modalNegocioStatus.textContent = '';
+
+    modalCreateNegocioBackdrop.style.display = 'flex';
+  }
+
+  function closeCreateNegocioModal() {
+    if (modalCreateNegocioBackdrop) modalCreateNegocioBackdrop.style.display = 'none';
+  }
+
+  btnOpenCreateNegocioModal?.addEventListener('click', openCreateNegocioModal);
+  btnCloseCreateNegocioModal?.addEventListener('click', closeCreateNegocioModal);
+  btnCancelCreateNegocio?.addEventListener('click', closeCreateNegocioModal);
+  modalCreateNegocioBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalCreateNegocioBackdrop) closeCreateNegocioModal();
+  });
+
+  formModalCreateNegocio?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!modalNegocioFecha || !modalNegocioCliente || !modalNegocioDivisa || !modalNegocioMonto) return;
+
+    const fecha = modalNegocioFecha.value;
+    const clienteId = modalNegocioCliente.value;
+    const clienteSelectedOption = modalNegocioCliente.options[modalNegocioCliente.selectedIndex];
+    const clienteNombre = clienteSelectedOption ? clienteSelectedOption.text.split('(')[0].trim() : 'Cliente';
+    const divisa = modalNegocioDivisa.value;
+    const monto = parseFloat(modalNegocioMonto.value);
+
+    if (!fecha || !clienteId || !divisa || isNaN(monto) || monto <= 0) {
+      if (modalNegocioStatus) {
+        modalNegocioStatus.style.color = 'var(--danger)';
+        modalNegocioStatus.textContent = 'Por favor completa todos los campos correctamente.';
+      }
+      return;
+    }
+
+    if (modalNegocioStatus) {
+      modalNegocioStatus.style.color = 'var(--text-muted)';
+      modalNegocioStatus.textContent = 'Guardando negocio en sistema y Airtable...';
+    }
+
+    const btnSubmit = document.getElementById('btn-submit-create-negocio');
+    if (btnSubmit) {
+      btnSubmit.setAttribute('disabled', 'true');
+      btnSubmit.innerHTML = '<span>Guardando...</span>';
+    }
+
+    try {
+      const pat = getAirtableToken();
+      let newNegocioCode = `N${String(Math.floor(Math.random() * 9000 + 1000))}-${divisa}`;
+      const divisaMeta = AIRTABLE_CURRENCIES_META[divisa];
+      const divisaRecId = divisaMeta?.id;
+
+      if (pat) {
+        try {
+          const payload: any = {
+            fields: {
+              "FECHA REGISTRO": fecha,
+              "MONTO": monto
+            }
+          };
+          if (divisaRecId) payload.fields["DIVISA"] = [divisaRecId];
+          if (clienteId.startsWith('rec')) payload.fields["CLIENTE"] = [clienteId];
+          if (currentUserProfile?.airtableRecordId) {
+            payload.fields["OPERADOR"] = [currentUserProfile.airtableRecordId];
+          }
+
+          const res = await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tblMqIzySkzFJfdWr', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${pat}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) {
+            const airtableJson = await res.json();
+            if (airtableJson.fields?.['NEGOCIO']) {
+              newNegocioCode = airtableJson.fields['NEGOCIO'];
+            }
+          }
+        } catch (airtableErr) {
+          console.warn('Airtable post negocio error:', airtableErr);
+        }
+      }
+
+      // Prepend a la tabla de negocios en vivo
+      if (negociosTableTbody) {
+        const flag = divisaMeta?.flag || '🌐';
+        const formattedMonto = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(monto);
+        const newRowHtml = `
+          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); background: rgba(67, 24, 255, 0.04); transition: background 0.15s ease;">
+            <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${newNegocioCode}</td>
+            <td style="padding: 14px 18px; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700;">#</td>
+            <td style="padding: 14px 18px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">${fecha}</td>
+            <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${clienteNombre}</td>
+            <td style="padding: 14px 18px; text-align: center;">
+              <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 4px;">
+                <span>${flag}</span>
+                <span>${divisa}</span>
+              </span>
+            </td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">${formattedMonto}</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary); font-size: 13px;">$ 0</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-weight: 600; font-size: 14px;">$ 0</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-muted); font-size: 13px;">-</td>
+          </tr>
+        `;
+        negociosTableTbody.insertAdjacentHTML('afterbegin', newRowHtml);
+      }
+
+      closeCreateNegocioModal();
+      formModalCreateNegocio.reset();
+      alert(`¡Negocio ${newNegocioCode} registrado con éxito!`);
+    } catch (err: any) {
+      if (modalNegocioStatus) {
+        modalNegocioStatus.style.color = 'var(--danger)';
+        modalNegocioStatus.textContent = err.message || 'Error al guardar negocio';
+      }
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.removeAttribute('disabled');
+        btnSubmit.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Guardar Negocio</span>
+        `;
+      }
+    }
+  });
+
+  // ==============================================================
+  // GESTIÓN DE CLIENTES (MODAL Y REGISTRO)
+  // ==============================================================
+  const btnOpenCreateClientModal = document.getElementById('btn-open-create-client-modal');
+  const modalCreateClientBackdrop = document.getElementById('modal-create-client-backdrop');
+  const btnCloseCreateClientModal = document.getElementById('btn-close-create-client-modal');
+  const btnCancelCreateClient = document.getElementById('btn-cancel-create-client');
+  const formModalCreateClient = document.getElementById('form-modal-create-client') as HTMLFormElement | null;
+  const modalClientName = document.getElementById('modal-client-name') as HTMLInputElement | null;
+  const modalClientCountry = document.getElementById('modal-client-country') as HTMLSelectElement | null;
+  const modalClientStatus = document.getElementById('modal-client-status');
+  const clientesTableTbody = document.getElementById('clientes-table-tbody');
+
+  function openCreateClientModal() {
+    if (!modalCreateClientBackdrop) return;
+    if (modalClientName) modalClientName.value = '';
+    if (modalClientStatus) modalClientStatus.textContent = '';
+    modalCreateClientBackdrop.style.display = 'flex';
+  }
+
+  function closeCreateClientModal() {
+    if (!modalCreateClientBackdrop) return;
+    modalCreateClientBackdrop.style.display = 'none';
+  }
+
+  btnOpenCreateClientModal?.addEventListener('click', openCreateClientModal);
+  btnNegocioOpenAddClient?.addEventListener('click', openCreateClientModal);
+  btnCloseCreateClientModal?.addEventListener('click', closeCreateClientModal);
+  btnCancelCreateClient?.addEventListener('click', closeCreateClientModal);
+  modalCreateClientBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalCreateClientBackdrop) closeCreateClientModal();
+  });
+
+  formModalCreateClient?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!modalClientName) return;
+
+    const name = modalClientName.value.trim();
+    const country = modalClientCountry ? modalClientCountry.value : 'COL';
+
+    if (!name) {
+      if (modalClientStatus) {
+        modalClientStatus.style.color = 'var(--danger)';
+        modalClientStatus.textContent = 'Por favor ingresa el nombre del cliente.';
+      }
+      return;
+    }
+
+    if (modalClientStatus) {
+      modalClientStatus.style.color = 'var(--text-muted)';
+      modalClientStatus.textContent = 'Guardando cliente en Airtable...';
+    }
+
+    const btnSubmit = document.getElementById('btn-submit-create-client');
+    if (btnSubmit) {
+      btnSubmit.setAttribute('disabled', 'true');
+      btnSubmit.innerHTML = '<span>Guardando...</span>';
+    }
+
+    try {
+      const pat = getAirtableToken();
+      let clientId = `local-${Date.now()}`;
+      let clientCode = `C00${Math.floor(Math.random() * 90 + 10)}-${name.toUpperCase().replace(/\s+/g, '-')}`;
+
+      if (pat) {
+        try {
+          const res = await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tblfEL6ENM3N5g89d', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${pat}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fields: {
+                "NOMBRE": name.toUpperCase()
+              }
+            })
+          });
+          if (res.ok) {
+            const airtableJson = await res.json();
+            clientId = airtableJson.id;
+            if (airtableJson.fields?.['Cliente']) {
+              clientCode = airtableJson.fields['Cliente'];
+            }
+          }
+        } catch (airtableErr) {
+          console.warn('Airtable post client error:', airtableErr);
+        }
+      }
+
+      // 1. Agregar a selector de Negocio y seleccionarlo
+      if (modalNegocioCliente) {
+        const newOpt = document.createElement('option');
+        newOpt.value = clientId;
+        newOpt.textContent = `${name.toUpperCase()} (${clientCode})`;
+        modalNegocioCliente.appendChild(newOpt);
+        modalNegocioCliente.value = clientId;
+      }
+
+      // 2. Prepend a la tabla de Clientes
+      if (clientesTableTbody) {
+        const clientSlug = `c-${clientCode.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}`;
+        const newRowHtml = `
+          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); background: rgba(5, 205, 153, 0.05); transition: background 0.15s ease;">
+            <td style="padding: 16px 20px;">
+              <span style="font-size: 11px; font-weight: 700; font-family: ui-monospace, monospace; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--brand-primary); border: 1px solid var(--border-main);">
+                ${clientCode}
+              </span>
+            </td>
+            <td style="padding: 16px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${name.toUpperCase()}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">$ 0</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600; font-size: 14px;">$ 0</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: var(--text-muted);">$ 0</td>
+            <td style="padding: 16px 20px; text-align: center;">
+              <span class="status-pill status-success">AL DÍA</span>
+            </td>
+            <td style="padding: 16px 20px; text-align: center;">
+              <div style="display: inline-flex; align-items: center; gap: 8px;">
+                <a 
+                  href="/cliente/${clientSlug}?from=dashboard" 
+                  class="btn-view-portal"
+                  title="Ver portal contable de ${name} (Sin PIN)"
+                  style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </a>
+              </div>
+            </td>
+          </tr>
+        `;
+        clientesTableTbody.insertAdjacentHTML('afterbegin', newRowHtml);
+      }
+
+      closeCreateClientModal();
+      formModalCreateClient.reset();
+      alert(`¡Cliente ${name.toUpperCase()} registrado exitosamente!`);
+    } catch (err: any) {
+      if (modalClientStatus) {
+        modalClientStatus.style.color = 'var(--danger)';
+        modalClientStatus.textContent = err.message || 'Error al guardar cliente';
+      }
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.removeAttribute('disabled');
+        btnSubmit.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Guardar Cliente</span>
+        `;
+      }
+    }
+  });
+
   // ==============================================================
   // GESTIÓN DE USUARIOS Y MODAL POPUP DE INVITACIÓN
   // ==============================================================
@@ -3776,22 +4428,59 @@ function formatDecimal(amount: number, digits = 2): string {
       const pat = getAirtableToken();
       if (pat) {
         try {
-          await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${pat}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fields: {
-                "NOMBRE": name.toUpperCase(),
-                "EMAIL": email,
-                "PAIS": country,
-                "ESTADO": "INVITADO",
-                "DIVISAS AUTORIZADAS": authorizedCurrencies
-              }
-            })
+          const divisaRelIds = authorizedCurrencies.map(c => AIRTABLE_CURRENCIES_META[c]?.id).filter(Boolean);
+          // Buscar primero si existe el correo en Airtable (incluso si está INACTIVO) para reactivarlo
+          const searchResp = await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb?filterByFormula=LOWER({EMAIL})='${encodeURIComponent(email)}'`, {
+            headers: { 'Authorization': `Bearer ${pat}` }
           });
+          let existingRecId: string | null = null;
+          if (searchResp.ok) {
+            const sJson = await searchResp.json();
+            if (sJson.records && sJson.records.length > 0) {
+              existingRecId = sJson.records[0].id;
+            }
+          }
+
+          if (existingRecId) {
+            // Reactivar usuario existente y actualizar rol y divisas relacionadas
+            await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb/${existingRecId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${pat}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                fields: {
+                  "NOMBRE": name.toUpperCase(),
+                  "PAIS": country,
+                  "ESTADO": "ACTIVO",
+                  "ROL": role === 'administrador' ? 'ADMINISTRADOR' : (role === 'client' ? 'CLIENTE' : 'OPERADOR'),
+                  "DIVISAS AUTORIZADAS": authorizedCurrencies,
+                  "DIVISAS RELACIONADAS": divisaRelIds
+                }
+              })
+            });
+          } else {
+            // Crear nuevo registro enlazando DIVISAS RELACIONADAS
+            await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${pat}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                fields: {
+                  "NOMBRE": name.toUpperCase(),
+                  "EMAIL": email,
+                  "PAIS": country,
+                  "ESTADO": "ACTIVO",
+                  "ROL": role === 'administrador' ? 'ADMINISTRADOR' : (role === 'client' ? 'CLIENTE' : 'OPERADOR'),
+                  "DIVISAS AUTORIZADAS": authorizedCurrencies,
+                  "DIVISAS RELACIONADAS": divisaRelIds
+                }
+              })
+            });
+          }
         } catch (airtableErr) {
           console.warn('Airtable real-time user sync warning:', airtableErr);
         }
@@ -4102,16 +4791,36 @@ function formatDecimal(amount: number, digits = 2): string {
       // 1. Eliminar de Supabase profiles
       await supabase.from('profiles').delete().eq('email', email);
 
-      // 2. Eliminar de Airtable si existe ID y PAT
+      // 2. En Airtable: Cambiar ESTADO a "INACTIVO" para preservar registros y relaciones
       const pat = getAirtableToken();
-      if (pat && airtableId) {
+      if (pat) {
         try {
-          await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb/${airtableId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${pat}` }
-          });
+          let recId = airtableId;
+          if (!recId) {
+            const searchResp = await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb?filterByFormula=LOWER({EMAIL})='${encodeURIComponent(email)}'`, {
+              headers: { 'Authorization': `Bearer ${pat}` }
+            });
+            if (searchResp.ok) {
+              const sJson = await searchResp.json();
+              if (sJson.records?.[0]) recId = sJson.records[0].id;
+            }
+          }
+          if (recId) {
+            await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb/${recId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${pat}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                fields: {
+                  "ESTADO": "INACTIVO"
+                }
+              })
+            });
+          }
         } catch (airtableErr) {
-          console.warn('Error eliminando de Airtable:', airtableErr);
+          console.warn('Error inactivando usuario en Airtable:', airtableErr);
         }
       }
 
@@ -4197,6 +4906,7 @@ function formatDecimal(amount: number, digits = 2): string {
     // 1. De Airtable a Supabase: Si hay registros en Airtable sin perfil en Supabase, crearlos
     if (airtableRecords.length > 0) {
       for (const rec of airtableRecords) {
+        if ((rec.fields['ESTADO'] || '').toUpperCase() === 'INACTIVO') continue;
         const email = (rec.fields['EMAIL'] || '').toLowerCase().trim();
         if (email) {
           const exists = supabaseProfiles?.some(p => p.email?.toLowerCase() === email);
@@ -4305,6 +5015,7 @@ function formatDecimal(amount: number, digits = 2): string {
     // Agregar registros de Airtable que no estén en Supabase
     if (airtableRecords && airtableRecords.length > 0) {
       airtableRecords.forEach((r: any, idx: number) => {
+        if ((r.fields['ESTADO'] || '').toUpperCase() === 'INACTIVO') return;
         const rEmail = (r.fields['EMAIL'] || '').toLowerCase();
         if (!allUsers.some(u => (u.email || '').toLowerCase() === rEmail)) {
           allUsers.push({
