@@ -252,42 +252,50 @@ import Layout from '../layouts/Layout.astro';
       submitBtn.style.opacity = '0.6';
 
       try {
-        // Establecer o actualizar contraseña
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          const { error: pwdErr } = await supabase.auth.updateUser({
-            password: pwd,
-            data: {
-              full_name: fullName,
-              role: userRole,
-              onboarding_completed: true
-            }
+        // 1. Activar usuario y establecer contraseña directamente vía Edge Function (service_role con email_confirm: true)
+        // Así no se dispara ningún correo de confirmación a localhost:3000 y la cuenta queda lista al instante
+        if (userEmail) {
+          const edgeRes = await fetch('https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'complete_onboarding',
+              email: userEmail,
+              fullName,
+              password: pwd,
+              role: userRole
+            })
           });
-          if (pwdErr) {
-            showAlert('Error al crear contraseña: ' + pwdErr.message, 'error');
+          const edgeData = await edgeRes.json().catch(() => ({}));
+          if (!edgeRes.ok || edgeData?.ok === false) {
+            showAlert('Error al configurar contraseña: ' + (edgeData?.error || 'Intenta nuevamente'), 'error');
             return;
           }
-        } else if (userEmail) {
-          // Si llegó por enlace directo sin sesión iniciada aún, registramos / actualizamos credenciales
-          const { error: signErr } = await supabase.auth.signUp({
+
+          // Iniciar sesión inmediatamente con la nueva contraseña
+          await supabase.auth.signInWithPassword({
             email: userEmail,
-            password: pwd,
-            options: {
+            password: pwd
+          });
+        } else {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { error: pwdErr } = await supabase.auth.updateUser({
+              password: pwd,
               data: {
                 full_name: fullName,
                 role: userRole,
                 onboarding_completed: true
               }
+            });
+            if (pwdErr) {
+              showAlert('Error al crear contraseña: ' + pwdErr.message, 'error');
+              return;
             }
-          });
-          if (signErr && !signErr.message.includes('already registered')) {
-            showAlert('Error de autenticación: ' + signErr.message, 'error');
-            return;
           }
         }
 
-        // Actualizar tabla profiles
+        // 2. Actualizar tabla profiles como respaldo
         const updatePayload: any = {
           full_name: fullName,
           status: 'activo',
@@ -304,7 +312,7 @@ import Layout from '../layouts/Layout.astro';
         showAlert('¡Cuenta activada y contraseña configurada con éxito! Redirigiendo...', 'success');
         setTimeout(() => {
           window.location.href = '/';
-        }, 1200);
+        }, 1000);
       } catch (err: any) {
         showAlert(err.message || 'Error al completar configuración', 'error');
       } finally {

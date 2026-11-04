@@ -5324,29 +5324,56 @@ function formatDecimal(amount: number, digits = 2): string {
       const PRODUCTION_APP_URL = 'https://app.kaupaloki.co';
       const inviteUrl = `${PRODUCTION_APP_URL}/onboarding?email=${encodeURIComponent(email)}`;
 
-      // Enviar enlace de invitación / OTP con Supabase
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: inviteUrl,
-          data: {
-            full_name: name,
-            role: role,
-            pais: country,
-            country: country,
-            authorized_currencies: authorizedCurrencies,
-            onboarding_completed: false,
-            app_url: PRODUCTION_APP_URL
-          }
-        }
-      });
-
       // Si el usuario había sido eliminado previamente, quitarlo de la lista local de eliminados
       unmarkUserDeletedLocal(email);
 
-      // Registrar perfil en tabla profiles de Supabase
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: crypto.randomUUID(),
+      // 1. Pre-crear el usuario en auth.users con email_confirm: true desde la Edge Function
+      // Esto evita que Supabase dispare el correo en inglés "Confirm your email address" (type=signup) hacia localhost
+      let preparedUserId: string = crypto.randomUUID();
+      try {
+        const prepRes = await fetch('https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'prepare_invited_user',
+            email,
+            fullName: name,
+            role,
+            pais: country,
+            authorizedCurrencies
+          })
+        });
+        if (prepRes.ok) {
+          const prepData = await prepRes.json();
+          if (prepData?.userId) preparedUserId = prepData.userId;
+        }
+      } catch (prepErr) {
+        console.warn('Prepare invited user warning:', prepErr);
+      }
+
+      // 2. Enviar Magic Link (con el usuario ya confirmado en auth.users, usa la plantilla Magic Link y no Confirm Signup)
+      try {
+        await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            shouldCreateUser: false,
+            emailRedirectTo: inviteUrl,
+            data: {
+              full_name: name,
+              role: role,
+              pais: country,
+              country: country,
+              authorized_currencies: authorizedCurrencies,
+              onboarding_completed: false,
+              app_url: PRODUCTION_APP_URL
+            }
+          }
+        });
+      } catch (_) {}
+
+      // 3. Asegurar registro en tabla profiles de Supabase
+      await supabase.from('profiles').upsert({
+        id: preparedUserId,
         email: email,
         full_name: name,
         role: role,
