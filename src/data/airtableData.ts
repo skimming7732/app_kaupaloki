@@ -722,8 +722,8 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     id: "recsuypaKGBEA6dae",
     activo: "Coinsenda-Kaupaloki",
     institucion: "Coinsenda",
-    empresa: "Kaupaloki",
-    titular: "KAUPALOKI SAS",
+    empresa: "Coinsenda-Kaupaloki",
+    titular: "Coinsenda-Kaupaloki",
     cuenta: "N/A",
     tarifas: "% FEE $1000 COP",
     saldoDisponible: 273000000,
@@ -779,6 +779,61 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
       { fecha: "3/11/2026 04:20 p.m.", origen: "EGR-26-015", concepto: "Retiro para Pagos en Efectivo", monto: -10000000, balance: 310000000 },
       { fecha: "1/11/2026 10:15 a.m.", origen: "ING-26-092", concepto: "Entrada por Venta Efectivo OTC", monto: 180000000, balance: 320000000 },
       { fecha: "29/10/2026 02:00 p.m.", origen: "ING-26-088", concepto: "Apertura Balance Operativo Efectivo", monto: 140000000, balance: 140000000 }
+    ]
+  }
+];
+
+export const ACTIVOS_DIGITALES: ActivoDigital[] = [
+  {
+    id: "rec4eGPPX60dfrJzK",
+    activo: "BETO WALLET",
+    idWallet: "BETO WALLET",
+    wallet: "TRrENAf4SQbcMXFn44wkfSjaic4dxBdbyb",
+    red: "TRON (TRC20)",
+    titular: "BETO WALLET",
+    tarifas: "RED TRON (TRC20) • 1 USDT",
+    ingresosUsdt: 22867,
+    egresosUsdt: 0,
+    saldoUsdt: 22867,
+    saldoReal: 22867,
+    movimientos: [
+      { fecha: "4/11/2026 10:15 a.m.", origen: "TX-7b2a9f1088", concepto: "Recepción Compra USDT - Operación #12", monto: 12500, balance: 22867 },
+      { fecha: "2/11/2026 04:30 p.m.", origen: "TX-3c8111de55", concepto: "Carga Inicial Tesorería Beto", monto: 10367, balance: 10367 }
+    ]
+  },
+  {
+    id: "recblQW6ViJ9MxCle",
+    activo: "CUY WALLET",
+    idWallet: "CUY WALLET",
+    wallet: "TJv8B1q7k8Y32a8mN8vX90qLsK3P21qZbA",
+    red: "TRON (TRC20)",
+    titular: "CUY WALLET",
+    tarifas: "RED TRON (TRC20) • 1 USDT",
+    ingresosUsdt: 132107,
+    egresosUsdt: 100000,
+    saldoUsdt: 32107,
+    saldoReal: 32107,
+    movimientos: [
+      { fecha: "3/11/2026 02:40 p.m.", origen: "TX-9e0144af12", concepto: "Transferencia Liquidación Venta USDT", monto: -50000, balance: 32107 },
+      { fecha: "3/11/2026 11:20 a.m.", origen: "TX-8d1277bc90", concepto: "Dispersión Operativa USDT", monto: -50000, balance: 82107 },
+      { fecha: "1/11/2026 08:15 p.m.", origen: "TX-1a2b3c4d78", concepto: "Ingreso Compra Mayorista USDT", monto: 132107, balance: 132107 }
+    ]
+  },
+  {
+    id: "recYN27kO6gqWXqIj",
+    activo: "FRANZ WALLET",
+    idWallet: "FRANZ WALLET",
+    wallet: "TL6bM8q1a5X9zP0vW8yT43qRjK7L12sQeD",
+    red: "TRON (TRC20)",
+    titular: "FRANZ WALLET",
+    tarifas: "RED TRON (TRC20) • 1 USDT",
+    ingresosUsdt: 97000,
+    egresosUsdt: 97000,
+    saldoUsdt: 0,
+    saldoReal: 0,
+    movimientos: [
+      { fecha: "3/11/2026 05:22 p.m.", origen: "TX-4e5f6a7b21", concepto: "Liquidación Total Venta USDT", monto: -97000, balance: 0 },
+      { fecha: "2/11/2026 09:10 a.m.", origen: "TX-2c3d4e5f99", concepto: "Depósito Fondos Operador Franz", monto: 97000, balance: 97000 }
     ]
   }
 ];
