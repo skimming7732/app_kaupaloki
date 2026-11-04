@@ -448,13 +448,32 @@ function formatDecimal(amount: number, digits = 2): string {
           </div>
 
           <div style="display: flex; align-items: center; gap: 10px;">
-            <button id="btn-export-csv" style="display: flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 12px; background: var(--bg-main); border: 1px solid var(--border-main); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Botón Agregar Usuario antes del icono CSV -->
+            <button 
+              id="btn-open-create-user-modal"
+              class="btn-open-add-user"
+              type="button"
+              title="Agregar nuevo usuario"
+              style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 12px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.25);"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Agregar Usuario</span>
+            </button>
+
+            <!-- Solo icono de CSV -->
+            <button 
+              id="btn-export-csv" 
+              title="Descargar tabla en formato CSV" 
+              style="display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 12px; background: var(--bg-main); border: 1px solid var(--border-main); color: var(--text-primary); cursor: pointer; transition: all 0.2s ease;"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Exportar CSV
             </button>
           </div>
         </div>
@@ -1221,54 +1240,36 @@ function formatDecimal(amount: number, digits = 2): string {
         <!-- ============================================================ -->
         <div id="tab-usuarios" class="tab-pane" style="display: none; padding: 24px;">
           
-          <!-- Banner Superior con Botón de Creación Modal -->
-          <div style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 18px; padding: 22px; margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
-            <div style="display: flex; align-items: center; gap: 14px;">
-              <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <line x1="19" y1="8" x2="19" y2="14"></line>
-                  <line x1="22" y1="11" x2="16" y2="11"></line>
-                </svg>
-              </div>
+          <!-- Section: Directorio de Usuarios (Directo, sin banner innecesario) -->
+          <div style="border: 1px solid var(--border-main); border-radius: 16px; overflow: hidden; background: var(--bg-card);">
+            <div style="padding: 18px 22px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-card-secondary);">
               <div>
-                <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
-                  Gestión de Usuarios y Accesos
+                <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+                  Directorio de Usuarios
                 </h3>
-                <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-secondary);">
-                  Crea usuarios, asigna roles y autoriza qué divisas pueden registrar los operadores
+                <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                  Operadores y divisas autorizadas sincronizados con Supabase y Airtable
                 </p>
               </div>
-            </div>
-
-            <!-- Botón para abrir modal de creación -->
-            <button 
-              id="btn-open-create-user-modal"
-              type="button"
-              style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 12px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35);"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>+ Crear Usuario</span>
-            </button>
-          </div>
-
-          <!-- Section: Directorio de Usuarios -->
-          <div style="border: 1px solid var(--border-main); border-radius: 16px; overflow: hidden; background: var(--bg-card);">
-            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-main); display: flex; justify-content: space-between; align-items: center; background: var(--bg-card-secondary);">
-              <div>
-                <h3 style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
-                  Directorio de Usuarios Supabase
-                </h3>
-              </div>
               <div style="display: flex; align-items: center; gap: 8px;">
+                <!-- Botón Agregar Usuario en la cabecera de la tabla -->
+                <button 
+                  type="button"
+                  class="btn-open-add-user"
+                  title="Crear o invitar nuevo usuario"
+                  style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(67, 24, 255, 0.25);"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>+ Agregar Usuario</span>
+                </button>
+
                 <button 
                   id="btn-sync-airtable-users" 
                   title="Sincronizar con tabla USUARIOS de Airtable"
-                  style="display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--brand-primary); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+                  style="display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--brand-primary); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="23 4 23 10 17 10"></polyline>
@@ -1281,7 +1282,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 <button 
                   id="btn-refresh-users-view" 
                   title="Actualizar lista de usuarios"
-                  style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer;"
+                  style="display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer;"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
@@ -2050,6 +2051,62 @@ function formatDecimal(amount: number, digits = 2): string {
   const themeToggle = document.getElementById('btn-theme-toggle');
 
   // ==========================================
+  // THEME TOGGLE (DARK / LIGHT MODE)
+  // ==========================================
+  const sunIcon = themeToggle?.querySelector('.sun-icon') as HTMLElement | null;
+  const moonIcon = themeToggle?.querySelector('.moon-icon') as HTMLElement | null;
+
+  function syncThemeIcons() {
+    const isDark = document.documentElement.classList.contains('dark');
+    if (sunIcon) sunIcon.style.display = isDark ? 'block' : 'none';
+    if (moonIcon) moonIcon.style.display = isDark ? 'none' : 'block';
+  }
+
+  syncThemeIcons();
+
+  themeToggle?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const isDark = document.documentElement.classList.toggle('dark');
+    try {
+      localStorage.setItem('kaupaloki_theme', isDark ? 'dark' : 'light');
+    } catch (err) {}
+    syncThemeIcons();
+  });
+
+  // ==========================================
+  // EXPORTAR CSV DE LA TABLA ACTIVA
+  // ==========================================
+  btnExport?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const activePane = document.querySelector('.tab-pane.active') as HTMLElement | null;
+    const table = activePane?.querySelector('table') as HTMLTableElement | null;
+    if (!table) {
+      alert('No hay una tabla de datos activa para exportar en esta vista.');
+      return;
+    }
+
+    const rows = Array.from(table.querySelectorAll('tr'));
+    const csvContent = rows.map(r => {
+      const cells = Array.from(r.querySelectorAll('th, td'));
+      return cells.map(c => {
+        let text = (c.textContent || '').trim().replace(/\s+/g, ' ');
+        if (text.includes('"') || text.includes(',') || text.includes('\n')) {
+          text = `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+      }).join(',');
+    }).join('\n');
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const titleSlug = (activeTableTitle?.textContent || 'tabla').toLowerCase().replace(/[^a-z0-9]/g, '_');
+    link.href = URL.createObjectURL(blob);
+    link.download = `kaupaloki_${titleSlug}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+
+  // ==========================================
   // SIDEBAR COLLAPSE / EXPAND LOGIC
   // ==========================================
   const sidebar = document.getElementById('main-sidebar');
@@ -2493,29 +2550,53 @@ function formatDecimal(amount: number, digits = 2): string {
   const btnToggleAllCurrencies = document.getElementById('btn-toggle-all-currencies');
 
   function openCreateUserModal() {
-    if (modalCreateUserBackdrop) {
-      modalCreateUserBackdrop.style.display = 'flex';
-      if (modalCreateUserStatus) modalCreateUserStatus.textContent = '';
-      if (modalInvitationSuccessBox) modalInvitationSuccessBox.style.display = 'none';
+    const modal = document.getElementById('modal-create-user-backdrop');
+    if (modal) {
+      modal.style.display = 'flex';
+      const status = document.getElementById('modal-create-user-status');
+      if (status) status.textContent = '';
+      const successBox = document.getElementById('modal-invitation-success-box');
+      if (successBox) successBox.style.display = 'none';
       formModalCreateUser?.reset();
       // By default all currencies checked
       document.querySelectorAll('input[name="authorized_currency"]').forEach((el: any) => {
         el.checked = true;
       });
-      (document.getElementById('modal-user-name') as HTMLInputElement | null)?.focus();
+      setTimeout(() => {
+        (document.getElementById('modal-user-name') as HTMLInputElement | null)?.focus();
+      }, 50);
     }
   }
 
   function closeCreateUserModal() {
-    if (modalCreateUserBackdrop) modalCreateUserBackdrop.style.display = 'none';
+    const modal = document.getElementById('modal-create-user-backdrop');
+    if (modal) modal.style.display = 'none';
   }
 
-  btnOpenCreateUserModal?.addEventListener('click', openCreateUserModal);
-  btnCloseCreateUserModal?.addEventListener('click', closeCreateUserModal);
-  btnCancelCreateUser?.addEventListener('click', closeCreateUserModal);
+  // Delegación global para abrir modal desde cualquier botón
+  document.addEventListener('click', (e: any) => {
+    const trigger = e.target.closest('#btn-open-create-user-modal, .btn-open-add-user, #btn-open-users-modal');
+    if (trigger) {
+      e.preventDefault();
+      openCreateUserModal();
+    }
+    if (e.target.closest('#btn-close-create-user-modal, #btn-cancel-create-user')) {
+      e.preventDefault();
+      closeCreateUserModal();
+    }
+  });
 
   modalCreateUserBackdrop?.addEventListener('click', (e) => {
     if (e.target === modalCreateUserBackdrop) closeCreateUserModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('modal-create-user-backdrop');
+      if (modal && modal.style.display === 'flex') {
+        closeCreateUserModal();
+      }
+    }
   });
 
   // Toggle all currencies
