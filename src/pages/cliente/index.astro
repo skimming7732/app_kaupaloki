@@ -492,20 +492,19 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
     let clientDispersiones: any[] = [];
     let activeSubtab: 'negocios' | 'dispersiones' = 'negocios';
 
-    // Helper formatters
-    function formatCop(amount: number): string {
-      return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        maximumFractionDigits: 0
-      }).format(amount);
+    // Helper formatters (Regla Airtable: miles con ',' y decimales con '.')
+    function formatCop(amount: number, digits = 2): string {
+      return '$' + new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      }).format(Number(amount) || 0);
     }
 
     function formatNumber(amount: number, digits = 2): string {
-      return new Intl.NumberFormat('es-CO', {
+      return new Intl.NumberFormat('en-US', {
         minimumFractionDigits: digits,
         maximumFractionDigits: digits
-      }).format(amount);
+      }).format(Number(amount) || 0);
     }
 
     // Subtab switcher

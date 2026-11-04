@@ -6558,13 +6558,13 @@ function formatDecimal(amount: number, digits = 2): string {
     if (headerTitle) headerTitle.textContent = activo.idWallet || activo.activo;
     if (headerCurrency) headerCurrency.textContent = 'USDT';
 
-    const saldo = Number(activo.saldoUsdt || 0).toLocaleString('es-CO');
+    const saldo = fmtNumClient(Number(activo.saldoUsdt || 0), 2);
     if (cardSaldoDisp) cardSaldoDisp.textContent = saldo + ' USDT';
     if (cardSaldoTotal) cardSaldoTotal.textContent = saldo + ' USDT';
     if (cardTitular) cardTitular.textContent = activo.idWallet || activo.activo;
     if (cardRed) cardRed.textContent = activo.red || 'TRON (TRC20)';
     if (cardWallet) cardWallet.textContent = activo.wallet || '-';
-    if (cardTarifas) cardTarifas.textContent = activo.tarifas || 'RED TRON • 1 USDT';
+    if (cardTarifas) cardTarifas.textContent = activo.tarifas || 'RED TRON • 1.00 USDT';
 
     const movs = Array.isArray(activo.movimientos) ? activo.movimientos : [];
     if (tbody) {
@@ -6573,8 +6573,8 @@ function formatDecimal(amount: number, digits = 2): string {
       } else {
         tbody.innerHTML = movs.map((m: any) => {
           const isNegative = m.monto < 0;
-          const montoAbs = Math.abs(m.monto).toLocaleString('es-CO') + ' USDT';
-          const balanceStr = Number(m.balance).toLocaleString('es-CO') + ' USDT';
+          const montoAbs = (isNegative ? '-' : '+') + fmtNumClient(Math.abs(m.monto), 2) + ' USDT';
+          const balanceStr = fmtNumClient(Number(m.balance), 2) + ' USDT';
           const montoColor = isNegative ? '#EE5D50' : '#05CD99';
 
           return `
@@ -6677,12 +6677,12 @@ function formatDecimal(amount: number, digits = 2): string {
     const saldoDisp = activo.saldoDisponible !== undefined ? activo.saldoDisponible : (activo.saldoCop || 0);
     const saldoTot = activo.saldoTotal !== undefined ? activo.saldoTotal : (activo.saldoCop || 0);
 
-    if (cardSaldoDisp) cardSaldoDisp.textContent = Number(saldoDisp).toLocaleString('es-CO');
-    if (cardSaldoTotal) cardSaldoTotal.textContent = Number(saldoTot).toLocaleString('es-CO');
+    if (cardSaldoDisp) cardSaldoDisp.textContent = fmtCopClient(Number(saldoDisp));
+    if (cardSaldoTotal) cardSaldoTotal.textContent = fmtCopClient(Number(saldoTot));
     if (cardTitular) cardTitular.textContent = cleanTitular;
     if (cardInstitucion) cardInstitucion.textContent = (activo.institucion || 'COINSENDA').toUpperCase();
     if (cardCuenta) cardCuenta.textContent = activo.cuenta || 'N/A';
-    if (cardTarifas) cardTarifas.textContent = activo.tarifas || '% FEE $1000 COP';
+    if (cardTarifas) cardTarifas.textContent = activo.tarifas || '% FEE $1,000.00 COP';
 
     const movs = Array.isArray(activo.movimientos) ? activo.movimientos : [];
     if (tbody) {
@@ -6691,8 +6691,8 @@ function formatDecimal(amount: number, digits = 2): string {
       } else {
         tbody.innerHTML = movs.map((m: any) => {
           const isNegative = m.monto < 0;
-          const montoAbs = Math.abs(m.monto).toLocaleString('es-CO');
-          const balanceStr = Number(m.balance).toLocaleString('es-CO');
+          const montoAbs = (isNegative ? '-' : '+') + fmtCopClient(Math.abs(m.monto));
+          const balanceStr = fmtCopClient(Number(m.balance));
           const montoColor = isNegative ? '#EE5D50' : '#05CD99';
 
           return `
@@ -6777,19 +6777,18 @@ function formatDecimal(amount: number, digits = 2): string {
   const airtablePatInput = (document.getElementById('input-airtable-pat') || document.getElementById('airtable-pat-input')) as HTMLInputElement | null;
   const btnClearPat = document.getElementById('btn-clear-pat');
 
-  function fmtCopClient(val: number): string {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+  // Regla global de formato numérico: miles con coma (,) y decimales con punto (.)
+  function fmtCopClient(val: number, decimals = 2): string {
+    return '$' + new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     }).format(Number(val) || 0);
   }
 
-  function fmtNumClient(val: number, maxDecimals = 2): string {
-    return new Intl.NumberFormat('es-CO', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: maxDecimals,
+  function fmtNumClient(val: number, decimals = 2): string {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     }).format(Number(val) || 0);
   }
 
@@ -6857,7 +6856,9 @@ function formatDecimal(amount: number, digits = 2): string {
     const negocios = Array.isArray(snapshot.negocios) ? snapshot.negocios : [];
     const comprasUsdt = Array.isArray(snapshot.comprasUsdt) ? snapshot.comprasUsdt : [];
     const ventasUsdt = Array.isArray(snapshot.ventasUsdt) ? snapshot.ventasUsdt : [];
-    const dispersiones = Array.isArray(snapshot.dispersiones) ? snapshot.dispersiones : [];
+    const dispersiones = Array.isArray(snapshot.pagos)
+      ? snapshot.pagos
+      : (Array.isArray(snapshot.dispersiones) ? snapshot.dispersiones : []);
     const activosLiq = Array.isArray(snapshot.activosLiquidos) ? snapshot.activosLiquidos : [];
     const activosDig = Array.isArray(snapshot.activosDigitales) ? snapshot.activosDigitales : [];
     const divisas = Array.isArray(snapshot.divisas) ? snapshot.divisas : [];
@@ -6901,10 +6902,10 @@ function formatDecimal(amount: number, digits = 2): string {
     const totalIngresosLiq = activosLiq.reduce((acc: number, a: any) => acc + (Number(a.ingresosCop) || 0), 0);
     const totalEgresosLiq = activosLiq.reduce((acc: number, a: any) => acc + (Number(a.egresosCop) || 0), 0);
     const totalUsdtCustodia = activosDig.reduce((acc: number, d: any) => acc + (Number(d.saldoUsdt) || 0), 0);
-    const totalPasivoClientes = clientes.reduce((acc: number, c: any) => acc + (Number(c.pendientePorPagarCop) || 0), 0);
+    const totalPasivoClientes = clientes.reduce((acc: number, c: any) => acc + (Number(c.pendienteCop ?? c.pendientePorPagarCop) || 0), 0);
     const totalIngresosClientes = clientes.reduce((acc: number, c: any) => acc + (Number(c.ingresosCop) || 0), 0);
     const totalPagadoClientes = clientes.reduce((acc: number, c: any) => acc + (Number(c.pagadoCop) || 0), 0);
-    const totalVolumenCop = negocios.reduce((acc: number, n: any) => acc + (Number(n.montoCop) || 0), 0);
+    const totalVolumenCop = negocios.reduce((acc: number, n: any) => acc + (Number(n.ingresoCop ?? n.montoCop) || 0), 0);
     const totalComisionesCop = negocios.reduce((acc: number, n: any) => acc + (Number(n.totalRevenue) || 0), 0);
 
     // 4. Actualizar KPIs del Dashboard
@@ -7083,7 +7084,7 @@ function formatDecimal(amount: number, digits = 2): string {
             <td style="padding: 16px 20px; text-align: center;">
               <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: rgba(5, 205, 153, 0.12); color: var(--success);">${d.red || 'TRC20'}</span>
             </td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600;">+${fmtNumClient(d.ingresoUsdt, 2)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600;">+${fmtNumClient(d.ingresosUsdt ?? d.ingresoUsdt, 2)}</td>
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger); font-weight: 600;">-${fmtNumClient(d.egresosUsdt, 2)}</td>
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--text-primary); font-size: 15px;">${fmtNumClient(d.saldoUsdt, 2)} USDT</td>
             <td style="padding: 16px 20px; text-align: center;">
@@ -7094,22 +7095,25 @@ function formatDecimal(amount: number, digits = 2): string {
       }
     }
 
-    // 7. Actualizar Clientes (Dashboard + Tabla Clientes)
+    // 7. Actualizar Clientes (Dashboard + Tabla Clientes + Selector del Modal)
     if (clientes.length > 0) {
       const dashClientesList = document.getElementById('dashboard-clientes-list');
       if (dashClientesList) {
-        dashClientesList.innerHTML = clientes.filter((c: any) => (Number(c.pendientePorPagarCop) || 0) > 0).map((c: any) => `
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 12px; background: var(--bg-main); border-left: 4px solid var(--danger);">
-            <div>
-              <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">${c.nombre}</div>
-              <div style="font-size: 11px; color: var(--text-secondary);">Ingresos: ${fmtCopClient(c.ingresosCop)} | Pagado: ${fmtCopClient(c.pagadoCop)}</div>
+        dashClientesList.innerHTML = clientes.filter((c: any) => (Number(c.pendienteCop ?? c.pendientePorPagarCop) || 0) > 0).map((c: any) => {
+          const pend = Number(c.pendienteCop ?? c.pendientePorPagarCop) || 0;
+          return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 12px; background: var(--bg-main); border-left: 4px solid var(--danger);">
+              <div>
+                <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">${c.nombre}</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Ingresos: ${fmtCopClient(c.ingresosCop)} | Pagado: ${fmtCopClient(c.pagadoCop)}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-weight: 800; font-family: ui-monospace, monospace; color: var(--danger); font-size: 14px;">${fmtCopClient(pend)}</div>
+                <span style="font-size: 10px; color: var(--text-muted);">Por dispersar</span>
+              </div>
             </div>
-            <div style="text-align: right;">
-              <div style="font-weight: 800; font-family: ui-monospace, monospace; color: var(--danger); font-size: 14px;">${fmtCopClient(c.pendientePorPagarCop)}</div>
-              <span style="font-size: 10px; color: var(--text-muted);">Por dispersar</span>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
       const dashPasivo = document.getElementById('dashboard-total-pasivo-clientes');
       if (dashPasivo) dashPasivo.textContent = fmtCopClient(totalPasivoClientes);
@@ -7184,7 +7188,7 @@ function formatDecimal(amount: number, digits = 2): string {
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace;">${fmtCopClient(totalIngresosClientes)}</td>
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">${fmtCopClient(totalPagadoClientes)}</td>
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">${fmtCopClient(totalPasivoClientes)}</td>
-            <td></td>
+            <td colspan="2"></td>
           </tr>
         `;
       }
@@ -7226,53 +7230,50 @@ function formatDecimal(amount: number, digits = 2): string {
       }
     }
 
-    // 8. Actualizar Negocios
+    // 8. Actualizar Negocios (2 decimales)
     if (negocios.length > 0) {
       const negociosTbody = document.getElementById('negocios-table-tbody');
       if (negociosTbody) {
-        negociosTbody.innerHTML = negocios.map((n: any) => `
+        negociosTbody.innerHTML = negocios.map((n: any, idx: number) => `
           <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
-            <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${n.numero || '#'}</td>
-            <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">${n.codigo || n.idNegocio}</td>
+            <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${n.codigo || n.idNegocio}</td>
+            <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px;">#${n.numero ?? (idx + 1)}</td>
             <td style="padding: 14px 18px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">${n.fechaRegistro || n.fecha || ''}</td>
             <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${n.clienteNombre || 'Cliente'}</td>
             <td style="padding: 14px 18px; text-align: center;">
               <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main);">
-                ${n.divisaCodigo || n.divisa || 'USD'}
+                ${n.divisa || n.divisaCodigo || 'USD'}
               </span>
             </td>
             <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">
-              ${fmtNumClient(n.montoDivisa || n.monto || 0, 2)}
+              ${fmtNumClient(n.montoDivisa ?? n.monto ?? 0, 2)}
             </td>
             <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary); font-size: 13px;">
-              ${n.tasa ? fmtCopClient(n.tasa) : '-'}
+              ${fmtCopClient(n.tasa || 0, 2)}
             </td>
-            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--text-primary); font-size: 14px;">
-              ${fmtCopClient(n.ingresoCop || n.montoCop || 0)}
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: var(--text-primary); font-size: 14px;">
+              ${fmtCopClient(n.ingresoCop ?? n.montoCop ?? 0, 2)}
             </td>
-            <td style="padding: 14px 18px; font-size: 12px; font-family: ui-monospace, monospace; color: var(--brand-primary);">
-              ${n.compraRelCodigo || '-'}
-            </td>
-            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px; color: var(--text-secondary);">
-              ${n.usdtPorDivisa ? fmtNumClient(n.usdtPorDivisa, 2) : '-'}
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px; color: var(--text-muted);">
+              ${n.usdtPorDivisa ? fmtNumClient(n.usdtPorDivisa, 2) + ' USDT' : '-'}
             </td>
           </tr>
         `).join('');
       }
       const negociosTfoot = document.getElementById('negocios-table-tfoot');
       if (negociosTfoot) {
+        const totUsdtNeg = negocios.reduce((acc: number, n: any) => acc + (Number(n.usdtPorDivisa) || 0), 0);
         negociosTfoot.innerHTML = `
           <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
             <td colspan="7" style="padding: 14px 18px; color: var(--text-primary);">TOTALES (${negocios.length} OPERACIONES)</td>
-            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace;">${fmtCopClient(totalVolumenCop)}</td>
-            <td></td>
-            <td></td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace;">${fmtCopClient(totalVolumenCop, 2)}</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--brand-primary);">${fmtNumClient(totUsdtNeg, 2)} USDT</td>
           </tr>
         `;
       }
     }
 
-    // 9. Actualizar Dispersiones
+    // 9. Actualizar Dispersiones (2 decimales)
     if (dispersiones.length > 0) {
       const dispTbody = document.getElementById('dispersiones-table-tbody');
       if (dispTbody) {
@@ -7284,12 +7285,12 @@ function formatDecimal(amount: number, digits = 2): string {
           return `
             <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
               <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${p.numero || '#'}</td>
-              <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">${p.codigo || p.idPago}</td>
+              <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">${p.codigo || p.idPago || p.idDispersion}</td>
               <td style="padding: 14px 18px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">${p.fechaCreacion || p.fecha || ''}</td>
               <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${p.clienteNombre || 'Cliente'}</td>
               <td style="padding: 14px 18px; font-size: 13px; color: var(--text-secondary);">${p.referencia || '-'}</td>
-              <td style="padding: 14px 18px; font-size: 13px; color: var(--text-secondary);">${p.origenFondos || '-'}</td>
-              <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--text-primary); font-size: 14px;">${fmtCopClient(p.montoCop)}</td>
+              <td style="padding: 14px 18px; font-size: 13px; color: var(--text-secondary);">${p.origenFondos || p.empresaPagadora || '-'}</td>
+              <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--text-primary); font-size: 14px;">${fmtCopClient(p.montoCop ?? p.valorTotalDispersion, 2)}</td>
               <td style="padding: 14px 18px; text-align: center;">
                 <span class="status-pill ${esCompletado ? 'status-success' : 'status-danger'}">
                   ${p.estado || 'COMPLETADO'}
@@ -7318,11 +7319,11 @@ function formatDecimal(amount: number, digits = 2): string {
       }
       const dispTfoot = document.getElementById('dispersiones-table-tfoot');
       if (dispTfoot) {
-        const totDisp = dispersiones.reduce((acc: number, d: any) => acc + (Number(d.montoCop) || 0), 0);
+        const totDisp = dispersiones.reduce((acc: number, d: any) => acc + (Number(d.montoCop ?? d.valorTotalDispersion) || 0), 0);
         dispTfoot.innerHTML = `
           <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
             <td colspan="6" style="padding: 16px 20px;">TOTAL DISPERSADO</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">${fmtCopClient(totDisp)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">${fmtCopClient(totDisp, 2)}</td>
             <td></td>
             <td></td>
           </tr>
@@ -7330,34 +7331,39 @@ function formatDecimal(amount: number, digits = 2): string {
       }
     }
 
-    // 10. Actualizar Compras USDT y Ventas USDT
+    // 10. Actualizar Compras USDT (Regla Airtable: VALOR COMPRADO = 2 dec, USDT COMPRADO / COSTO / TASA = 4 dec) y Ventas USDT (2 dec)
     if (comprasUsdt.length > 0) {
       const comprasTbody = document.getElementById('compras-table-tbody');
       if (comprasTbody) {
-        comprasTbody.innerHTML = comprasUsdt.map((c: any) => `
-          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
-            <td style="padding: 16px 20px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--brand-primary); font-size: 13px;">${c.idTransaccion}</td>
-            <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px;">${c.fecha}</td>
-            <td style="padding: 16px 20px;">
-              <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: var(--bg-main); border: 1px solid var(--border-main);">${c.divisaNombre}</span>
-            </td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600;">${fmtNumClient(c.montoDivisa, 2)}</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary);">${fmtNumClient(c.tasaUsdt, 4)}</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--success);">+${fmtNumClient(c.totalRecibidoUsdt, 2)} USDT</td>
-            <td style="padding: 16px 20px;">
-              <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgba(5, 205, 153, 0.12); color: var(--success);">${c.walletDestino}</span>
-            </td>
-            <td style="padding: 16px 20px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-secondary);">${c.negocioVinculado}</td>
-          </tr>
-        `).join('');
+        comprasTbody.innerHTML = comprasUsdt.map((c: any) => {
+          const code = c.codigo || c.idTransaccion || '';
+          const divisa = c.divisa || c.divisaNombre || '';
+          const valorComp = Number(c.valorComprado ?? c.montoDivisa) || 0;
+          const usdtComp = Number(c.usdtComprado ?? c.totalRecibidoUsdt) || 0;
+          const costoVal = Number(c.costo) || 0;
+          const tasaVal = Number(c.tasa ?? c.tasaUsdt) || 0;
+          return `
+            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+              <td style="padding: 16px 20px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--brand-primary); font-size: 13px;">${code}</td>
+              <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px; font-family: ui-monospace, monospace;">${c.fecha || ''}</td>
+              <td style="padding: 16px 20px; text-align: center;">
+                <span style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); border: 1px solid var(--border-main);">${divisa}</span>
+              </td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600;">${fmtNumClient(valorComp, 2)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--success);">${fmtNumClient(usdtComp, 4)} USDT</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary);">${fmtNumClient(costoVal, 4)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary);">${fmtNumClient(tasaVal, 4)}</td>
+            </tr>
+          `;
+        }).join('');
       }
       const comprasTfoot = document.getElementById('compras-table-tfoot');
       if (comprasTfoot) {
-        const totCompUsdt = comprasUsdt.reduce((acc: number, c: any) => acc + (Number(c.totalRecibidoUsdt) || 0), 0);
+        const totCompUsdt = comprasUsdt.reduce((acc: number, c: any) => acc + (Number(c.usdtComprado ?? c.totalRecibidoUsdt) || 0), 0);
         comprasTfoot.innerHTML = `
           <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
-            <td colspan="5" style="padding: 16px 20px;">TOTAL COMPRADO EN USDT (${comprasUsdt.length} OPERACIONES)</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">+${fmtNumClient(totCompUsdt, 2)} USDT</td>
+            <td colspan="4" style="padding: 16px 20px;">TOTAL COMPRADO EN USDT (${comprasUsdt.length} OPERACIONES)</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">+${fmtNumClient(totCompUsdt, 4)} USDT</td>
             <td colspan="2"></td>
           </tr>
         `;
@@ -7367,58 +7373,56 @@ function formatDecimal(amount: number, digits = 2): string {
     if (ventasUsdt.length > 0) {
       const ventasTbody = document.getElementById('ventas-table-tbody');
       if (ventasTbody) {
-        ventasTbody.innerHTML = ventasUsdt.map((v: any) => `
-          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
-            <td style="padding: 16px 20px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--brand-primary); font-size: 13px;">${v.idTransaccion}</td>
-            <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px;">${v.fecha}</td>
-            <td style="padding: 16px 20px;">
-              <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgba(238, 93, 80, 0.12); color: var(--danger);">${v.walletOrigen}</span>
-            </td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--danger);">-${fmtNumClient(v.cantidadUsdt, 2)} USDT</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary);">${fmtCopClient(v.tasaVentaCop)}</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--warning);">${fmtCopClient(v.impuestos)}</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--success);">+${fmtCopClient(v.montoNetoRecibidoCop)}</td>
-            <td style="padding: 16px 20px;">
-              <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgba(57, 101, 255, 0.12); color: var(--brand-primary);">${v.cuentaDestinoNombre}</span>
-            </td>
-          </tr>
-        `).join('');
+        ventasTbody.innerHTML = ventasUsdt.map((v: any) => {
+          const nombre = v.nombre || v.idTransaccion || '';
+          const usdtVend = Number(v.usdtVendido ?? v.cantidadUsdt) || 0;
+          const tasaVal = Number(v.tasa ?? v.tasaVentaCop) || 0;
+          const totalCopVal = Number(v.totalCop ?? v.montoNetoRecibidoCop) || 0;
+          return `
+            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+              <td style="padding: 16px 20px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--brand-primary); font-size: 13px;">${nombre}</td>
+              <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px; font-family: ui-monospace, monospace;">${v.fecha || ''}</td>
+              <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px;">${v.activoLiquido || v.cuentaDestinoNombre || ''}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--text-primary);">${fmtNumClient(usdtVend, 2)} USDT</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary);">${fmtCopClient(tasaVal, 2)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--success);">${fmtCopClient(totalCopVal, 2)}</td>
+            </tr>
+          `;
+        }).join('');
       }
       const ventasTfoot = document.getElementById('ventas-table-tfoot');
       if (ventasTfoot) {
-        const totVentaUsdt = ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.cantidadUsdt) || 0), 0);
-        const totVentaImp = ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.impuestos) || 0), 0);
-        const totVentaCop = ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.montoNetoRecibidoCop) || 0), 0);
+        const totVentaUsdt = ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.usdtVendido ?? v.cantidadUsdt) || 0), 0);
+        const totVentaCop = ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.totalCop ?? v.montoNetoRecibidoCop) || 0), 0);
         ventasTfoot.innerHTML = `
           <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
             <td colspan="3" style="padding: 16px 20px;">TOTAL MONETIZADO (${ventasUsdt.length} VENTAS USDT)</td>
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">-${fmtNumClient(totVentaUsdt, 2)} USDT</td>
             <td></td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--warning);">${fmtCopClient(totVentaImp)}</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">+${fmtCopClient(totVentaCop)}</td>
-            <td></td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">+${fmtCopClient(totVentaCop, 2)}</td>
           </tr>
         `;
       }
     }
 
-    // 11. Actualizar Divisas
+    // 11. Actualizar Divisas (2 decimales)
     if (divisas.length > 0) {
       const divisasTbody = document.getElementById('divisas-table-tbody');
       if (divisasTbody) {
-        divisasTbody.innerHTML = divisas.map((div: any) => `
-          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
-            <td style="padding: 16px 20px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--brand-primary);">${div.divisa}</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">+${fmtNumClient(div.ingresoEnDivisa, 2)}</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">-${fmtNumClient(div.egresoEnDivisa, 2)}</td>
-            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: ${(Number(div.saldo) || 0) > 0 ? 'var(--brand-primary)' : 'var(--text-muted)'};">${fmtNumClient(div.saldo, 2)}</td>
-            <td style="padding: 16px 20px; text-align: center;">
-              ${(Number(div.saldo) || 0) > 0
-                ? '<span style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(5, 205, 153, 0.12); color: var(--success);">En Custodia</span>'
-                : '<span style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--bg-main); color: var(--text-muted);">Liquidado (0)</span>'}
-            </td>
-          </tr>
-        `).join('');
+        divisasTbody.innerHTML = divisas.map((div: any) => {
+          const code = div.codigo || div.divisa || '';
+          const totRec = Number(div.totalRecibido ?? div.ingresoEnDivisa) || 0;
+          const totComp = Number(div.totalComprado ?? div.egresoEnDivisa) || 0;
+          const totPend = Number(div.totalPendiente ?? div.saldo) || 0;
+          return `
+            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+              <td style="padding: 16px 20px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--brand-primary);">${code}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary);">${fmtNumClient(totRec, 2)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">${fmtNumClient(totComp, 2)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: ${totPend > 0 ? 'var(--warning)' : 'var(--text-muted)'};">${fmtNumClient(totPend, 2)}</td>
+            </tr>
+          `;
+        }).join('');
       }
     }
   }
