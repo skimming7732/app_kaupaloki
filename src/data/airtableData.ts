@@ -68,13 +68,38 @@ export interface Pago {
   origenFondos?: string;
 }
 
+
+export interface VentaUsdt {
+  id: string;
+  nombre: string;
+  fecha: string;
+  concepto: string;
+  usdtVendido: number;
+  tasa: number;
+  destinoFondosNombre: string;
+  totalCop: number;
+}
+
+export interface ActivoLiquido {
+  id: string;
+  activo: string;
+  institucion: string;
+  empresa: string;
+  ingresosCop: number;
+  egresosCop: number;
+  saldoCop: number;
+}
+
 export interface Admin {
   id: string;
   codigo: string;
   nombre: string;
   pais: string;
   numero: number;
+  rol?: string;
 }
+
+export interface UsuarioAirtable extends Admin {}
 
 export const CLIENTES: Cliente[] = [
   {
@@ -639,31 +664,110 @@ export const PAGOS: Pago[] = [
   }
 ];
 
+
+export const VENTAS_USDT: VentaUsdt[] = [
+  {
+    id: "recHn8RrTIu9Pb4US",
+    nombre: "VE-01",
+    fecha: "2026-11-03",
+    concepto: "COINCENDA",
+    usdtVendido: 90000,
+    tasa: 3200,
+    destinoFondosNombre: "Coinsenda-Kaupaloki",
+    totalCop: 288000000
+  },
+  {
+    id: "recjrrnzbxhM1IUpL",
+    nombre: "VE-02",
+    fecha: "2026-11-03",
+    concepto: "GIRALDO",
+    usdtVendido: 100000,
+    tasa: 3200,
+    destinoFondosNombre: "Efectivo-Dosquebradas",
+    totalCop: 320000000
+  },
+  {
+    id: "reczqUMGkDp6SQE0y",
+    nombre: "VE-03",
+    fecha: "2026-11-03",
+    concepto: "LINCOIN",
+    usdtVendido: 50000,
+    tasa: 3200,
+    destinoFondosNombre: "Coinsenda-Jero All Solutions",
+    totalCop: 160000000
+  }
+];
+
+export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
+  {
+    id: "recsuypaKGBEA6dae",
+    activo: "Coinsenda-Kaupaloki",
+    institucion: "Coinsenda",
+    empresa: "Kaupaloki",
+    ingresosCop: 288000000,
+    egresosCop: 15000000,
+    saldoCop: 273000000
+  },
+  {
+    id: "recVFLDX1of31gVKN",
+    activo: "Coinsenda-Jero All Solutions",
+    institucion: "Coinsenda",
+    empresa: "Jero All Solutions",
+    ingresosCop: 160000000,
+    egresosCop: 30000000,
+    saldoCop: 130000000
+  },
+  {
+    id: "recdOSGJZMR2xqUFq",
+    activo: "Efectivo-Dosquebradas",
+    institucion: "Efectivo",
+    empresa: "Dosquebradas",
+    ingresosCop: 320000000,
+    egresosCop: 10000000,
+    saldoCop: 310000000
+  }
+];
+
 export const ADMINS: Admin[] = [
   {
     id: "recVp36XSdciu5Oqe",
-    codigo: "A01-DAVID-COL",
+    codigo: "OP01-DAVID-COL",
     nombre: "DAVID LOPEZ",
     pais: "COL",
+    rol: "OPERADOR",
     numero: 1
   }
 ];
 
-// Métricas de consolidación contable
+export const USUARIOS_AIRTABLE: UsuarioAirtable[] = ADMINS;
+
+// Métricas de consolidación contable para Panel de Control
 export function getMetricasContables() {
   const totalIngresosCop = NEGOCIOS.reduce((acc, n) => acc + n.ingresoCop, 0);
   const totalPagadoCop = PAGOS.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + p.montoCop, 0);
   const saldoPendienteNeto = totalIngresosCop - totalPagadoCop;
   const totalUsdtComprado = COMPRAS_USDT.reduce((acc, c) => acc + c.usdtComprado, 0);
+  const totalUsdtVendido = VENTAS_USDT.reduce((acc, v) => acc + v.usdtVendido, 0);
+  const totalUsdtEnCustodia = DIVISAS.reduce((acc, d) => acc + d.saldoEnCustodia, 0);
+  const totalActivosLiquidosCop = ACTIVOS_LIQUIDOS.reduce((acc, a) => acc + a.saldoCop, 0);
+  const totalFaltaLiquidarClientes = CLIENTES.reduce((acc, c) => acc + (c.pendienteCop > 0 ? c.pendienteCop : 0), 0);
+  const gananciaEstimadaCop = Math.round(totalIngresosCop * 0.1904); // Margen comercial sobre volumen
 
   return {
     totalIngresosCop,
     totalPagadoCop,
     saldoPendienteNeto,
     totalUsdtComprado,
+    totalUsdtVendido,
+    totalUsdtEnCustodia,
+    totalActivosLiquidosCop,
+    totalFaltaLiquidarClientes,
+    gananciaEstimadaCop,
     numClientes: CLIENTES.length,
     numNegocios: NEGOCIOS.length,
     numPagosCompletados: PAGOS.filter(p => p.estado === 'COMPLETADO').length,
-    numComprasUsdt: COMPRAS_USDT.length
+    numComprasUsdt: COMPRAS_USDT.length,
+    numVentasUsdt: VENTAS_USDT.length,
+    numActivosLiquidos: ACTIVOS_LIQUIDOS.length
   };
 }
