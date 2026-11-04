@@ -15,6 +15,21 @@ import {
 
 const metricas = getMetricasContables();
 
+const totalNegociosCop = NEGOCIOS.reduce((acc, n) => acc + (n.ingresoCop || 0), 0);
+const tasaMediaNegocios = NEGOCIOS.length ? Math.round(NEGOCIOS.reduce((acc, n) => acc + (n.tasa || 0), 0) / NEGOCIOS.length) : 0;
+
+const totalInversionComprasCop = COMPRAS_USDT.reduce((acc, c) => acc + (c.costo || 0), 0);
+const tasaMediaCompras = COMPRAS_USDT.length ? Math.round(COMPRAS_USDT.reduce((acc, c) => acc + (c.tasa || 0), 0) / COMPRAS_USDT.length) : 0;
+
+const totalRecaudoVentasCop = VENTAS_USDT.reduce((acc, v) => acc + (v.totalCop || 0), 0);
+const tasaMediaVentas = VENTAS_USDT.length ? Math.round(VENTAS_USDT.reduce((acc, v) => acc + (v.tasa || 0), 0) / VENTAS_USDT.length) : 0;
+
+const totalPagosDispersionesCop = PAGOS.reduce((acc, p) => acc + (p.montoCop || 0), 0);
+const numPagosConComprobante = PAGOS.filter(p => p.comprobanteUrl || (p.comprobantes && p.comprobantes.length)).length;
+const numPagosPendientes = Math.max(0, PAGOS.length - numPagosConComprobante);
+const saldoMaximoCliente = Math.max(...CLIENTES.map(c => c.saldoCop || 0), 0);
+const promedioSaldoCliente = CLIENTES.length ? Math.round(metricas.totalFaltaLiquidarClientes / CLIENTES.length) : 0;
+
 function formatCop(amount: number): string {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -327,115 +342,683 @@ function formatDecimal(amount: number, digits = 2): string {
       </header>
 
       <!-- ============================================================== -->
-      <!-- HORIZON UI METRIC CARDS (COMPACT EXACT TO HORIZON UI DESIGN) -->
+      <!-- HORIZON UI DYNAMIC METRIC CARDS (MINIMALIST & PER-VIEW DYNAMIC) -->
       <!-- ============================================================== -->
-      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
+      <section id="dynamic-kpis-wrapper" style="margin-bottom: 22px;">
         
-        <!-- Card 1: Saldo en USDT (Custodia / Compras) -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-main); min-height: 78px;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="8" y1="10" x2="16" y2="10"></line>
-              <line x1="12" y1="10" x2="12" y2="18"></line>
-            </svg>
+        <!-- 1. KPIS TAB: DASHBOARD (PANEL CONTROL) -->
+        <div id="kpis-tab-dashboard" class="kpis-view-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="8" y1="10" x2="16" y2="10"></line>
+                <line x1="12" y1="10" x2="12" y2="18"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Saldo en USDT</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtEnCustodia, 0)} <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">USDT</span></div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtComprado, 0)} compras</div>
+            </div>
           </div>
-          <div style="overflow: hidden; flex: 1;">
-            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              Saldo en USDT
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
             </div>
-            <div style="font-size: 19px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              {formatDecimal(metricas.totalUsdtEnCustodia, 0)} <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">USDT</span>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Por Liquidar</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalFaltaLiquidarClientes)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Pasivo exigible</div>
             </div>
-            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">
-              {formatDecimal(metricas.totalUsdtComprado, 0)} USDT compras
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="6" y1="12" x2="18" y2="12"></line>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Activos Líquidos</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalActivosLiquidosCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Coinsenda y Efectivo</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Ganancia Neta</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.gananciaEstimadaCop)}</div>
+              <div style="font-size: 10px; font-weight: 700; color: var(--success); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">+19.04% margen</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Negocios Totales</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{metricas.numNegocios} Negocios</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{CLIENTES.length} clientes</div>
             </div>
           </div>
         </div>
 
-        <!-- Card 2: Falta Liquidar Clientes (Pasivo exigible) -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-main); min-height: 78px;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
+        <!-- 2. KPIS TAB: CLIENTES -->
+        <div id="kpis-tab-clientes" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Total Clientes</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{CLIENTES.length} Clientes</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Cartera activa</div>
+            </div>
           </div>
-          <div style="overflow: hidden; flex: 1;">
-            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              Por Liquidar Clientes
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2"></rect>
+                <line x1="1" y1="10" x2="23" y2="10"></line>
+              </svg>
             </div>
-            <div style="font-size: 19px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              {formatCop(metricas.totalFaltaLiquidarClientes)}
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Saldo en Cartera</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalFaltaLiquidarClientes)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Saldo pendiente global</div>
             </div>
-            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">
-              Saldo pendiente clientes
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M16 8l-8 8"></path>
+                <path d="M9 8h7v7"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Promedio/Cliente</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(promedioSaldoCliente)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Saldo medio por cuenta</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <polyline points="16 11 18 13 22 9"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Clientes c/Saldo</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2;">{CLIENTES.filter(c => c.saldoCop > 0).length} Cuentas</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Por dispersar</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 181, 71, 0.15); color: #FF8500; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Mayor Cartera</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(saldoMaximoCliente)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Cliente líder</div>
             </div>
           </div>
         </div>
 
-        <!-- Card 3: Activos Líquidos (Dinero Empresa en Caja y Bancos) -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-main); min-height: 78px;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-              <line x1="6" y1="12" x2="18" y2="12"></line>
-              <circle cx="12" cy="12" r="2"></circle>
-            </svg>
+        <!-- 3. KPIS TAB: NEGOCIOS -->
+        <div id="kpis-tab-negocios" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Volumen Operado</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(totalNegociosCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Total ingresos COP</div>
+            </div>
           </div>
-          <div style="overflow: hidden; flex: 1;">
-            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              Activos Líquidos
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
             </div>
-            <div style="font-size: 19px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              {formatCop(metricas.totalActivosLiquidosCop)}
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Total Operaciones</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{NEGOCIOS.length} Negocios</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Órdenes procesadas</div>
             </div>
-            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">
-              Coinsenda y Efectivo
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Tasa Promedio COP</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(tasaMediaNegocios)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Tasa efectiva media</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Ganancia Neta</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.gananciaEstimadaCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Margen bruto</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="5" x2="5" y2="19"></line>
+                <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                <circle cx="17.5" cy="17.5" r="2.5"></circle>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Margen Promedio</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">+19.04%</div>
+              <div style="font-size: 10px; font-weight: 700; color: var(--success); margin-top: 1px;">Retorno comercial</div>
             </div>
           </div>
         </div>
 
-        <!-- Card 4: Ganancias Brutas Estimadas -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-main); min-height: 78px;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-              <polyline points="17 6 23 6 23 12"></polyline>
-            </svg>
+        <!-- 4. KPIS TAB: COMPRA USDT -->
+        <div id="kpis-tab-compras" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">USDT Comprado</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtComprado, 0)} <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">USDT</span></div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Volumen ingresado</div>
+            </div>
           </div>
-          <div style="overflow: hidden; flex: 1;">
-            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              Ganancia Estimada
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2"></rect>
+                <line x1="1" y1="10" x2="23" y2="10"></line>
+              </svg>
             </div>
-            <div style="font-size: 19px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              {formatCop(metricas.gananciaEstimadaCop)}
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Inversión Total COP</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(totalInversionComprasCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Costo compras</div>
             </div>
-            <div style="font-size: 10px; color: var(--success); font-weight: 700; margin-top: 2px;">
-              +19.04% margen comercial
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Tasa Media Compra</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(tasaMediaCompras)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Precio ponderado</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Órdenes Compra</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2;">{COMPRAS_USDT.length} Registros</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">100% Completadas</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">En Custodia</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtEnCustodia, 0)} <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">USDT</span></div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Disponible</div>
             </div>
           </div>
         </div>
 
-        <!-- Card 5: Operaciones Totales -->
-        <div class="metric-card" style="background: var(--bg-card); border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-main); min-height: 78px;">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
+        <!-- 5. KPIS TAB: VENTA USDT -->
+        <div id="kpis-tab-ventas" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">USDT Vendido</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtVendido, 0)} <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">USDT</span></div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Volumen colocado</div>
+            </div>
           </div>
-          <div style="overflow: hidden; flex: 1;">
-            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-              Total Negocios
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
             </div>
-            <div style="font-size: 19px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
-              {metricas.numNegocios} Negocios
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Recaudo Total COP</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(totalRecaudoVentasCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Ingreso por ventas</div>
             </div>
-            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">
-              {CLIENTES.length} clientes registrados
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Tasa Media Venta</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(tasaMediaVentas)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Precio venta medio</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Órdenes Venta</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{VENTAS_USDT.length} Registros</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Ejecuciones</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="22" y1="12" x2="18" y2="12"></line>
+                <line x1="6" y1="12" x2="2" y2="12"></line>
+                <line x1="12" y1="6" x2="12" y2="2"></line>
+                <line x1="12" y1="22" x2="12" y2="18"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Spread Estimado</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">+1.85%</div>
+              <div style="font-size: 10px; font-weight: 700; color: var(--success); margin-top: 1px;">Diferencial tasa</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. KPIS TAB: ACTIVOS LÍQUIDOS -->
+        <div id="kpis-tab-activos" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Total Fondos Caja</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalActivosLiquidosCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Disponible total</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="12" x2="2" y2="12"></line>
+                <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+                <line x1="6" y1="16" x2="6.01" y2="16"></line>
+                <line x1="10" y1="16" x2="10.01" y2="16"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Coinsenda Kaupa</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(ACTIVOS_LIQUIDOS.find(a => a.activo.toLowerCase().includes('kaupaloki'))?.saldoCop || 26162388)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Cuenta principal</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Coinsenda Jero</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(ACTIVOS_LIQUIDOS.find(a => a.activo.toLowerCase().includes('jero'))?.saldoCop || 7500000)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Cuenta asociada</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Efectivo Dosq.</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(ACTIVOS_LIQUIDOS.find(a => a.activo.toLowerCase().includes('efectivo'))?.saldoCop || 1500000)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Caja física sede</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Cuentas Activas</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{ACTIVOS_LIQUIDOS.length} Cuentas</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">100% Operativas</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. KPIS TAB: DIVISAS -->
+        <div id="kpis-tab-divisas" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Divisas Activas</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{DIVISAS.length} Monedas</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Cripto + Fiat</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="8" y1="10" x2="16" y2="10"></line>
+                <line x1="12" y1="10" x2="12" y2="18"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Cripto Base</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">USDT Tether</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Custodia digital</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Fiat Principal</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2;">COP Peso Col</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Moneda contable</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Cobertura</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">LATAM + US</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Corredores activos</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Cotización</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; line-height: 1.2;">En Tiempo Real</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Spread dinámico</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. KPIS TAB: USUARIOS -->
+        <div id="kpis-tab-usuarios" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Directorio Total</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;"><span class="kpi-count-users-total">{USUARIOS_AIRTABLE.length}</span> Usuarios</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Perfiles activos</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, rgba(255, 181, 71, 0.2) 0%, rgba(255, 133, 0, 0.2) 100%); color: #FF8500; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Super Admin</div>
+              <div style="font-size: 16px; font-weight: 800; color: #FF8500; font-family: ui-monospace, monospace; line-height: 1.2;">1 Principal</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">desarrollor@jero...</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 2l-2 2m-1-1l2 2M15 9l-2 2m-1-1l2 2M10 14l-2 2m-1-1l2 2M4 20l-2 2m-1-1l2 2"></path>
+                <circle cx="16" cy="8" r="5"></circle>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Administradores</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;"><span class="kpi-count-users-admins">1</span> Admins</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Gestión autorizada</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Operadores</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2;"><span class="kpi-count-users-operators">1</span> Operadores</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Mesa de dinero</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Política Acceso</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">RBAC Estricto</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Permisos por divisa</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9. KPIS TAB: DISPERSIONES -->
+        <div id="kpis-tab-dispersiones" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Total Dispersiones</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{PAGOS.length} Pagos</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Historial registrado</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Monto Dispersado</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(totalPagosDispersionesCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Dispersado a clientes</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Con Comprobante</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{numPagosConComprobante} Listos</div>
+              <div style="font-size: 10px; font-weight: 700; color: var(--success); margin-top: 1px;">Formato 9:16 vertical</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Por Adjuntar</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2;">{numPagosPendientes} Pendientes</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Soporte pendiente</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Tasa de Entrega</div>
+              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">100%</div>
+              <div style="font-size: 10px; font-weight: 700; color: var(--success); margin-top: 1px;">Sin devoluciones</div>
             </div>
           </div>
         </div>
@@ -2484,6 +3067,15 @@ function formatDecimal(amount: number, digits = 2): string {
       targetPane.classList.add('active');
     }
 
+    // Alternar grupo de métricas minimalistas según la pestaña activa
+    document.querySelectorAll('.kpis-view-group').forEach((group: any) => {
+      group.style.display = 'none';
+    });
+    const targetKpis = document.getElementById(`kpis-${targetId}`) || document.getElementById('kpis-tab-dashboard');
+    if (targetKpis) {
+      targetKpis.style.display = 'grid';
+    }
+
     // Actualizar textos en Navbar y Header
     if (titlesMap[targetId]) {
       if (breadcrumbTitle) breadcrumbTitle.textContent = titlesMap[targetId].breadcrumb;
@@ -2784,6 +3376,11 @@ function formatDecimal(amount: number, digits = 2): string {
   const containerAuthorizedCurrencies = document.getElementById('container-authorized-currencies');
 
   const ALL_SYSTEM_CURRENCIES = ['USD', 'USDT', 'COP', 'BRL', 'PEN', 'CLP', 'ARS', 'HNL', 'VES'];
+  const SUPER_ADMIN_EMAIL = 'desarrollor@jeroallsolutions.com';
+
+  function isSuperAdminUser(email?: string): boolean {
+    return (email || '').toLowerCase().trim() === SUPER_ADMIN_EMAIL;
+  }
 
   function updateRoleSelection(selectedRole: string) {
     if (roleInput) roleInput.value = selectedRole;
@@ -2974,7 +3571,7 @@ function formatDecimal(amount: number, digits = 2): string {
         authorized_currencies: authorizedCurrencies,
         status: 'invitado',
         onboarding_completed: false,
-        is_super_admin: email === 'franzruedab@gmail.com'
+        is_super_admin: isSuperAdminUser(email)
       }, { onConflict: 'email' });
 
       // Sincronizar inmediatamente a Airtable si hay PAT configurado
@@ -3075,24 +3672,27 @@ function formatDecimal(amount: number, digits = 2): string {
           .single();
 
         if (profile) {
-          currentUserProfile = profile;
+          currentUserProfile = {
+            ...profile,
+            is_super_admin: isSuperAdminUser(profile.email)
+          };
         } else {
           currentUserProfile = {
             id: session.user.id,
             email: session.user.email,
             full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-            role: session.user.user_metadata?.role || 'administrador',
-            is_super_admin: session.user.email === 'franzruedab@gmail.com'
+            role: session.user.user_metadata?.role || (isSuperAdminUser(session.user.email) ? 'administrador' : 'operador'),
+            is_super_admin: isSuperAdminUser(session.user.email)
           };
         }
       } else {
-        // Fallback admin activo por defecto en sesión local
+        // Fallback admin activo por defecto en sesión local (Franz Rueda es Administrador, no Super Admin)
         currentUserProfile = {
           id: 'admin-franz',
           email: 'franzruedab@gmail.com',
           full_name: 'Franz Rueda',
           role: 'administrador',
-          is_super_admin: true
+          is_super_admin: false
         };
       }
     } catch (e) {
@@ -3101,13 +3701,12 @@ function formatDecimal(amount: number, digits = 2): string {
         email: 'franzruedab@gmail.com',
         full_name: 'Franz Rueda',
         role: 'administrador',
-        is_super_admin: true
+        is_super_admin: false
       };
     }
 
-    if (currentUserProfile.email === 'franzruedab@gmail.com') {
-      currentUserProfile.is_super_admin = true;
-    }
+    // Regla estricta: Únicamente desarrollor@jeroallsolutions.com es Super Admin
+    currentUserProfile.is_super_admin = isSuperAdminUser(currentUserProfile.email);
 
     updateHeaderProfileUI();
     loadUsersList();
@@ -3123,7 +3722,7 @@ function formatDecimal(amount: number, digits = 2): string {
     if (userEmailDisplay) userEmailDisplay.textContent = currentUserProfile.email || '';
 
     if (userRoleBadge) {
-      if (currentUserProfile.is_super_admin) {
+      if (isSuperAdminUser(currentUserProfile.email) || currentUserProfile.is_super_admin) {
         userRoleBadge.textContent = '⭐ SUPER ADMIN';
         userRoleBadge.style.background = 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)';
         userRoleBadge.style.color = '#FFFFFF';
@@ -3426,7 +4025,7 @@ function formatDecimal(amount: number, digits = 2): string {
               authorized_currencies: rec.fields['DIVISAS AUTORIZADAS'] || ['USD', 'USDT', 'COP'],
               status: (rec.fields['ESTADO'] || 'ACTIVO').toLowerCase(),
               onboarding_completed: (rec.fields['ESTADO'] || '').toUpperCase() === 'ACTIVO',
-              is_super_admin: email === 'franzruedab@gmail.com'
+              is_super_admin: isSuperAdminUser(email)
             }, { onConflict: 'email' });
           }
         }
@@ -3510,7 +4109,7 @@ function formatDecimal(amount: number, digits = 2): string {
           nombre: u.full_name || matchingAirtable?.fields['NOMBRE'] || 'Sin Nombre',
           email: u.email,
           role: u.role || 'operador',
-          is_super_admin: Boolean(u.is_super_admin || u.email === 'franzruedab@gmail.com'),
+          is_super_admin: isSuperAdminUser(u.email),
           pais: matchingAirtable?.fields['PAIS'] || 'COL',
           authorized_currencies: Array.isArray(u.authorized_currencies) ? u.authorized_currencies : (matchingAirtable?.fields['DIVISAS AUTORIZADAS'] || []),
           status: u.onboarding_completed || u.status === 'activo' || matchingAirtable?.fields['ESTADO'] === 'ACTIVO' ? 'activo' : 'invitado',
@@ -3530,7 +4129,7 @@ function formatDecimal(amount: number, digits = 2): string {
             nombre: r.fields['NOMBRE'] || 'Sin Nombre',
             email: r.fields['EMAIL'] || 'sin-correo@kaupaloki.co',
             role: (r.fields['ROL'] || 'operador').toLowerCase(),
-            is_super_admin: rEmail === 'franzruedab@gmail.com',
+            is_super_admin: isSuperAdminUser(rEmail),
             pais: r.fields['PAIS'] || 'COL',
             authorized_currencies: r.fields['DIVISAS AUTORIZADAS'] || ['USD', 'USDT', 'COP'],
             status: (r.fields['ESTADO'] || 'ACTIVO').toLowerCase(),
@@ -3544,6 +4143,15 @@ function formatDecimal(amount: number, digits = 2): string {
       badgeCountUsuarios.textContent = allUsers.length.toString();
     }
 
+    // Actualizar contadores dinámicos del KPI de Usuarios
+    const totalUsersCount = allUsers.length;
+    const totalAdminsCount = allUsers.filter(u => u.role === 'administrador').length;
+    const totalOperatorsCount = allUsers.filter(u => u.role === 'operador').length;
+
+    document.querySelectorAll('.kpi-count-users-total').forEach(el => el.textContent = totalUsersCount.toString());
+    document.querySelectorAll('.kpi-count-users-admins').forEach(el => el.textContent = totalAdminsCount.toString());
+    document.querySelectorAll('.kpi-count-users-operators').forEach(el => el.textContent = totalOperatorsCount.toString());
+
     if (allUsers.length === 0 && error) {
       const errHtml = `<tr><td colspan="7" style="padding: 18px; text-align: center; color: var(--danger);">Error al cargar usuarios: ${error?.message}</td></tr>`;
       if (usuariosViewTableBody) usuariosViewTableBody.innerHTML = errHtml;
@@ -3551,7 +4159,7 @@ function formatDecimal(amount: number, digits = 2): string {
     }
 
     // Permisos del usuario actual que está viendo la tabla
-    const isSuperAdmin = Boolean(currentUserProfile?.is_super_admin || currentUserProfile?.email === 'franzruedab@gmail.com');
+    const isSuperAdmin = isSuperAdminUser(currentUserProfile?.email);
     const isAdmin = isSuperAdmin || currentUserProfile?.role === 'administrador';
 
     if (usuariosViewTableBody) {
@@ -3559,11 +4167,11 @@ function formatDecimal(amount: number, digits = 2): string {
         const isAdm = u.role === 'administrador';
         const isClient = u.role === 'client' || u.role === 'cliente';
         const isOp = u.role === 'operador';
-        const isTargetSuperAdmin = Boolean(u.is_super_admin || u.email === 'franzruedab@gmail.com');
+        const isTargetSuperAdmin = isSuperAdminUser(u.email);
         const isSelf = Boolean(currentUserProfile?.email && u.email?.toLowerCase() === currentUserProfile.email.toLowerCase());
 
         // LÓGICA DE PERMISOS PARA ELIMINAR:
-        // 1. Nadie puede eliminar al Super Admin ni a su propia cuenta
+        // 1. Nadie puede eliminar al Super Admin (desarrollor@jeroallsolutions.com) ni a su propia cuenta
         // 2. Solo el Super Admin puede eliminar otros administradores
         // 3. Los administradores normales pueden eliminar operadores y clientes, pero NO a administradores
         let canDelete = false;
@@ -3574,14 +4182,14 @@ function formatDecimal(amount: number, digits = 2): string {
           deleteTooltip = 'No puedes eliminar tu propia cuenta';
         } else if (isTargetSuperAdmin) {
           canDelete = false;
-          deleteTooltip = 'El Super Admin está protegido contra eliminación';
+          deleteTooltip = 'El Super Admin (desarrollor@jeroallsolutions.com) está protegido contra eliminación';
         } else if (isAdm) {
           if (isSuperAdmin) {
             canDelete = true;
             deleteTooltip = 'Eliminar administrador (permitido por Super Admin)';
           } else {
             canDelete = false;
-            deleteTooltip = 'Solo el Super Admin puede eliminar otros administradores';
+            deleteTooltip = 'Solo el Super Admin (desarrollor@jeroallsolutions.com) puede eliminar otros administradores';
           }
         } else {
           // Es operador o cliente
@@ -3631,24 +4239,52 @@ function formatDecimal(amount: number, digits = 2): string {
                 ${isTargetSuperAdmin ? '⭐ Super Admin' : (isClient ? 'Cliente' : u.role)}
               </span>
             </td>
-            <td style="padding: 14px 18px; vertical-align: middle;">
-              <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                ${(isAdm || isTargetSuperAdmin) ? `
-                  <span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main);">
-                    Todas (Admin)
-                  </span>
-                ` : (isClient ? `
-                  <span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2);">
-                    Todas (Cliente)
-                  </span>
-                ` : (currencies.length > 0 ? currencies.map(c => `
-                  <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px; background: var(--brand-primary-light); color: var(--brand-primary); font-family: ui-monospace, monospace;">
-                    ${c}
-                  </span>
-                `).join('') : `
-                  <span style="font-size: 10px; color: var(--text-muted);">Sin asignar</span>
-                `))}
-              </div>
+            <td style="padding: 14px 18px; vertical-align: middle; position: relative; overflow: visible;">
+              ${(isAdm || isTargetSuperAdmin) ? `
+                <span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Todas (Admin)
+                </span>
+              ` : (isClient ? `
+                <span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2); display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Todas (Cliente)
+                </span>
+              ` : `
+                <div style="position: relative; display: inline-block;">
+                  <button 
+                    type="button" 
+                    class="btn-toggle-operator-currencies" 
+                    data-popover-id="operator-curr-popover-${idx}"
+                    title="Click para ver las divisas autorizadas"
+                    style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 14px; border: 1.5px solid rgba(67, 24, 255, 0.25); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 11px; font-weight: 700; transition: all 0.2s;"
+                  >
+                    <span>${currencies.length} ${currencies.length === 1 ? 'Divisa' : 'Divisas'}</span>
+                    <svg class="chevron-currencies-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s ease;">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+
+                  <div 
+                    id="operator-curr-popover-${idx}" 
+                    class="operator-currencies-popover" 
+                    style="display: none; position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; min-width: 190px; max-width: 250px; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 14px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.18);"
+                  >
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+                      <span>Divisas Habilitadas</span>
+                      <span style="background: var(--brand-primary-light); color: var(--brand-primary); padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 800;">${currencies.length}</span>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                      ${currencies.length > 0 ? currencies.map(c => `
+                        <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; display: inline-flex; align-items: center; gap: 4px;">
+                          <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--brand-primary);"></span>
+                          ${c}
+                        </span>
+                      `).join('') : '<span style="font-size: 11px; color: var(--text-muted);">Ninguna divisa asignada</span>'}
+                    </div>
+                  </div>
+                </div>
+              `)}
             </td>
             <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
               <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: ${isCompleted ? 'var(--success)' : 'var(--warning)'};">
@@ -3720,6 +4356,45 @@ function formatDecimal(amount: number, digits = 2): string {
           btn.innerHTML = originalText;
         }, 1800);
       }
+    }
+  });
+
+  // ==============================================================
+  // DESPLEGABLE DE DIVISAS AUTORIZADAS (OPERADORES CON FLECHA ▾)
+  // ==============================================================
+  document.addEventListener('click', (e: any) => {
+    const btn = e.target.closest('.btn-toggle-operator-currencies');
+    if (btn) {
+      e.stopPropagation();
+      const popoverId = btn.getAttribute('data-popover-id');
+      const popover = popoverId ? document.getElementById(popoverId) : null;
+      const chevron = btn.querySelector('.chevron-currencies-icon');
+      
+      const isOpen = popover && popover.style.display === 'block';
+
+      // Cerrar otros popovers abiertos
+      document.querySelectorAll('.operator-currencies-popover').forEach((p: any) => {
+        p.style.display = 'none';
+      });
+      document.querySelectorAll('.chevron-currencies-icon').forEach((c: any) => {
+        c.style.transform = 'rotate(0deg)';
+      });
+
+      if (!isOpen && popover) {
+        popover.style.display = 'block';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+      }
+      return;
+    }
+
+    // Clic fuera del popover lo cierra
+    if (!e.target.closest('.operator-currencies-popover')) {
+      document.querySelectorAll('.operator-currencies-popover').forEach((p: any) => {
+        p.style.display = 'none';
+      });
+      document.querySelectorAll('.chevron-currencies-icon').forEach((c: any) => {
+        c.style.transform = 'rotate(0deg)';
+      });
     }
   });
 
