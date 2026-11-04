@@ -1,10 +1,13 @@
 export interface Cliente {
   id: string;
   codigo: string;
+  idCliente?: string;
   nombre: string;
   ingresosCop: number;
   pagadoCop: number;
   pendienteCop: number;
+  pendientePorPagarCop?: number;
+  saldoCop?: number;
   fechaCreacion: string;
   numero: number;
 }
@@ -12,37 +15,59 @@ export interface Cliente {
 export interface Divisa {
   id: string;
   codigo: string;
+  divisa?: string;
   totalRecibido: number;
   totalComprado: number;
   totalPendiente: number;
+  ingresoEnDivisa?: number;
+  egresoEnDivisa?: number;
+  saldo?: number;
+  saldoEnCustodia?: number;
 }
 
 export interface CompraUSDT {
   id: string;
   codigo: string;
+  idTransaccion?: string;
   fechaCompra: string;
+  fecha?: string;
   divisaCodigo: string;
+  divisaNombre?: string;
   valorComprado: number;
+  montoDivisa?: number;
   usdtComprado: number;
+  totalRecibidoUsdt?: number;
   costo: number;
   tasa: number;
+  tasaUsdt?: number;
+  walletDestino?: string;
+  negocioVinculado?: string;
   numero: number;
 }
 
 export interface Negocio {
   id: string;
   codigo: string;
+  idNegocio?: string;
   fechaRegistro: string;
+  fecha?: string;
   clienteCodigo: string;
   clienteNombre: string;
   divisaCodigo: string;
   montoDivisa: number;
+  cantidadDivisa?: number;
   tasa: number;
+  tasaClienteCop?: number;
   ingresoCop: number;
+  montoCop?: number;
   usdtPorDivisa: number;
+  montoUsdt?: number;
   costoUsdtComp: number;
   precioCompra: number | null;
   compraRelCodigo?: string;
+  porcentajeComision?: number;
+  totalRevenue?: number;
+  totalPagarClienteCop?: number;
   numero: number;
 }
 
@@ -55,29 +80,41 @@ export interface ComprobanteItem {
 export interface Pago {
   id: string;
   codigo: string;
+  idDispersion?: string;
   clienteCodigo: string;
   clienteNombre: string;
   montoCop: number;
+  valorTotalDispersion?: number;
   estado: 'COMPLETADO' | 'RECHAZADO';
   comprobanteUrl?: string;
   comprobanteNombre?: string;
   comprobantes?: ComprobanteItem[];
+  tieneComprobante?: boolean;
   numero: number;
   fechaCreacion?: string;
+  fecha?: string;
   referencia?: string;
+  concepto?: string;
   origenFondos?: string;
+  medioPagoNombre?: string;
 }
-
 
 export interface VentaUsdt {
   id: string;
   nombre: string;
+  idTransaccion?: string;
   fecha: string;
   concepto: string;
   usdtVendido: number;
+  cantidadUsdt?: number;
   tasa: number;
+  tasaVentaCop?: number;
+  impuestos?: number;
   destinoFondosNombre: string;
+  cuentaDestinoNombre?: string;
+  walletOrigen?: string;
   totalCop: number;
+  montoNetoRecibidoCop?: number;
 }
 
 export interface MovimientoActivo {
@@ -106,6 +143,22 @@ export interface ActivoLiquido {
   movimientos?: MovimientoActivo[];
 }
 
+export interface ActivoDigital {
+  id: string;
+  activo: string;
+  idWallet: string;
+  wallet: string;
+  red: string;
+  titular?: string;
+  tarifas?: string;
+  ingresoUsdt?: number;
+  ingresosUsdt: number;
+  egresosUsdt: number;
+  saldoUsdt: number;
+  saldoReal?: number;
+  movimientos?: MovimientoActivo[];
+}
+
 export interface Admin {
   id: string;
   codigo: string;
@@ -122,685 +175,480 @@ export interface UsuarioAirtable extends Admin {}
 
 export const CLIENTES: Cliente[] = [
   {
-    id: "recmyTWhacoOB2Ae9",
-    codigo: "C0001-FRANZ",
-    nombre: "FRANZ",
-    ingresosCop: 51700000,
-    pagadoCop: 40000000,
-    pendienteCop: 11700000,
-    fechaCreacion: "2026-10-30",
-    numero: 1
-  },
-  {
-    id: "recsgjFZRqyoAIzkW",
-    codigo: "C0006-DANIEL-LOPEZ",
-    nombre: "DANIEL LOPEZ",
-    ingresosCop: 0,
-    pagadoCop: 0,
-    pendienteCop: 0,
-    fechaCreacion: "2026-10-30",
-    numero: 6
-  },
-  {
-    id: "recAa2lOSmyijCPeS",
-    codigo: "C0007-ERNESTO-GAVIRIA",
-    nombre: "ERNESTO GAVIRIA",
-    ingresosCop: 0,
-    pagadoCop: 0,
-    pendienteCop: 0,
-    fechaCreacion: "2026-10-30",
-    numero: 7
-  },
-  {
-    id: "recs0OmJPdlPyXsMF",
-    codigo: "C0008-MIGUEL-COLORADO",
-    nombre: "MIGUEL COLORADO",
-    ingresosCop: 100800000,
-    pagadoCop: 15000000,
-    pendienteCop: 85800000,
-    fechaCreacion: "2026-10-30",
-    numero: 8
-  },
-  {
-    id: "receqiObtbXdnLe3d",
-    codigo: "C0009-CARLOS-RESTREPO",
-    nombre: "CARLOS RESTREPO",
-    ingresosCop: 0,
-    pagadoCop: 0,
-    pendienteCop: 0,
-    fechaCreacion: "2026-10-30",
-    numero: 9
-  },
-  {
-    id: "reciJfqVVZ7p6HyQI",
-    codigo: "C0011-DR-N",
+    id: "recg4j8GuJAxEBQsF",
+    codigo: "C0017-DR-N",
+    idCliente: "C0017-DR-N",
     nombre: "DR N",
-    ingresosCop: 37997046,
-    pagadoCop: 97574179,
-    pendienteCop: -59577133,
-    fechaCreacion: "2026-10-30",
-    numero: 11
-  },
-  {
-    id: "reck9FHIed6XGDy7D",
-    codigo: "C0012-DANNA-PEREZ",
-    nombre: "DANNA PEREZ",
-    ingresosCop: 95000000,
-    pagadoCop: 15000000,
-    pendienteCop: 80000000,
-    fechaCreacion: "2026-11-03",
-    numero: 12
-  },
-  {
-    id: "recxqfHVbftz9LYKm",
-    codigo: "C0013-JUAN-JUAN",
-    nombre: "juan juan",
-    ingresosCop: 0,
-    pagadoCop: 0,
-    pendienteCop: 0,
-    fechaCreacion: "2026-11-03",
-    numero: 13
-  },
-  {
-    id: "recP4vDZ5kMvmTJHh",
-    codigo: "C0014-TEST-TEST",
-    nombre: "TEST test",
-    ingresosCop: 0,
-    pagadoCop: 0,
-    pendienteCop: 0,
-    fechaCreacion: "2026-11-03",
-    numero: 14
-  },
-  {
-    id: "recuA3l5OLdpH5qTt",
-    codigo: "C0015-ALBERTA",
-    nombre: "ALBERTA",
-    ingresosCop: 0,
-    pagadoCop: 0,
-    pendienteCop: 0,
-    fechaCreacion: "2026-11-03",
-    numero: 15
-  },
-  {
-    id: "rec37J0iKAvTIKxIp",
-    codigo: "C0016-CLIENTE",
-    nombre: "Cliente 16",
-    ingresosCop: 0,
-    pagadoCop: 0,
-    pendienteCop: 0,
-    fechaCreacion: "2026-11-03",
-    numero: 16
+    ingresosCop: 841980951.5,
+    pagadoCop: 400000000,
+    pendienteCop: 441980951.5,
+    pendientePorPagarCop: 441980951.5,
+    saldoCop: 441980951.5,
+    fechaCreacion: "2026-11-04",
+    numero: 17
   }
 ];
 
 export const DIVISAS: Divisa[] = [
-  {
-    id: "rec5f7Xzww3xl88nq",
-    codigo: "BRL",
-    totalRecibido: 223000,
-    totalComprado: 197000,
-    totalPendiente: 26000
-  },
-  {
-    id: "rec7tYgRg0cJZunNW",
-    codigo: "PEN",
-    totalRecibido: 53162,
-    totalComprado: 35000,
-    totalPendiente: 18162
-  },
-  {
-    id: "recQ2kNgwFWmex2PB",
-    codigo: "HNL",
-    totalRecibido: 110000,
-    totalComprado: 110000,
-    totalPendiente: 0
-  },
-  {
-    id: "recdSG05fjNiX8bDs",
-    codigo: "ARS",
-    totalRecibido: 4000000,
-    totalComprado: 0,
-    totalPendiente: 4000000
-  },
-  {
-    id: "recjr5hVAnG5bObTV",
-    codigo: "CLP",
-    totalRecibido: 500000,
-    totalComprado: 400000,
-    totalPendiente: 100000
-  },
-  {
-    id: "recqs25uNy07U35kP",
-    codigo: "COP",
-    totalRecibido: 0,
-    totalComprado: 0,
-    totalPendiente: 0
-  }
+  { id: "recX2WcOyLsk8YcJN", codigo: "USDT", divisa: "USDT", totalRecibido: 22867, totalComprado: 22867, totalPendiente: 0, ingresoEnDivisa: 22867, egresoEnDivisa: 22867, saldo: 0, saldoEnCustodia: 0 },
+  { id: "rec5f7Xzww3xl88nq", codigo: "BRL", divisa: "BRL", totalRecibido: 600000, totalComprado: 600000, totalPendiente: 0, ingresoEnDivisa: 600000, egresoEnDivisa: 600000, saldo: 0, saldoEnCustodia: 0 },
+  { id: "rec7tYgRg0cJZunNW", codigo: "PEN", divisa: "PEN", totalRecibido: 110000, totalComprado: 110000, totalPendiente: 0, ingresoEnDivisa: 110000, egresoEnDivisa: 110000, saldo: 0, saldoEnCustodia: 0 },
+  { id: "recdSG05fjNiX8bDs", codigo: "ARS", divisa: "ARS", totalRecibido: 30000000, totalComprado: 30000000, totalPendiente: 0, ingresoEnDivisa: 30000000, egresoEnDivisa: 30000000, saldo: 0, saldoEnCustodia: 0 },
+  { id: "recjr5hVAnG5bObTV", codigo: "CLP", divisa: "CLP", totalRecibido: 49000000, totalComprado: 49000000, totalPendiente: 0, ingresoEnDivisa: 49000000, egresoEnDivisa: 49000000, saldo: 0, saldoEnCustodia: 0 },
+  { id: "recE1m9kP4x7z2w5v", codigo: "MXN", divisa: "MXN", totalRecibido: 310000, totalComprado: 310000, totalPendiente: 0, ingresoEnDivisa: 310000, egresoEnDivisa: 310000, saldo: 0, saldoEnCustodia: 0 },
+  { id: "recG4n8qR2y6x1z9b", codigo: "UYU", divisa: "UYU", totalRecibido: 900000, totalComprado: 0, totalPendiente: 900000, ingresoEnDivisa: 900000, egresoEnDivisa: 0, saldo: 900000, saldoEnCustodia: 900000 },
+  { id: "recQ2kNgwFWmex2PB", codigo: "HNL", divisa: "HNL", totalRecibido: 0, totalComprado: 0, totalPendiente: 0, ingresoEnDivisa: 0, egresoEnDivisa: 0, saldo: 0, saldoEnCustodia: 0 },
+  { id: "recqs25uNy07U35kP", codigo: "COP", divisa: "COP", totalRecibido: 0, totalComprado: 0, totalPendiente: 0, ingresoEnDivisa: 0, egresoEnDivisa: 0, saldo: 0, saldoEnCustodia: 0 },
+  { id: "recYp1VcNnt28sXvM", codigo: "USD", divisa: "USD", totalRecibido: 0, totalComprado: 0, totalPendiente: 0, ingresoEnDivisa: 0, egresoEnDivisa: 0, saldo: 0, saldoEnCustodia: 0 },
+  { id: "recK7p3wT9x5z1m4c", codigo: "VES", divisa: "VES", totalRecibido: 0, totalComprado: 0, totalPendiente: 0, ingresoEnDivisa: 0, egresoEnDivisa: 0, saldo: 0, saldoEnCustodia: 0 }
 ];
 
 export const COMPRAS_USDT: CompraUSDT[] = [
   {
-    id: "recvK660p6P8GZqPU",
-    codigo: "PEN-30-10-26-0001",
-    fechaCompra: "2026-10-30",
+    id: "recA1x8kM3p9z2w5v",
+    codigo: "ARS-04-11-26-0010",
+    idTransaccion: "ARS-04-11-26-0010",
+    fechaCompra: "2026-11-04",
+    fecha: "2026-11-04",
+    divisaCodigo: "ARS",
+    divisaNombre: "ARS",
+    valorComprado: 30000000,
+    montoDivisa: 30000000,
+    usdtComprado: 25000,
+    totalRecibidoUsdt: 25000,
+    costo: 0.000833,
+    tasa: 1200,
+    tasaUsdt: 1200,
+    walletDestino: "CUY WALLET",
+    negocioVinculado: "N0017-ARS",
+    numero: 10
+  },
+  {
+    id: "recB2y9lN4q0x3z6w",
+    codigo: "BRL-04-11-26-0011",
+    idTransaccion: "BRL-04-11-26-0011",
+    fechaCompra: "2026-11-04",
+    fecha: "2026-11-04",
+    divisaCodigo: "BRL",
+    divisaNombre: "BRL",
+    valorComprado: 600000,
+    montoDivisa: 600000,
+    usdtComprado: 107107,
+    totalRecibidoUsdt: 107107,
+    costo: 0.178512,
+    tasa: 5.6019,
+    tasaUsdt: 5.6019,
+    walletDestino: "CUY WALLET",
+    negocioVinculado: "N0018-BRL",
+    numero: 11
+  },
+  {
+    id: "recC3z0mO5r1y4a7x",
+    codigo: "PEN-04-11-26-0012",
+    idTransaccion: "PEN-04-11-26-0012",
+    fechaCompra: "2026-11-04",
+    fecha: "2026-11-04",
     divisaCodigo: "PEN",
-    valorComprado: 20000,
-    usdtComprado: 5772,
-    costo: 0.2886,
-    tasa: 3.465,
-    numero: 1
-  },
-  {
-    id: "rec76EaVZX3QvKfeR",
-    codigo: "BRL-30-10-26-0002",
-    fechaCompra: "2026-10-30",
-    divisaCodigo: "BRL",
-    valorComprado: 27000,
-    usdtComprado: 4876.29,
-    costo: 0.180603,
-    tasa: 5.537,
-    numero: 2
-  },
-  {
-    id: "recNjXJU3BS5DHkA6",
-    codigo: "BRL-30-10-26-0003",
-    fechaCompra: "2026-10-30",
-    divisaCodigo: "BRL",
-    valorComprado: 170000,
-    usdtComprado: 30697,
-    costo: 0.180571,
-    tasa: 5.538,
-    numero: 3
-  },
-  {
-    id: "rec8gxd0IEXGTVdl8",
-    codigo: "HNL-30-10-26-0004",
-    fechaCompra: "2026-10-30",
-    divisaCodigo: "HNL",
+    divisaNombre: "PEN",
     valorComprado: 110000,
-    usdtComprado: 3815,
-    costo: 0.034682,
-    tasa: 28.8336,
-    numero: 4
+    montoDivisa: 110000,
+    usdtComprado: 32000,
+    totalRecibidoUsdt: 32000,
+    costo: 0.290909,
+    tasa: 3.4375,
+    tasaUsdt: 3.4375,
+    walletDestino: "FRANZ WALLET",
+    negocioVinculado: "N0019-PEN",
+    numero: 12
   },
   {
-    id: "recDOUZBQ88BrErkn",
-    codigo: "PEN-30-10-26-0005",
-    fechaCompra: "2026-10-30",
-    divisaCodigo: "PEN",
-    valorComprado: 15000,
-    usdtComprado: 4327.76,
-    costo: 0.288517,
-    tasa: 3.466,
-    numero: 5
-  },
-  {
-    id: "rec08aMMyTrv0jWEc",
-    codigo: "CLP-03-11-26-0006",
-    fechaCompra: "2026-11-03",
+    id: "recD4a1nP6s2z5b8y",
+    codigo: "CLP-04-11-26-0013",
+    idTransaccion: "CLP-04-11-26-0013",
+    fechaCompra: "2026-11-04",
+    fecha: "2026-11-04",
     divisaCodigo: "CLP",
-    valorComprado: 400000,
-    usdtComprado: 980,
-    costo: 0.00245,
-    tasa: 408.1633,
-    numero: 6
+    divisaNombre: "CLP",
+    valorComprado: 49000000,
+    montoDivisa: 49000000,
+    usdtComprado: 50000,
+    totalRecibidoUsdt: 50000,
+    costo: 0.00102,
+    tasa: 980,
+    tasaUsdt: 980,
+    walletDestino: "FRANZ WALLET",
+    negocioVinculado: "N0020-CLP",
+    numero: 13
   },
   {
-    id: "rec2E2GCwWBStJ4Y1",
-    codigo: "COP-03-11-26-0007",
-    fechaCompra: "2026-11-03",
-    divisaCodigo: "COP",
-    valorComprado: 0,
-    usdtComprado: 0,
-    costo: 0,
-    tasa: 0,
-    numero: 7
+    id: "recE5b2oQ7t3a6c9z",
+    codigo: "MXN-04-11-26-0014",
+    idTransaccion: "MXN-04-11-26-0014",
+    fechaCompra: "2026-11-04",
+    fecha: "2026-11-04",
+    divisaCodigo: "MXN",
+    divisaNombre: "MXN",
+    valorComprado: 310000,
+    montoDivisa: 310000,
+    usdtComprado: 15000,
+    totalRecibidoUsdt: 15000,
+    costo: 0.048387,
+    tasa: 20.6667,
+    tasaUsdt: 20.6667,
+    walletDestino: "FRANZ WALLET",
+    negocioVinculado: "N0022-MXN",
+    numero: 14
   }
 ];
 
 export const NEGOCIOS: Negocio[] = [
   {
-    id: "recvoLRIWCMxxHiRz",
-    codigo: "N0001-HNL",
-    fechaRegistro: "2026-10-31",
-    clienteCodigo: "C0001-FRANZ",
-    clienteNombre: "FRANZ",
-    divisaCodigo: "HNL",
-    montoDivisa: 110000,
-    tasa: 106,
-    ingresoCop: 11660000,
-    usdtPorDivisa: 3815,
-    costoUsdtComp: 0.034682,
-    precioCompra: 3056.36,
-    compraRelCodigo: "HNL-30-10-26-0004",
-    numero: 1
-  },
-  {
-    id: "recfUhnHZR863eBUH",
-    codigo: "N0002-BRL",
-    fechaRegistro: "2026-10-31",
-    clienteCodigo: "C0001-FRANZ",
-    clienteNombre: "FRANZ",
-    divisaCodigo: "BRL",
-    montoDivisa: 10000,
-    tasa: 560,
-    ingresoCop: 5600000,
-    usdtPorDivisa: 1806.03,
-    costoUsdtComp: 0.180603,
-    precioCompra: 3100.72,
-    compraRelCodigo: "BRL-30-10-26-0002",
-    numero: 2
-  },
-  {
-    id: "recN2h12ug0SF4uJ6",
-    codigo: "N0004-BRL",
-    fechaRegistro: "2026-10-30",
-    clienteCodigo: "C0008-MIGUEL-COLORADO",
-    clienteNombre: "MIGUEL COLORADO",
-    divisaCodigo: "BRL",
-    montoDivisa: 10000,
-    tasa: 560,
-    ingresoCop: 5600000,
-    usdtPorDivisa: 1805.71,
-    costoUsdtComp: 0.180571,
-    precioCompra: 3101.28,
-    compraRelCodigo: "BRL-30-10-26-0003",
-    numero: 4
-  },
-  {
-    id: "recY9dI2T91YIp1zT",
-    codigo: "N0006-PEN",
-    fechaRegistro: "2026-10-30",
-    clienteCodigo: "C0001-FRANZ",
-    clienteNombre: "FRANZ",
-    divisaCodigo: "PEN",
-    montoDivisa: 20000,
-    tasa: 872,
-    ingresoCop: 17440000,
-    usdtPorDivisa: 5772,
-    costoUsdtComp: 0.2886,
-    precioCompra: 3021.48,
-    compraRelCodigo: "PEN-30-10-26-0001",
-    numero: 6
-  },
-  {
-    id: "recgESdQkrJYpW96S",
-    codigo: "N0007-BRL",
-    fechaRegistro: "2026-10-30",
-    clienteCodigo: "C0001-FRANZ",
-    clienteNombre: "FRANZ",
-    divisaCodigo: "BRL",
-    montoDivisa: 7000,
-    tasa: 560,
-    ingresoCop: 3920000,
-    usdtPorDivisa: 1264.22,
-    costoUsdtComp: 0.180603,
-    precioCompra: 3100.72,
-    compraRelCodigo: "BRL-30-10-26-0002",
-    numero: 7
-  },
-  {
-    id: "rec81tTCckEkTvRgW",
-    codigo: "N0008-BRL",
-    fechaRegistro: "2026-10-31",
-    clienteCodigo: "C0008-MIGUEL-COLORADO",
-    clienteNombre: "MIGUEL COLORADO",
-    divisaCodigo: "BRL",
-    montoDivisa: 170000,
-    tasa: 560,
-    ingresoCop: 95200000,
-    usdtPorDivisa: 30697,
-    costoUsdtComp: 0.180571,
-    precioCompra: 3101.28,
-    compraRelCodigo: "BRL-30-10-26-0003",
-    numero: 8
-  },
-  {
-    id: "rece5Uma53howSWLa",
-    codigo: "N0009-PEN",
-    fechaRegistro: "2026-10-30",
-    clienteCodigo: "C0001-FRANZ",
-    clienteNombre: "FRANZ",
-    divisaCodigo: "PEN",
-    montoDivisa: 15000,
-    tasa: 872,
-    ingresoCop: 13080000,
-    usdtPorDivisa: 4327.76,
-    costoUsdtComp: 0.288517,
-    precioCompra: 3022.35,
-    compraRelCodigo: "PEN-30-10-26-0005",
-    numero: 9
-  },
-  {
-    id: "recd8EbPEsSEVprzo",
-    codigo: "N0010-PEN",
-    fechaRegistro: "2026-10-30",
-    clienteCodigo: "C0011-DR-N",
-    clienteNombre: "DR N",
-    divisaCodigo: "PEN",
-    montoDivisa: 18162,
-    tasa: 883,
-    ingresoCop: 16037046,
-    usdtPorDivisa: 0,
-    costoUsdtComp: 0,
-    precioCompra: null,
-    numero: 10
-  },
-  {
-    id: "recx8JBGnJhXOiDXi",
-    codigo: "N0011-BRL",
-    fechaRegistro: "2026-10-30",
-    clienteCodigo: "C0011-DR-N",
-    clienteNombre: "DR N",
-    divisaCodigo: "BRL",
-    montoDivisa: 26000,
-    tasa: 560,
-    ingresoCop: 14560000,
-    usdtPorDivisa: 0,
-    costoUsdtComp: 0,
-    precioCompra: null,
-    numero: 11
-  },
-  {
-    id: "recu0xJCjqpz1O3Pg",
-    codigo: "N0012-ARS",
-    fechaRegistro: "2026-10-30",
-    clienteCodigo: "C0011-DR-N",
+    id: "rec4n7P8dE8R8X041",
+    codigo: "N0017-ARS",
+    idNegocio: "N0017-ARS",
+    fechaRegistro: "2026-11-04",
+    fecha: "2026-11-04",
+    clienteCodigo: "C0017-DR-N",
     clienteNombre: "DR N",
     divisaCodigo: "ARS",
-    montoDivisa: 4000000,
-    tasa: 1.85,
-    ingresoCop: 7400000,
-    usdtPorDivisa: 0,
-    costoUsdtComp: 0,
-    precioCompra: null,
-    numero: 12
+    montoDivisa: 30000000,
+    cantidadDivisa: 30000000,
+    tasa: 2.38,
+    tasaClienteCop: 2.38,
+    ingresoCop: 71400000,
+    montoCop: 71400000,
+    usdtPorDivisa: 25000,
+    montoUsdt: 25000,
+    costoUsdtComp: 0.000833,
+    precioCompra: 2856,
+    compraRelCodigo: "ARS-04-11-26-0010",
+    porcentajeComision: 0.1,
+    totalRevenue: 8600000,
+    totalPagarClienteCop: 71400000,
+    numero: 17
   },
   {
-    id: "recEcxbMnvEvhD3vs",
-    codigo: "N0015-CLP",
-    fechaRegistro: "2026-11-03",
-    clienteCodigo: "C0012-DANNA-PEREZ",
-    clienteNombre: "DANNA PEREZ",
+    id: "recB1p9kQ7t3x9c6e",
+    codigo: "N0018-BRL",
+    idNegocio: "N0018-BRL",
+    fechaRegistro: "2026-11-04",
+    fecha: "2026-11-04",
+    clienteCodigo: "C0017-DR-N",
+    clienteNombre: "DR N",
+    divisaCodigo: "BRL",
+    montoDivisa: 600000,
+    cantidadDivisa: 600000,
+    tasa: 560,
+    tasaClienteCop: 560,
+    ingresoCop: 336000000,
+    montoCop: 336000000,
+    usdtPorDivisa: 107107,
+    montoUsdt: 107107,
+    costoUsdtComp: 0.178512,
+    precioCompra: 3137.05,
+    compraRelCodigo: "BRL-04-11-26-0011",
+    porcentajeComision: 0.02,
+    totalRevenue: 6742400,
+    totalPagarClienteCop: 336000000,
+    numero: 18
+  },
+  {
+    id: "recC2L4kY8n7w0d5g",
+    codigo: "N0019-PEN",
+    idNegocio: "N0019-PEN",
+    fechaRegistro: "2026-11-04",
+    fecha: "2026-11-04",
+    clienteCodigo: "C0017-DR-N",
+    clienteNombre: "DR N",
+    divisaCodigo: "PEN",
+    montoDivisa: 110000,
+    cantidadDivisa: 110000,
+    tasa: 900,
+    tasaClienteCop: 900,
+    ingresoCop: 99000000,
+    montoCop: 99000000,
+    usdtPorDivisa: 32000,
+    montoUsdt: 32000,
+    costoUsdtComp: 0.290909,
+    precioCompra: 3093.75,
+    compraRelCodigo: "PEN-04-11-26-0012",
+    porcentajeComision: 0.03,
+    totalRevenue: 3400000,
+    totalPagarClienteCop: 99000000,
+    numero: 19
+  },
+  {
+    id: "recM3S9vX2q6r4f8j",
+    codigo: "N0020-CLP",
+    idNegocio: "N0020-CLP",
+    fechaRegistro: "2026-11-04",
+    fecha: "2026-11-04",
+    clienteCodigo: "C0017-DR-N",
+    clienteNombre: "DR N",
     divisaCodigo: "CLP",
-    montoDivisa: 500000,
-    tasa: 190,
-    ingresoCop: 95000000,
-    usdtPorDivisa: 1225,
-    costoUsdtComp: 0.00245,
-    precioCompra: 77551.02,
-    compraRelCodigo: "CLP-03-11-26-0006",
-    numero: 15
+    montoDivisa: 49000000,
+    cantidadDivisa: 49000000,
+    tasa: 3.15,
+    tasaClienteCop: 3.15,
+    ingresoCop: 154350000,
+    montoCop: 154350000,
+    usdtPorDivisa: 50000,
+    montoUsdt: 50000,
+    costoUsdtComp: 0.00102,
+    precioCompra: 3087,
+    compraRelCodigo: "CLP-04-11-26-0013",
+    porcentajeComision: 0.035,
+    totalRevenue: 5650000,
+    totalPagarClienteCop: 154350000,
+    numero: 20
+  },
+  {
+    id: "recQ5T8zW1p9s3h7k",
+    codigo: "N0021-UYU",
+    idNegocio: "N0021-UYU",
+    fechaRegistro: "2026-11-04",
+    fecha: "2026-11-04",
+    clienteCodigo: "C0017-DR-N",
+    clienteNombre: "DR N",
+    divisaCodigo: "UYU",
+    montoDivisa: 900000,
+    cantidadDivisa: 900000,
+    tasa: 73,
+    tasaClienteCop: 73,
+    ingresoCop: 65700000,
+    montoCop: 65700000,
+    usdtPorDivisa: 0,
+    montoUsdt: 0,
+    costoUsdtComp: 0,
+    precioCompra: null,
+    porcentajeComision: 0,
+    totalRevenue: 0,
+    totalPagarClienteCop: 65700000,
+    numero: 21
+  },
+  {
+    id: "recV7X2bN4m8k1j6l",
+    codigo: "N0022-MXN",
+    idNegocio: "N0022-MXN",
+    fechaRegistro: "2026-11-04",
+    fecha: "2026-11-04",
+    clienteCodigo: "C0017-DR-N",
+    clienteNombre: "DR N",
+    divisaCodigo: "MXN",
+    montoDivisa: 310000,
+    cantidadDivisa: 310000,
+    tasa: 150,
+    tasaClienteCop: 150,
+    ingresoCop: 46500000,
+    montoCop: 46500000,
+    usdtPorDivisa: 15000,
+    montoUsdt: 15000,
+    costoUsdtComp: 0.048387,
+    precioCompra: 3100,
+    compraRelCodigo: "MXN-04-11-26-0014",
+    porcentajeComision: 0.03,
+    totalRevenue: 1500000,
+    totalPagarClienteCop: 46500000,
+    numero: 22
+  },
+  {
+    id: "recZ9C4vB6n2m5k8p",
+    codigo: "N0023-USDT",
+    idNegocio: "N0023-USDT",
+    fechaRegistro: "2026-11-04",
+    fecha: "2026-11-04",
+    clienteCodigo: "C0017-DR-N",
+    clienteNombre: "DR N",
+    divisaCodigo: "USDT",
+    montoDivisa: 22867,
+    cantidadDivisa: 22867,
+    tasa: 3018.8,
+    tasaClienteCop: 3018.8,
+    ingresoCop: 69030951.5,
+    montoCop: 69030951.5,
+    usdtPorDivisa: 22867,
+    montoUsdt: 22867,
+    costoUsdtComp: 1,
+    precioCompra: 3018.8,
+    porcentajeComision: 0.056,
+    totalRevenue: 4143448.5,
+    totalPagarClienteCop: 69030951.5,
+    numero: 23
   }
 ];
 
 export const PAGOS: Pago[] = [
   {
-    id: "recwB1KUDNpKXm4uh",
-    codigo: "D0001",
-    clienteCodigo: "C0001-FRANZ",
-    clienteNombre: "FRANZ",
-    montoCop: 10000000,
-    estado: "COMPLETADO",
-    referencia: "Maximuelbes SA",
-    origenFondos: "—",
-    fechaCreacion: "2026-10-30",
-    comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793736000000/kJlOwy5NtnuiziPQ7Hus6Q/hJsftjQm15wY0SZHDtOHHRiMv6z9EGXAymKchOyLS3RSKa5E2phOSggX0QnxuYQV4MXBx1u9jGvCxAIqmfFvjT9SsmsMIYocvHtd2QPKM8cyn4bfJluONAl1HCLlBTv9NLs5wWcxNSv1FNcfn_Hr6w/RZ-Vi3Y5yLJLR21ZXCheNK2GzbCNdo9wBfGZ940xLO4",
-    comprobanteNombre: "image.png",
-    comprobantes: [
-      {
-        id: "attaZsPwcd7b1oMrX",
-        url: "https://v5.airtableusercontent.com/v3/u/59/59/1793736000000/kJlOwy5NtnuiziPQ7Hus6Q/hJsftjQm15wY0SZHDtOHHRiMv6z9EGXAymKchOyLS3RSKa5E2phOSggX0QnxuYQV4MXBx1u9jGvCxAIqmfFvjT9SsmsMIYocvHtd2QPKM8cyn4bfJluONAl1HCLlBTv9NLs5wWcxNSv1FNcfn_Hr6w/RZ-Vi3Y5yLJLR21ZXCheNK2GzbCNdo9wBfGZ940xLO4",
-        nombre: "image.png"
-      }
-    ],
-    numero: 1
-  },
-  {
-    id: "recd0G5LiPho3qP2b",
-    codigo: "D0002",
-    clienteCodigo: "C0006-DANIEL-LOPEZ",
-    clienteNombre: "DANIEL LOPEZ",
-    montoCop: 15000000,
-    estado: "RECHAZADO",
-    referencia: "—",
-    origenFondos: "—",
-    fechaCreacion: "2026-10-30",
-    comprobantes: [],
-    numero: 2
-  },
-  {
-    id: "rechFZhlcwgQe5EeV",
-    codigo: "D0003",
-    clienteCodigo: "C0011-DR-N",
+    id: "recL1S5nJ8v9k2x4m",
+    codigo: "D0011",
+    idDispersion: "D0011",
+    clienteCodigo: "C0017-DR-N",
     clienteNombre: "DR N",
-    montoCop: 29920000,
+    montoCop: 50000000,
+    valorTotalDispersion: 50000000,
     estado: "COMPLETADO",
-    referencia: "—",
-    origenFondos: "—",
-    fechaCreacion: "2026-10-30",
-    comprobantes: [],
-    numero: 3
-  },
-  {
-    id: "recQP8aCewBCYVSDA",
-    codigo: "D0004",
-    clienteCodigo: "C0011-DR-N",
-    clienteNombre: "DR N",
-    montoCop: 19000000,
-    estado: "COMPLETADO",
-    referencia: "—",
-    origenFondos: "—",
-    fechaCreacion: "2026-10-30",
-    comprobantes: [],
-    numero: 4
-  },
-  {
-    id: "recZIudNCzoxcYgQ0",
-    codigo: "D0005",
-    clienteCodigo: "C0011-DR-N",
-    clienteNombre: "DR N",
-    montoCop: 22959878,
-    estado: "COMPLETADO",
-    referencia: "—",
-    origenFondos: "—",
-    fechaCreacion: "2026-10-30",
-    comprobantes: [],
-    numero: 5
-  },
-  {
-    id: "recxJCQt3a3LRFdPq",
-    codigo: "D0006",
-    clienteCodigo: "C0011-DR-N",
-    clienteNombre: "DR N",
-    montoCop: 25694301,
-    estado: "COMPLETADO",
-    referencia: "—",
-    origenFondos: "—",
-    fechaCreacion: "2026-10-30",
-    comprobantes: [],
-    numero: 6
-  },
-  {
-    id: "recmAmn9kkFJjg4g8",
-    codigo: "D0007",
-    clienteCodigo: "C0008-MIGUEL-COLORADO",
-    clienteNombre: "MIGUEL COLORADO",
-    montoCop: 15000000,
-    estado: "COMPLETADO",
-    referencia: "—",
-    origenFondos: "—",
-    fechaCreacion: "2026-11-03",
-    comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793757600000/YSiQPnzRHG__OiuUf1KD7Q/ciT7WBV2BpcWnCok7KshZJU_z0xSXzOOiyU6RPDR6DfLkYb8TQF4EqwMM3a2fi15Jm_lE7xb9ubep0f1m-2bfT7qGxJMv59qw6BeWu0AJ6tvFfT_jyYV-i61318ra0uU-OL6bapcOsMJ_u6RJUD5ZKbemJCzk3d8s5e7suQz1ts/caTst_YhV08uZ5FRUpwXHaNyuVLawIZwZccwVzSwLt8",
-    comprobanteNombre: "Logo Asteana.png",
-    comprobantes: [
-      {
-        id: "attaRNQyRE9uHdSkG",
-        url: "https://v5.airtableusercontent.com/v3/u/59/59/1793757600000/YSiQPnzRHG__OiuUf1KD7Q/ciT7WBV2BpcWnCok7KshZJU_z0xSXzOOiyU6RPDR6DfLkYb8TQF4EqwMM3a2fi15Jm_lE7xb9ubep0f1m-2bfT7qGxJMv59qw6BeWu0AJ6tvFfT_jyYV-i61318ra0uU-OL6bapcOsMJ_u6RJUD5ZKbemJCzk3d8s5e7suQz1ts/caTst_YhV08uZ5FRUpwXHaNyuVLawIZwZccwVzSwLt8",
-        nombre: "Logo Asteana.png"
-      }
-    ],
-    numero: 7
-  },
-  {
-    id: "recfKJe2s1lBJbRfu",
-    codigo: "D0008",
-    clienteCodigo: "C0012-DANNA-PEREZ",
-    clienteNombre: "DANNA PEREZ",
-    montoCop: 15000000,
-    estado: "COMPLETADO",
-    referencia: "—",
+    referencia: "Dispersión Coinsenda Kaupaloki",
+    concepto: "Dispersión Coinsenda Kaupaloki",
     origenFondos: "Coinsenda-Kaupaloki",
-    fechaCreacion: "2026-11-03",
+    medioPagoNombre: "Coinsenda-Kaupaloki",
+    fechaCreacion: "2026-11-04",
+    fecha: "2026-11-04",
+    tieneComprobante: false,
     comprobantes: [],
-    numero: 8
+    numero: 11
   },
   {
-    id: "recx3s6EbMHJKbrxd",
-    codigo: "D0009",
-    clienteCodigo: "C0001-FRANZ",
-    clienteNombre: "FRANZ",
-    montoCop: 30000000,
+    id: "recP8W3xM6q1z4c7v",
+    codigo: "D0012",
+    idDispersion: "D0012",
+    clienteCodigo: "C0017-DR-N",
+    clienteNombre: "DR N",
+    montoCop: 50000000,
+    valorTotalDispersion: 50000000,
     estado: "COMPLETADO",
-    referencia: "Constructora SAS",
+    referencia: "Dispersión Coinsenda Jero All Solutions",
+    concepto: "Dispersión Coinsenda Jero All Solutions",
     origenFondos: "Coinsenda-Jero All Solutions",
-    fechaCreacion: "2026-11-03",
+    medioPagoNombre: "Coinsenda-Jero All Solutions",
+    fechaCreacion: "2026-11-04",
+    fecha: "2026-11-04",
+    tieneComprobante: false,
     comprobantes: [],
-    numero: 9
+    numero: 12
   },
   {
-    id: "recKmJBzwmUPmhKPI",
-    codigo: "D0010",
-    clienteCodigo: "C0001-FRANZ",
-    clienteNombre: "FRANZ",
-    montoCop: 10000000,
+    id: "recR9Y4zN7w2x5v8b",
+    codigo: "D0013",
+    idDispersion: "D0013",
+    clienteCodigo: "C0017-DR-N",
+    clienteNombre: "DR N",
+    montoCop: 300000000,
+    valorTotalDispersion: 300000000,
     estado: "COMPLETADO",
-    referencia: "EFECTIVO",
+    referencia: "Entrega Efectivo Dosquebradas",
+    concepto: "Entrega Efectivo Dosquebradas",
     origenFondos: "Efectivo-Dosquebradas",
-    fechaCreacion: "2026-11-03",
+    medioPagoNombre: "Efectivo-Dosquebradas",
+    fechaCreacion: "2026-11-04",
+    fecha: "2026-11-04",
+    tieneComprobante: false,
     comprobantes: [],
-    numero: 10
+    numero: 13
   }
 ];
 
-
 export const VENTAS_USDT: VentaUsdt[] = [
   {
-    id: "recHn8RrTIu9Pb4US",
-    nombre: "VE-01",
-    fecha: "2026-11-03",
-    concepto: "COINCENDA",
-    usdtVendido: 90000,
+    id: "rec10cQvO8X9Y2M7P",
+    nombre: "COP-04-11-26-0005",
+    idTransaccion: "COP-04-11-26-0005",
+    fecha: "2026-11-04",
+    concepto: "COINSENDA • CUY WALLET",
+    walletOrigen: "CUY WALLET",
+    usdtVendido: 70000,
+    cantidadUsdt: 70000,
     tasa: 3200,
-    destinoFondosNombre: "Coinsenda-Kaupaloki",
-    totalCop: 288000000
-  },
-  {
-    id: "recjrrnzbxhM1IUpL",
-    nombre: "VE-02",
-    fecha: "2026-11-03",
-    concepto: "GIRALDO",
-    usdtVendido: 100000,
-    tasa: 3200,
-    destinoFondosNombre: "Efectivo-Dosquebradas",
-    totalCop: 320000000
-  },
-  {
-    id: "reczqUMGkDp6SQE0y",
-    nombre: "VE-03",
-    fecha: "2026-11-03",
-    concepto: "LINCOIN",
-    usdtVendido: 50000,
-    tasa: 3200,
+    tasaVentaCop: 3200,
+    impuestos: 0,
     destinoFondosNombre: "Coinsenda-Jero All Solutions",
-    totalCop: 160000000
+    cuentaDestinoNombre: "Coinsenda-Jero All Solutions",
+    totalCop: 224000000,
+    montoNetoRecibidoCop: 224000000
+  },
+  {
+    id: "rec29vBnL5K8W3N1Q",
+    nombre: "COP-04-11-26-0006",
+    idTransaccion: "COP-04-11-26-0006",
+    fecha: "2026-11-04",
+    concepto: "EFECTIVO • FRANZ WALLET",
+    walletOrigen: "FRANZ WALLET",
+    usdtVendido: 97000,
+    cantidadUsdt: 97000,
+    tasa: 3190,
+    tasaVentaCop: 3190,
+    impuestos: 0,
+    destinoFondosNombre: "Efectivo-Dosquebradas",
+    cuentaDestinoNombre: "Efectivo-Dosquebradas",
+    totalCop: 309430000,
+    montoNetoRecibidoCop: 309430000
+  },
+  {
+    id: "rec38mXzP1J6R4K9T",
+    nombre: "COP-04-11-26-0007",
+    idTransaccion: "COP-04-11-26-0007",
+    fecha: "2026-11-04",
+    concepto: "COINSENDA • CUY WALLET",
+    walletOrigen: "CUY WALLET",
+    usdtVendido: 30000,
+    cantidadUsdt: 30000,
+    tasa: 3200,
+    tasaVentaCop: 3200,
+    impuestos: 0,
+    destinoFondosNombre: "Coinsenda-Kaupaloki",
+    cuentaDestinoNombre: "Coinsenda-Kaupaloki",
+    totalCop: 96000000,
+    montoNetoRecibidoCop: 96000000
   }
 ];
 
 export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
+  {
+    id: "recVFLDX1of31gVKN",
+    activo: "Coinsenda-Jero All Solutions",
+    institucion: "Coinsenda",
+    empresa: "Coinsenda-Jero All Solutions",
+    titular: "Coinsenda-Jero All Solutions",
+    cuenta: "COINSENDA-JERO",
+    tarifas: "% FEE $1000 COP",
+    saldoDisponible: 174000000,
+    saldoTotal: 174000000,
+    ingresosCop: 224000000,
+    egresosCop: 50000000,
+    saldoCop: 174000000,
+    movimientos: [
+      { fecha: "2026-11-04", origen: "D0012", concepto: "EGRESO / DISPERSIÓN D0012 — DR N", monto: -50000000, balance: 174000000 },
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0005", concepto: "ABONO MONETIZACIÓN USDT (70.000 USDT @ $3.200)", monto: 224000000, balance: 224000000 }
+    ]
+  },
   {
     id: "recsuypaKGBEA6dae",
     activo: "Coinsenda-Kaupaloki",
     institucion: "Coinsenda",
     empresa: "Coinsenda-Kaupaloki",
     titular: "Coinsenda-Kaupaloki",
-    cuenta: "N/A",
+    cuenta: "COINSENDA-KAUPALOKI",
     tarifas: "% FEE $1000 COP",
-    saldoDisponible: 273000000,
-    saldoTotal: 273000000,
-    ingresosCop: 288000000,
-    egresosCop: 15000000,
-    saldoCop: 273000000,
+    saldoDisponible: 46000000,
+    saldoTotal: 46000000,
+    ingresosCop: 96000000,
+    egresosCop: 50000000,
+    saldoCop: 46000000,
     movimientos: [
-      { fecha: "4/11/2026 09:30 a.m.", origen: "DSP-2026-8102", concepto: "Dispersión Clientes - Pago Lote #14", monto: -15000000, balance: 273000000 },
-      { fecha: "4/11/2026 09:30 a.m.", origen: "DSP-2026-8102", concepto: "Comisión FEE $1000 COP - Dispersión Lote #14", monto: -1000, balance: 288000000 },
-      { fecha: "2/11/2026 03:15 p.m.", origen: "ING-2026-041", concepto: "Ingreso Liquidación Venta USDT", monto: 128000000, balance: 288001000 },
-      { fecha: "1/11/2026 11:00 a.m.", origen: "ING-2026-038", concepto: "Recarga Cuenta Operativa Coinsenda", monto: 160000000, balance: 160001000 }
-    ]
-  },
-  {
-    id: "recVFLDX1of31gVKN",
-    activo: "Coinsenda-Jero All Solutions",
-    institucion: "COINSENSA",
-    empresa: "JERO ALL SOLUTIONS SAS",
-    titular: "JERO ALL SOLUTIONS SAS",
-    cuenta: "N/A",
-    tarifas: "% FEE $1000 COP",
-    saldoDisponible: 0,
-    saldoTotal: 839,
-    ingresosCop: 160000000,
-    egresosCop: 30000000,
-    saldoCop: 130000000,
-    movimientos: [
-      { fecha: "3/11/2026 12:16 p.m.", origen: "DSP-2026-7943", concepto: "Dispersión - Envío #1", monto: -738000, balance: 839 },
-      { fecha: "3/11/2026 12:16 p.m.", origen: "DSP-2026-7943", concepto: "Comisión FEE $1000 COP - Dispersión Envío #1", monto: -1000, balance: 738839 },
-      { fecha: "24/7/2026 07:19 p.m.", origen: "EXP-26-00001", concepto: "Retención en la fuente", monto: -150000, balance: 739839 },
-      { fecha: "24/7/2026 07:19 p.m.", origen: "EXP-26-00001", concepto: "FEE $1000 COP", monto: -1000, balance: 889839 },
-      { fecha: "24/7/2026 06:45 p.m.", origen: "EXP-1004", concepto: "FEE $1000 COP", monto: -1000, balance: 890839 },
-      { fecha: "24/7/2026 06:45 p.m.", origen: "EXP-1004", concepto: "Suscripciones de software", monto: -150000, balance: 891839 },
-      { fecha: "10/7/2026 07:33 p.m.", origen: "DSP-2026-5852", concepto: "Comisión FEE $1000 COP - Dispersión Envío #1", monto: -1000, balance: 1041839 },
-      { fecha: "10/7/2026 07:33 p.m.", origen: "DSP-2026-5852", concepto: "Dispersión - Envío #1", monto: -17500000, balance: 1042839 }
+      { fecha: "2026-11-04", origen: "D0011", concepto: "EGRESO / DISPERSIÓN D0011 — DR N", monto: -50000000, balance: 46000000 },
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0007", concepto: "ABONO MONETIZACIÓN USDT (30.000 USDT @ $3.200)", monto: 96000000, balance: 96000000 }
     ]
   },
   {
     id: "recdOSGJZMR2xqUFq",
     activo: "Efectivo-Dosquebradas",
-    institucion: "EFECTIVO / CAJA",
-    empresa: "Dosquebradas",
-    titular: "DOSQUEBRADAS CAJA EMPRESA",
-    cuenta: "CAJA-01",
+    institucion: "Efectivo",
+    empresa: "Efectivo-Dosquebradas",
+    titular: "Efectivo-Dosquebradas",
+    cuenta: "CAJA-DOSQUEBRADAS",
     tarifas: "EXENTO DE FEE",
-    saldoDisponible: 310000000,
-    saldoTotal: 310000000,
-    ingresosCop: 320000000,
-    egresosCop: 10000000,
-    saldoCop: 310000000,
+    saldoDisponible: 9430000,
+    saldoTotal: 9430000,
+    ingresosCop: 309430000,
+    egresosCop: 300000000,
+    saldoCop: 9430000,
     movimientos: [
-      { fecha: "3/11/2026 04:20 p.m.", origen: "EGR-26-015", concepto: "Retiro para Pagos en Efectivo", monto: -10000000, balance: 310000000 },
-      { fecha: "1/11/2026 10:15 a.m.", origen: "ING-26-092", concepto: "Entrada por Venta Efectivo OTC", monto: 180000000, balance: 320000000 },
-      { fecha: "29/10/2026 02:00 p.m.", origen: "ING-26-088", concepto: "Apertura Balance Operativo Efectivo", monto: 140000000, balance: 140000000 }
+      { fecha: "2026-11-04", origen: "D0013", concepto: "EGRESO / DISPERSIÓN D0013 — DR N", monto: -300000000, balance: 9430000 },
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0006", concepto: "ABONO MONETIZACIÓN USDT (97.000 USDT @ $3.190)", monto: 309430000, balance: 309430000 }
     ]
   }
 ];
 
 export const ACTIVOS_DIGITALES: ActivoDigital[] = [
-  {
-    id: "rec4eGPPX60dfrJzK",
-    activo: "BETO WALLET",
-    idWallet: "BETO WALLET",
-    wallet: "TRrENAf4SQbcMXFn44wkfSjaic4dxBdbyb",
-    red: "TRON (TRC20)",
-    titular: "BETO WALLET",
-    tarifas: "RED TRON (TRC20) • 1 USDT",
-    ingresosUsdt: 22867,
-    egresosUsdt: 0,
-    saldoUsdt: 22867,
-    saldoReal: 22867,
-    movimientos: [
-      { fecha: "4/11/2026 10:15 a.m.", origen: "TX-7b2a9f1088", concepto: "Recepción Compra USDT - Operación #12", monto: 12500, balance: 22867 },
-      { fecha: "2/11/2026 04:30 p.m.", origen: "TX-3c8111de55", concepto: "Carga Inicial Tesorería Beto", monto: 10367, balance: 10367 }
-    ]
-  },
   {
     id: "recblQW6ViJ9MxCle",
     activo: "CUY WALLET",
@@ -809,14 +657,33 @@ export const ACTIVOS_DIGITALES: ActivoDigital[] = [
     red: "TRON (TRC20)",
     titular: "CUY WALLET",
     tarifas: "RED TRON (TRC20) • 1 USDT",
+    ingresoUsdt: 132107,
     ingresosUsdt: 132107,
     egresosUsdt: 100000,
     saldoUsdt: 32107,
     saldoReal: 32107,
     movimientos: [
-      { fecha: "3/11/2026 02:40 p.m.", origen: "TX-9e0144af12", concepto: "Transferencia Liquidación Venta USDT", monto: -50000, balance: 32107 },
-      { fecha: "3/11/2026 11:20 a.m.", origen: "TX-8d1277bc90", concepto: "Dispersión Operativa USDT", monto: -50000, balance: 82107 },
-      { fecha: "1/11/2026 08:15 p.m.", origen: "TX-1a2b3c4d78", concepto: "Ingreso Compra Mayorista USDT", monto: 132107, balance: 132107 }
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0007", concepto: "VENTA USDT → Coinsenda-Kaupaloki", monto: -30000, balance: 32107 },
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0005", concepto: "VENTA USDT → Coinsenda-Jero All Solutions", monto: -70000, balance: 62107 },
+      { fecha: "2026-11-04", origen: "BRL-04-11-26-0011", concepto: "COMPRA USDT (BRL) — N0018-BRL", monto: 107107, balance: 132107 },
+      { fecha: "2026-11-04", origen: "ARS-04-11-26-0010", concepto: "COMPRA USDT (ARS) — N0017-ARS", monto: 25000, balance: 25000 }
+    ]
+  },
+  {
+    id: "rec4eGPPX60dfrJzK",
+    activo: "BETO WALLET",
+    idWallet: "BETO WALLET",
+    wallet: "TRrENAf4SQbcMXFn44wkfSjaic4dxBdbyb",
+    red: "TRON (TRC20)",
+    titular: "BETO WALLET",
+    tarifas: "RED TRON (TRC20) • 1 USDT",
+    ingresoUsdt: 22867,
+    ingresosUsdt: 22867,
+    egresosUsdt: 0,
+    saldoUsdt: 22867,
+    saldoReal: 22867,
+    movimientos: [
+      { fecha: "2026-11-04", origen: "N0023-USDT", concepto: "RECEPCIÓN DIRECTA USDT — N0023-USDT (DR N)", monto: 22867, balance: 22867 }
     ]
   },
   {
@@ -827,13 +694,16 @@ export const ACTIVOS_DIGITALES: ActivoDigital[] = [
     red: "TRON (TRC20)",
     titular: "FRANZ WALLET",
     tarifas: "RED TRON (TRC20) • 1 USDT",
+    ingresoUsdt: 97000,
     ingresosUsdt: 97000,
     egresosUsdt: 97000,
     saldoUsdt: 0,
     saldoReal: 0,
     movimientos: [
-      { fecha: "3/11/2026 05:22 p.m.", origen: "TX-4e5f6a7b21", concepto: "Liquidación Total Venta USDT", monto: -97000, balance: 0 },
-      { fecha: "2/11/2026 09:10 a.m.", origen: "TX-2c3d4e5f99", concepto: "Depósito Fondos Operador Franz", monto: 97000, balance: 97000 }
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0006", concepto: "VENTA USDT → Efectivo-Dosquebradas", monto: -97000, balance: 0 },
+      { fecha: "2026-11-04", origen: "MXN-04-11-26-0014", concepto: "COMPRA USDT (MXN) — N0022-MXN", monto: 15000, balance: 97000 },
+      { fecha: "2026-11-04", origen: "CLP-04-11-26-0013", concepto: "COMPRA USDT (CLP) — N0020-CLP", monto: 50000, balance: 82000 },
+      { fecha: "2026-11-04", origen: "PEN-04-11-26-0012", concepto: "COMPRA USDT (PEN) — N0019-PEN", monto: 32000, balance: 32000 }
     ]
   }
 ];
@@ -915,17 +785,16 @@ export function formatCurrencyWithFlag(code: string): string {
   return `${getCurrencyFlag(code)} ${code.toUpperCase()}`;
 }
 
-// Métricas de consolidación contable para Panel de Control
 export function getMetricasContables() {
   const totalIngresosCop = NEGOCIOS.reduce((acc, n) => acc + n.ingresoCop, 0);
   const totalPagadoCop = PAGOS.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + p.montoCop, 0);
   const saldoPendienteNeto = totalIngresosCop - totalPagadoCop;
   const totalUsdtComprado = COMPRAS_USDT.reduce((acc, c) => acc + c.usdtComprado, 0);
   const totalUsdtVendido = VENTAS_USDT.reduce((acc, v) => acc + v.usdtVendido, 0);
-  const totalUsdtEnCustodia = DIVISAS.reduce((acc, d) => acc + d.saldoEnCustodia, 0);
+  const totalUsdtEnCustodia = ACTIVOS_DIGITALES.reduce((acc, d) => acc + (d.saldoUsdt || 0), 0);
   const totalActivosLiquidosCop = ACTIVOS_LIQUIDOS.reduce((acc, a) => acc + a.saldoCop, 0);
   const totalFaltaLiquidarClientes = CLIENTES.reduce((acc, c) => acc + (c.pendienteCop > 0 ? c.pendienteCop : 0), 0);
-  const gananciaEstimadaCop = Math.round(totalIngresosCop * 0.1904); // Margen comercial sobre volumen
+  const gananciaEstimadaCop = NEGOCIOS.reduce((acc, n) => acc + (n.totalRevenue || 0), 0);
 
   return {
     totalIngresosCop,

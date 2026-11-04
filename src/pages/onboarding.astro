@@ -157,16 +157,27 @@ import Layout from '../layouts/Layout.astro';
     }
 
     async function loadUserProfile() {
-      // 1. Obtener email de los parámetros de URL si viene por invitación directa
+      // 1. Obtener email y token_hash de los parámetros de URL si viene por invitación o magic link
       const urlParams = new URLSearchParams(window.location.search);
       const emailParam = urlParams.get('email');
+      const tokenHash = urlParams.get('token_hash') || urlParams.get('token');
+      const otpType = (urlParams.get('type') as any) || 'magiclink';
+
+      if (tokenHash) {
+        try {
+          await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: otpType
+          });
+        } catch (_) {}
+      }
 
       // 2. Comprobar sesión de Supabase Auth
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
         currentUserId = session.user.id;
-        userEmail = session.user.email || emailParam || '';
+        userEmail = (session.user.email || emailParam || '').toLowerCase().trim();
       } else if (emailParam) {
         userEmail = emailParam.toLowerCase().trim();
       }
@@ -175,19 +186,20 @@ import Layout from '../layouts/Layout.astro';
         emailDisplay.value = userEmail;
       }
 
-      // 3. Consultar perfil en Supabase por ID o por Email
-      let profileQuery = supabase.from('profiles').select('*');
-      if (currentUserId) {
-        profileQuery = profileQuery.eq('id', currentUserId);
-      } else if (userEmail) {
-        profileQuery = profileQuery.eq('email', userEmail);
-      } else {
-        // Sin sesión ni email en url, redirigir al login
+      // 3. Consultar perfil en Supabase primero por Email y luego por ID
+      let profile: any = null;
+      if (userEmail) {
+        const { data } = await supabase.from('profiles').select('*').eq('email', userEmail).maybeSingle();
+        profile = data;
+      }
+      if (!profile && currentUserId) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', currentUserId).maybeSingle();
+        profile = data;
+      }
+      if (!userEmail && !currentUserId) {
         window.location.href = '/login';
         return;
       }
-
-      const { data: profile } = await profileQuery.single();
 
       if (profile) {
         if (!currentUserId && profile.id) currentUserId = profile.id;

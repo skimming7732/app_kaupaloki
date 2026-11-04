@@ -1750,7 +1750,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Tasa</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="compras-table-tbody">
               {COMPRAS_USDT.map((c) => (
                 <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
                   <td style="padding: 16px 20px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">{c.numero}</td>
@@ -1769,7 +1769,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 </tr>
               ))}
             </tbody>
-            <tfoot>
+            <tfoot id="compras-table-tfoot">
               <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
                 <td colspan="5" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTAL USDT CONSOLIDADO:</td>
                 <td style="padding: 18px 20px; text-align: right; color: var(--info); font-size: 14px;">
@@ -1797,7 +1797,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Total (COP)</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="ventas-table-tbody">
               {VENTAS_USDT.map((v) => (
                 <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
                   <td style="padding: 16px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{v.nombre}</td>
@@ -1814,7 +1814,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 </tr>
               ))}
             </tbody>
-            <tfoot>
+            <tfoot id="ventas-table-tfoot">
               <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
                 <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTALES VENTAS USDT:</td>
                 <td style="padding: 18px 20px; text-align: right; color: var(--info); font-size: 14px;">
@@ -1842,7 +1842,7 @@ function formatDecimal(amount: number, digits = 2): string {
                 <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #868CFF; margin-bottom: 4px;">
                   Tesorería y Liquidez Consolidada
                 </div>
-                <div style="font-size: 30px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: -0.02em;">
+                <div id="activos-banner-total" style="font-size: 30px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: -0.02em;">
                   {formatCop(metricas.totalActivosLiquidosCop)}
                 </div>
                 <div style="font-size: 12px; color: #A3AED0; margin-top: 4px;">
@@ -1852,13 +1852,13 @@ function formatDecimal(amount: number, digits = 2): string {
               <div style="display: flex; gap: 12px;">
                 <div style="background: rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 12px 18px; text-align: right; border: 1px solid rgba(255, 255, 255, 0.1);">
                   <div style="font-size: 10px; font-weight: 700; color: #A3AED0; text-transform: uppercase;">Total Ingresos</div>
-                  <div style="font-size: 16px; font-weight: 800; color: #05CD99; font-family: ui-monospace, monospace;">
+                  <div id="activos-banner-ingresos" style="font-size: 16px; font-weight: 800; color: #05CD99; font-family: ui-monospace, monospace;">
                     {formatCop(ACTIVOS_LIQUIDOS.reduce((acc, a) => acc + a.ingresosCop, 0))}
                   </div>
                 </div>
                 <div style="background: rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 12px 18px; text-align: right; border: 1px solid rgba(255, 255, 255, 0.1);">
                   <div style="font-size: 10px; font-weight: 700; color: #A3AED0; text-transform: uppercase;">Total Egresos</div>
-                  <div style="font-size: 16px; font-weight: 800; color: #EE5D50; font-family: ui-monospace, monospace;">
+                  <div id="activos-banner-egresos" style="font-size: 16px; font-weight: 800; color: #EE5D50; font-family: ui-monospace, monospace;">
                     {formatCop(ACTIVOS_LIQUIDOS.reduce((acc, a) => acc + a.egresosCop, 0))}
                   </div>
                 </div>
@@ -1866,7 +1866,7 @@ function formatDecimal(amount: number, digits = 2): string {
             </div>
 
             <!-- GRID TIPO TARJETAS (HORIZON UI BANK CARDS) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 28px;">
+            <div id="activos-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 28px;">
               {ACTIVOS_LIQUIDOS.map((a, idx) => {
                 const bgGradient = idx === 0 
                   ? 'linear-gradient(135deg, #4318FF 0%, #2B3674 100%)' 
@@ -1949,7 +1949,7 @@ function formatDecimal(amount: number, digits = 2): string {
                     <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); text-align: right;">Saldo Actual (COP)</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="activos-table-tbody">
                   {ACTIVOS_LIQUIDOS.map((a) => (
                     <tr 
                       class="horizon-row row-open-activo-extract" 
@@ -2154,7 +2154,7 @@ function formatDecimal(amount: number, digits = 2): string {
                   <span>🟢</span>
                   <span>Custodia y Balances Cripto</span>
                 </div>
-                <div style="font-size: 32px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: -0.02em;">
+                <div id="digitales-banner-total" style="font-size: 32px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: -0.02em;">
                   54,974.00 <span style="font-size: 20px; opacity: 0.9;">USDT</span>
                 </div>
                 <div style="font-size: 12px; color: #E0E5F2; margin-top: 4px;">
@@ -2164,7 +2164,7 @@ function formatDecimal(amount: number, digits = 2): string {
               <div style="display: flex; gap: 12px;">
                 <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); padding: 12px 18px; border-radius: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.2);">
                   <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8;">Billeteras</div>
-                  <div style="font-size: 18px; font-weight: 800; font-family: ui-monospace, monospace;">{ACTIVOS_DIGITALES.length}</div>
+                  <div id="digitales-banner-count" style="font-size: 18px; font-weight: 800; font-family: ui-monospace, monospace;">{ACTIVOS_DIGITALES.length}</div>
                 </div>
                 <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); padding: 12px 18px; border-radius: 14px; text-align: center; border: 1px solid rgba(255,255,255,0.2);">
                   <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8;">Red Principal</div>
@@ -2174,7 +2174,7 @@ function formatDecimal(amount: number, digits = 2): string {
             </div>
 
             <!-- Grid de Tarjetas de Wallets Digitales -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 20px; margin-bottom: 28px;">
+            <div id="digitales-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 20px; margin-bottom: 28px;">
               {ACTIVOS_DIGITALES.map((d, index) => {
                 const gradients = [
                   'linear-gradient(135deg, #05CD99 0%, #0369a1 100%)',
@@ -2264,7 +2264,7 @@ function formatDecimal(amount: number, digits = 2): string {
                     <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Extracto</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="digitales-table-tbody">
                   {ACTIVOS_DIGITALES.map((d) => (
                     <tr 
                       class="horizon-row row-open-digital-extract" 
@@ -6173,5 +6173,662 @@ function formatDecimal(amount: number, digits = 2): string {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  });
+
+  // ==============================================================
+  // MOTOR DE SINCRONIZACIÓN EN TIEMPO REAL CON AIRTABLE + SUPABASE
+  // ==============================================================
+  const AIRTABLE_BASE_ID = 'appncUKgTkDojFj4B';
+  const EDGE_SYNC_URL = 'https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync';
+  const PAT_STORAGE_KEY = 'kaupaloki_airtable_pat';
+
+  const modalAirtableBackdrop = document.getElementById('modal-airtable-backdrop');
+  const btnCloseAirtableModal = document.getElementById('btn-close-airtable-modal');
+  const btnOpenAirtableConfig = document.getElementById('btn-open-airtable-config');
+  const sidebarAirtableCard = document.getElementById('sidebar-airtable-card');
+  const btnSyncNow = document.getElementById('btn-sync-now') as HTMLButtonElement | null;
+  const airtablePatForm = document.getElementById('airtable-pat-form') as HTMLFormElement | null;
+  const airtablePatInput = document.getElementById('airtable-pat-input') as HTMLInputElement | null;
+  const btnClearPat = document.getElementById('btn-clear-pat');
+
+  function fmtCopClient(val: number): string {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Number(val) || 0);
+  }
+
+  function fmtNumClient(val: number, maxDecimals = 2): string {
+    return new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: maxDecimals,
+    }).format(Number(val) || 0);
+  }
+
+  function setSyncIndicator(state: 'live' | 'syncing' | 'cached' | 'error', label: string) {
+    if (syncDot) {
+      if (state === 'live') {
+        syncDot.style.background = 'var(--success)';
+        syncDot.style.boxShadow = '0 0 8px var(--success)';
+      } else if (state === 'syncing') {
+        syncDot.style.background = '#3965FF';
+        syncDot.style.boxShadow = '0 0 8px #3965FF';
+      } else if (state === 'error') {
+        syncDot.style.background = 'var(--danger)';
+        syncDot.style.boxShadow = '0 0 8px var(--danger)';
+      } else {
+        syncDot.style.background = 'var(--warning)';
+        syncDot.style.boxShadow = '0 0 8px var(--warning)';
+      }
+    }
+    if (syncText) {
+      syncText.textContent = label;
+    }
+  }
+
+  function openAirtableModal() {
+    if (airtablePatInput) {
+      airtablePatInput.value = localStorage.getItem(PAT_STORAGE_KEY) || '';
+    }
+    if (modalAirtableBackdrop) {
+      modalAirtableBackdrop.style.display = 'flex';
+    }
+  }
+
+  function closeAirtableModal() {
+    if (modalAirtableBackdrop) {
+      modalAirtableBackdrop.style.display = 'none';
+    }
+  }
+
+  btnOpenAirtableConfig?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openAirtableModal();
+  });
+
+  sidebarAirtableCard?.addEventListener('click', (e: any) => {
+    if (e.target.closest('#btn-sync-now') || e.target.closest('#btn-open-airtable-config')) return;
+    openAirtableModal();
+  });
+
+  btnCloseAirtableModal?.addEventListener('click', closeAirtableModal);
+  modalAirtableBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalAirtableBackdrop) closeAirtableModal();
+  });
+
+  btnClearPat?.addEventListener('click', () => {
+    localStorage.removeItem(PAT_STORAGE_KEY);
+    if (airtablePatInput) airtablePatInput.value = '';
+    setSyncIndicator('cached', 'Snapshot local • Configurar PAT');
+  });
+
+  function applyAirtableSnapshot(snapshot: any) {
+    if (!snapshot || typeof snapshot !== 'object') return;
+
+    const clientes = Array.isArray(snapshot.clientes) ? snapshot.clientes : [];
+    const negocios = Array.isArray(snapshot.negocios) ? snapshot.negocios : [];
+    const comprasUsdt = Array.isArray(snapshot.comprasUsdt) ? snapshot.comprasUsdt : [];
+    const ventasUsdt = Array.isArray(snapshot.ventasUsdt) ? snapshot.ventasUsdt : [];
+    const dispersiones = Array.isArray(snapshot.dispersiones) ? snapshot.dispersiones : [];
+    const activosLiq = Array.isArray(snapshot.activosLiquidos) ? snapshot.activosLiquidos : [];
+    const activosDig = Array.isArray(snapshot.activosDigitales) ? snapshot.activosDigitales : [];
+    const divisas = Array.isArray(snapshot.divisas) ? snapshot.divisas : [];
+
+    // 1. Actualizar arrays en memoria para los extractos bancarios y cripto
+    if (activosLiq.length > 0) {
+      activosData.splice(0, activosData.length, ...activosLiq);
+      if (currentExtractActivo) {
+        const updated = activosData.find((a: any) => a.id === currentExtractActivo.id);
+        if (updated && extractView && extractView.style.display !== 'none') {
+          openActivoExtract(updated.id);
+        }
+      }
+    }
+    if (activosDig.length > 0) {
+      digitalData.splice(0, digitalData.length, ...activosDig);
+      if (currentDigitalActivo) {
+        const updated = digitalData.find((d: any) => d.id === currentDigitalActivo.id);
+        if (updated && digitalExtractView && digitalExtractView.style.display !== 'none') {
+          openDigitalExtract(updated.id);
+        }
+      }
+    }
+
+    // 2. Actualizar contadores del sidebar
+    const setBadge = (id: string, count: number) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(count);
+    };
+    if (clientes.length) setBadge('badge-count-clientes', clientes.length);
+    if (negocios.length) setBadge('badge-count-negocios', negocios.length);
+    if (comprasUsdt.length) setBadge('badge-count-compras', comprasUsdt.length);
+    if (ventasUsdt.length) setBadge('badge-count-ventas', ventasUsdt.length);
+    if (dispersiones.length) setBadge('badge-count-dispersiones', dispersiones.length);
+    if (activosLiq.length) setBadge('badge-count-activos', activosLiq.length);
+    if (activosDig.length) setBadge('badge-count-activos-digitales', activosDig.length);
+    if (divisas.length) setBadge('badge-count-divisas', divisas.length);
+
+    // 3. Calcular métricas globales
+    const totalLiquidezCop = activosLiq.reduce((acc: number, a: any) => acc + (Number(a.saldoCop) || 0), 0);
+    const totalIngresosLiq = activosLiq.reduce((acc: number, a: any) => acc + (Number(a.ingresosCop) || 0), 0);
+    const totalEgresosLiq = activosLiq.reduce((acc: number, a: any) => acc + (Number(a.egresosCop) || 0), 0);
+    const totalUsdtCustodia = activosDig.reduce((acc: number, d: any) => acc + (Number(d.saldoUsdt) || 0), 0);
+    const totalPasivoClientes = clientes.reduce((acc: number, c: any) => acc + (Number(c.pendientePorPagarCop) || 0), 0);
+    const totalIngresosClientes = clientes.reduce((acc: number, c: any) => acc + (Number(c.ingresosCop) || 0), 0);
+    const totalPagadoClientes = clientes.reduce((acc: number, c: any) => acc + (Number(c.pagadoCop) || 0), 0);
+    const totalVolumenCop = negocios.reduce((acc: number, n: any) => acc + (Number(n.montoCop) || 0), 0);
+    const totalComisionesCop = negocios.reduce((acc: number, n: any) => acc + (Number(n.totalRevenue) || 0), 0);
+
+    // 4. Actualizar KPIs del Dashboard
+    const kpiLiquidez = document.getElementById('kpi-liquidez');
+    if (kpiLiquidez && activosLiq.length) kpiLiquidez.textContent = fmtCopClient(totalLiquidezCop);
+
+    const kpiPasivo = document.getElementById('kpi-pasivo');
+    if (kpiPasivo && clientes.length) kpiPasivo.textContent = fmtCopClient(totalPasivoClientes);
+
+    const kpiVolumen = document.getElementById('kpi-volumen');
+    if (kpiVolumen && negocios.length) kpiVolumen.textContent = fmtCopClient(totalVolumenCop);
+
+    const kpiRevenue = document.getElementById('kpi-revenue');
+    if (kpiRevenue && negocios.length) kpiRevenue.textContent = fmtCopClient(totalComisionesCop);
+
+    const kpiUsdt = document.getElementById('kpi-usdt');
+    if (kpiUsdt && activosDig.length) kpiUsdt.textContent = `${fmtNumClient(totalUsdtCustodia, 2)} USDT`;
+
+    // 5. Actualizar Activos Líquidos en Dashboard y en Tab Activos Líquidos
+    if (activosLiq.length > 0) {
+      const dashActivosGrid = document.getElementById('dashboard-activos-grid');
+      if (dashActivosGrid) {
+        dashActivosGrid.innerHTML = activosLiq.map((activo: any) => {
+          const pct = totalLiquidezCop > 0 ? Math.min(100, Math.round(((Number(activo.saldoCop) || 0) / totalLiquidezCop) * 100)) : 0;
+          return `
+            <div style="padding: 18px; border-radius: 16px; background: var(--bg-main); border: 1px solid var(--border-main);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 6px; background: rgba(57, 101, 255, 0.12); color: var(--brand-primary);">
+                    ${activo.institucion}
+                  </span>
+                  <div style="font-weight: 700; font-size: 14px; margin-top: 8px; color: var(--text-primary);">${activo.empresa}</div>
+                </div>
+                <span style="font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace;">#${activo.activo}</span>
+              </div>
+              <div style="font-size: 20px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); margin-bottom: 10px;">
+                ${fmtCopClient(activo.saldoCop)}
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); border-top: 1px solid var(--border-main); padding-top: 8px;">
+                <span>Ingresos: <strong style="color: var(--success);">${fmtCopClient(activo.ingresosCop)}</strong></span>
+                <span>Egresos: <strong style="color: var(--danger);">${fmtCopClient(activo.egresosCop)}</strong></span>
+              </div>
+              <div style="margin-top: 10px;">
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" style="width: ${pct}%; background: var(--brand-primary);"></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const bannerTotal = document.getElementById('activos-banner-total');
+      if (bannerTotal) bannerTotal.textContent = fmtCopClient(totalLiquidezCop);
+      const bannerIngresos = document.getElementById('activos-banner-ingresos');
+      if (bannerIngresos) bannerIngresos.textContent = fmtCopClient(totalIngresosLiq);
+      const bannerEgresos = document.getElementById('activos-banner-egresos');
+      if (bannerEgresos) bannerEgresos.textContent = fmtCopClient(totalEgresosLiq);
+
+      const activosCardsGrid = document.getElementById('activos-cards-grid');
+      if (activosCardsGrid) {
+        const gradients = [
+          'linear-gradient(135deg, #4318FF 0%, #2B3674 100%)',
+          'linear-gradient(135deg, #05CD99 0%, #0369a1 100%)',
+          'linear-gradient(135deg, #868CFF 0%, #4318FF 100%)'
+        ];
+        activosCardsGrid.innerHTML = activosLiq.map((a: any, idx: number) => {
+          const bgGradient = gradients[idx % gradients.length];
+          const isBank = (a.institucion || '').toLowerCase().includes('coinsenda');
+          return `
+            <div class="btn-open-activo-extract" data-activo-id="${a.id}" title="Click para abrir extracto bancario de ${a.empresa}" style="position: relative; border-radius: 22px; padding: 24px; color: #ffffff; background: ${bgGradient}; box-shadow: 0 14px 28px rgba(0,0,0,0.15); display: flex; flex-direction: column; justify-content: space-between; min-height: 205px; overflow: hidden; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; user-select: none;">
+              <div style="position: absolute; right: -20px; top: -20px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255,255,255,0.1); pointer-events: none;"></div>
+              <div style="position: absolute; left: -30px; bottom: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.06); pointer-events: none;"></div>
+              <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+                <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; backdrop-filter: blur(4px);">
+                  ${isBank ? '🏦 ' : '💵 '}${a.institucion}
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 10px; font-weight: 700; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; backdrop-filter: blur(4px);">Ver Extracto →</span>
+                  <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                  </div>
+                </div>
+              </div>
+              <div style="margin: 18px 0; position: relative; z-index: 1;">
+                <div style="font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em;">Saldo Disponible (COP)</div>
+                <div style="font-size: 26px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: -0.02em; margin-top: 2px;">${fmtCopClient(a.saldoCop)}</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 1; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 12px;">
+                <div>
+                  <div style="font-size: 10px; opacity: 0.75; text-transform: uppercase;">Empresa / Titular</div>
+                  <div style="font-size: 13px; font-weight: 700;">${a.empresa}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 10px; opacity: 0.8;">▲ ${fmtCopClient(a.ingresosCop)}</div>
+                  <div style="font-size: 10px; opacity: 0.8;">▼ ${fmtCopClient(a.egresosCop)}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const activosTableTbody = document.getElementById('activos-table-tbody');
+      if (activosTableTbody) {
+        activosTableTbody.innerHTML = activosLiq.map((a: any) => `
+          <tr class="horizon-row row-open-activo-extract" data-activo-id="${a.id}" title="Click para ver extracto bancario de esta cuenta" style="border-bottom: 1px solid var(--border-main); cursor: pointer;">
+            <td style="padding: 16px 20px; font-weight: 700; color: var(--text-primary);">${a.activo}</td>
+            <td style="padding: 16px 20px; color: var(--text-secondary);">${a.institucion}</td>
+            <td style="padding: 16px 20px; color: var(--text-secondary);">${a.empresa}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600;">${fmtCopClient(a.ingresosCop)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger); font-weight: 600;">${fmtCopClient(a.egresosCop)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--text-primary); font-size: 15px;">${fmtCopClient(a.saldoCop)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // 6. Actualizar Activos Digitales (Wallets USDT)
+    if (activosDig.length > 0) {
+      const digBannerTotal = document.getElementById('digitales-banner-total');
+      if (digBannerTotal) {
+        digBannerTotal.innerHTML = `${fmtNumClient(totalUsdtCustodia, 2)} <span style="font-size: 20px; opacity: 0.9;">USDT</span>`;
+      }
+      const digBannerCount = document.getElementById('digitales-banner-count');
+      if (digBannerCount) digBannerCount.textContent = String(activosDig.length);
+
+      const digCardsGrid = document.getElementById('digitales-cards-grid');
+      if (digCardsGrid) {
+        const gradients = [
+          'linear-gradient(135deg, #05CD99 0%, #0369a1 100%)',
+          'linear-gradient(135deg, #4318FF 0%, #1e1b4b 100%)',
+          'linear-gradient(135deg, #868CFF 0%, #312e81 100%)'
+        ];
+        digCardsGrid.innerHTML = activosDig.map((d: any, index: number) => {
+          const bgGradient = gradients[index % gradients.length];
+          const w = d.wallet || '';
+          const shortWallet = w.length > 18 ? (w.slice(0, 10) + '...' + w.slice(-8)) : w;
+          return `
+            <div class="btn-open-digital-extract" data-digital-id="${d.id}" title="Click para abrir extracto cripto de esta wallet" style="position: relative; border-radius: 22px; padding: 24px; color: #ffffff; background: ${bgGradient}; box-shadow: 0 14px 28px rgba(0,0,0,0.15); display: flex; flex-direction: column; justify-content: space-between; min-height: 200px; overflow: hidden; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; user-select: none;">
+              <div style="position: absolute; right: -20px; top: -20px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255,255,255,0.12); pointer-events: none;"></div>
+              <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+                <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em; background: rgba(0,0,0,0.25); padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(255,255,255,0.2);">
+                  <span>🟢</span><span>${d.red || 'TRC20'}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 10px; font-weight: 700; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; backdrop-filter: blur(4px);">Ver Extracto →</span>
+                </div>
+              </div>
+              <div style="margin: 18px 0; position: relative; z-index: 1;">
+                <div style="font-size: 20px; font-weight: 800; letter-spacing: -0.01em;">${d.idWallet || d.activo}</div>
+                <div style="font-size: 11px; opacity: 0.85; font-family: ui-monospace, monospace; margin-top: 4px;">${shortWallet}</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 1; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 12px;">
+                <div>
+                  <div style="font-size: 10px; font-weight: 700; opacity: 0.8; text-transform: uppercase;">Saldo Disponible</div>
+                  <div style="font-size: 22px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1.1; margin-top: 2px;">
+                    ${fmtNumClient(d.saldoUsdt, 2)} <span style="font-size: 13px; opacity: 0.85;">USDT</span>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25);">Activa ✓</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const digTableTbody = document.getElementById('digitales-table-tbody');
+      if (digTableTbody) {
+        digTableTbody.innerHTML = activosDig.map((d: any) => `
+          <tr class="horizon-row row-open-digital-extract" data-digital-id="${d.id}" title="Click para ver extracto de esta wallet" style="border-bottom: 1px solid var(--border-main); cursor: pointer;">
+            <td style="padding: 16px 20px; font-weight: 700; color: var(--text-primary);">${d.idWallet || d.activo}</td>
+            <td style="padding: 16px 20px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-secondary);">${d.wallet}</td>
+            <td style="padding: 16px 20px; text-align: center;">
+              <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: rgba(5, 205, 153, 0.12); color: var(--success);">${d.red || 'TRC20'}</span>
+            </td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600;">+${fmtNumClient(d.ingresoUsdt, 2)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger); font-weight: 600;">-${fmtNumClient(d.egresosUsdt, 2)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--text-primary); font-size: 15px;">${fmtNumClient(d.saldoUsdt, 2)} USDT</td>
+            <td style="padding: 16px 20px; text-align: center;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary); background: rgba(57,101,255,0.1); padding: 5px 10px; border-radius: 8px;">Ver Extracto →</span>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // 7. Actualizar Clientes (Dashboard + Tabla Clientes)
+    if (clientes.length > 0) {
+      const dashClientesList = document.getElementById('dashboard-clientes-list');
+      if (dashClientesList) {
+        dashClientesList.innerHTML = clientes.filter((c: any) => (Number(c.pendientePorPagarCop) || 0) > 0).map((c: any) => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 12px; background: var(--bg-main); border-left: 4px solid var(--danger);">
+            <div>
+              <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">${c.nombre}</div>
+              <div style="font-size: 11px; color: var(--text-secondary);">Ingresos: ${fmtCopClient(c.ingresosCop)} | Pagado: ${fmtCopClient(c.pagadoCop)}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 800; font-family: ui-monospace, monospace; color: var(--danger); font-size: 14px;">${fmtCopClient(c.pendientePorPagarCop)}</div>
+              <span style="font-size: 10px; color: var(--text-muted);">Por dispersar</span>
+            </div>
+          </div>
+        `).join('');
+      }
+      const dashPasivo = document.getElementById('dashboard-total-pasivo-clientes');
+      if (dashPasivo) dashPasivo.textContent = fmtCopClient(totalPasivoClientes);
+
+      const clientesTbody = document.getElementById('clientes-table-tbody');
+      if (clientesTbody) {
+        clientesTbody.innerHTML = clientes.map((c: any) => {
+          const tieneDeuda = (Number(c.pendientePorPagarCop) || 0) > 0;
+          return `
+            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+              <td style="padding: 16px 20px; font-weight: 700; font-family: ui-monospace, monospace; font-size: 13px; color: var(--brand-primary);">${c.idCliente}</td>
+              <td style="padding: 16px 20px; font-weight: 700; color: var(--text-primary);">${c.nombre}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace;">${fmtCopClient(c.ingresosCop)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600;">${fmtCopClient(c.pagadoCop)}</td>
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: ${tieneDeuda ? 'var(--danger)' : 'var(--text-muted)'};">${fmtCopClient(c.pendientePorPagarCop)}</td>
+              <td style="padding: 16px 20px; text-align: center;">
+                ${tieneDeuda
+                  ? '<span style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(238, 93, 80, 0.12); color: var(--danger);">Pendiente Dispersión</span>'
+                  : '<span style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(5, 205, 153, 0.12); color: var(--success);">Paz y Salvo</span>'}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+      const clientesTfoot = document.getElementById('clientes-table-tfoot');
+      if (clientesTfoot) {
+        clientesTfoot.innerHTML = `
+          <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
+            <td colspan="2" style="padding: 16px 20px; color: var(--text-primary);">TOTALES CONSOLIDADOS</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace;">${fmtCopClient(totalIngresosClientes)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">${fmtCopClient(totalPagadoClientes)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">${fmtCopClient(totalPasivoClientes)}</td>
+            <td></td>
+          </tr>
+        `;
+      }
+    }
+
+    // 8. Actualizar Negocios
+    if (negocios.length > 0) {
+      const negociosTbody = document.getElementById('negocios-table-tbody');
+      if (negociosTbody) {
+        negociosTbody.innerHTML = negocios.map((n: any) => `
+          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+            <td style="padding: 14px 18px; font-weight: 700; font-family: ui-monospace, monospace; font-size: 13px; color: var(--brand-primary);">${n.idNegocio}</td>
+            <td style="padding: 14px 18px; font-size: 13px; color: var(--text-secondary);">${n.fecha}</td>
+            <td style="padding: 14px 18px; font-weight: 700; font-size: 14px;">${n.clienteNombre}</td>
+            <td style="padding: 14px 18px;">
+              <span style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-main);">${n.divisaCodigo}</span>
+            </td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px;">${fmtNumClient(n.cantidadDivisa, 2)}</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700; color: var(--brand-primary);">${fmtNumClient(n.montoUsdt, 2)} USDT</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px; color: var(--text-secondary);">${fmtCopClient(n.tasaClienteCop)}</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700;">${fmtCopClient(n.montoCop)}</td>
+            <td style="padding: 14px 18px; text-align: center;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--warning);">${((Number(n.porcentajeComision) || 0) * 100).toFixed(1)}%</span>
+            </td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 700; color: var(--success);">${fmtCopClient(n.totalRevenue)}</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 800; color: var(--text-primary);">${fmtCopClient(n.totalPagarClienteCop)}</td>
+          </tr>
+        `).join('');
+      }
+      const negociosTfoot = document.getElementById('negocios-table-tfoot');
+      if (negociosTfoot) {
+        const totPagar = negocios.reduce((acc: number, n: any) => acc + (Number(n.totalPagarClienteCop) || 0), 0);
+        negociosTfoot.innerHTML = `
+          <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
+            <td colspan="7" style="padding: 14px 18px; color: var(--text-primary);">TOTALES (${negocios.length} OPERACIONES)</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace;">${fmtCopClient(totalVolumenCop)}</td>
+            <td></td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">${fmtCopClient(totalComisionesCop)}</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--brand-primary);">${fmtCopClient(totPagar)}</td>
+          </tr>
+        `;
+      }
+    }
+
+    // 9. Actualizar Dispersiones
+    if (dispersiones.length > 0) {
+      const dispTbody = document.getElementById('dispersiones-table-tbody');
+      if (dispTbody) {
+        dispTbody.innerHTML = dispersiones.map((d: any) => `
+          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+            <td style="padding: 16px 20px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--brand-primary);">${d.idDispersion}</td>
+            <td style="padding: 16px 20px; color: var(--text-secondary);">${d.fecha}</td>
+            <td style="padding: 16px 20px; font-weight: 700;">${d.clienteNombre}</td>
+            <td style="padding: 16px 20px;">
+              <span style="font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--bg-main); border: 1px solid var(--border-main);">${d.medioPagoNombre}</span>
+            </td>
+            <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px;">${d.concepto}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--danger);">${fmtCopClient(d.valorTotalDispersion)}</td>
+            <td style="padding: 16px 20px; text-align: center;">
+              ${d.tieneComprobante
+                ? '<span style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(5, 205, 153, 0.12); color: var(--success);">✓ Adjunto</span>'
+                : '<span style="font-size: 11px; color: var(--text-muted);">Sin adjunto</span>'}
+            </td>
+          </tr>
+        `).join('');
+      }
+      const dispTfoot = document.getElementById('dispersiones-table-tfoot');
+      if (dispTfoot) {
+        const totDisp = dispersiones.reduce((acc: number, d: any) => acc + (Number(d.valorTotalDispersion) || 0), 0);
+        dispTfoot.innerHTML = `
+          <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
+            <td colspan="5" style="padding: 16px 20px;">TOTAL DISPERSADO</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">${fmtCopClient(totDisp)}</td>
+            <td></td>
+          </tr>
+        `;
+      }
+    }
+
+    // 10. Actualizar Compras USDT y Ventas USDT
+    if (comprasUsdt.length > 0) {
+      const comprasTbody = document.getElementById('compras-table-tbody');
+      if (comprasTbody) {
+        comprasTbody.innerHTML = comprasUsdt.map((c: any) => `
+          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+            <td style="padding: 16px 20px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--brand-primary); font-size: 13px;">${c.idTransaccion}</td>
+            <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px;">${c.fecha}</td>
+            <td style="padding: 16px 20px;">
+              <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: var(--bg-main); border: 1px solid var(--border-main);">${c.divisaNombre}</span>
+            </td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600;">${fmtNumClient(c.montoDivisa, 2)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary);">${fmtNumClient(c.tasaUsdt, 4)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--success);">+${fmtNumClient(c.totalRecibidoUsdt, 2)} USDT</td>
+            <td style="padding: 16px 20px;">
+              <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgba(5, 205, 153, 0.12); color: var(--success);">${c.walletDestino}</span>
+            </td>
+            <td style="padding: 16px 20px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-secondary);">${c.negocioVinculado}</td>
+          </tr>
+        `).join('');
+      }
+      const comprasTfoot = document.getElementById('compras-table-tfoot');
+      if (comprasTfoot) {
+        const totCompUsdt = comprasUsdt.reduce((acc: number, c: any) => acc + (Number(c.totalRecibidoUsdt) || 0), 0);
+        comprasTfoot.innerHTML = `
+          <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
+            <td colspan="5" style="padding: 16px 20px;">TOTAL COMPRADO EN USDT (${comprasUsdt.length} OPERACIONES)</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">+${fmtNumClient(totCompUsdt, 2)} USDT</td>
+            <td colspan="2"></td>
+          </tr>
+        `;
+      }
+    }
+
+    if (ventasUsdt.length > 0) {
+      const ventasTbody = document.getElementById('ventas-table-tbody');
+      if (ventasTbody) {
+        ventasTbody.innerHTML = ventasUsdt.map((v: any) => `
+          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+            <td style="padding: 16px 20px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--brand-primary); font-size: 13px;">${v.idTransaccion}</td>
+            <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px;">${v.fecha}</td>
+            <td style="padding: 16px 20px;">
+              <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgba(238, 93, 80, 0.12); color: var(--danger);">${v.walletOrigen}</span>
+            </td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--danger);">-${fmtNumClient(v.cantidadUsdt, 2)} USDT</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary);">${fmtCopClient(v.tasaVentaCop)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--warning);">${fmtCopClient(v.impuestos)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: var(--success);">+${fmtCopClient(v.montoNetoRecibidoCop)}</td>
+            <td style="padding: 16px 20px;">
+              <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgba(57, 101, 255, 0.12); color: var(--brand-primary);">${v.cuentaDestinoNombre}</span>
+            </td>
+          </tr>
+        `).join('');
+      }
+      const ventasTfoot = document.getElementById('ventas-table-tfoot');
+      if (ventasTfoot) {
+        const totVentaUsdt = ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.cantidadUsdt) || 0), 0);
+        const totVentaImp = ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.impuestos) || 0), 0);
+        const totVentaCop = ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.montoNetoRecibidoCop) || 0), 0);
+        ventasTfoot.innerHTML = `
+          <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
+            <td colspan="3" style="padding: 16px 20px;">TOTAL MONETIZADO (${ventasUsdt.length} VENTAS USDT)</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">-${fmtNumClient(totVentaUsdt, 2)} USDT</td>
+            <td></td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--warning);">${fmtCopClient(totVentaImp)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">+${fmtCopClient(totVentaCop)}</td>
+            <td></td>
+          </tr>
+        `;
+      }
+    }
+
+    // 11. Actualizar Divisas
+    if (divisas.length > 0) {
+      const divisasTbody = document.getElementById('divisas-table-tbody');
+      if (divisasTbody) {
+        divisasTbody.innerHTML = divisas.map((div: any) => `
+          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
+            <td style="padding: 16px 20px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--brand-primary);">${div.divisa}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">+${fmtNumClient(div.ingresoEnDivisa, 2)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">-${fmtNumClient(div.egresoEnDivisa, 2)}</td>
+            <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; color: ${(Number(div.saldo) || 0) > 0 ? 'var(--brand-primary)' : 'var(--text-muted)'};">${fmtNumClient(div.saldo, 2)}</td>
+            <td style="padding: 16px 20px; text-align: center;">
+              ${(Number(div.saldo) || 0) > 0
+                ? '<span style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(5, 205, 153, 0.12); color: var(--success);">En Custodia</span>'
+                : '<span style="font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--bg-main); color: var(--text-muted);">Liquidado (0)</span>'}
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+  }
+
+  async function syncAllFromAirtable(manual = false) {
+    const savedPat = localStorage.getItem(PAT_STORAGE_KEY) || '';
+    if (manual) {
+      setSyncIndicator('syncing', 'Sincronizando con Airtable...');
+      if (btnSyncNow) {
+        btnSyncNow.disabled = true;
+        btnSyncNow.style.opacity = '0.6';
+      }
+    }
+
+    try {
+      const res = await fetch(EDGE_SYNC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pat: savedPat || undefined, baseId: AIRTABLE_BASE_ID }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.snapshot) {
+          applyAirtableSnapshot(data.snapshot);
+          const timeStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          setSyncIndicator('live', `En vivo con Airtable • ${timeStr}`);
+          return true;
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        if (errData?.needsPat && manual) {
+          setSyncIndicator('cached', 'Conecta tu PAT de Airtable');
+          openAirtableModal();
+          return false;
+        }
+      }
+    } catch (err) {
+      console.warn('Edge sync warning:', err);
+    } finally {
+      if (btnSyncNow) {
+        btnSyncNow.disabled = false;
+        btnSyncNow.style.opacity = '1';
+      }
+    }
+
+    // Si no hay PAT en el servidor pero hay un snapshot guardado en Supabase, leerlo
+    try {
+      const { data: row } = await supabase
+        .from('airtable_sync_state')
+        .select('snapshot, updated_at, airtable_pat')
+        .eq('id', 'main')
+        .maybeSingle();
+
+      if (row?.snapshot && Object.keys(row.snapshot).length > 0) {
+        applyAirtableSnapshot(row.snapshot);
+        const t = row.updated_at ? new Date(row.updated_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : 'ahora';
+        setSyncIndicator('live', `Sincronizado • ${t}`);
+        return true;
+      }
+    } catch (_) {}
+
+    return false;
+  }
+
+  airtablePatForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const patVal = airtablePatInput?.value.trim() || '';
+    if (!patVal) return;
+    localStorage.setItem(PAT_STORAGE_KEY, patVal);
+    closeAirtableModal();
+    await syncAllFromAirtable(true);
+  });
+
+  btnSyncNow?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    syncAllFromAirtable(true);
+  });
+
+  // Suscripción a Supabase Realtime para recibir cambios de Airtable al instante en todas las pestañas abiertas
+  try {
+    supabase
+      .channel('public:airtable-sync-state')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'airtable_sync_state' }, (payload: any) => {
+        const newSnap = payload?.new?.snapshot;
+        if (newSnap && Object.keys(newSnap).length > 0) {
+          applyAirtableSnapshot(newSnap);
+          const timeStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          setSyncIndicator('live', `En vivo (Realtime) • ${timeStr}`);
+        }
+      })
+      .subscribe();
+  } catch (rtSyncErr) {
+    console.warn('Realtime airtable_sync_state warning:', rtSyncErr);
+  }
+
+  // Sincronización inicial y polling automático cada 15 segundos + al enfocar ventana
+  syncAllFromAirtable(false);
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      syncAllFromAirtable(false);
+    }
+  }, 15000);
+  window.addEventListener('focus', () => {
+    syncAllFromAirtable(false);
   });
 </script>

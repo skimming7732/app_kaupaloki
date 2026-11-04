@@ -243,24 +243,58 @@ import Layout from '../layouts/Layout.astro';
       if (alertBox) alertBox.style.display = 'none';
     }
 
-    // Check if user is already logged in
-    async function checkExistingSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // Check profile onboarding status
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+    // Check if user is already logged in or arriving via Magic Link (token_hash / hash)
+    async function routeAuthenticatedUser(user: any) {
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', (user.email || '').toLowerCase())
+        .maybeSingle();
 
-        if (profile && !profile.onboarding_completed) {
-          window.location.href = '/onboarding';
-        } else {
-          window.location.href = '/';
-        }
+      if (profile && !profile.onboarding_completed) {
+        window.location.href = `/onboarding?email=${encodeURIComponent(user.email || '')}`;
+      } else {
+        window.location.href = '/';
       }
     }
+
+    async function checkExistingSession() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenHash = urlParams.get('token_hash') || urlParams.get('token');
+      const otpType = (urlParams.get('type') as any) || 'magiclink';
+      const errorDesc = urlParams.get('error_description');
+
+      if (errorDesc) {
+        showAlert(decodeURIComponent(errorDesc.replace(/\+/g, ' ')), 'error');
+      }
+
+      if (tokenHash) {
+        showAlert('Verificando enlace mágico seguro...', 'success');
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: otpType
+        });
+        if (error) {
+          showAlert('El enlace mágico expiró o ya fue utilizado. Solicita uno nuevo.', 'error');
+        } else if (data?.user) {
+          await routeAuthenticatedUser(data.user);
+          return;
+        }
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await routeAuthenticatedUser(session.user);
+      }
+    }
+
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+        await routeAuthenticatedUser(session.user);
+      }
+    });
+
     checkExistingSession();
 
     // Submit Password Login
@@ -288,18 +322,7 @@ import Layout from '../layouts/Layout.astro';
         }
 
         if (data.user) {
-          // Check profile onboarding
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-
-          if (profile && !profile.onboarding_completed) {
-            window.location.href = '/onboarding';
-          } else {
-            window.location.href = '/';
-          }
+          await routeAuthenticatedUser(data.user);
         }
       } catch (err: any) {
         showAlert(err.message || 'Error inesperado al iniciar sesión', 'error');
@@ -313,7 +336,7 @@ import Layout from '../layouts/Layout.astro';
     magicForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       hideAlert();
-      const email = (document.getElementById('magic-email-input') as HTMLInputElement).value.trim();
+      const email = (document.getElementById('magic-email-input') as HTMLInputElement).value.trim().toLowerCase();
       const submitBtn = document.getElementById('btn-submit-magic') as HTMLButtonElement;
 
       submitBtn.disabled = true;
@@ -323,9 +346,7 @@ import Layout from '../layouts/Layout.astro';
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: window.location.hostname.includes('localhost') 
-              ? window.location.origin + '/' 
-              : 'https://app.kaupaloki.co/'
+            emailRedirectTo: 'https://app.kaupaloki.co/login'
           }
         });
 
@@ -334,7 +355,7 @@ import Layout from '../layouts/Layout.astro';
           return;
         }
 
-        showAlert('¡Enlace enviado! Revisa tu bandeja de entrada o spam para acceder.', 'success');
+        showAlert('¡Enlace mágico enviado! Revisa tu bandeja de entrada o spam para acceder a Kaupaloki.', 'success');
       } catch (err: any) {
         showAlert(err.message || 'Error al enviar magic link', 'error');
       } finally {
