@@ -186,6 +186,19 @@ export const CLIENTES: Cliente[] = [
     saldoCop: 441980951.5,
     fechaCreacion: "2026-11-04",
     numero: 17
+  },
+  {
+    id: "reclaNodta2RwisAg",
+    codigo: "C0018-TEST-1",
+    idCliente: "C0018-TEST-1",
+    nombre: "TEST 1",
+    ingresosCop: 0,
+    pagadoCop: 0,
+    pendienteCop: 0,
+    pendientePorPagarCop: 0,
+    saldoCop: 0,
+    fechaCreacion: "2026-11-04",
+    numero: 18
   }
 ];
 
@@ -599,7 +612,7 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     empresa: "Coinsenda-Jero All Solutions",
     titular: "Coinsenda-Jero All Solutions",
     cuenta: "COINSENDA-JERO",
-    tarifas: "% FEE $1000 COP",
+    tarifas: "% FEE $1,000.00 COP",
     saldoDisponible: 174000000,
     saldoTotal: 174000000,
     ingresosCop: 224000000,
@@ -607,7 +620,7 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     saldoCop: 174000000,
     movimientos: [
       { fecha: "2026-11-04", origen: "D0012", concepto: "EGRESO / DISPERSIÓN D0012 — DR N", monto: -50000000, balance: 174000000 },
-      { fecha: "2026-11-04", origen: "COP-04-11-26-0005", concepto: "ABONO MONETIZACIÓN USDT (70.000 USDT @ $3.200)", monto: 224000000, balance: 224000000 }
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0005", concepto: "ABONO MONETIZACIÓN USDT (70,000.00 USDT @ $3,200.00)", monto: 224000000, balance: 224000000 }
     ]
   },
   {
@@ -617,7 +630,7 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     empresa: "Coinsenda-Kaupaloki",
     titular: "Coinsenda-Kaupaloki",
     cuenta: "COINSENDA-KAUPALOKI",
-    tarifas: "% FEE $1000 COP",
+    tarifas: "% FEE $1,000.00 COP",
     saldoDisponible: 46000000,
     saldoTotal: 46000000,
     ingresosCop: 96000000,
@@ -625,7 +638,7 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     saldoCop: 46000000,
     movimientos: [
       { fecha: "2026-11-04", origen: "D0011", concepto: "EGRESO / DISPERSIÓN D0011 — DR N", monto: -50000000, balance: 46000000 },
-      { fecha: "2026-11-04", origen: "COP-04-11-26-0007", concepto: "ABONO MONETIZACIÓN USDT (30.000 USDT @ $3.200)", monto: 96000000, balance: 96000000 }
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0007", concepto: "ABONO MONETIZACIÓN USDT (30,000.00 USDT @ $3,200.00)", monto: 96000000, balance: 96000000 }
     ]
   },
   {
@@ -643,7 +656,7 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     saldoCop: 9430000,
     movimientos: [
       { fecha: "2026-11-04", origen: "D0013", concepto: "EGRESO / DISPERSIÓN D0013 — DR N", monto: -300000000, balance: 9430000 },
-      { fecha: "2026-11-04", origen: "COP-04-11-26-0006", concepto: "ABONO MONETIZACIÓN USDT (97.000 USDT @ $3.190)", monto: 309430000, balance: 309430000 }
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0006", concepto: "ABONO MONETIZACIÓN USDT (97,000.00 USDT @ $3,190.00)", monto: 309430000, balance: 309430000 }
     ]
   }
 ];
