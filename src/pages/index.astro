@@ -2041,6 +2041,25 @@ function formatDecimal(amount: number, digits = 2): string {
   const panes = document.querySelectorAll('.tab-pane');
   const searchInput = document.getElementById('table-search') as HTMLInputElement | null;
   const btnExport = document.getElementById('btn-export-csv');
+
+  function filtrarTabla(query: string) {
+    const q = (query || '').toLowerCase().trim();
+    const activePane = document.querySelector('.tab-pane.active');
+    if (!activePane) return;
+    const rows = activePane.querySelectorAll('tbody tr');
+    rows.forEach((row) => {
+      const text = row.textContent?.toLowerCase() || '';
+      if (!q || text.includes(q)) {
+        (row as HTMLElement).style.display = '';
+      } else {
+        (row as HTMLElement).style.display = 'none';
+      }
+    });
+  }
+
+  searchInput?.addEventListener('input', (e) => {
+    filtrarTabla((e.target as HTMLInputElement).value);
+  });
   const btnSync = document.getElementById('btn-sync-now');
   const syncIcon = document.getElementById('sync-icon');
   const syncText = document.getElementById('sync-text');
@@ -2289,13 +2308,13 @@ function formatDecimal(amount: number, digits = 2): string {
   // Escuchar popstate para navegar con botones de atras/adelante del navegador
   window.addEventListener('popstate', () => {
     const slug = window.location.pathname.replace(/^\/|\/$/g, '').toLowerCase();
-    const tab = pathToTabMap[slug] || 'tab-clientes';
+    const tab = pathToTabMap[slug] || 'tab-dashboard';
     switchTab(tab, false);
   });
 
   // Activar tab inicial según la URL actual
   const initialSlug = window.location.pathname.replace(/^\/|\/$/g, '').toLowerCase();
-  const initialTab = pathToTabMap[initialSlug] || 'tab-clientes';
+  const initialTab = pathToTabMap[initialSlug] || 'tab-dashboard';
   
   // Atajos dentro de las tarjetas del panel de control
   document.querySelectorAll('.btn-switch-tab-shortcut').forEach(btn => {
