@@ -1,0 +1,512 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Mi Perfil - Kaupaloki">
+  <div style="min-height: 100vh; background: var(--bg-main); padding: 30px 20px 60px 20px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;">
+    
+    <!-- Top Nav / Back header -->
+    <div style="width: 100%; max-width: 860px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <a 
+        href="/" 
+        id="btn-back-dashboard"
+        style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-primary); text-decoration: none; background: var(--bg-card); padding: 8px 16px; border-radius: 12px; border: 1px solid var(--border-main); box-shadow: var(--shadow-nav); transition: all 0.2s;"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Volver al Dashboard</span>
+      </a>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <img src="/logo.png" alt="Kaupaloki" class="theme-logo-dark" style="height: 28px; width: auto;" />
+        <img src="/logo-blue.png" alt="Kaupaloki" class="theme-logo-light" style="height: 28px; width: auto;" />
+
+        <!-- Theme Toggle -->
+        <button id="btn-theme-toggle-perfil" title="Cambiar tema" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border-main); color: var(--text-muted); cursor: pointer; box-shadow: var(--shadow-nav);">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div style="width: 100%; max-width: 860px; display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- CARD 1: BANNER HERO DE PERFIL -->
+      <div style="background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border-main); box-shadow: var(--shadow-card); overflow: hidden; position: relative;">
+        <!-- Gradient Header Background -->
+        <div style="height: 140px; background: linear-gradient(135deg, #868CFF 0%, #4318FF 50%, #1B254B 100%); position: relative;">
+          <div style="position: absolute; right: 20px; bottom: 16px; display: flex; gap: 8px;">
+            <span id="perfil-hero-status-badge" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(8px); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #05CD99; box-shadow: 0 0 6px #05CD99;"></span>
+              <span>Activo</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Avatar & Details Row -->
+        <div style="padding: 0 30px 26px 30px; margin-top: -46px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px;">
+          <div style="display: flex; align-items: flex-end; gap: 18px;">
+            <div id="perfil-hero-avatar" style="width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(135deg, #FFB547 0%, #FF8500 100%); border: 4px solid var(--bg-card); color: #FFFFFF; font-size: 34px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.18); flex-shrink: 0;">
+              A
+            </div>
+            <div style="margin-bottom: 6px;">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <h1 id="perfil-hero-name" style="margin: 0; font-size: 24px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;">
+                  Cargando perfil...
+                </h1>
+                <span id="perfil-hero-role-badge" style="font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; background: var(--brand-primary-light); color: var(--brand-primary); text-transform: uppercase;">
+                  ...
+                </span>
+              </div>
+              <p id="perfil-hero-email" style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted); font-family: ui-monospace, monospace;">
+                ...
+              </p>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+            <span id="perfil-hero-country-badge" style="font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 10px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 6px;">
+              🇨🇴 Colombia (COL)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: FORMULARIO DE EDICIÓN -->
+      <div style="background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border-main); padding: 30px; box-shadow: var(--shadow-card);">
+        <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border-main); padding-bottom: 16px;">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+            Información Personal y Seguridad
+          </h2>
+          <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
+            Configura tus datos de contacto, país y contraseña de ingreso
+          </p>
+        </div>
+
+        <form id="form-full-perfil" style="display: flex; flex-direction: column; gap: 20px;">
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
+            <!-- Nombre Completo -->
+            <div>
+              <label for="perfil-input-name" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 6px;">
+                Nombre Completo *
+              </label>
+              <input 
+                type="text" 
+                id="perfil-input-name" 
+                required
+                placeholder="Tu nombre completo"
+                style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; transition: border-color 0.2s;"
+              />
+            </div>
+
+            <!-- Correo Electrónico (Solo Lectura) -->
+            <div>
+              <label for="perfil-input-email" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 6px;">
+                Correo Electrónico (No editable)
+              </label>
+              <input 
+                type="email" 
+                id="perfil-input-email" 
+                disabled
+                style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-muted); font-size: 13px; font-family: ui-monospace, monospace; cursor: not-allowed;"
+              />
+            </div>
+          </div>
+
+          <!-- País de Residencia -->
+          <div>
+            <label for="perfil-input-country" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 6px;">
+              País de Residencia *
+            </label>
+            <select 
+              id="perfil-input-country" 
+              style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; cursor: pointer;"
+            >
+              <option value="COL">🇨🇴 Colombia (COL)</option>
+              <option value="BRA">🇧🇷 Brasil (BRA)</option>
+              <option value="PER">🇵🇪 Perú (PER)</option>
+              <option value="CHL">🇨🇱 Chile (CHL)</option>
+              <option value="ARG">🇦🇷 Argentina (ARG)</option>
+              <option value="MEX">🇲🇽 México (MEX)</option>
+              <option value="USA">🇺🇸 Estados Unidos (USA)</option>
+              <option value="VEN">🇻🇪 Venezuela (VEN)</option>
+              <option value="PAN">🇵🇦 Panamá (PAN)</option>
+              <option value="ESP">🇪🇸 España (ESP)</option>
+              <option value="OTRO">🌐 Otro País</option>
+            </select>
+          </div>
+
+          <!-- Sección Cambio de Contraseña -->
+          <div style="border-top: 1px solid var(--border-main); padding-top: 18px; margin-top: 6px;">
+            <div style="margin-bottom: 12px;">
+              <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-primary);">
+                Cambiar Contraseña de Ingreso
+              </h3>
+              <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                Déjalo en blanco si deseas mantener tu contraseña actual
+              </p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+              <div>
+                <label for="perfil-input-pwd" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 6px;">
+                  Nueva Contraseña
+                </label>
+                <input 
+                  type="password" 
+                  id="perfil-input-pwd" 
+                  placeholder="Mínimo 6 caracteres"
+                  minlength="6"
+                  style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; outline: none;"
+                />
+              </div>
+
+              <div>
+                <label for="perfil-input-pwd-conf" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 6px;">
+                  Confirmar Contraseña
+                </label>
+                <input 
+                  type="password" 
+                  id="perfil-input-pwd-conf" 
+                  placeholder="Repite tu nueva contraseña"
+                  minlength="6"
+                  style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; outline: none;"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Divisas Autorizadas (Informativo) -->
+          <div style="border-top: 1px solid var(--border-main); padding-top: 18px;">
+            <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px;">
+              Divisas Habilitadas para Operar
+            </label>
+            <div id="perfil-currencies-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <span style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: var(--bg-card-secondary); color: var(--text-muted);">
+                Cargando divisas...
+              </span>
+            </div>
+          </div>
+
+          <!-- Feedback Status Message -->
+          <div id="perfil-status-message" style="font-size: 13px; font-weight: 700; min-height: 20px;"></div>
+
+          <!-- Action Buttons -->
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--border-main); padding-top: 20px;">
+            <button 
+              type="button" 
+              id="btn-perfil-logout"
+              style="display: inline-flex; align-items: center; gap: 6px; padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(238, 93, 80, 0.3); background: var(--danger-light); color: var(--danger); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Cerrar Sesión</span>
+            </button>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <a 
+                href="/" 
+                style="padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-secondary); font-size: 13px; font-weight: 700; text-decoration: none;"
+              >
+                Cancelar
+              </a>
+              <button 
+                type="submit" 
+                id="btn-perfil-submit"
+                style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 26px; border-radius: 12px; border: none; background: var(--brand-primary); color: #FFFFFF; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.35); transition: all 0.2s;"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Guardar Cambios</span>
+              </button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  const SUPER_ADMIN_EMAIL = 'desarrollor@jeroallsolutions.com';
+
+  function isSuperAdminUser(email?: string): boolean {
+    return (email || '').toLowerCase().trim() === SUPER_ADMIN_EMAIL;
+  }
+
+  // Elementos DOM
+  const heroAvatar = document.getElementById('perfil-hero-avatar');
+  const heroName = document.getElementById('perfil-hero-name');
+  const heroEmail = document.getElementById('perfil-hero-email');
+  const heroRoleBadge = document.getElementById('perfil-hero-role-badge');
+  const heroCountryBadge = document.getElementById('perfil-hero-country-badge');
+  const inputName = document.getElementById('perfil-input-name') as HTMLInputElement | null;
+  const inputEmail = document.getElementById('perfil-input-email') as HTMLInputElement | null;
+  const inputCountry = document.getElementById('perfil-input-country') as HTMLSelectElement | null;
+  const inputPwd = document.getElementById('perfil-input-pwd') as HTMLInputElement | null;
+  const inputPwdConf = document.getElementById('perfil-input-pwd-conf') as HTMLInputElement | null;
+  const currenciesContainer = document.getElementById('perfil-currencies-container');
+  const statusMsg = document.getElementById('perfil-status-message');
+  const formPerfil = document.getElementById('form-full-perfil');
+  const btnLogout = document.getElementById('btn-perfil-logout');
+  const themeToggle = document.getElementById('btn-theme-toggle-perfil');
+
+  // Theme Toggle
+  const sunIcon = themeToggle?.querySelector('.sun-icon') as HTMLElement | null;
+  const moonIcon = themeToggle?.querySelector('.moon-icon') as HTMLElement | null;
+
+  function syncThemeIcons() {
+    const isDark = document.documentElement.classList.contains('dark');
+    if (sunIcon) sunIcon.style.display = isDark ? 'block' : 'none';
+    if (moonIcon) moonIcon.style.display = isDark ? 'none' : 'block';
+  }
+  syncThemeIcons();
+
+  themeToggle?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const isDark = document.documentElement.classList.toggle('dark');
+    try {
+      localStorage.setItem('kaupaloki_theme', isDark ? 'dark' : 'light');
+    } catch (e) {}
+    syncThemeIcons();
+  });
+
+  let currentProfile: any = null;
+
+  async function loadProfileData() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      let email = session?.user?.email || 'desarrollor@jeroallsolutions.com';
+
+      // Fallback si no hay sesión abierta en localStorage
+      if (!session?.user) {
+        const storedEmail = localStorage.getItem('kaupaloki_user_email');
+        if (storedEmail) email = storedEmail;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (profile) {
+        currentProfile = {
+          ...profile,
+          is_super_admin: isSuperAdminUser(profile.email)
+        };
+      } else {
+        currentProfile = {
+          email,
+          full_name: email.split('@')[0],
+          role: isSuperAdminUser(email) ? 'administrador' : 'operador',
+          is_super_admin: isSuperAdminUser(email),
+          pais: 'COL',
+          authorized_currencies: ['USD', 'USDT', 'COP', 'BRL', 'PEN', 'CLP', 'ARS', 'HNL', 'VES']
+        };
+      }
+
+      renderProfileUI();
+    } catch (err: any) {
+      console.warn('Error cargando perfil:', err);
+    }
+  }
+
+  function renderProfileUI() {
+    if (!currentProfile) return;
+    const name = currentProfile.full_name || currentProfile.email.split('@')[0];
+    const initial = name.charAt(0).toUpperCase();
+    const isSuper = isSuperAdminUser(currentProfile.email) || currentProfile.is_super_admin;
+    const role = currentProfile.role || 'administrador';
+    const country = currentProfile.pais || 'COL';
+
+    if (heroAvatar) heroAvatar.textContent = initial;
+    if (heroName) heroName.textContent = name;
+    if (heroEmail) heroEmail.textContent = currentProfile.email;
+
+    if (heroRoleBadge) {
+      if (isSuper) {
+        heroRoleBadge.textContent = '⭐ SUPER ADMIN';
+        heroRoleBadge.style.background = 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)';
+        heroRoleBadge.style.color = '#FFFFFF';
+        heroRoleBadge.style.boxShadow = '0 2px 10px rgba(255, 181, 71, 0.4)';
+      } else if (role === 'administrador') {
+        heroRoleBadge.textContent = 'ADMINISTRADOR';
+        heroRoleBadge.style.background = 'var(--brand-primary-light)';
+        heroRoleBadge.style.color = 'var(--brand-primary)';
+      } else if (role === 'client') {
+        heroRoleBadge.textContent = 'CLIENTE';
+        heroRoleBadge.style.background = 'rgba(67, 24, 255, 0.08)';
+        heroRoleBadge.style.color = 'var(--brand-primary)';
+      } else {
+        heroRoleBadge.textContent = 'OPERADOR';
+        heroRoleBadge.style.background = 'rgba(5, 205, 153, 0.12)';
+        heroRoleBadge.style.color = 'var(--success)';
+      }
+    }
+
+    const countryLabels: Record<string, string> = {
+      COL: '🇨🇴 Colombia (COL)',
+      BRA: '🇧🇷 Brasil (BRA)',
+      PER: '🇵🇪 Perú (PER)',
+      CHL: '🇨🇱 Chile (CHL)',
+      ARG: '🇦🇷 Argentina (ARG)',
+      MEX: '🇲🇽 México (MEX)',
+      USA: '🇺🇸 Estados Unidos (USA)',
+      VEN: '🇻🇪 Venezuela (VEN)',
+      PAN: '🇵🇦 Panamá (PAN)',
+      ESP: '🇪🇸 España (ESP)',
+      OTRO: '🌐 Otro País'
+    };
+
+    if (heroCountryBadge) {
+      heroCountryBadge.textContent = countryLabels[country] || `🌐 ${country}`;
+    }
+
+    if (inputName) inputName.value = name;
+    if (inputEmail) inputEmail.value = currentProfile.email;
+    if (inputCountry) inputCountry.value = country;
+
+    // Divisas
+    if (currenciesContainer) {
+      const isAdm = role === 'administrador' || isSuper;
+      const isCli = role === 'client';
+      const currs = Array.isArray(currentProfile.authorized_currencies) ? currentProfile.authorized_currencies : [];
+
+      if (isAdm || isCli) {
+        currenciesContainer.innerHTML = `
+          <span style="font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 8px; background: var(--brand-primary-light); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2); display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Todas las divisas del sistema habilitadas (${isAdm ? 'Permisos de Administrador' : 'Cliente'})</span>
+          </span>
+        `;
+      } else if (currs.length > 0) {
+        currenciesContainer.innerHTML = currs.map((c: string) => `
+          <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; display: inline-flex; align-items: center; gap: 5px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--brand-primary);"></span>
+            ${c}
+          </span>
+        `).join('');
+      } else {
+        currenciesContainer.innerHTML = '<span style="font-size: 12px; color: var(--text-muted);">Sin divisas asignadas</span>';
+      }
+    }
+  }
+
+  // Guardar Cambios
+  formPerfil?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!inputName || !currentProfile) return;
+
+    const newName = inputName.value.trim();
+    const newCountry = inputCountry ? inputCountry.value : 'COL';
+    const newPwd = inputPwd?.value || '';
+    const newPwdConf = inputPwdConf?.value || '';
+
+    if (!newName) {
+      if (statusMsg) {
+        statusMsg.style.color = 'var(--danger)';
+        statusMsg.textContent = 'El nombre no puede estar vacío';
+      }
+      return;
+    }
+
+    if (newPwd) {
+      if (newPwd.length < 6) {
+        if (statusMsg) {
+          statusMsg.style.color = 'var(--danger)';
+          statusMsg.textContent = 'La contraseña debe tener al menos 6 caracteres';
+        }
+        return;
+      }
+      if (newPwd !== newPwdConf) {
+        if (statusMsg) {
+          statusMsg.style.color = 'var(--danger)';
+          statusMsg.textContent = 'Las contraseñas no coinciden';
+        }
+        return;
+      }
+    }
+
+    if (statusMsg) {
+      statusMsg.style.color = 'var(--text-muted)';
+      statusMsg.textContent = 'Guardando cambios en perfil...';
+    }
+
+    try {
+      // 1. Si cambió contraseña, actualizar en Auth
+      if (newPwd) {
+        const { error: pwdErr } = await supabase.auth.updateUser({
+          password: newPwd,
+          data: { full_name: newName, pais: newCountry }
+        });
+        if (pwdErr) throw pwdErr;
+      }
+
+      // 2. Actualizar en tabla profiles de Supabase
+      const { error: profErr } = await supabase.from('profiles').update({
+        full_name: newName,
+        pais: newCountry,
+        updated_at: new Date().toISOString()
+      }).eq('email', currentProfile.email);
+
+      if (profErr) throw profErr;
+
+      currentProfile.full_name = newName;
+      currentProfile.pais = newCountry;
+      renderProfileUI();
+
+      if (inputPwd) inputPwd.value = '';
+      if (inputPwdConf) inputPwdConf.value = '';
+
+      if (statusMsg) {
+        statusMsg.style.color = 'var(--success)';
+        statusMsg.textContent = '¡Perfil actualizado con éxito en la plataforma!';
+      }
+
+      setTimeout(() => {
+        if (statusMsg) statusMsg.textContent = '';
+      }, 3500);
+    } catch (err: any) {
+      if (statusMsg) {
+        statusMsg.style.color = 'var(--danger)';
+        statusMsg.textContent = err.message || 'Error al actualizar perfil';
+      }
+    }
+  });
+
+  // Cerrar Sesión
+  btnLogout?.addEventListener('click', async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('kaupaloki_user_email');
+    } catch (e) {}
+    window.location.href = '/login';
+  });
+
+  loadProfileData();
+</script>

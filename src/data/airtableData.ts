@@ -80,6 +80,16 @@ export interface VentaUsdt {
   totalCop: number;
 }
 
+export interface MovimientoActivo {
+  id?: string;
+  fecha: string;
+  origen: string;
+  concepto: string;
+  monto: number;
+  balance: number;
+  tipo?: 'debito' | 'credito';
+}
+
 export interface ActivoLiquido {
   id: string;
   activo: string;
@@ -88,6 +98,12 @@ export interface ActivoLiquido {
   ingresosCop: number;
   egresosCop: number;
   saldoCop: number;
+  titular?: string;
+  cuenta?: string;
+  tarifas?: string;
+  saldoDisponible?: number;
+  saldoTotal?: number;
+  movimientos?: MovimientoActivo[];
 }
 
 export interface Admin {
@@ -97,6 +113,9 @@ export interface Admin {
   pais: string;
   numero: number;
   rol?: string;
+  email?: string;
+  status?: string;
+  authorized_currencies?: string[];
 }
 
 export interface UsuarioAirtable extends Admin {}
@@ -704,38 +723,110 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     activo: "Coinsenda-Kaupaloki",
     institucion: "Coinsenda",
     empresa: "Kaupaloki",
+    titular: "KAUPALOKI SAS",
+    cuenta: "N/A",
+    tarifas: "% FEE $1000 COP",
+    saldoDisponible: 273000000,
+    saldoTotal: 273000000,
     ingresosCop: 288000000,
     egresosCop: 15000000,
-    saldoCop: 273000000
+    saldoCop: 273000000,
+    movimientos: [
+      { fecha: "4/11/2026 09:30 a.m.", origen: "DSP-2026-8102", concepto: "Dispersión Clientes - Pago Lote #14", monto: -15000000, balance: 273000000 },
+      { fecha: "4/11/2026 09:30 a.m.", origen: "DSP-2026-8102", concepto: "Comisión FEE $1000 COP - Dispersión Lote #14", monto: -1000, balance: 288000000 },
+      { fecha: "2/11/2026 03:15 p.m.", origen: "ING-2026-041", concepto: "Ingreso Liquidación Venta USDT", monto: 128000000, balance: 288001000 },
+      { fecha: "1/11/2026 11:00 a.m.", origen: "ING-2026-038", concepto: "Recarga Cuenta Operativa Coinsenda", monto: 160000000, balance: 160001000 }
+    ]
   },
   {
     id: "recVFLDX1of31gVKN",
     activo: "Coinsenda-Jero All Solutions",
-    institucion: "Coinsenda",
-    empresa: "Jero All Solutions",
+    institucion: "COINSENSA",
+    empresa: "JERO ALL SOLUTIONS SAS",
+    titular: "JERO ALL SOLUTIONS SAS",
+    cuenta: "N/A",
+    tarifas: "% FEE $1000 COP",
+    saldoDisponible: 0,
+    saldoTotal: 839,
     ingresosCop: 160000000,
     egresosCop: 30000000,
-    saldoCop: 130000000
+    saldoCop: 130000000,
+    movimientos: [
+      { fecha: "3/11/2026 12:16 p.m.", origen: "DSP-2026-7943", concepto: "Dispersión - Envío #1", monto: -738000, balance: 839 },
+      { fecha: "3/11/2026 12:16 p.m.", origen: "DSP-2026-7943", concepto: "Comisión FEE $1000 COP - Dispersión Envío #1", monto: -1000, balance: 738839 },
+      { fecha: "24/7/2026 07:19 p.m.", origen: "EXP-26-00001", concepto: "Retención en la fuente", monto: -150000, balance: 739839 },
+      { fecha: "24/7/2026 07:19 p.m.", origen: "EXP-26-00001", concepto: "FEE $1000 COP", monto: -1000, balance: 889839 },
+      { fecha: "24/7/2026 06:45 p.m.", origen: "EXP-1004", concepto: "FEE $1000 COP", monto: -1000, balance: 890839 },
+      { fecha: "24/7/2026 06:45 p.m.", origen: "EXP-1004", concepto: "Suscripciones de software", monto: -150000, balance: 891839 },
+      { fecha: "10/7/2026 07:33 p.m.", origen: "DSP-2026-5852", concepto: "Comisión FEE $1000 COP - Dispersión Envío #1", monto: -1000, balance: 1041839 },
+      { fecha: "10/7/2026 07:33 p.m.", origen: "DSP-2026-5852", concepto: "Dispersión - Envío #1", monto: -17500000, balance: 1042839 }
+    ]
   },
   {
     id: "recdOSGJZMR2xqUFq",
     activo: "Efectivo-Dosquebradas",
-    institucion: "Efectivo",
+    institucion: "EFECTIVO / CAJA",
     empresa: "Dosquebradas",
+    titular: "DOSQUEBRADAS CAJA EMPRESA",
+    cuenta: "CAJA-01",
+    tarifas: "EXENTO DE FEE",
+    saldoDisponible: 310000000,
+    saldoTotal: 310000000,
     ingresosCop: 320000000,
     egresosCop: 10000000,
-    saldoCop: 310000000
+    saldoCop: 310000000,
+    movimientos: [
+      { fecha: "3/11/2026 04:20 p.m.", origen: "EGR-26-015", concepto: "Retiro para Pagos en Efectivo", monto: -10000000, balance: 310000000 },
+      { fecha: "1/11/2026 10:15 a.m.", origen: "ING-26-092", concepto: "Entrada por Venta Efectivo OTC", monto: 180000000, balance: 320000000 },
+      { fecha: "29/10/2026 02:00 p.m.", origen: "ING-26-088", concepto: "Apertura Balance Operativo Efectivo", monto: 140000000, balance: 140000000 }
+    ]
   }
 ];
 
 export const ADMINS: Admin[] = [
   {
-    id: "recVp36XSdciu5Oqe",
-    codigo: "OP01-DAVID-COL",
-    nombre: "DAVID LOPEZ",
+    id: "recL83WqXLLheg5zZ",
+    codigo: "USA003-ADMINISTRADOR-COL",
+    nombre: "ADMINISTRADOR JERO",
+    email: "desarrollor@jeroallsolutions.com",
     pais: "COL",
-    rol: "OPERADOR",
+    rol: "SUPER ADMIN",
+    status: "ACTIVO",
+    authorized_currencies: ["USD", "USDT", "COP", "BRL", "PEN", "CLP", "ARS", "HNL", "VES"],
+    numero: 3
+  },
+  {
+    id: "recVp36XSdciu5Oqe",
+    codigo: "UAD001-DAVID-COL",
+    nombre: "DAVID LOPEZ",
+    email: "david.lopez@kaupaloki.co",
+    pais: "COL",
+    rol: "ADMINISTRADOR",
+    status: "ACTIVO",
+    authorized_currencies: ["USD", "USDT", "COP"],
     numero: 1
+  },
+  {
+    id: "recnkRCzxvh8vH9Eu",
+    codigo: "UAD002-FRANZ-COL",
+    nombre: "FRANZ RUEDA",
+    email: "franzruedab@gmail.com",
+    pais: "COL",
+    rol: "ADMINISTRADOR",
+    status: "ACTIVO",
+    authorized_currencies: ["USD", "USDT", "COP", "BRL", "PEN", "CLP", "ARS", "HNL", "VES"],
+    numero: 2
+  },
+  {
+    id: "rec74079466-ba44-450a",
+    codigo: "UAD004-DANI-COL",
+    nombre: "DANI",
+    email: "daniel-r.a.p@hotmail.com",
+    pais: "COL",
+    rol: "ADMINISTRADOR",
+    status: "ACTIVO",
+    authorized_currencies: ["USD", "USDT", "COP", "BRL", "PEN", "CLP", "ARS", "HNL", "VES"],
+    numero: 4
   }
 ];
 
