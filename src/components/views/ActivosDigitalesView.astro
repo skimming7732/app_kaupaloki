@@ -208,63 +208,63 @@ const { ACTIVOS_DIGITALES = [] } = Astro.props;
               </div>
             </div>
 
-            <!-- Tarjeta Principal del Extracto Cripto -->
-            <div style="background: #0B1426; border: 1px solid #1E293B; border-radius: 24px; padding: 32px 36px; color: #FFFFFF; box-shadow: 0 18px 36px rgba(0,0,0,0.25);">
+            <!-- Tarjeta Principal del Extracto Cripto (Adaptable a tema claro y oscuro) -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 32px 36px; color: var(--text-primary); box-shadow: var(--shadow-card);">
               
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 36px;">
                 <div>
-                  <div style="font-size: 11px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
+                  <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
                     SALDO DISPONIBLE
                   </div>
-                  <div id="digital-extract-card-saldo-disp" style="font-size: 42px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1; letter-spacing: -0.02em; color: #05CD99;">
+                  <div id="digital-extract-card-saldo-disp" style="font-size: 42px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1; letter-spacing: -0.02em; color: var(--success);">
                     0 USDT
                   </div>
                 </div>
 
                 <div style="text-align: right;">
-                  <div style="font-size: 11px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
+                  <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
                     SALDO TOTAL
                   </div>
-                  <div id="digital-extract-card-saldo-total" style="font-size: 26px; font-weight: 800; font-family: ui-monospace, monospace; color: #FFFFFF;">
+                  <div id="digital-extract-card-saldo-total" style="font-size: 26px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
                     0 USDT
                   </div>
                 </div>
               </div>
 
               <!-- Metadatos de la Wallet -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px; border-top: 1px solid var(--border-main); padding-top: 24px;">
                 <div>
-                  <div style="font-size: 10px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
                     WALLET / TITULAR
                   </div>
-                  <div id="digital-extract-card-titular" style="font-size: 13px; font-weight: 700; color: #FFFFFF;">
+                  <div id="digital-extract-card-titular" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">
                     BETO WALLET
                   </div>
                 </div>
 
                 <div>
-                  <div style="font-size: 10px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
                     RED / PROTOCOLO
                   </div>
-                  <div id="digital-extract-card-red" style="font-size: 13px; font-weight: 700; color: #FFFFFF;">
+                  <div id="digital-extract-card-red" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">
                     TRON (TRC20)
                   </div>
                 </div>
 
                 <div>
-                  <div style="font-size: 10px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
                     DIRECCIÓN PÚBLICA
                   </div>
-                  <div id="digital-extract-card-wallet" style="font-size: 12px; font-weight: 700; font-family: ui-monospace, monospace; color: #868CFF; word-break: break-all;">
+                  <div id="digital-extract-card-wallet" style="font-size: 12px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--brand-primary); word-break: break-all;">
                     -
                   </div>
                 </div>
 
                 <div>
-                  <div style="font-size: 10px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
                     TARIFAS
                   </div>
-                  <div id="digital-extract-card-tarifas" style="font-size: 11px; font-weight: 700; color: #05CD99; background: rgba(5, 205, 153, 0.12); padding: 4px 8px; border-radius: 6px; display: inline-block;">
+                  <div id="digital-extract-card-tarifas" style="font-size: 11px; font-weight: 700; color: var(--success); background: var(--bg-card-secondary); border: 1px solid var(--border-main); padding: 4px 8px; border-radius: 6px; display: inline-block;">
                     RED TRON • 1 USDT
                   </div>
                 </div>

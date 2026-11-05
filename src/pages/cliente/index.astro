@@ -301,6 +301,19 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
                   <span>Pagos</span>
                   <span id="badge-count-subtab-dispersiones" style="font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card); color: var(--text-secondary);">0</span>
                 </button>
+
+                <button 
+                  id="subtab-btn-ingresos" 
+                  class="client-subtab-btn"
+                  style="display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 9px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary);"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  <span>Ingresos</span>
+                  <span id="badge-count-subtab-ingresos" style="font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card); color: var(--text-secondary);">0</span>
+                </button>
               </div>
 
               <span id="filtered-records-count" style="font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-muted); border: 1px solid var(--border-main);">
@@ -346,6 +359,27 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
                 <!-- Pagos (Dispersiones + Efectivo) injected dynamically via JS -->
               </tbody>
               <tfoot id="dispersiones-table-foot">
+                <!-- Totales consolidados -->
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- SUB-VIEW 3: INGRESOS (EFECTIVO + COMISIONES) -->
+          <div id="subtab-content-ingresos" class="subtab-content" style="display: none; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Fecha</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Concepto / Referencia</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Medio / Origen</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: right;">Monto (COP)</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: center;">Estado</th>
+                </tr>
+              </thead>
+              <tbody id="ingresos-table-body">
+                <!-- Ingresos (Efectivo + Comisiones) injected dynamically via JS -->
+              </tbody>
+              <tfoot id="ingresos-table-foot">
                 <!-- Totales consolidados -->
               </tfoot>
             </table>
@@ -451,10 +485,15 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
     // Subtabs elements
     const subtabBtnNegocios = document.getElementById('subtab-btn-negocios');
     const subtabBtnDispersiones = document.getElementById('subtab-btn-dispersiones');
+    const subtabBtnIngresos = document.getElementById('subtab-btn-ingresos');
     const subtabContentNegocios = document.getElementById('subtab-content-negocios');
     const subtabContentDispersiones = document.getElementById('subtab-content-dispersiones');
+    const subtabContentIngresos = document.getElementById('subtab-content-ingresos');
     const badgeCountSubtabNegocios = document.getElementById('badge-count-subtab-negocios');
     const badgeCountSubtabDispersiones = document.getElementById('badge-count-subtab-dispersiones');
+    const badgeCountSubtabIngresos = document.getElementById('badge-count-subtab-ingresos');
+    const ingresosTableBody = document.getElementById('ingresos-table-body');
+    const ingresosTableFoot = document.getElementById('ingresos-table-foot');
 
     // Filter elements
     const filterDateFrom = document.getElementById('filter-date-from') as HTMLInputElement;
@@ -487,7 +526,8 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
     let currentClient: any = null;
     let clientNegocios: any[] = [];
     let clientPagos: any[] = [];
-    let activeSubtab: 'negocios' | 'pagos' = 'negocios';
+    let clientIngresos: any[] = [];
+    let activeSubtab: 'negocios' | 'pagos' | 'ingresos' = 'negocios';
 
     // Helper formatters (Regla Airtable: miles con ',' y decimales con '.')
     function formatCop(amount: number, digits = 2): string {
@@ -505,29 +545,39 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
     }
 
     // Subtab switcher
-    function setSubtab(tab: 'negocios' | 'pagos') {
+    function setSubtab(tab: 'negocios' | 'pagos' | 'ingresos') {
       activeSubtab = tab;
+      // Reset all buttons
+      [subtabBtnNegocios, subtabBtnDispersiones, subtabBtnIngresos].forEach(btn => {
+        btn?.style.setProperty('background', 'transparent');
+        btn?.style.setProperty('color', 'var(--text-secondary)');
+      });
+      // Hide all content panes
+      if (subtabContentNegocios) subtabContentNegocios.style.display = 'none';
+      if (subtabContentDispersiones) subtabContentDispersiones.style.display = 'none';
+      if (subtabContentIngresos) subtabContentIngresos.style.display = 'none';
+
       if (tab === 'negocios') {
         subtabBtnNegocios?.style.setProperty('background', 'var(--brand-primary)');
         subtabBtnNegocios?.style.setProperty('color', '#fff');
-        subtabBtnDispersiones?.style.setProperty('background', 'transparent');
-        subtabBtnDispersiones?.style.setProperty('color', 'var(--text-secondary)');
         if (subtabContentNegocios) subtabContentNegocios.style.display = 'block';
-        if (subtabContentDispersiones) subtabContentDispersiones.style.display = 'none';
         if (filteredRecordsCount) filteredRecordsCount.textContent = `${clientNegocios.length} operaciones`;
-      } else {
+      } else if (tab === 'pagos') {
         subtabBtnDispersiones?.style.setProperty('background', 'var(--brand-primary)');
         subtabBtnDispersiones?.style.setProperty('color', '#fff');
-        subtabBtnNegocios?.style.setProperty('background', 'transparent');
-        subtabBtnNegocios?.style.setProperty('color', 'var(--text-secondary)');
         if (subtabContentDispersiones) subtabContentDispersiones.style.display = 'block';
-        if (subtabContentNegocios) subtabContentNegocios.style.display = 'none';
         if (filteredRecordsCount) filteredRecordsCount.textContent = `${clientPagos.length} pagos`;
+      } else {
+        subtabBtnIngresos?.style.setProperty('background', 'var(--brand-primary)');
+        subtabBtnIngresos?.style.setProperty('color', '#fff');
+        if (subtabContentIngresos) subtabContentIngresos.style.display = 'block';
+        if (filteredRecordsCount) filteredRecordsCount.textContent = `${clientIngresos.length} ingresos`;
       }
     }
 
     subtabBtnNegocios?.addEventListener('click', () => setSubtab('negocios'));
     subtabBtnDispersiones?.addEventListener('click', () => setSubtab('pagos'));
+    subtabBtnIngresos?.addEventListener('click', () => setSubtab('ingresos'));
 
     // Lock portal
     btnLockPortal?.addEventListener('click', () => {
@@ -667,9 +717,42 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
       // Combine both Dispersiones and Efectivo into clientPagos
       clientPagos = [...rawDispersiones, ...rawEfectivoPagos];
 
+      // Filter all cash entries for this client where tipo === 'INGRESO'
+      const rawEfectivoIngresos = efectivo.filter(m => 
+        m.tipo === 'INGRESO' && (
+          (m.clienteCodigo && currentClient.codigo && m.clienteCodigo.toLowerCase() === currentClient.codigo.toLowerCase()) ||
+          (m.clienteNombre && currentClient.nombre && m.clienteNombre.toLowerCase() === currentClient.nombre.toLowerCase()) ||
+          (m.clienteId && currentClient.id && m.clienteId === currentClient.id) ||
+          (m.clienteCodigo && linkRecord.client_id && m.clienteCodigo.toLowerCase() === linkRecord.client_id.toLowerCase()) ||
+          (m.referencia && currentClient.nombre && m.referencia.toLowerCase().includes(currentClient.nombre.toLowerCase()))
+        )
+      ).map(m => ({
+        id: m.id,
+        codigo: m.codigo,
+        medio: 'EFECTIVO',
+        fechaDisplay: m.fecha || (m.createdTime ? m.createdTime.split('T')[0] : '-'),
+        referenciaDisplay: m.referencia || 'Ingreso en efectivo',
+        montoCop: Number(m.montoCop) || 0,
+        estado: 'COMPLETADO',
+      }));
+
+      // Add commissions / cruce if recorded in client
+      const rawComisiones = (currentClient.comisionesCop && Number(currentClient.comisionesCop) > 0) ? [{
+        id: `com-${currentClient.id || 'c'}`,
+        codigo: 'COM-01',
+        medio: 'COMISIÓN',
+        fechaDisplay: currentClient.fechaCreacion || '-',
+        referenciaDisplay: 'Comisiones / Cruce contable acordado',
+        montoCop: Number(currentClient.comisionesCop) || 0,
+        estado: 'COMPLETADO',
+      }] : [];
+
+      clientIngresos = [...rawEfectivoIngresos, ...rawComisiones];
+
       // Update Subtabs Badges
       if (badgeCountSubtabNegocios) badgeCountSubtabNegocios.textContent = clientNegocios.length.toString();
       if (badgeCountSubtabDispersiones) badgeCountSubtabDispersiones.textContent = clientPagos.length.toString();
+      if (badgeCountSubtabIngresos) badgeCountSubtabIngresos.textContent = clientIngresos.length.toString();
 
       // Populate currency filter options
       const currencies = Array.from(new Set(clientNegocios.map(n => n.divisaCodigo).filter(Boolean)));
@@ -685,6 +768,7 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
 
       applyFiltersAndRender();
       renderPagos();
+      renderIngresos();
     }
 
     function applyFiltersAndRender() {
@@ -879,6 +963,66 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
             </td>
             <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 15px;">
               ${formatCop(totalPagado)}
+            </td>
+            <td style="padding: 18px 20px; text-align: center; color: var(--text-muted); font-size: 12px;">
+              —
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Render Ingresos Table (Efectivo Ingresos + Comisiones)
+    function renderIngresos() {
+      if (!ingresosTableBody) return;
+      if (clientIngresos.length === 0) {
+        ingresosTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" style="padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px;">
+              No hay ingresos directos en efectivo ni comisiones registradas para este cliente.
+            </td>
+          </tr>
+        `;
+        if (ingresosTableFoot) ingresosTableFoot.innerHTML = '';
+        return;
+      }
+
+      ingresosTableBody.innerHTML = clientIngresos.map(item => {
+        const esEfectivo = item.medio === 'EFECTIVO';
+        return `
+          <tr style="border-bottom: 1px solid var(--border-main); transition: background-color 0.15s ease;">
+            <td style="padding: 14px 20px; color: var(--text-secondary); vertical-align: middle;">
+              ${item.fechaDisplay || '-'}
+            </td>
+            <td style="padding: 14px 20px; color: var(--text-primary); font-weight: 600; vertical-align: middle;">
+              ${item.referenciaDisplay || '—'}
+            </td>
+            <td style="padding: 14px 20px; vertical-align: middle;">
+              <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: ${esEfectivo ? 'rgba(5, 205, 153, 0.15)' : 'rgba(67, 24, 255, 0.12)'}; color: ${esEfectivo ? 'var(--success)' : 'var(--brand-primary)'}; font-weight: 800; font-size: 10px; text-transform: uppercase;">
+                ${item.medio}
+              </span>
+            </td>
+            <td style="padding: 14px 20px; font-weight: 800; color: var(--text-primary); text-align: right; font-family: ui-monospace, monospace; font-size: 14px; vertical-align: middle;">
+              ${formatCop(item.montoCop)}
+            </td>
+            <td style="padding: 14px 20px; text-align: center; vertical-align: middle;">
+              <span class="status-pill status-success">
+                ${item.estado || 'COMPLETADO'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      if (ingresosTableFoot) {
+        const totalIngresosDirectos = clientIngresos.reduce((acc, i) => acc + (Number(i.montoCop) || 0), 0);
+        ingresosTableFoot.innerHTML = `
+          <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); border-top: 2px solid var(--border-main);">
+            <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
+              TOTAL INGRESOS (${clientIngresos.length} REGISTROS):
+            </td>
+            <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 15px;">
+              ${formatCop(totalIngresosDirectos)}
             </td>
             <td style="padding: 18px 20px; text-align: center; color: var(--text-muted); font-size: 12px;">
               —

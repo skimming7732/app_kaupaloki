@@ -503,10 +503,10 @@ import Layout from '../layouts/Layout.astro';
           await supabase.from('profiles').update(updatePayload).eq('email', userEmail);
         }
 
-        showAlert('¡Cuenta activada y contraseña configurada con éxito! Redirigiendo...', 'success');
+        showAlert('¡Contraseña guardada! Ahora configuremos tu autenticación 2FA obligatoria...', 'success');
         setTimeout(() => {
-          window.location.href = '/';
-        }, 1000);
+          window.location.href = '/2fa?mode=setup';
+        }, 1200);
       } catch (err: any) {
         showAlert(err.message || 'Error al completar configuración', 'error');
       } finally {

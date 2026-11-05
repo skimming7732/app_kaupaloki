@@ -9,31 +9,6 @@ const { PAGOS = [] } = Astro.props;
 ---
 
 <div id="tab-dispersiones" class="tab-pane" style="display: none; overflow-x: auto;">
-  <!-- Header Bar de Dispersiones con Botón Nueva Dispersión -->
-  <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-card-secondary);">
-    <div>
-      <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
-        Control de Dispersiones
-      </h3>
-      <p style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted);">
-        Registro de pagos, transferencias y comprobantes sincronizados con Airtable
-      </p>
-    </div>
-
-    <!-- Botón Nueva Dispersión -->
-    <button 
-      type="button" 
-      id="btn-open-create-dispersion-modal" 
-      style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 12px; background: var(--brand-primary); color: #ffffff; border: none; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 24, 255, 0.25); transition: opacity 0.15s;"
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-      <span>+ Nueva Dispersión</span>
-    </button>
-  </div>
-
   <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
               <tr style="border-bottom: 1px solid var(--border-main);">

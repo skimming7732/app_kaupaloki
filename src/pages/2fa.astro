@@ -1,0 +1,396 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Autenticación de Dos Factores (2FA) - Kaupaloki">
+  <div style="min-height: 100vh; background: var(--bg-main); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 20px; box-sizing: border-box;">
+    
+    <!-- Logo & Back Link -->
+    <div style="margin-bottom: 24px; text-align: center;">
+      <img src="/logo.png" alt="Kaupaloki" class="theme-logo-dark" style="max-height: 38px; object-fit: contain; margin: 0 auto 8px auto;" />
+      <img src="/logo-blue.png" alt="Kaupaloki" class="theme-logo-light" style="max-height: 38px; object-fit: contain; margin: 0 auto 8px auto;" />
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">
+        Seguridad de Acceso • 2FA Obligatorio
+      </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div style="width: 100%; max-width: 480px; background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border-main); padding: 36px 32px; box-shadow: var(--shadow-card); box-sizing: border-box;">
+      
+      <!-- MODE 1: VERIFY (Pedir código al iniciar sesión) -->
+      <div id="container-verify" style="display: none; flex-direction: column; gap: 20px;">
+        <div style="text-align: center;">
+          <div style="width: 56px; height: 56px; border-radius: 16px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+            Verificación en Dos Pasos
+          </h2>
+          <p style="margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+            Ingresa el código de 6 dígitos de tu app de autenticación (Google Authenticator, Authy o 1Password).
+          </p>
+        </div>
+
+        <form id="form-verify-2fa" style="display: flex; flex-direction: column; gap: 18px;">
+          <div>
+            <label for="input-verify-code" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px; text-align: center;">
+              Código de Seguridad (6 Dígitos)
+            </label>
+            <input 
+              type="text" 
+              id="input-verify-code" 
+              inputmode="numeric" 
+              maxlength="9" 
+              placeholder="000 000" 
+              required 
+              autofocus 
+              style="width: 100%; box-sizing: border-box; height: 56px; text-align: center; font-size: 24px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: 0.25em; border-radius: 14px; border: 2px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); outline: none; transition: border-color 0.2s;"
+            />
+          </div>
+
+          <div id="verify-error-msg" style="display: none; padding: 10px 14px; border-radius: 10px; background: var(--danger-light); color: var(--danger); font-size: 12px; font-weight: 700; text-align: center;"></div>
+
+          <button 
+            type="submit" 
+            id="btn-submit-verify" 
+            style="width: 100%; padding: 14px; border-radius: 14px; border: none; background: var(--brand-primary); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.3); transition: all 0.2s;"
+          >
+            Verificar y Entrar
+          </button>
+        </form>
+
+        <div style="text-align: center; border-top: 1px solid var(--border-main); padding-top: 16px;">
+          <button 
+            type="button" 
+            id="btn-toggle-backup-mode" 
+            style="background: none; border: none; font-size: 12px; font-weight: 700; color: var(--brand-primary); cursor: pointer;"
+          >
+            ¿No tienes acceso a tu app? Usar código de respaldo
+          </button>
+        </div>
+      </div>
+
+      <!-- MODE 2: SETUP (Configuración Inicial Obligatoria) -->
+      <div id="container-setup" style="display: none; flex-direction: column; gap: 22px;">
+        <div style="text-align: center;">
+          <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(5, 205, 153, 0.15); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+            Configurar 2FA Obligatorio
+          </h2>
+          <p style="margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+            Por seguridad de Kaupaloki, todas las cuentas deben activar la autenticación de dos factores antes de continuar.
+          </p>
+        </div>
+
+        <!-- Step 1: Scan QR Code -->
+        <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 20px; border: 1px solid var(--border-main); text-align: center;">
+          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--brand-primary); margin-bottom: 12px;">
+            Paso 1: Escanea con tu App Authenticator
+          </div>
+          
+          <div style="display: flex; justify-content: center; margin-bottom: 14px;">
+            <div style="padding: 10px; background: #fff; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: inline-block;">
+              <img id="setup-qr-img" src="" alt="Código QR 2FA" style="width: 160px; height: 160px; display: block;" />
+            </div>
+          </div>
+
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+            ¿No puedes escanear? Copia esta clave secreta en tu aplicación:
+          </div>
+          <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--bg-card); padding: 6px 12px; border-radius: 10px; border: 1px solid var(--border-main);">
+            <code id="setup-secret-text" style="font-size: 13px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); letter-spacing: 0.08em;">
+              Cargando...
+            </code>
+            <button type="button" id="btn-copy-secret" title="Copiar clave secreta" style="background: none; border: none; cursor: pointer; color: var(--brand-primary); display: flex; align-items: center; padding: 2px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Verification Input -->
+        <form id="form-setup-verify" style="display: flex; flex-direction: column; gap: 16px;">
+          <div>
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px; text-align: center;">
+              Paso 2: Ingresa el código de 6 dígitos de la app
+            </div>
+            <input 
+              type="text" 
+              id="input-setup-code" 
+              inputmode="numeric" 
+              maxlength="6" 
+              placeholder="000000" 
+              required 
+              style="width: 100%; box-sizing: border-box; height: 52px; text-align: center; font-size: 22px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: 0.25em; border-radius: 14px; border: 2px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); outline: none;"
+            />
+          </div>
+
+          <div id="setup-error-msg" style="display: none; padding: 10px 14px; border-radius: 10px; background: var(--danger-light); color: var(--danger); font-size: 12px; font-weight: 700; text-align: center;"></div>
+
+          <!-- Step 3: Backup Codes Card -->
+          <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 18px; border: 1px solid var(--border-main);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">
+                Paso 3: Códigos de Respaldo de Emergencia
+              </div>
+              <button type="button" id="btn-copy-backup-codes" style="background: none; border: none; color: var(--brand-primary); font-size: 11px; font-weight: 700; cursor: pointer;">
+                Copiar Todos
+              </button>
+            </div>
+            <p style="margin: 0 0 10px 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+              Guarda estos 8 códigos en un lugar seguro. Si pierdes tu celular, podrás utilizarlos para acceder a tu cuenta.
+            </p>
+            <div id="setup-backup-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; color: var(--text-primary);">
+              <!-- Generated backup codes -->
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            id="btn-submit-setup" 
+            style="width: 100%; padding: 14px; border-radius: 14px; border: none; background: var(--brand-primary); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.3); transition: all 0.2s;"
+          >
+            Activar 2FA y Entrar
+          </button>
+        </form>
+
+      </div>
+
+    </div>
+
+    <!-- Security footnote -->
+    <div style="margin-top: 24px; font-size: 12px; color: var(--text-muted); text-align: center;">
+      Kaupaloki © {new Date().getFullYear()} — Plataforma Contable y Cambiaria Privada.
+    </div>
+
+  </div>
+
+  <style>
+    .theme-logo-light {
+      display: none;
+    }
+    .theme-logo-dark {
+      display: block;
+    }
+    :global(html:not(.dark)) .theme-logo-light {
+      display: block !important;
+    }
+    :global(html:not(.dark)) .theme-logo-dark {
+      display: none !important;
+    }
+  </style>
+
+  <script>
+    import { supabase } from '../lib/supabase';
+    import { 
+      generateBase32Secret, 
+      generateBackupCodes, 
+      verifyTotpCode, 
+      buildOtpAuthUri 
+    } from '../utils/totp';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const modeParam = urlParams.get('mode') || '';
+
+    const containerVerify = document.getElementById('container-verify');
+    const containerSetup = document.getElementById('container-setup');
+
+    // Verify elements
+    const formVerify = document.getElementById('form-verify-2fa');
+    const inputVerifyCode = document.getElementById('input-verify-code') as HTMLInputElement | null;
+    const verifyErrorMsg = document.getElementById('verify-error-msg');
+    const btnSubmitVerify = document.getElementById('btn-submit-verify') as HTMLButtonElement | null;
+    const btnToggleBackupMode = document.getElementById('btn-toggle-backup-mode');
+
+    // Setup elements
+    const formSetup = document.getElementById('form-setup-verify');
+    const setupQrImg = document.getElementById('setup-qr-img') as HTMLImageElement | null;
+    const setupSecretText = document.getElementById('setup-secret-text');
+    const btnCopySecret = document.getElementById('btn-copy-secret');
+    const inputSetupCode = document.getElementById('input-setup-code') as HTMLInputElement | null;
+    const setupErrorMsg = document.getElementById('setup-error-msg');
+    const btnSubmitSetup = document.getElementById('btn-submit-setup') as HTMLButtonElement | null;
+    const setupBackupGrid = document.getElementById('setup-backup-grid');
+    const btnCopyBackupCodes = document.getElementById('btn-copy-backup-codes');
+
+    let currentUserProfile: any = null;
+    let generatedSecret = '';
+    let generatedBackupCodes: string[] = [];
+
+    async function init2FA() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.replace('/login');
+        return;
+      }
+
+      const email = session.user.email?.toLowerCase().trim();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('email', email || '')
+        .maybeSingle();
+
+      currentUserProfile = profile;
+
+      // Determine mode:
+      // If profile already has 2FA enabled AND modeParam !== 'setup', show verify mode
+      const has2FA = profile?.two_factor_enabled && profile?.two_factor_secret;
+
+      if (has2FA && modeParam !== 'setup') {
+        // Mode Verify
+        if (containerVerify) containerVerify.style.display = 'flex';
+        if (containerSetup) containerSetup.style.display = 'none';
+      } else {
+        // Mode Setup (Mandatory enrollment)
+        if (containerSetup) containerSetup.style.display = 'flex';
+        if (containerVerify) containerVerify.style.display = 'none';
+        initSetupMode(email || 'usuario@kaupaloki.co');
+      }
+    }
+
+    function initSetupMode(email: string) {
+      generatedSecret = currentUserProfile?.two_factor_secret || generateBase32Secret(16);
+      generatedBackupCodes = (Array.isArray(currentUserProfile?.two_factor_backup_codes) && currentUserProfile.two_factor_backup_codes.length > 0)
+        ? currentUserProfile.two_factor_backup_codes
+        : generateBackupCodes(8);
+
+      if (setupSecretText) setupSecretText.textContent = generatedSecret;
+
+      const otpUri = buildOtpAuthUri(email, generatedSecret, 'Kaupaloki');
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpUri)}`;
+      if (setupQrImg) setupQrImg.src = qrUrl;
+
+      if (setupBackupGrid) {
+        setupBackupGrid.innerHTML = generatedBackupCodes.map(code => `
+          <div style="background: var(--bg-card); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-main); text-align: center;">
+            ${code}
+          </div>
+        `).join('');
+      }
+    }
+
+    // Copy secret
+    btnCopySecret?.addEventListener('click', () => {
+      navigator.clipboard.writeText(generatedSecret);
+      alert('Clave secreta copiada al portapapeles');
+    });
+
+    // Copy backup codes
+    btnCopyBackupCodes?.addEventListener('click', () => {
+      navigator.clipboard.writeText(generatedBackupCodes.join('\n'));
+      alert('8 Códigos de respaldo copiados al portapapeles');
+    });
+
+    // Handle Setup Submission
+    formSetup?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!inputSetupCode) return;
+      const code = inputSetupCode.value.trim();
+
+      const isValid = await verifyTotpCode(generatedSecret, code);
+      if (!isValid) {
+        if (setupErrorMsg) {
+          setupErrorMsg.textContent = 'Código incorrecto. Revisa la hora de tu celular e ingresa los 6 dígitos actuales.';
+          setupErrorMsg.style.display = 'block';
+        }
+        return;
+      }
+
+      if (btnSubmitSetup) {
+        btnSubmitSetup.disabled = true;
+        btnSubmitSetup.textContent = 'Guardando configuración 2FA...';
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await supabase.from('profiles').update({
+            two_factor_enabled: true,
+            two_factor_secret: generatedSecret,
+            two_factor_backup_codes: generatedBackupCodes
+          }).ilike('email', session.user.email || '');
+        }
+
+        sessionStorage.setItem('kaupaloki_2fa_verified', 'true');
+        window.location.replace('/');
+      } catch (err: any) {
+        if (setupErrorMsg) {
+          setupErrorMsg.textContent = 'Error al activar 2FA: ' + (err?.message || err);
+          setupErrorMsg.style.display = 'block';
+        }
+        if (btnSubmitSetup) {
+          btnSubmitSetup.disabled = false;
+          btnSubmitSetup.textContent = 'Activar 2FA y Entrar';
+        }
+      }
+    });
+
+    // Handle Verify Submission
+    formVerify?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!inputVerifyCode) return;
+      const entered = inputVerifyCode.value.trim().toUpperCase();
+
+      const secret = currentUserProfile?.two_factor_secret;
+      const backupCodes: string[] = Array.isArray(currentUserProfile?.two_factor_backup_codes) 
+        ? currentUserProfile.two_factor_backup_codes 
+        : [];
+
+      // Check TOTP code
+      let isMatch = false;
+      let usedBackupCode = false;
+
+      if (entered.length === 6 && /^\d+$/.test(entered) && secret) {
+        isMatch = await verifyTotpCode(secret, entered);
+      }
+
+      // Check Backup code
+      if (!isMatch && backupCodes.includes(entered)) {
+        isMatch = true;
+        usedBackupCode = true;
+      }
+
+      if (!isMatch) {
+        if (verifyErrorMsg) {
+          verifyErrorMsg.textContent = 'Código de seguridad incorrecto o expirado.';
+          verifyErrorMsg.style.display = 'block';
+        }
+        return;
+      }
+
+      if (btnSubmitVerify) {
+        btnSubmitVerify.disabled = true;
+        btnSubmitVerify.textContent = 'Acceso concedido...';
+      }
+
+      // If used backup code, remove it from list
+      if (usedBackupCode && currentUserProfile?.email) {
+        const updatedCodes = backupCodes.filter(c => c !== entered);
+        await supabase.from('profiles').update({
+          two_factor_backup_codes: updatedCodes
+        }).ilike('email', currentUserProfile.email);
+      }
+
+      sessionStorage.setItem('kaupaloki_2fa_verified', 'true');
+      window.location.replace('/');
+    });
+
+    btnToggleBackupMode?.addEventListener('click', () => {
+      if (!inputVerifyCode) return;
+      inputVerifyCode.value = '';
+      inputVerifyCode.maxLength = 12;
+      inputVerifyCode.placeholder = 'XXXX-XXXX';
+      inputVerifyCode.focus();
+      alert('Ingresa uno de tus códigos de respaldo de 8 caracteres (formato XXXX-XXXX)');
+    });
+
+    init2FA();
+  </script>
+</Layout>

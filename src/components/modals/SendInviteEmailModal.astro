@@ -1,0 +1,59 @@
+---
+---
+
+<!-- MODAL: ENVIAR INVITACIÓN POR CORREO -->
+<div 
+  id="modal-send-invite-backdrop" 
+  style="display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(6px); align-items: center; justify-content: center; padding: 20px;"
+>
+  <div 
+    style="width: 100%; max-width: 440px; background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-main); padding: 28px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: 18px;"
+  >
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 42px; height: 42px; border-radius: 12px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary);">Enviar Invitación</h3>
+          <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">Notificación de acceso</p>
+        </div>
+      </div>
+      <button id="btn-close-send-invite-modal" type="button" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+
+    <div style="background: var(--bg-card-secondary); border-radius: 14px; padding: 16px; border: 1px solid var(--border-main);">
+      <p style="margin: 0 0 10px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+        Se enviará un correo electrónico de invitación al usuario con el enlace directo para ingresar y completar su configuración:
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px; background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-main);">
+        <span id="send-invite-user-name" style="font-size: 14px; font-weight: 700; color: var(--text-primary);">—</span>
+        <span id="send-invite-user-email" style="font-size: 12px; font-weight: 600; font-family: ui-monospace, monospace; color: var(--brand-primary);">—</span>
+      </div>
+    </div>
+
+    <div id="send-invite-status-msg" style="display: none; font-size: 12px; font-weight: 700; padding: 8px 12px; border-radius: 8px; text-align: center;"></div>
+
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
+      <button 
+        id="btn-cancel-send-invite" 
+        type="button" 
+        style="padding: 10px 18px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-secondary); font-size: 13px; font-weight: 700; cursor: pointer;"
+      >
+        Cancelar
+      </button>
+      <button 
+        id="btn-confirm-send-invite" 
+        type="button" 
+        style="padding: 10px 22px; border-radius: 12px; border: none; background: var(--brand-primary); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 24, 255, 0.25);"
+      >
+        Enviar Correo
+      </button>
+    </div>
+  </div>
+</div>

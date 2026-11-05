@@ -218,64 +218,64 @@ const { ACTIVOS_LIQUIDOS = [], metricas = {} } = Astro.props;
               </div>
             </div>
 
-            <!-- TARJETA PRINCIPAL DEL EXTRACTO (DISEÑO IDÉNTICO A LA FOTO) -->
-            <div style="background: #0B1426; border: 1px solid #1E293B; border-radius: 24px; padding: 32px 36px; color: #FFFFFF; box-shadow: 0 18px 36px rgba(0,0,0,0.25);">
+            <!-- TARJETA PRINCIPAL DEL EXTRACTO (DISEÑO ADAPTABLE A TEMA CLARO Y OSCURO) -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 32px 36px; color: var(--text-primary); box-shadow: var(--shadow-card);">
               
               <!-- Fila Superior: SALDO DISPONIBLE (izquierda) y SALDO TOTAL (derecha) -->
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 36px;">
                 <div>
-                  <div style="font-size: 11px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
+                  <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
                     SALDO DISPONIBLE
                   </div>
-                  <div id="extract-card-saldo-disp" style="font-size: 42px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1; letter-spacing: -0.02em;">
+                  <div id="extract-card-saldo-disp" style="font-size: 42px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1; letter-spacing: -0.02em; color: var(--text-primary);">
                     0
                   </div>
                 </div>
 
                 <div style="text-align: right;">
-                  <div style="font-size: 11px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
+                  <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
                     SALDO TOTAL
                   </div>
-                  <div id="extract-card-saldo-total" style="font-size: 26px; font-weight: 800; font-family: ui-monospace, monospace; color: #FFFFFF;">
+                  <div id="extract-card-saldo-total" style="font-size: 26px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
                     839
                   </div>
                 </div>
               </div>
 
               <!-- Fila Inferior: 4 Columnas (TITULAR, INSTITUCIÓN, CUENTA, TARIFAS) -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; border-top: 1px solid var(--border-main); padding-top: 24px;">
                 <div>
-                  <div style="font-size: 10px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
                     TITULAR
                   </div>
-                  <div id="extract-card-titular" style="font-size: 13px; font-weight: 700; color: #FFFFFF;">
+                  <div id="extract-card-titular" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">
                     Coinsenda-Kaupaloki
                   </div>
                 </div>
 
                 <div>
-                  <div style="font-size: 10px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
                     INSTITUCIÓN
                   </div>
-                  <div id="extract-card-institucion" style="font-size: 13px; font-weight: 700; color: #FFFFFF; text-transform: uppercase;">
+                  <div id="extract-card-institucion" style="font-size: 13px; font-weight: 700; color: var(--text-primary); text-transform: uppercase;">
                     COINSENDA
                   </div>
                 </div>
 
                 <div>
-                  <div style="font-size: 10px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
                     CUENTA
                   </div>
-                  <div id="extract-card-cuenta" style="font-size: 13px; font-weight: 700; color: #FFFFFF; font-family: ui-monospace, monospace;">
+                  <div id="extract-card-cuenta" style="font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: ui-monospace, monospace;">
                     N/A
                   </div>
                 </div>
 
                 <div style="text-align: right;">
-                  <div style="font-size: 10px; font-weight: 700; color: #8A92A6; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
                     TARIFAS
                   </div>
-                  <span id="extract-card-tarifas" style="display: inline-block; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #E2E8F0; font-family: ui-monospace, monospace;">
+                  <span id="extract-card-tarifas" style="display: inline-block; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; background: var(--bg-card-secondary); border: 1px solid var(--border-main); color: var(--text-secondary); font-family: ui-monospace, monospace;">
                     % FEE $1000 COP
                   </span>
                 </div>
@@ -292,15 +292,15 @@ const { ACTIVOS_LIQUIDOS = [], metricas = {} } = Astro.props;
               </div>
 
               <!-- Tabla de Movimientos -->
-              <div style="background: #0B1426; border-radius: 16px; border: 1px solid #1E293B; overflow-x: auto;">
+              <div style="background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-main); overflow-x: auto; box-shadow: var(--shadow-card);">
                 <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
                   <thead>
-                    <tr style="border-bottom: 1px solid #1E293B; background: #0F172A;">
-                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8A92A6; white-space: nowrap;">FECHA</th>
-                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8A92A6; white-space: nowrap;">ORIGEN</th>
-                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8A92A6;">CONCEPTO</th>
-                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8A92A6; text-align: right; white-space: nowrap;">MONTO</th>
-                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8A92A6; text-align: right; white-space: nowrap;">BALANCE</th>
+                    <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
+                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;">FECHA</th>
+                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;">ORIGEN</th>
+                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">CONCEPTO</th>
+                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right; white-space: nowrap;">MONTO</th>
+                      <th style="padding: 14px 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right; white-space: nowrap;">BALANCE</th>
                     </tr>
                   </thead>
                   <tbody id="extract-movements-tbody">

@@ -82,6 +82,7 @@ import EditUserPermissionsModal from '../components/modals/EditUserPermissionsMo
 import ShareModal from '../components/modals/ShareModal.astro';
 import UsersModal from '../components/modals/UsersModal.astro';
 import AirtableModal from '../components/modals/AirtableModal.astro';
+import SendInviteEmailModal from '../components/modals/SendInviteEmailModal.astro';
 
 ---
 
@@ -245,24 +246,24 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         </nav>
       </div>
 
-      <!-- Bottom Card: Airtable Info -->
+      <!-- Bottom: Botón de Sincronización Airtable -->
       <div class="sidebar-bottom-card" style="padding: 16px; border-top: 1px solid var(--border-main);">
-        <div id="sidebar-airtable-card" title="Configurar o sincronizar Airtable en tiempo real" style="background: var(--bg-card-secondary); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; border: 1px solid var(--border-main); transition: all 0.2s;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span id="sidebar-sync-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px var(--success);"></span>
-              <span id="sidebar-sync-status" style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Airtable En Vivo</span>
-            </div>
-            <span style="font-size: 10px; font-weight: 700; color: var(--brand-primary); background: var(--brand-primary-light); padding: 2px 6px; border-radius: 6px;">Config</span>
+        <button 
+          id="btn-sidebar-sync-airtable" 
+          type="button" 
+          title="Sincronizar datos con Airtable ahora"
+          style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
+        >
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="sidebar-sync-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px var(--success); flex-shrink: 0;"></span>
+            <span id="sidebar-sync-status" style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Sincronizar</span>
           </div>
-          <p style="margin: 0; font-size: 11px; color: var(--text-secondary); font-family: ui-monospace, monospace; word-break: break-all;">
-            Base: appncUKgTkDojFj4B
-          </p>
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-main); padding-top: 8px;">
-            <span id="sidebar-last-sync">Sincronizado</span>
-            <span>v1.3.0</span>
-          </div>
-        </div>
+          <svg id="sidebar-sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--brand-primary); transition: transform 0.5s ease;">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
       </div>
     </aside>
 
@@ -296,26 +297,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         </div>
 
         <!-- Right: Floating Horizon Capsule Island -->
-        <div class="horizon-capsule" style="display: flex; align-items: center; gap: 10px; background: var(--bg-card); border-radius: 35px; padding: 8px 14px; box-shadow: var(--shadow-nav); border: 1px solid var(--border-main); flex-shrink: 0;">
-          
-          <!-- Live Sync Button with Status Text -->
-          <button id="btn-sync-now" title="Sincronizar con Airtable en tiempo real (Click para sincronizar)" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; background: var(--bg-card-secondary); border: 1px solid var(--border-main); color: var(--text-primary); cursor: pointer; position: relative; transition: all 0.2s; font-size: 11px; font-weight: 700;">
-            <svg id="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="color: var(--brand-primary);">
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <polyline points="1 20 1 14 7 14"></polyline>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-            </svg>
-            <span id="sync-text">En Vivo</span>
-            <span id="sync-dot" style="width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 6px var(--success);"></span>
-          </button>
-
-          <!-- Airtable Token Config Button -->
-          <button id="btn-open-airtable-config" title="Configurar Token PAT de Airtable" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: transparent; border: none; color: var(--text-muted); cursor: pointer; transition: color 0.2s;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
+        <div class="horizon-capsule" style="display: flex; align-items: center; gap: 10px; background: var(--bg-card); border-radius: 35px; padding: 6px 12px; box-shadow: var(--shadow-nav); border: 1px solid var(--border-main); flex-shrink: 0;">
 
           <!-- Theme Toggle (Moon / Sun clean vector icons) -->
           <button id="btn-theme-toggle" title="Cambiar tema Claro / Oscuro" style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: transparent; border: none; color: var(--text-muted); cursor: pointer; transition: color 0.2s;">
@@ -1290,6 +1272,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       <ShareModal />
       <UsersModal />
       <AirtableModal />
+      <SendInviteEmailModal />
 
       <!-- Footer Horizon -->
       <footer style="margin-top: 36px; padding: 20px 0; border-top: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; font-size: 13px; color: var(--text-muted);">
@@ -1730,6 +1713,24 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     const currentTarget = window.location.pathname + window.location.search;
     window.location.replace(`/login?redirect=${encodeURIComponent(currentTarget)}`);
     await new Promise(() => {}); // Detener ejecución subsecuente en este módulo
+  }
+
+  // 2FA Guard: Verificar 2FA obligatorio para todos los usuarios
+  const is2FAVerified = sessionStorage.getItem('kaupaloki_2fa_verified') === 'true';
+  if (!is2FAVerified && activeUser) {
+    const { data: userProfCheck } = await supabase
+      .from('profiles')
+      .select('two_factor_enabled, two_factor_secret')
+      .ilike('email', activeUser.email || '')
+      .maybeSingle();
+
+    if (userProfCheck?.two_factor_enabled && userProfCheck?.two_factor_secret) {
+      window.location.replace('/2fa?mode=verify');
+      await new Promise(() => {});
+    } else {
+      window.location.replace('/2fa?mode=setup');
+      await new Promise(() => {});
+    }
   }
 
   // Quitar overlay de verificación una vez confirmada la sesión activa
@@ -4942,250 +4943,289 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       return;
     }
 
-    // Permisos del usuario actual que está viendo la tabla (por defecto Super Admin mientras hidrata sesión)
+    cachedAllUsers = allUsers;
+    renderUsersTable();
+  }
+
+  let cachedAllUsers: any[] = [];
+  let currentUsersRoleFilter = 'todos';
+
+  document.querySelectorAll('.btn-user-role-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.btn-user-role-filter').forEach(b => {
+        b.classList.remove('active');
+        (b as HTMLElement).style.background = 'var(--bg-card-secondary)';
+        (b as HTMLElement).style.color = 'var(--text-secondary)';
+      });
+      btn.classList.add('active');
+      (btn as HTMLElement).style.background = 'var(--brand-primary)';
+      (btn as HTMLElement).style.color = '#fff';
+      currentUsersRoleFilter = btn.getAttribute('data-filter-role') || 'todos';
+      renderUsersTable();
+    });
+  });
+
+  function renderUsersTable() {
+    if (!usuariosViewTableBody) return;
     const isSuperAdmin = !currentUserProfile || isSuperAdminUser(currentUserProfile?.email) || Boolean(currentUserProfile?.is_super_admin);
     const isAdmin = isSuperAdmin || currentUserProfile?.role === 'administrador';
 
-    if (usuariosViewTableBody) {
-      usuariosViewTableBody.innerHTML = allUsers.map((u: any, idx: number) => {
-        const isAdm = u.role === 'administrador';
-        const isClient = u.role === 'client' || u.role === 'cliente';
-        const isDispersor = u.role === 'dispersor' || u.role === 'dispersador';
-        const isOp = !isAdm && !isClient && !isDispersor;
-        const isTargetSuperAdmin = isSuperAdminUser(u.email);
-        const currentEmail = (currentUserProfile?.email || SUPER_ADMIN_EMAIL).toLowerCase().trim();
-        const isSelf = Boolean(u.email && u.email.toLowerCase().trim() === currentEmail);
-
-        // LÓGICA DE PERMISOS PARA ELIMINAR:
-        // 1. Nadie puede eliminar al Super Admin (desarrollor@jeroallsolutions.com) ni a su propia cuenta
-        // 2. Solo el Super Admin puede eliminar otros administradores
-        // 3. Los administradores normales pueden eliminar operadores y clientes, pero NO a administradores
-        let canDelete = false;
-        let deleteTooltip = '';
-
-        if (isSelf) {
-          canDelete = false;
-          deleteTooltip = 'No puedes eliminar tu propia cuenta';
-        } else if (isTargetSuperAdmin) {
-          canDelete = false;
-          deleteTooltip = 'El Super Admin (desarrollor@jeroallsolutions.com) está protegido contra eliminación';
-        } else if (isAdm) {
-          if (isSuperAdmin) {
-            canDelete = true;
-            deleteTooltip = 'Eliminar administrador (permitido por Super Admin)';
-          } else {
-            canDelete = false;
-            deleteTooltip = 'Solo el Super Admin (desarrollor@jeroallsolutions.com) puede eliminar otros administradores';
-          }
-        } else {
-          // Es operador o cliente
-          if (isAdmin) {
-            canDelete = true;
-            deleteTooltip = `Eliminar ${isClient ? 'cliente' : 'operador'}`;
-          } else {
-            canDelete = false;
-            deleteTooltip = 'Se requieren permisos de administrador';
-          }
-        }
-
-        // LÓGICA DE PERMISOS PARA EDITAR:
-        // Super Admin puede editar a todos (excepto degradarse a sí mismo de Super Admin).
-        // Admin normal puede editar operadores y clientes, y su propio perfil.
-        const canEditPermissions = !isTargetSuperAdmin && (isSuperAdmin || (isAdmin && (!isAdm || isSelf)));
-
-        const roleBg = isTargetSuperAdmin 
-          ? 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)' 
-          : (isAdm ? 'var(--brand-primary-light)' : (isDispersor ? 'rgba(67, 24, 255, 0.12)' : (isClient ? 'rgba(67, 24, 255, 0.08)' : 'rgba(5, 205, 153, 0.12)')));
-        const roleColor = isTargetSuperAdmin ? '#FFFFFF' : (isAdm ? 'var(--brand-primary)' : (isDispersor ? 'var(--brand-primary)' : (isClient ? 'var(--brand-primary)' : 'var(--success)')));
-        const currencies: string[] = Array.isArray(u.authorized_currencies) ? u.authorized_currencies : [];
-        const isCompleted = u.status === 'activo';
-        const inviteLink = `https://app.kaupaloki.co/onboarding?email=${encodeURIComponent(u.email)}`;
-
-        // País siempre SIN emoji (solo código ISO limpio)
-        const countryKey = String(u.pais || 'COL').replace(/[^a-zA-Z]/g, '').toUpperCase() || 'COL';
-        const countryBadge = countryKey;
-        const encodedCurrencies = encodeURIComponent(JSON.stringify(currencies));
-
-        return `
-          <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
-            <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 12px; vertical-align: middle;">
-              ${idx + 1}
-            </td>
-            <td style="padding: 14px 18px; vertical-align: middle;">
-              <span style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 8px; border-radius: 6px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2);">
-                ${u.operatorCode}
-              </span>
-            </td>
-            <td style="padding: 14px 18px; vertical-align: middle;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="width: 34px; height: 34px; border-radius: 50%; background: ${isTargetSuperAdmin ? 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)' : (isAdm ? 'linear-gradient(135deg, #868CFF 0%, #4318FF 100%)' : 'var(--bg-card-secondary)')}; color: ${(isTargetSuperAdmin || isAdm) ? '#fff' : 'var(--brand-primary)'}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; box-shadow: ${(isTargetSuperAdmin || isAdm) ? '0 2px 8px rgba(67, 24, 255, 0.25)' : 'none'};">
-                  ${(u.nombre || u.email || 'U').charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div style="font-weight: 700; color: var(--text-primary); font-size: 13px; display: flex; align-items: center; gap: 6px;">
-                    <span>${u.nombre}</span>
-                    ${isSelf ? '<span style="font-size: 9px; padding: 1px 6px; border-radius: 4px; background: var(--brand-primary-light); color: var(--brand-primary); font-weight: 800;">TÚ</span>' : ''}
-                  </div>
-                  <div style="font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace;">${u.email}</div>
-                </div>
-              </div>
-            </td>
-            <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
-              <span style="font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; background: ${roleBg}; color: ${roleColor}; text-transform: uppercase; letter-spacing: 0.03em;">
-                ${isTargetSuperAdmin ? '⭐ Super Admin' : (isDispersor ? 'DISPERSOR' : (isClient ? 'Cliente' : (isAdm ? 'Administrador' : 'Operador')))}
-              </span>
-            </td>
-            <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
-              <span style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 9px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); white-space: nowrap;">
-                ${countryBadge}
-              </span>
-            </td>
-            <td style="padding: 14px 18px; vertical-align: middle; position: relative; overflow: visible;">
-              ${(isAdm || isTargetSuperAdmin) ? `
-                <span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 4px;">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  Todas (Admin)
-                </span>
-              ` : (isDispersor) ? `
-                <span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2); display: inline-flex; align-items: center; gap: 4px;">
-                  Solo Dispersiones
-                </span>
-              ` : (isClient ? `
-                <span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2); display: inline-flex; align-items: center; gap: 4px;">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  Todas (Cliente)
-                </span>
-              ` : `
-                <div style="position: relative; display: inline-block;">
-                  <button 
-                    type="button" 
-                    class="btn-toggle-operator-currencies" 
-                    data-popover-id="operator-curr-popover-${idx}"
-                    title="Click para ver las divisas autorizadas"
-                    style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 14px; border: 1.5px solid rgba(67, 24, 255, 0.25); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 11px; font-weight: 700; transition: all 0.2s;"
-                  >
-                    <span>${currencies.length} ${currencies.length === 1 ? 'Divisa' : 'Divisas'}</span>
-                    <svg class="chevron-currencies-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s ease;">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
-
-                  <div 
-                    id="operator-curr-popover-${idx}" 
-                    class="operator-currencies-popover" 
-                    style="display: none; position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; min-width: 210px; max-width: 260px; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 14px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.18);"
-                  >
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                      <span>Divisas Habilitadas</span>
-                      <span style="background: var(--brand-primary-light); color: var(--brand-primary); padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 800;">${currencies.length}</span>
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: ${canEditPermissions ? '10px' : '0'};">
-                      ${currencies.length > 0 ? currencies.map(c => `
-                        <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; display: inline-flex; align-items: center; gap: 4px;">
-                          <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--brand-primary);"></span>
-                          ${c}
-                        </span>
-                      `).join('') : '<span style="font-size: 11px; color: var(--text-muted);">Ninguna divisa asignada</span>'}
-                    </div>
-                    ${canEditPermissions ? `
-                      <button
-                        type="button"
-                        class="btn-edit-user-permissions"
-                        data-email="${u.email}"
-                        data-nombre="${u.nombre}"
-                        data-role="${u.role}"
-                        data-pais="${countryKey}"
-                        data-airtable-id="${u.airtableRecordId || ''}"
-                        data-currencies="${encodedCurrencies}"
-                        style="width: 100%; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(67, 24, 255, 0.25); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;"
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M12 20h9"></path>
-                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                        </svg>
-                        <span>Editar divisas / permisos</span>
-                      </button>
-                    ` : ''}
-                  </div>
-                </div>
-              `)}
-            </td>
-            <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
-              <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: ${isCompleted ? 'var(--success)' : 'var(--warning)'};">
-                <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor;"></span>
-                ${isCompleted ? 'Activo' : 'Invitado'}
-              </span>
-            </td>
-            <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
-              <div style="display: inline-flex; align-items: center; gap: 6px;">
-                <button 
-                  class="btn-copy-user-invite" 
-                  data-link="${inviteLink}" 
-                  title="Copiar link de invitación"
-                  style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                  <span>Link</span>
-                </button>
-
-                ${canEditPermissions ? `
-                  <button 
-                    type="button"
-                    class="btn-edit-user-permissions" 
-                    data-email="${u.email}" 
-                    data-nombre="${u.nombre}" 
-                    data-role="${u.role}"
-                    data-pais="${countryKey}"
-                    data-airtable-id="${u.airtableRecordId || ''}"
-                    data-currencies="${encodedCurrencies}"
-                    title="Editar permisos, rol, país y divisas autorizadas"
-                    style="padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(67, 24, 255, 0.28); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 20h9"></path>
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                    </svg>
-                    <span>Editar</span>
-                  </button>
-                ` : ''}
-
-                ${canDelete ? `
-                  <button 
-                    class="btn-delete-user" 
-                    data-email="${u.email}" 
-                    data-nombre="${u.nombre}" 
-                    data-role="${u.role}"
-                    data-airtable-id="${u.airtableRecordId || ''}"
-                    title="${deleteTooltip}"
-                    style="padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(238, 93, 80, 0.3); background: var(--danger-light); color: var(--danger); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    <span>Eliminar</span>
-                  </button>
-                ` : `
-                  <span 
-                    title="${deleteTooltip}" 
-                    style="padding: 5px 8px; border-radius: 8px; background: var(--bg-card-secondary); color: var(--text-muted); font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--border-main); cursor: not-allowed;"
-                  >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    <span>${isSelf ? 'Tú' : 'Protegido'}</span>
-                  </span>
-                `}
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
+    let filtered = [...cachedAllUsers];
+    if (currentUsersRoleFilter === 'superadmin') {
+      filtered = filtered.filter(u => u.is_super_admin);
+    } else if (currentUsersRoleFilter === 'administrador') {
+      filtered = filtered.filter(u => (u.role === 'administrador' || u.role === 'admin') && !u.is_super_admin);
+    } else if (currentUsersRoleFilter === 'operador') {
+      filtered = filtered.filter(u => u.role === 'operador' && !u.is_super_admin);
+    } else if (currentUsersRoleFilter === 'dispersor') {
+      filtered = filtered.filter(u => u.role === 'dispersor');
+    } else if (currentUsersRoleFilter === 'cliente') {
+      filtered = filtered.filter(u => u.role === 'client' || u.role === 'cliente');
     }
+
+    if (filtered.length === 0) {
+      usuariosViewTableBody.innerHTML = `
+        <tr>
+          <td colspan="8" style="padding: 28px; text-align: center; color: var(--text-muted); font-size: 13px;">
+            No hay usuarios registrados con el rol seleccionado.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    usuariosViewTableBody.innerHTML = filtered.map((u: any, idx: number) => {
+      const isAdm = u.role === 'administrador';
+      const isClient = u.role === 'client' || u.role === 'cliente';
+      const isDispersor = u.role === 'dispersor' || u.role === 'dispersador';
+      const isOp = !isAdm && !isClient && !isDispersor;
+      const isTargetSuperAdmin = isSuperAdminUser(u.email);
+      const currentEmail = (currentUserProfile?.email || SUPER_ADMIN_EMAIL).toLowerCase().trim();
+      const isSelf = Boolean(u.email && u.email.toLowerCase().trim() === currentEmail);
+
+      let canDelete = false;
+      let deleteTooltip = '';
+
+      if (isSelf) {
+        canDelete = false;
+        deleteTooltip = 'No puedes eliminar tu propia cuenta';
+      } else if (isTargetSuperAdmin) {
+        canDelete = false;
+        deleteTooltip = 'El Super Admin (desarrollor@jeroallsolutions.com) está protegido contra eliminación';
+      } else if (isAdm) {
+        if (isSuperAdmin) {
+          canDelete = true;
+          deleteTooltip = 'Eliminar administrador (permitido por Super Admin)';
+        } else {
+          canDelete = false;
+          deleteTooltip = 'Solo el Super Admin (desarrollor@jeroallsolutions.com) puede eliminar otros administradores';
+        }
+      } else {
+        if (isAdmin) {
+          canDelete = true;
+          deleteTooltip = `Eliminar ${isClient ? 'cliente' : 'operador'}`;
+        } else {
+          canDelete = false;
+          deleteTooltip = 'Se requieren permisos de administrador';
+        }
+      }
+
+      const canEditPermissions = !isTargetSuperAdmin && (isSuperAdmin || (isAdmin && (!isAdm || isSelf)));
+
+      const roleBg = isTargetSuperAdmin 
+        ? 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)' 
+        : (isAdm ? 'var(--brand-primary-light)' : (isDispersor ? 'rgba(67, 24, 255, 0.12)' : (isClient ? 'rgba(67, 24, 255, 0.08)' : 'rgba(5, 205, 153, 0.12)')));
+      const roleColor = isTargetSuperAdmin ? '#FFFFFF' : (isAdm ? 'var(--brand-primary)' : (isDispersor ? 'var(--brand-primary)' : (isClient ? 'var(--brand-primary)' : 'var(--success)')));
+      const currencies: string[] = Array.isArray(u.authorized_currencies) ? u.authorized_currencies : [];
+      const isCompleted = u.status === 'activo';
+      const inviteLink = `https://app.kaupaloki.co/onboarding?email=${encodeURIComponent(u.email)}`;
+      const countryKey = String(u.pais || 'COL').replace(/[^a-zA-Z]/g, '').toUpperCase() || 'COL';
+      const countryBadge = countryKey;
+      const encodedCurrencies = encodeURIComponent(JSON.stringify(currencies));
+
+      // Role distinct avatar icon
+      const avatarIconHtml = isTargetSuperAdmin
+        ? `<div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FFB547 0%, #FF8500 100%); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(255, 181, 71, 0.35);" title="Super Admin"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>`
+        : isAdm
+        ? `<div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #868CFF 0%, #4318FF 100%); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(67, 24, 255, 0.25);" title="Administrador"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>`
+        : isDispersor
+        ? `<div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #38EF7D 0%, #11998E 100%); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(17, 153, 142, 0.25);" title="Dispersor"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg></div>`
+        : isClient
+        ? `<div style="width: 36px; height: 36px; border-radius: 50%; background: var(--bg-card-secondary); border: 1.5px solid var(--border-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;" title="Cliente"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg></div>`
+        : `<div style="width: 36px; height: 36px; border-radius: 50%; background: var(--bg-card-secondary); border: 1.5px solid var(--border-main); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;" title="Operador"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div>`;
+
+      // Divisas column
+      let divisasHtml = '';
+      if (isAdm || isTargetSuperAdmin) {
+        divisasHtml = `<span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 4px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>Todas</span>`;
+      } else if (isDispersor) {
+        divisasHtml = `<span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2);">Solo Dispersiones</span>`;
+      } else if (isClient) {
+        divisasHtml = `<span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2);">Todas</span>`;
+      } else if (currencies.length === 1) {
+        divisasHtml = `<span style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 10px; border-radius: 6px; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2);">${currencies[0]}</span>`;
+      } else if (currencies.length === 0) {
+        divisasHtml = `<span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Ninguna</span>`;
+      } else {
+        divisasHtml = `
+          <div style="position: relative; display: inline-block;">
+            <button 
+              type="button" 
+              class="btn-toggle-operator-currencies" 
+              data-popover-id="operator-curr-popover-${idx}"
+              title="Click para ver las divisas autorizadas"
+              style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 14px; border: 1.5px solid rgba(67, 24, 255, 0.25); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 11px; font-weight: 700; transition: all 0.2s;"
+            >
+              <span>${currencies.length} Divisas</span>
+              <svg class="chevron-currencies-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s ease;">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            <div 
+              id="operator-curr-popover-${idx}" 
+              class="operator-currencies-popover" 
+              style="display: none; position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; min-width: 210px; max-width: 260px; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 14px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.18);"
+            >
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+                <span>Divisas Habilitadas</span>
+                <span style="background: var(--brand-primary-light); color: var(--brand-primary); padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 800;">${currencies.length}</span>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                ${currencies.map(c => `
+                  <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; display: inline-flex; align-items: center; gap: 4px;">
+                    <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--brand-primary);"></span>
+                    ${c}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+          <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 12px; vertical-align: middle;">
+            ${idx + 1}
+          </td>
+          <td style="padding: 14px 18px; vertical-align: middle;">
+            <span style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 8px; border-radius: 6px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2);">
+              ${u.operatorCode}
+            </span>
+          </td>
+          <td style="padding: 14px 18px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              ${avatarIconHtml}
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary); font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                  <span>${u.nombre}</span>
+                  ${isSelf ? '<span style="font-size: 9px; padding: 1px 6px; border-radius: 4px; background: var(--brand-primary-light); color: var(--brand-primary); font-weight: 800;">TÚ</span>' : ''}
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace;">${u.email}</div>
+              </div>
+            </div>
+          </td>
+          <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+            <span style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 9px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); white-space: nowrap;">
+              ${countryBadge}
+            </span>
+          </td>
+          <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+            <span style="font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; background: ${roleBg}; color: ${roleColor}; text-transform: uppercase; letter-spacing: 0.03em;">
+              ${isTargetSuperAdmin ? '⭐ Super Admin' : (isDispersor ? 'DISPERSOR' : (isClient ? 'Cliente' : (isAdm ? 'Administrador' : 'Operador')))}
+            </span>
+          </td>
+          <td style="padding: 14px 18px; vertical-align: middle; position: relative; overflow: visible;">
+            ${divisasHtml}
+          </td>
+          <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+            <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: ${isCompleted ? 'var(--success)' : 'var(--warning)'};">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor;"></span>
+              ${isCompleted ? 'Activo' : 'Invitado'}
+            </span>
+          </td>
+          <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+            <div style="display: inline-flex; align-items: center; gap: 6px;">
+              <button 
+                type="button"
+                class="btn-copy-user-invite" 
+                data-link="${inviteLink}" 
+                title="Copiar link de invitación"
+                style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+              </button>
+
+              <button 
+                type="button"
+                class="btn-open-send-email-modal" 
+                data-email="${u.email}"
+                data-nombre="${u.nombre}"
+                title="Enviar correo de invitación"
+                style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--brand-primary); cursor: pointer; transition: all 0.2s;"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </button>
+
+              ${canEditPermissions ? `
+                <button 
+                  type="button"
+                  class="btn-edit-user-permissions" 
+                  data-email="${u.email}" 
+                  data-nombre="${u.nombre}" 
+                  data-role="${u.role}"
+                  data-pais="${countryKey}"
+                  data-airtable-id="${u.airtableRecordId || ''}"
+                  data-currencies="${encodedCurrencies}"
+                  title="Editar permisos, rol y divisas"
+                  style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(67, 24, 255, 0.28); background: var(--brand-primary-light); color: var(--brand-primary); cursor: pointer; transition: all 0.2s;"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                  </svg>
+                </button>
+              ` : ''}
+
+              ${canDelete ? `
+                <button 
+                  type="button"
+                  class="btn-delete-user" 
+                  data-email="${u.email}" 
+                  data-nombre="${u.nombre}" 
+                  data-role="${u.role}"
+                  data-airtable-id="${u.airtableRecordId || ''}"
+                  title="${deleteTooltip}"
+                  style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(238, 93, 80, 0.3); background: var(--danger-light); color: var(--danger); cursor: pointer; transition: all 0.2s;"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              ` : `
+                <span 
+                  title="${deleteTooltip}" 
+                  style="width: 34px; height: 34px; border-radius: 10px; background: var(--bg-card-secondary); color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-main); cursor: not-allowed;"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                </span>
+              `}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
   // ==============================================================
@@ -5415,11 +5455,93 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       if (link) {
         navigator.clipboard.writeText(link);
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline><span>¡Copiado!</span>';
+        btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>';
         setTimeout(() => {
           btn.innerHTML = originalText;
         }, 1800);
       }
+    }
+  });
+
+  // ==============================================================
+  // MODAL: ENVIAR INVITACIÓN POR CORREO
+  // ==============================================================
+  const modalSendInviteBackdrop = document.getElementById('modal-send-invite-backdrop');
+  const btnCloseSendInviteModal = document.getElementById('btn-close-send-invite-modal');
+  const btnCancelSendInvite = document.getElementById('btn-cancel-send-invite');
+  const btnConfirmSendInvite = document.getElementById('btn-confirm-send-invite') as HTMLButtonElement | null;
+  const sendInviteUserName = document.getElementById('send-invite-user-name');
+  const sendInviteUserEmail = document.getElementById('send-invite-user-email');
+  const sendInviteStatusMsg = document.getElementById('send-invite-status-msg');
+
+  let pendingInviteEmail = '';
+  let pendingInviteName = '';
+
+  function openSendInviteModal(email: string, name: string) {
+    pendingInviteEmail = email;
+    pendingInviteName = name;
+    if (sendInviteUserName) sendInviteUserName.textContent = name || 'Usuario';
+    if (sendInviteUserEmail) sendInviteUserEmail.textContent = email;
+    if (sendInviteStatusMsg) {
+      sendInviteStatusMsg.style.display = 'none';
+      sendInviteStatusMsg.textContent = '';
+    }
+    if (btnConfirmSendInvite) {
+      btnConfirmSendInvite.disabled = false;
+      btnConfirmSendInvite.textContent = 'Enviar Correo';
+    }
+    if (modalSendInviteBackdrop) modalSendInviteBackdrop.style.display = 'flex';
+  }
+
+  function closeSendInviteModal() {
+    if (modalSendInviteBackdrop) modalSendInviteBackdrop.style.display = 'none';
+  }
+
+  btnCloseSendInviteModal?.addEventListener('click', closeSendInviteModal);
+  btnCancelSendInvite?.addEventListener('click', closeSendInviteModal);
+  modalSendInviteBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalSendInviteBackdrop) closeSendInviteModal();
+  });
+
+  document.addEventListener('click', (e: any) => {
+    const btn = e.target.closest('.btn-open-send-email-modal');
+    if (btn) {
+      const email = btn.getAttribute('data-email');
+      const nombre = btn.getAttribute('data-nombre');
+      if (email) openSendInviteModal(email, nombre || email);
+    }
+  });
+
+  btnConfirmSendInvite?.addEventListener('click', async () => {
+    if (!pendingInviteEmail || !btnConfirmSendInvite) return;
+    btnConfirmSendInvite.disabled = true;
+    btnConfirmSendInvite.textContent = 'Enviando...';
+    try {
+      await supabase.auth.signInWithOtp({
+        email: pendingInviteEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/onboarding?email=${encodeURIComponent(pendingInviteEmail)}`
+        }
+      });
+      if (sendInviteStatusMsg) {
+        sendInviteStatusMsg.style.display = 'block';
+        sendInviteStatusMsg.style.background = 'rgba(5, 205, 153, 0.15)';
+        sendInviteStatusMsg.style.color = 'var(--success)';
+        sendInviteStatusMsg.textContent = `¡Correo de invitación enviado exitosamente a ${pendingInviteEmail}!`;
+      }
+      setTimeout(() => {
+        closeSendInviteModal();
+      }, 1800);
+    } catch (err: any) {
+      if (sendInviteStatusMsg) {
+        sendInviteStatusMsg.style.display = 'block';
+        sendInviteStatusMsg.style.background = 'rgba(238, 93, 80, 0.15)';
+        sendInviteStatusMsg.style.color = 'var(--danger)';
+        sendInviteStatusMsg.textContent = `Invitación registrada para ${pendingInviteEmail}`;
+      }
+      setTimeout(() => {
+        closeSendInviteModal();
+      }, 1500);
     }
   });
 
@@ -5800,29 +5922,29 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     const movs = Array.isArray(activo.movimientos) ? activo.movimientos : [];
     if (tbody) {
       if (movs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="padding: 24px; text-align: center; color: #8A92A6;">No hay movimientos registrados para este activo.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">No hay movimientos registrados para este activo.</td></tr>`;
       } else {
         tbody.innerHTML = movs.map((m: any) => {
           const isNegative = m.monto < 0;
           const montoAbs = (isNegative ? '-' : '+') + fmtCopClient(Math.abs(m.monto));
           const balanceStr = fmtCopClient(Number(m.balance));
-          const montoColor = isNegative ? '#EE5D50' : '#05CD99';
+          const montoColor = isNegative ? 'var(--danger)' : 'var(--success)';
 
           return `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.15s ease;">
-              <td style="padding: 16px 20px; font-size: 13px; color: #8A92A6; font-family: ui-monospace, monospace; white-space: nowrap;">
+            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+              <td style="padding: 16px 20px; font-size: 13px; color: var(--text-secondary); font-family: ui-monospace, monospace; white-space: nowrap;">
                 ${m.fecha}
               </td>
-              <td style="padding: 16px 20px; font-size: 12px; font-weight: 700; color: #64748B; font-family: ui-monospace, monospace; white-space: nowrap;">
+              <td style="padding: 16px 20px; font-size: 12px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; white-space: nowrap;">
                 ${m.origen}
               </td>
-              <td style="padding: 16px 20px; font-size: 13px; font-weight: 700; color: #FFFFFF;">
+              <td style="padding: 16px 20px; font-size: 13px; font-weight: 700; color: var(--text-primary);">
                 ${m.concepto}
               </td>
               <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: ${montoColor}; font-size: 13px; white-space: nowrap;">
                 ${montoAbs}
               </td>
-              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: #8A92A6; font-size: 13px; white-space: nowrap;">
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: var(--text-muted); font-size: 13px; white-space: nowrap;">
                 ${balanceStr}
               </td>
             </tr>
@@ -5881,9 +6003,10 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
 
   const modalAirtableBackdrop = document.getElementById('modal-airtable-backdrop');
   const btnCloseAirtableModal = document.getElementById('btn-close-airtable-modal');
-  const btnOpenAirtableConfig = document.getElementById('btn-open-airtable-config');
-  const sidebarAirtableCard = document.getElementById('sidebar-airtable-card');
-  const btnSyncNow = document.getElementById('btn-sync-now') as HTMLButtonElement | null;
+  const btnSidebarSyncAirtable = document.getElementById('btn-sidebar-sync-airtable');
+  const sidebarSyncDot = document.getElementById('sidebar-sync-dot');
+  const sidebarSyncStatus = document.getElementById('sidebar-sync-status');
+  const sidebarSyncIcon = document.getElementById('sidebar-sync-icon');
   const airtablePatForm = document.getElementById('airtable-pat-form') as HTMLFormElement | null;
   const airtablePatInput = (document.getElementById('input-airtable-pat') || document.getElementById('airtable-pat-input')) as HTMLInputElement | null;
   const btnClearPat = document.getElementById('btn-clear-pat');
@@ -5904,23 +6027,23 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
   }
 
   function setSyncIndicator(state: 'live' | 'syncing' | 'cached' | 'error', label: string) {
-    if (syncDot) {
+    if (sidebarSyncDot) {
       if (state === 'live') {
-        syncDot.style.background = 'var(--success)';
-        syncDot.style.boxShadow = '0 0 8px var(--success)';
+        sidebarSyncDot.style.background = 'var(--success)';
+        sidebarSyncDot.style.boxShadow = '0 0 8px var(--success)';
       } else if (state === 'syncing') {
-        syncDot.style.background = '#3965FF';
-        syncDot.style.boxShadow = '0 0 8px #3965FF';
+        sidebarSyncDot.style.background = 'var(--brand-primary)';
+        sidebarSyncDot.style.boxShadow = '0 0 8px var(--brand-primary)';
       } else if (state === 'error') {
-        syncDot.style.background = 'var(--danger)';
-        syncDot.style.boxShadow = '0 0 8px var(--danger)';
+        sidebarSyncDot.style.background = 'var(--danger)';
+        sidebarSyncDot.style.boxShadow = '0 0 8px var(--danger)';
       } else {
-        syncDot.style.background = 'var(--warning)';
-        syncDot.style.boxShadow = '0 0 8px var(--warning)';
+        sidebarSyncDot.style.background = 'var(--warning)';
+        sidebarSyncDot.style.boxShadow = '0 0 8px var(--warning)';
       }
     }
-    if (syncText) {
-      syncText.textContent = label;
+    if (sidebarSyncStatus) {
+      sidebarSyncStatus.textContent = state === 'syncing' ? 'Sincronizando...' : 'Sincronizar';
     }
   }
 
@@ -5939,14 +6062,12 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     }
   }
 
-  btnOpenAirtableConfig?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openAirtableModal();
-  });
-
-  sidebarAirtableCard?.addEventListener('click', (e: any) => {
-    if (e.target.closest('#btn-sync-now') || e.target.closest('#btn-open-airtable-config')) return;
-    openAirtableModal();
+  btnSidebarSyncAirtable?.addEventListener('click', () => {
+    if (sidebarSyncIcon) (sidebarSyncIcon as HTMLElement).style.transform = 'rotate(360deg)';
+    setTimeout(() => {
+      if (sidebarSyncIcon) (sidebarSyncIcon as HTMLElement).style.transform = 'rotate(0deg)';
+    }, 1000);
+    syncAllFromAirtable(true);
   });
 
   btnCloseAirtableModal?.addEventListener('click', closeAirtableModal);
@@ -6272,22 +6393,20 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           return `
             <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
               <td style="padding: 16px 20px;">
-                <span style="font-size: 11px; font-weight: 700; font-family: ui-monospace, monospace; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--brand-primary); border: 1px solid var(--border-main);">
-                  ${clientCode}
-                </span>
+                <div style="font-weight: 700; color: var(--text-primary); font-size: 14px; line-height: 1.3;">${c.nombre}</div>
+                <div style="font-size: 11px; font-weight: 600; font-family: ui-monospace, monospace; color: var(--text-muted); margin-top: 2px;">${clientCode}</div>
               </td>
-              <td style="padding: 16px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${c.nombre}</td>
               <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">${fmtCopClient(c.ingresosCop)}</td>
               <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600; font-size: 14px;">${fmtCopClient(c.pagadoCop)}</td>
-              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: ${tieneSaldo ? 'var(--warning)' : saldoAFavor ? 'var(--info)' : 'var(--text-muted)'};">
+              <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: ${tieneSaldo ? 'var(--warning)' : saldoAFavor ? 'var(--danger)' : 'var(--text-muted)'};">
                 ${fmtCopClient(pendienteVal)}
               </td>
               <td style="padding: 16px 20px; text-align: center;">
                 ${tieneSaldo
-                  ? '<span class="status-pill status-warning">POR COBRAR</span>'
+                  ? '<span class="status-pill status-warning">PENDIENTE</span>'
                   : saldoAFavor
-                  ? '<span class="status-pill status-info">SALDO A FAVOR</span>'
-                  : '<span class="status-pill status-success">AL DÍA</span>'}
+                  ? '<span class="status-pill status-danger" style="background: rgba(238, 93, 80, 0.15); color: var(--danger);">DEBE</span>'
+                  : '<span class="status-pill status-success">PAGADO</span>'}
               </td>
               <td style="padding: 16px 20px; text-align: center;">
                 <div style="display: inline-flex; align-items: center; gap: 8px;">
@@ -6327,7 +6446,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       if (clientesTfoot) {
         clientesTfoot.innerHTML = `
           <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
-            <td colspan="2" style="padding: 16px 20px; color: var(--text-primary);">TOTALES CONSOLIDADOS</td>
+            <td style="padding: 16px 20px; color: var(--text-primary);">TOTALES CONSOLIDADOS</td>
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace;">${fmtCopClient(totalIngresosClientes)}</td>
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">${fmtCopClient(totalPagadoClientes)}</td>
             <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--danger);">${fmtCopClient(totalPasivoClientes)}</td>
@@ -6655,21 +6774,23 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           return `
             <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main);">
               <td style="padding: 14px 20px;">
-                <div style="display: inline-flex; align-items: center; gap: 12px;">
+                <div style="display: inline-flex; align-items: center; gap: 10px;">
                   <img 
                     src="${flagImg}" 
                     alt="${code}" 
                     onerror="this.onerror=null;this.src='${fallbackImg}';"
-                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); flex-shrink: 0;"
+                    style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); flex-shrink: 0;"
                   />
-                  <div>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                      <span style="font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">${code}</span>
-                      ${nombreDivisa ? `<span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">${nombreDivisa}</span>` : ''}
-                    </div>
-                    ${paisDivisa ? `<div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 1px;">${paisDivisa}</div>` : ''}
-                  </div>
+                  <span style="font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; padding: 3px 8px; border-radius: 6px; background: rgba(67, 24, 255, 0.08); border: 1px solid rgba(67, 24, 255, 0.2);">
+                    ${code}
+                  </span>
                 </div>
+              </td>
+              <td style="padding: 16px 20px; font-weight: 700; color: var(--text-primary); font-size: 14px;">
+                ${nombreDivisa || code}
+              </td>
+              <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px; font-weight: 600;">
+                ${paisDivisa || 'Internacional'}
               </td>
               <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary);">${fmtNumClient(totRec, 2)}</td>
               <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success);">${fmtNumClient(totComp, 2)}</td>

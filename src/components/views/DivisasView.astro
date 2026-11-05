@@ -12,7 +12,9 @@ const { DIVISAS = [] } = Astro.props;
           <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
               <tr style="border-bottom: 1px solid var(--border-main);">
-                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Divisa / País</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código ISO</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Nombre Divisa</th>
+                <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">País</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Total Recibido</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Total Comprado</th>
                 <th style="padding: 14px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Total Pendiente</th>
@@ -27,25 +29,23 @@ const { DIVISAS = [] } = Astro.props;
                 return (
                   <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
                     <td style="padding: 14px 20px;">
-                      <div style="display: inline-flex; align-items: center; gap: 12px;">
+                      <div style="display: inline-flex; align-items: center; gap: 10px;">
                         <img 
                           src={flagImg} 
                           alt={d.codigo}
                           onerror={fallbackImg ? `this.onerror=null;this.src="${fallbackImg}";` : undefined}
-                          style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); flex-shrink: 0;"
+                          style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); flex-shrink: 0;"
                         />
-                        <div>
-                          <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{d.codigo}</span>
-                            {d.nombreDivisa && (
-                              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">{d.nombreDivisa}</span>
-                            )}
-                          </div>
-                          {d.pais && (
-                            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 1px;">{d.pais}</div>
-                          )}
-                        </div>
+                        <span style="font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; padding: 3px 8px; border-radius: 6px; background: rgba(67, 24, 255, 0.08); border: 1px solid rgba(67, 24, 255, 0.2);">
+                          {d.codigo}
+                        </span>
                       </div>
+                    </td>
+                    <td style="padding: 16px 20px; font-weight: 700; color: var(--text-primary); font-size: 14px;">
+                      {d.nombreDivisa || d.codigo}
+                    </td>
+                    <td style="padding: 16px 20px; color: var(--text-secondary); font-size: 13px; font-weight: 600;">
+                      {d.pais || 'Internacional'}
                     </td>
                     <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">
                       {formatDecimal(d.totalRecibido, 2)}

@@ -249,7 +249,7 @@ import Layout from '../layouts/Layout.astro';
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('email', (user.email || '').toLowerCase())
+        .ilike('email', (user.email || '').toLowerCase())
         .maybeSingle();
 
       const urlParams = new URLSearchParams(window.location.search);
@@ -257,9 +257,21 @@ import Layout from '../layouts/Layout.astro';
 
       if (profile && !profile.onboarding_completed) {
         window.location.href = `/onboarding?email=${encodeURIComponent(user.email || '')}`;
-      } else {
-        window.location.href = redirectTarget;
+        return;
       }
+
+      // Check 2FA requirement (Obligatorio para todos)
+      const is2FAVerified = sessionStorage.getItem('kaupaloki_2fa_verified') === 'true';
+      if (!is2FAVerified) {
+        if (profile?.two_factor_enabled && profile?.two_factor_secret) {
+          window.location.href = `/2fa?mode=verify&redirect=${encodeURIComponent(redirectTarget)}`;
+        } else {
+          window.location.href = `/2fa?mode=setup&redirect=${encodeURIComponent(redirectTarget)}`;
+        }
+        return;
+      }
+
+      window.location.href = redirectTarget;
     }
 
     async function checkExistingSession() {
