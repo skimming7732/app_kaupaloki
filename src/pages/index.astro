@@ -52,6 +52,14 @@ function formatDecimal(amount: number, digits = 2): string {
 ---
 
 <Layout title="Kaupaloki - Horizon UI Dashboard Contable">
+  <!-- Overlay de Verificación de Autenticación -->
+  <div id="auth-cloak-overlay" style="position: fixed; inset: 0; z-index: 99999; background: var(--bg-main); display: flex; align-items: center; justify-content: center; transition: opacity 0.25s ease;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 14px;">
+      <div style="width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--border-main); border-top-color: var(--brand-primary); animation: spin 0.8s linear infinite;"></div>
+      <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.02em;">Verificando acceso a Kaupaloki...</span>
+    </div>
+  </div>
+
   <div class="layout-wrapper" style="display: flex; min-height: 100vh;">
     
     <!-- ============================================================== -->
@@ -2726,7 +2734,7 @@ function formatDecimal(amount: number, digits = 2): string {
 
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <label for="modal-user-role-select" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">
+                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">
                   Rol en la Plataforma *
                 </label>
                 <span id="role-badge-indicator" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: var(--brand-primary-light); color: var(--brand-primary); font-family: ui-monospace, monospace;">
@@ -2734,26 +2742,9 @@ function formatDecimal(amount: number, digits = 2): string {
                 </span>
               </div>
 
-              <!-- Selector Dropdown accesible y sincronizado -->
-              <div style="position: relative; margin-bottom: 10px;">
-                <select 
-                  id="modal-user-role-select" 
-                  style="width: 100%; box-sizing: border-box; padding: 11px 36px 11px 14px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none;"
-                >
-                  <option value="operador">⚡ Operador (Registra negocios / Divisas asignadas)</option>
-                  <option value="administrador">🛡️ Administrador (Control total de operaciones)</option>
-                  <option value="cliente">👤 Cliente (Portal contable / Todas las divisas)</option>
-                </select>
-                <div style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); display: flex; align-items: center;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </div>
-              </div>
-
               <input type="hidden" id="modal-user-role" name="role" value="operador" />
               
-              <!-- Botones de Rol interactivos -->
+              <!-- Botones de Rol interactivos (Cajitas) -->
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;" id="role-selector-container">
                 <!-- Operador -->
                 <button 
@@ -4325,6 +4316,32 @@ function formatDecimal(amount: number, digits = 2): string {
   const BASE_ID = "appncUKgTkDojFj4B";
   const TABLE_CLIENTES_ID = "tblfEL6ENM3N5g89d";
 
+  // ==============================================================
+  // AUTH GUARD: Verificar sesión autenticada con Supabase
+  // Si no está iniciado sesión en la plataforma, redirigir a /login
+  // ==============================================================
+  const { data: authSessionData } = await supabase.auth.getSession();
+  const activeUser = authSessionData?.session?.user;
+  if (!activeUser) {
+    const currentTarget = window.location.pathname + window.location.search;
+    window.location.replace(`/login?redirect=${encodeURIComponent(currentTarget)}`);
+    await new Promise(() => {}); // Detener ejecución subsecuente en este módulo
+  }
+
+  // Quitar overlay de verificación una vez confirmada la sesión activa
+  const authOverlay = document.getElementById('auth-cloak-overlay');
+  if (authOverlay) {
+    authOverlay.style.opacity = '0';
+    setTimeout(() => authOverlay.remove(), 250);
+  }
+
+  // Escuchar si la sesión expira o el usuario cierra sesión
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || !session) {
+      window.location.replace('/login');
+    }
+  });
+
   function getAirtableToken(): string {
     return localStorage.getItem('kaupaloki_airtable_pat') || ENV_PAT;
   }
@@ -5753,7 +5770,6 @@ function formatDecimal(amount: number, digits = 2): string {
   const btnToggleAllCurrencies = document.getElementById('btn-toggle-all-currencies');
   const roleCards = document.querySelectorAll('.role-card-btn');
   const roleInput = document.getElementById('modal-user-role') as HTMLInputElement | null;
-  const modalUserRoleSelect = document.getElementById('modal-user-role-select') as HTMLSelectElement | null;
   const roleBadgeIndicator = document.getElementById('role-badge-indicator');
   const containerAuthorizedCurrencies = document.getElementById('container-authorized-currencies');
 
@@ -5813,9 +5829,6 @@ function formatDecimal(amount: number, digits = 2): string {
     const normRole = (raw === 'client' || raw === 'cliente') ? 'cliente' : (raw === 'administrador' || raw === 'admin') ? 'administrador' : 'operador';
 
     if (roleInput) roleInput.value = normRole;
-    if (modalUserRoleSelect && modalUserRoleSelect.value !== normRole) {
-      modalUserRoleSelect.value = normRole;
-    }
     if (roleBadgeIndicator) {
       roleBadgeIndicator.textContent = normRole.toUpperCase();
       if (normRole === 'administrador') {
@@ -5866,21 +5879,17 @@ function formatDecimal(amount: number, digits = 2): string {
     }
   }
 
-  // Delegación global al hacer clic en cualquier botón/tarjeta de rol
-  document.addEventListener('click', (e: any) => {
+  // Delegación global al hacer clic o tocar cualquier tarjeta/cajita de rol
+  const handleRoleCardSelect = (e: any) => {
     const card = e.target.closest('.role-card-btn');
     if (card) {
       e.preventDefault();
       const r = card.getAttribute('data-role');
       if (r) updateRoleSelection(r);
     }
-  });
-
-  // Listener para el selector dropdown sincronizado
-  modalUserRoleSelect?.addEventListener('change', (e) => {
-    const target = e.target as HTMLSelectElement;
-    if (target?.value) updateRoleSelection(target.value);
-  });
+  };
+  document.addEventListener('click', handleRoleCardSelect);
+  document.addEventListener('touchend', handleRoleCardSelect);
 
   function openCreateUserModal() {
     const modal = document.getElementById('modal-create-user-backdrop');
@@ -6033,7 +6042,7 @@ function formatDecimal(amount: number, digits = 2): string {
 
     const name = nameInput.value.trim();
     const email = emailInput.value.trim().toLowerCase();
-    const rawRole = currentRoleInput?.value || modalUserRoleSelect?.value || 'operador';
+    const rawRole = currentRoleInput?.value || 'operador';
     const role = (rawRole === 'client' || rawRole === 'cliente') ? 'cliente' : (rawRole === 'administrador' || rawRole === 'admin') ? 'administrador' : 'operador';
     const country = countrySelect ? countrySelect.value : 'COL';
 
@@ -6348,23 +6357,12 @@ function formatDecimal(amount: number, digits = 2): string {
           };
         }
       } else {
-        // Fallback Super Admin activo por defecto (desarrollor@jeroallsolutions.com)
-        currentUserProfile = {
-          id: 'super-admin-jero',
-          email: SUPER_ADMIN_EMAIL,
-          full_name: 'JERO ADMIN',
-          role: 'administrador',
-          is_super_admin: true
-        };
+        window.location.replace('/login');
+        return;
       }
     } catch (e) {
-      currentUserProfile = {
-        id: 'super-admin-jero',
-        email: SUPER_ADMIN_EMAIL,
-        full_name: 'JERO ADMIN',
-        role: 'administrador',
-        is_super_admin: true
-      };
+      window.location.replace('/login');
+      return;
     }
 
     currentUserProfile.is_super_admin = isSuperAdminUser(currentUserProfile.email) || Boolean(currentUserProfile.is_super_admin);

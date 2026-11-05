@@ -252,10 +252,13 @@ import Layout from '../layouts/Layout.astro';
         .eq('email', (user.email || '').toLowerCase())
         .maybeSingle();
 
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectTarget = urlParams.get('redirect') || '/';
+
       if (profile && !profile.onboarding_completed) {
         window.location.href = `/onboarding?email=${encodeURIComponent(user.email || '')}`;
       } else {
-        window.location.href = '/';
+        window.location.href = redirectTarget;
       }
     }
 

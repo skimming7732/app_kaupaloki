@@ -3,7 +3,15 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Mi Perfil - Kaupaloki">
-  <div style="min-height: 100vh; background: var(--bg-main); padding: 30px 20px 60px 20px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;">
+  <!-- Overlay de Verificación de Autenticación -->
+  <div id="auth-cloak-overlay" style="position: fixed; inset: 0; z-index: 99999; background: var(--bg-main); display: flex; align-items: center; justify-content: center; transition: opacity 0.25s ease;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 14px;">
+      <div style="width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--border-main); border-top-color: var(--brand-primary); animation: spin 0.8s linear infinite;"></div>
+      <span style="font-size: 13px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.02em;">Verificando acceso a Kaupaloki...</span>
+    </div>
+  </div>
+
+  <div class="perfil-page-container" style="min-height: 100vh; background: var(--bg-main); padding: 30px 20px 60px 20px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;">
     
     <!-- Top Nav / Back header -->
     <div style="width: 100%; max-width: 860px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
@@ -257,6 +265,28 @@ import Layout from '../layouts/Layout.astro';
 <script>
   import { supabase } from '../lib/supabase';
 
+  // ==============================================================
+  // AUTH GUARD: Verificar sesión autenticada con Supabase
+  // ==============================================================
+  const { data: authSessionData } = await supabase.auth.getSession();
+  const activeUser = authSessionData?.session?.user;
+  if (!activeUser) {
+    window.location.replace('/login?redirect=%2Fperfil');
+    await new Promise(() => {});
+  }
+
+  const authOverlay = document.getElementById('auth-cloak-overlay');
+  if (authOverlay) {
+    authOverlay.style.opacity = '0';
+    setTimeout(() => authOverlay.remove(), 250);
+  }
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || !session) {
+      window.location.replace('/login');
+    }
+  });
+
   const SUPER_ADMIN_EMAIL = 'desarrollor@jeroallsolutions.com';
 
   function isSuperAdminUser(email?: string): boolean {
@@ -324,13 +354,11 @@ import Layout from '../layouts/Layout.astro';
   async function loadProfileData() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      let email = session?.user?.email || 'desarrollor@jeroallsolutions.com';
-
-      // Fallback si no hay sesión abierta en localStorage
       if (!session?.user) {
-        const storedEmail = localStorage.getItem('kaupaloki_user_email');
-        if (storedEmail) email = storedEmail;
+        window.location.replace('/login?redirect=%2Fperfil');
+        return;
       }
+      const email = session.user.email;
 
       const { data: profile } = await supabase
         .from('profiles')
