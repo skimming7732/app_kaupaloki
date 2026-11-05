@@ -300,20 +300,39 @@ Deno.serve(async (req: Request) => {
             },
           });
         } else {
-          const { data: createdAuth } = await supabase.auth.admin.createUser({
-            email: cleanEmail,
-            email_confirm: true,
-            user_metadata: {
-              full_name: fullName,
-              role,
-              pais,
-              authorized_currencies: authorizedCurrencies,
-              onboarding_completed: false,
-            },
-          });
-          if (createdAuth?.user?.id) {
-            userId = createdAuth.user.id;
+          // If sending email invite, call inviteUserByEmail so Supabase triggers SMTP email
+          let createdId = "";
+          try {
+            const { data: invResult, error: invErr } = await supabase.auth.admin.inviteUserByEmail(cleanEmail, {
+              redirectTo: "https://app.kaupaloki.co/onboarding",
+              data: {
+                full_name: fullName,
+                role,
+                pais,
+                authorized_currencies: authorizedCurrencies,
+                onboarding_completed: false,
+              }
+            });
+            if (invResult?.user?.id) createdId = invResult.user.id;
+          } catch (_) {}
+
+          if (!createdId) {
+            const { data: createdAuth } = await supabase.auth.admin.createUser({
+              email: cleanEmail,
+              email_confirm: true,
+              user_metadata: {
+                full_name: fullName,
+                role,
+                pais,
+                authorized_currencies: authorizedCurrencies,
+                onboarding_completed: false,
+              },
+            });
+            if (createdAuth?.user?.id) {
+              createdId = createdAuth.user.id;
+            }
           }
+          if (createdId) userId = createdId;
         }
       } catch (_) {}
 
@@ -412,6 +431,92 @@ Deno.serve(async (req: Request) => {
           operatorCode,
           email: cleanEmail,
         }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 0A-2. ACTION: delete_user
+    if (body.action === "delete_user" && body.email) {
+      const cleanEmail = String(body.email).trim().toLowerCase();
+      try {
+        // 1. Delete from auth.users (service_role admin)
+        const { data: usersList } = await supabase.auth.admin.listUsers();
+        const existingAuthUser = usersList?.users?.find(
+          (u: any) => (u.email || "").toLowerCase() === cleanEmail
+        );
+        if (existingAuthUser?.id) {
+          await supabase.auth.admin.deleteUser(existingAuthUser.id);
+        }
+
+        // 2. Delete from public.profiles
+        await supabase.from("profiles").delete().ilike("email", cleanEmail);
+
+        // 3. Delete or inactivate in Airtable
+        if (pat) {
+          let recId = body.airtableId || "";
+          if (!recId) {
+            const sUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLES.USUARIOS}?filterByFormula=LOWER({EMAIL})='${encodeURIComponent(cleanEmail)}'`;
+            const sRes = await fetch(sUrl, { headers: { Authorization: `Bearer ${pat}` } });
+            if (sRes.ok) {
+              const sJson = await sRes.json();
+              if (sJson.records?.[0]?.id) recId = sJson.records[0].id;
+            }
+          }
+          if (recId) {
+            await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLES.USUARIOS}/${recId}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${pat}` }
+            });
+          }
+        }
+      } catch (delErr: any) {
+        console.error("Error deleting user:", delErr);
+      }
+
+      return new Response(
+        JSON.stringify({ ok: true, deleted: cleanEmail }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 0A-3. ACTION: send_user_invite
+    if (body.action === "send_user_invite" && body.email) {
+      const cleanEmail = String(body.email).trim().toLowerCase();
+      let sent = false;
+      let actionLink = "";
+      let inviteError = "";
+
+      try {
+        const { data: invData, error: invErr } = await supabase.auth.admin.inviteUserByEmail(cleanEmail, {
+          redirectTo: "https://app.kaupaloki.co/onboarding",
+          data: {
+            full_name: body.fullName || cleanEmail.split("@")[0]
+          }
+        });
+
+        if (invErr) {
+          const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+            type: "magiclink",
+            email: cleanEmail,
+            options: {
+              redirectTo: "https://app.kaupaloki.co/onboarding"
+            }
+          });
+          if (linkData?.properties?.action_link) {
+            actionLink = linkData.properties.action_link;
+            sent = true;
+          } else {
+            inviteError = invErr.message || (linkErr?.message ?? "Error enviando invitación");
+          }
+        } else {
+          sent = true;
+        }
+      } catch (e: any) {
+        inviteError = e?.message || String(e);
+      }
+
+      return new Response(
+        JSON.stringify({ ok: sent, sent, actionLink, error: inviteError }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

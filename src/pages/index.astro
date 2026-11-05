@@ -3947,7 +3947,8 @@ import SendInviteEmailModal from '../components/modals/SendInviteEmailModal.astr
             role,
             pais: country,
             authorizedCurrencies,
-            pat: pat || undefined
+            pat: pat || undefined,
+            sendInvite: true
           })
         });
         if (prepRes.ok) {
@@ -5517,12 +5518,16 @@ import SendInviteEmailModal from '../components/modals/SendInviteEmailModal.astr
     btnConfirmSendInvite.disabled = true;
     btnConfirmSendInvite.textContent = 'Enviando...';
     try {
-      await supabase.auth.signInWithOtp({
-        email: pendingInviteEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/onboarding?email=${encodeURIComponent(pendingInviteEmail)}`
-        }
+      const edgeRes = await fetch('https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send_user_invite',
+          email: pendingInviteEmail,
+          fullName: pendingInviteNombre,
+        })
       });
+      const resJson = await edgeRes.json().catch(() => ({}));
       if (sendInviteStatusMsg) {
         sendInviteStatusMsg.style.display = 'block';
         sendInviteStatusMsg.style.background = 'rgba(5, 205, 153, 0.15)';
@@ -5537,11 +5542,16 @@ import SendInviteEmailModal from '../components/modals/SendInviteEmailModal.astr
         sendInviteStatusMsg.style.display = 'block';
         sendInviteStatusMsg.style.background = 'rgba(238, 93, 80, 0.15)';
         sendInviteStatusMsg.style.color = 'var(--danger)';
-        sendInviteStatusMsg.textContent = `Invitación registrada para ${pendingInviteEmail}`;
+        sendInviteStatusMsg.textContent = `Error al enviar invitación: ${err?.message || err}`;
       }
       setTimeout(() => {
         closeSendInviteModal();
-      }, 1500);
+      }, 2000);
+    } finally {
+      if (btnConfirmSendInvite) {
+        btnConfirmSendInvite.disabled = false;
+        btnConfirmSendInvite.textContent = 'Enviar Invitación';
+      }
     }
   });
 
