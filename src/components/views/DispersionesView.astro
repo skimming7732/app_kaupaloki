@@ -1,0 +1,117 @@
+---
+import { formatCop } from '../../utils/formatters';
+
+interface Props {
+  PAGOS: any[];
+}
+
+const { PAGOS = [] } = Astro.props;
+---
+
+<div id="tab-dispersiones" class="tab-pane" style="display: none; overflow-x: auto;">
+          <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-main);">
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Fecha Creación</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cliente</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Referencia</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Origen Fondos</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto (COP)</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
+                <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Comprobante(s)</th>
+              </tr>
+            </thead>
+            <tbody id="dispersiones-table-tbody">
+              {PAGOS.map((p) => {
+                const esCompletado = p.estado === 'COMPLETADO';
+                const vouchers = (p.comprobantes && p.comprobantes.length > 0)
+                  ? p.comprobantes
+                  : (p.comprobanteUrl ? [{ url: p.comprobanteUrl, nombre: p.comprobanteNombre || `Comprobante ${p.codigo}` }] : []);
+                return (
+                  <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+                    <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 12px; vertical-align: middle;">{p.numero}</td>
+                    <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; vertical-align: middle;">{p.codigo}</td>
+                    <td style="padding: 14px 18px; color: var(--text-secondary); font-size: 13px; vertical-align: middle;">{p.fechaCreacion || '—'}</td>
+                    <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 13px; vertical-align: middle;">{p.clienteNombre}</td>
+                    <td style="padding: 14px 18px; color: var(--text-primary); font-weight: 500; font-size: 13px; vertical-align: middle;">{p.referencia || '—'}</td>
+                    <td style="padding: 14px 18px; color: var(--text-secondary); font-size: 12px; vertical-align: middle;">
+                      <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; font-size: 11px;">
+                        {p.origenFondos || '—'}
+                      </span>
+                    </td>
+                    <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {esCompletado ? 'var(--success)' : 'var(--danger)'}; vertical-align: middle;">
+                      {formatCop(p.montoCop)}
+                    </td>
+                    <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+                      {esCompletado ? (
+                        <span class="status-pill status-success">COMPLETADO</span>
+                      ) : (
+                        <span class="status-pill status-danger">RECHAZADO</span>
+                      )}
+                    </td>
+                    <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
+                      {vouchers.length > 0 ? (
+                        <div 
+                          class="btn-open-lightbox" 
+                          data-vouchers={JSON.stringify(vouchers)}
+                          data-url={vouchers[0].url} 
+                          data-title={`Dispersión ${p.codigo} • ${p.clienteNombre}`}
+                          title={`Click para ver ${vouchers.length > 1 ? vouchers.length + ' comprobantes' : 'comprobante'}`}
+                          style="cursor: pointer; display: inline-block; position: relative; transition: transform 0.15s ease;"
+                        >
+                          <img 
+                            src={vouchers[0].url} 
+                            alt={`Comprobante ${p.codigo}`} 
+                            loading="lazy"
+                            style="width: 44px; height: 78px; aspect-ratio: 9/16; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-main); box-shadow: 0 2px 8px rgba(0,0,0,0.12); display: block;" 
+                          />
+                          {vouchers.length > 1 && (
+                            <span style="position: absolute; top: -6px; right: -6px; background: var(--brand-primary); color: #fff; font-size: 10px; font-weight: 800; border-radius: 9999px; padding: 2px 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1.5px solid var(--bg-card);">
+                              +{vouchers.length}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div class="upload-voucher-container" style="display: inline-block;">
+                          <label 
+                            class="btn-upload-voucher" 
+                            title="Subir comprobante (formato 9:16)" 
+                            style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 44px; height: 78px; aspect-ratio: 9/16; border-radius: 8px; border: 1.5px dashed var(--brand-primary); background: var(--bg-card-secondary); cursor: pointer; color: var(--brand-primary); transition: all 0.2s;"
+                          >
+                            <input 
+                              type="file" 
+                              accept="image/*,application/pdf" 
+                              class="voucher-upload-input" 
+                              style="display: none;" 
+                              data-pago-id={p.id} 
+                              data-codigo={p.codigo} 
+                            />
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                              <polyline points="17 8 12 3 7 8"></polyline>
+                              <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span style="font-size: 8px; font-weight: 800; margin-top: 4px; text-transform: uppercase;">Subir</span>
+                          </label>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot id="dispersiones-table-tfoot">
+              <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
+                <td colspan="6" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTAL DISPERSADO EN CAJA:</td>
+                <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 14px;">
+                  {formatCop(PAGOS.filter(p => p.estado === 'COMPLETADO').reduce((a, b) => a + b.montoCop, 0))}
+                </td>
+                <td colspan="2" style="padding: 18px 20px; text-align: right; font-size: 12px; color: var(--text-muted);">
+                  Rechazados: {formatCop(PAGOS.filter(p => p.estado === 'RECHAZADO').reduce((a, b) => a + b.montoCop, 0))}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>

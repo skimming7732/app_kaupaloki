@@ -1,0 +1,73 @@
+---
+import { formatCop, formatDecimal } from '../../utils/formatters';
+import { getCurrencyFlag } from '../../data/airtableData';
+
+interface Props {
+  NEGOCIOS: any[];
+  DIVISAS?: any[];
+}
+
+const { NEGOCIOS = [], DIVISAS = [] } = Astro.props;
+---
+
+<div id="tab-negocios" class="tab-pane" style="display: none; overflow-x: auto;">
+          <!-- Header Bar de Negocios -->
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-card-secondary);">
+            <div>
+              <h3 style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+                Control de Negocios
+              </h3>
+              <p style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted);">
+                Operaciones de divisa registradas por operadores autorizados
+              </p>
+            </div>
+          </div>
+
+          <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-main);">
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Fecha</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cliente</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Divisa</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto Divisa</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Tasa</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Ingreso (COP)</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Compra Rel</th>
+                <th style="padding: 14px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">USDT x Divisa</th>
+              </tr>
+            </thead>
+            <tbody id="negocios-table-tbody">
+              {NEGOCIOS.map((n) => (
+                <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+                  <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">{n.numero}</td>
+                  <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">{n.codigo}</td>
+                  <td style="padding: 14px 18px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">{n.fechaRegistro}</td>
+                  <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">{n.clienteNombre}</td>
+                  <td style="padding: 14px 18px; text-align: center;">
+                    <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 4px;">
+                      <span>{getCurrencyFlag(n.divisaCodigo)}</span>
+                      <span>{n.divisaCodigo}</span>
+                    </span>
+                  </td>
+                  <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">{formatDecimal(n.montoDivisa, 2)}</td>
+                  <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary); font-size: 14px;">${formatDecimal(n.tasa, 2)}</td>
+                  <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--success); font-size: 14px;">{formatCop(n.ingresoCop)}</td>
+                  <td style="padding: 14px 18px; font-family: ui-monospace, monospace; color: var(--text-muted); font-size: 12px;">{n.compraRelCodigo || '—'}</td>
+                  <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: var(--info); font-size: 14px;">
+                    {n.usdtPorDivisa > 0 ? `${formatDecimal(n.usdtPorDivisa, 2)}` : '0.00'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot id="negocios-table-tfoot">
+              <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary);">
+                <td colspan="7" style="padding: 18px 18px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTALES CONSOLIDADOS:</td>
+                <td style="padding: 18px 18px; text-align: right; color: var(--success); font-size: 14px;">{formatCop(NEGOCIOS.reduce((a, b) => a + b.ingresoCop, 0))}</td>
+                <td></td>
+                <td style="padding: 18px 18px; text-align: right; color: var(--info); font-size: 14px;">{formatDecimal(NEGOCIOS.reduce((a, b) => a + b.usdtPorDivisa, 0), 2)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>

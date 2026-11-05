@@ -1,0 +1,343 @@
+---
+interface Props {
+  CLIENTES?: any[];
+  DIVISAS?: any[];
+}
+
+const { CLIENTES = [], DIVISAS = [] } = Astro.props;
+---
+
+<div id="modal-create-negocio-backdrop" class="horizon-modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.78); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 135; align-items: center; justify-content: center; padding: 18px;">
+        <div class="horizon-modal-card" style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 26px; padding: 28px 30px; width: 100%; max-width: 520px; box-shadow: 0 24px 60px rgba(11, 20, 55, 0.45); position: relative;">
+          
+          <button id="btn-close-create-negocio-modal" type="button" class="horizon-modal-close-btn" style="position: absolute; top: 20px; right: 20px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 22px;">
+            <div style="width: 48px; height: 48px; border-radius: 16px; background: linear-gradient(135deg, rgba(67, 24, 255, 0.16) 0%, rgba(134, 140, 255, 0.16) 100%); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(67, 24, 255, 0.2);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;">
+                Agregar Negocio
+              </h3>
+              <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                Registra una operación de divisa sincronizada con Airtable
+              </p>
+            </div>
+          </div>
+
+          <form id="form-modal-create-negocio" style="display: flex; flex-direction: column; gap: 18px;">
+            <!-- Campo 1: Fecha de Operación (Minimalista) -->
+            <div style="position: relative;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
+                <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.06em;">
+                  1. Fecha de Operación *
+                </label>
+                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                  <button type="button" id="btn-date-quick-today" class="date-quick-pill active" style="padding: 3px 9px; border-radius: 999px; border: 1px solid rgba(67, 24, 255, 0.3); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 10px; font-weight: 800; cursor: pointer; transition: all 0.15s;">
+                    Hoy
+                  </button>
+                  <button type="button" id="btn-date-quick-yesterday" class="date-quick-pill" style="padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-secondary); font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.15s;">
+                    Ayer
+                  </button>
+                </div>
+              </div>
+
+              <input type="hidden" id="modal-negocio-fecha" required />
+
+              <button 
+                type="button" 
+                id="custom-date-picker-trigger"
+                style="width: 100%; box-sizing: border-box; padding: 12px 15px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; text-align: left; -webkit-appearance: none; appearance: none;"
+              >
+                <div style="display: flex; align-items: center; gap: 11px;">
+                  <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </div>
+                  <div id="custom-date-display-human" style="font-size: 14px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+                    Seleccionar fecha
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span id="custom-date-display-iso" style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 8px; border-radius: 8px; background: var(--bg-card); color: var(--brand-primary); border: 1px solid var(--border-main);">
+                    2026-11-04
+                  </span>
+                  <svg id="custom-date-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); transition: transform 0.2s;">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </button>
+
+              <!-- Popover de Calendario Interactivo -->
+              <div 
+                id="custom-calendar-popover" 
+                style="display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 180; background: var(--bg-card); border: 1.5px solid var(--border-main); border-radius: 20px; padding: 16px; box-shadow: 0 20px 45px rgba(11, 20, 55, 0.38);"
+              >
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <button type="button" id="cal-prev-month" style="width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <div id="cal-month-year-label" style="font-size: 14px; font-weight: 800; color: var(--text-primary); text-transform: capitalize;">
+                    Noviembre 2026
+                  </div>
+                  <button type="button" id="cal-next-month" style="width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-bottom: 6px;">
+                  <span style="font-size: 10px; font-weight: 800; color: var(--text-muted);">LU</span>
+                  <span style="font-size: 10px; font-weight: 800; color: var(--text-muted);">MA</span>
+                  <span style="font-size: 10px; font-weight: 800; color: var(--text-muted);">MI</span>
+                  <span style="font-size: 10px; font-weight: 800; color: var(--text-muted);">JU</span>
+                  <span style="font-size: 10px; font-weight: 800; color: var(--text-muted);">VI</span>
+                  <span style="font-size: 10px; font-weight: 800; color: var(--brand-primary);">SA</span>
+                  <span style="font-size: 10px; font-weight: 800; color: var(--brand-primary);">DO</span>
+                </div>
+
+                <div id="cal-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;"></div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-main);">
+                  <button type="button" id="cal-btn-select-today" style="border: none; background: transparent; color: var(--brand-primary); font-size: 12px; font-weight: 800; cursor: pointer; padding: 4px 8px;">
+                    Seleccionar Hoy
+                  </button>
+                  <button type="button" id="cal-btn-close" style="padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-secondary); font-size: 11px; font-weight: 700; cursor: pointer;">
+                    Listo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Campo 2: Seleccionar Cliente (Sin botón externo, ya está dentro del desplegable) -->
+            <div style="position: relative;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
+                <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.06em;">
+                  2. Seleccionar Cliente *
+                </label>
+              </div>
+
+              <!-- Select oculto sincronizado para compatibilidad -->
+              <select id="modal-negocio-cliente" required style="display: none;">
+                <option value="">-- Seleccionar Cliente --</option>
+                {CLIENTES.map(c => (
+                  <option value={c.id} data-codigo={c.codigo} data-nombre={c.nombre}>{c.nombre} ({c.codigo})</option>
+                ))}
+              </select>
+
+              <!-- Trigger del Selector Rico de Cliente -->
+              <button 
+                type="button" 
+                id="client-picker-trigger"
+                style="width: 100%; box-sizing: border-box; padding: 12px 15px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; text-align: left;"
+              >
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                  <span id="client-picker-selected-code" style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 9px; border-radius: 8px; background: rgba(67, 24, 255, 0.14); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.25); white-space: nowrap;">
+                    {CLIENTES[0]?.codigo || 'CÓDIGO'}
+                  </span>
+                  <span id="client-picker-selected-name" style="font-size: 14px; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {CLIENTES[0]?.nombre || 'Seleccionar un cliente...'}
+                  </span>
+                </div>
+                <svg id="client-picker-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); flex-shrink: 0; transition: transform 0.2s;">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              <!-- Panel Desplegable con Buscador Interno + Código + Nombre + Botón Agregar Cliente -->
+              <div 
+                id="client-picker-dropdown" 
+                style="display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 175; background: var(--bg-card); border: 1.5px solid var(--border-main); border-radius: 20px; padding: 12px; box-shadow: 0 20px 45px rgba(11, 20, 55, 0.38);"
+              >
+                <!-- Buscador Interno -->
+                <div style="position: relative; margin-bottom: 10px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input 
+                    type="text" 
+                    id="client-picker-search" 
+                    placeholder="Buscar cliente por código o nombre..." 
+                    autocomplete="off"
+                    style="width: 100%; box-sizing: border-box; padding: 10px 12px 10px 36px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none;"
+                  />
+                </div>
+
+                <!-- Cabecera de columnas Código / Nombre -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 10px 6px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border-main);">
+                  <span>Código &bull; Nombre del Cliente</span>
+                  <span>Seleccionar</span>
+                </div>
+
+                <!-- Lista de Clientes Filtrable -->
+                <div id="client-picker-list" style="max-height: 195px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 6px 0;">
+                  {CLIENTES.map((c, idx) => (
+                    <button 
+                      type="button"
+                      class={`client-picker-option ${idx === 0 ? 'selected' : ''}`}
+                      data-id={c.id}
+                      data-codigo={c.codigo}
+                      data-nombre={c.nombre}
+                      style="width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; text-align: left; transition: all 0.15s;"
+                    >
+                      <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                        <span style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 3px 8px; border-radius: 7px; background: var(--bg-card-secondary); color: var(--brand-primary); border: 1px solid var(--border-main); white-space: nowrap;">
+                          {c.codigo}
+                        </span>
+                        <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                          {c.nombre}
+                        </span>
+                      </div>
+                      <span class="client-check-indicator" style="font-size: 12px; font-weight: 800; color: var(--brand-primary);">
+                        {idx === 0 ? '✓' : ''}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <!-- Botón Interno de Agregar Cliente -->
+                <div style="border-top: 1px solid var(--border-main); padding-top: 8px; margin-top: 4px;">
+                  <button 
+                    type="button" 
+                    id="btn-inline-picker-add-client"
+                    style="width: 100%; padding: 10px 12px; border-radius: 12px; border: 1.5px dashed rgba(67, 24, 255, 0.4); background: rgba(67, 24, 255, 0.06); color: var(--brand-primary); font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>+ Crear Nuevo Cliente</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Campo 3: Divisa (Modal/Desplegable con foto de bandera de Airtable, nombre y país) -->
+            <div style="position: relative;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.06em;">
+                  3. Divisa *
+                </label>
+                <span id="modal-negocio-divisa-hint" style="display: none; font-size: 10px; font-weight: 700; color: var(--brand-primary); background: var(--brand-primary-light); padding: 2px 6px; border-radius: 4px;">
+                  🔒 Divisa única asignada
+                </span>
+              </div>
+
+              <!-- Select oculto sincronizado -->
+              <select id="modal-negocio-divisa" required style="display: none;">
+                <option value="">-- Seleccionar Divisa --</option>
+              </select>
+
+              <!-- Trigger del Selector de Divisa con Foto de Bandera -->
+              <button 
+                type="button" 
+                id="divisa-picker-trigger"
+                style="width: 100%; box-sizing: border-box; padding: 11px 15px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; text-align: left;"
+              >
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                  <img 
+                    id="divisa-picker-selected-flag" 
+                    src="https://flagcdn.com/w80/us.png" 
+                    alt="Bandera" 
+                    style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-main); background: var(--bg-card); flex-shrink: 0; display: none;" 
+                  />
+                  <span id="divisa-picker-selected-code" style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 9px; border-radius: 8px; background: rgba(67, 24, 255, 0.14); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.25); white-space: nowrap; display: none;">
+                    USD
+                  </span>
+                  <div style="min-width: 0;">
+                    <div id="divisa-picker-selected-name" style="font-size: 14px; font-weight: 800; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      Seleccionar divisa...
+                    </div>
+                    <div id="divisa-picker-selected-pais" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: none;"></div>
+                  </div>
+                </div>
+                <svg id="divisa-picker-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); flex-shrink: 0; transition: transform 0.2s;">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              <!-- Modal / Desplegable de Selección de Divisa con Banderas de Airtable -->
+              <div 
+                id="divisa-picker-dropdown" 
+                style="display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 176; background: var(--bg-card); border: 1.5px solid var(--border-main); border-radius: 20px; padding: 12px; box-shadow: 0 20px 45px rgba(11, 20, 55, 0.38);"
+              >
+                <div style="position: relative; margin-bottom: 8px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input 
+                    type="text" 
+                    id="divisa-picker-search" 
+                    placeholder="Buscar por código, nombre o país..." 
+                    autocomplete="off"
+                    style="width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none;"
+                  />
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 10px 6px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border-main);">
+                  <span>Bandera &bull; Divisa &bull; País</span>
+                  <span>Seleccionar</span>
+                </div>
+
+                <div id="divisa-picker-list" style="max-height: 215px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 6px 0;"></div>
+              </div>
+            </div>
+
+            <!-- Campo 4: Monto -->
+            <div>
+              <label for="modal-negocio-monto" style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.06em;">
+                4. Monto en Divisa *
+              </label>
+              <input 
+                type="number" 
+                step="any" 
+                min="0.01" 
+                id="modal-negocio-monto" 
+                placeholder="0.00" 
+                required 
+                style="width: 100%; box-sizing: border-box; padding: 12px 15px; font-size: 16px; font-weight: 800; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: ui-monospace, monospace; outline: none; transition: all 0.2s;"
+              />
+            </div>
+
+            <!-- Mensaje de estado -->
+            <div id="modal-negocio-status" style="font-size: 12px; min-height: 18px; text-align: center; font-weight: 600;"></div>
+
+            <!-- Botones de acción -->
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--border-main);">
+              <button 
+                type="button" 
+                id="btn-cancel-create-negocio" 
+                style="padding: 11px 18px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); font-size: 13px; font-weight: 700; cursor: pointer;"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                id="btn-submit-create-negocio" 
+                style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 12px; border: none; background: linear-gradient(135deg, #4318FF 0%, #3965FF 100%); color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.2s; box-shadow: 0 6px 18px rgba(67, 24, 255, 0.35);"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Guardar Negocio</span>
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>

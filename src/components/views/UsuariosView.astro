@@ -1,0 +1,82 @@
+---
+---
+
+<div id="tab-usuarios" class="tab-pane" style="display: none; padding: 24px;">
+          
+          <!-- Section: Directorio de Usuarios (Directo, sin banner innecesario) -->
+          <div style="border: 1px solid var(--border-main); border-radius: 16px; overflow: hidden; background: var(--bg-card);">
+            <div style="padding: 18px 22px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-card-secondary);">
+              <div>
+                <h3 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">
+                  Directorio de Usuarios
+                </h3>
+                <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                  Operadores y divisas autorizadas sincronizados con Supabase y Airtable
+                </p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button 
+                  id="btn-tab-add-user" 
+                  type="button"
+                  class="btn-open-add-user"
+                  title="Invitar o crear nuevo usuario"
+                  style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: none; background: var(--brand-primary); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(67, 24, 255, 0.3); touch-action: manipulation;"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>+ Agregar Usuario</span>
+                </button>
+
+                <button 
+                  id="btn-sync-airtable-users" 
+                  title="Sincronizar con tabla USUARIOS de Airtable"
+                  style="display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--brand-primary); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  <span id="btn-sync-airtable-text">Sincronizar Airtable</span>
+                </button>
+
+                <button 
+                  id="btn-refresh-users-view" 
+                  title="Actualizar lista de usuarios"
+                  style="display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer;"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                  </svg>
+                  <span>Actualizar</span>
+                </button>
+              </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+              <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); width: 30px;">#</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código Airtable</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Usuario</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Rol</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">País</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Divisas Autorizadas</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Estado</th>
+                    <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: center;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="usuarios-view-table-body">
+                  <tr>
+                    <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">
+                      Cargando usuarios sincronizados...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
