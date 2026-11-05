@@ -109,7 +109,7 @@ const { DIVISAS = [] } = Astro.props;
               <input type="hidden" id="modal-user-role" name="role" value="operador" />
               
               <!-- Botones de Rol interactivos (Cajitas) -->
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;" id="role-selector-container">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px;" id="role-selector-container">
                 <!-- Operador -->
                 <button 
                   type="button"
@@ -144,6 +144,25 @@ const { DIVISAS = [] } = Astro.props;
                   <div style="pointer-events: none;">
                     <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); line-height: 1.2;">Administrador</div>
                     <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Control total</div>
+                  </div>
+                </button>
+
+                <!-- Dispersador (Solo Dispersiones) -->
+                <button 
+                  type="button"
+                  class="role-card-btn" 
+                  data-role="dispersador" 
+                  style="padding: 12px 10px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; appearance: none; -webkit-appearance: none; font-family: inherit; width: 100%; box-sizing: border-box;"
+                >
+                  <div class="role-icon-box" style="width: 34px; height: 34px; border-radius: 10px; background: var(--bg-card-secondary); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; pointer-events: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </div>
+                  <div style="pointer-events: none;">
+                    <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); line-height: 1.2;">Dispersador</div>
+                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Solo dispersiones</div>
                   </div>
                 </button>
 

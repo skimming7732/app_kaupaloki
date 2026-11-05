@@ -61,11 +61,14 @@ import VentasView from '../components/views/VentasView.astro';
 import ActivosLiquidosView from '../components/views/ActivosLiquidosView.astro';
 import ActivosDigitalesView from '../components/views/ActivosDigitalesView.astro';
 import UsuariosView from '../components/views/UsuariosView.astro';
+import OperatorView from '../components/views/OperatorView.astro';
 
 // Modular Modals
 import LightboxModal from '../components/modals/LightboxModal.astro';
 import CreateUserModal from '../components/modals/CreateUserModal.astro';
 import CreateNegocioModal from '../components/modals/CreateNegocioModal.astro';
+import EditNegocioModal from '../components/modals/EditNegocioModal.astro';
+import CreateDispersionModal from '../components/modals/CreateDispersionModal.astro';
 import CreateClientModal from '../components/modals/CreateClientModal.astro';
 import EditProfileModal from '../components/modals/EditProfileModal.astro';
 import DeleteUserModal from '../components/modals/DeleteUserModal.astro';
@@ -116,8 +119,17 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         </div>
 
         <nav style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- 0. Panel Operador -->
+          <button id="sidebar-link-operador" class="sidebar-link" data-target="tab-operador" title="Panel Operador" style="display: none; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="sidebar-text" style="flex: 1;">Panel Operador</span>
+            <span class="count-badge" style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 9999px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); letter-spacing: 0.04em;">OPERADOR</span>
+          </button>
           <!-- 1. Panel Control -->
-          <button class="sidebar-link active" data-target="tab-dashboard" title="Panel Control" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-dashboard" class="sidebar-link active" data-target="tab-dashboard" title="Panel Control" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <rect x="3" y="3" width="7" height="7"></rect>
               <rect x="14" y="3" width="7" height="7"></rect>
@@ -131,7 +143,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 2. Clientes -->
-          <button class="sidebar-link" data-target="tab-clientes" title="Clientes" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-clientes" class="sidebar-link" data-target="tab-clientes" title="Clientes" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
@@ -145,7 +157,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 3. Negocios -->
-          <button class="sidebar-link" data-target="tab-negocios" title="Negocios" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-negocios" class="sidebar-link" data-target="tab-negocios" title="Negocios" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
               <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -158,7 +170,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 3.1. Dispersiones -->
-          <button class="sidebar-link" data-target="tab-dispersiones" title="Dispersiones" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-dispersiones" class="sidebar-link" data-target="tab-dispersiones" title="Dispersiones" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <line x1="22" y1="2" x2="11" y2="13"></line>
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -170,7 +182,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 4. COMPRA USDT -->
-          <button class="sidebar-link" data-target="tab-compras" title="Compra USDT" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-compras" class="sidebar-link" data-target="tab-compras" title="Compra USDT" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
               <polyline points="17 6 23 6 23 12"></polyline>
@@ -182,7 +194,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 5. VENTA USDT -->
-          <button class="sidebar-link" data-target="tab-ventas" title="Venta USDT" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-ventas" class="sidebar-link" data-target="tab-ventas" title="Venta USDT" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
               <polyline points="17 18 23 18 23 12"></polyline>
@@ -194,7 +206,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 6. ACTIVO LIQUIDOS (TIPO TARJETAS) -->
-          <button class="sidebar-link" data-target="tab-activos" title="Activos Líquidos" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-activos" class="sidebar-link" data-target="tab-activos" title="Activos Líquidos" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
               <line x1="1" y1="10" x2="23" y2="10"></line>
@@ -207,7 +219,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 6.1 ACTIVOS DIGITALES (WALLETS USDT) -->
-          <button class="sidebar-link" data-target="tab-activos-digitales" title="Activos Digitales" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-activos-digitales" class="sidebar-link" data-target="tab-activos-digitales" title="Activos Digitales" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
               <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>
@@ -220,7 +232,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 7. DIVISAS -->
-          <button class="sidebar-link" data-target="tab-divisas" title="Divisas" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-divisas" class="sidebar-link" data-target="tab-divisas" title="Divisas" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -233,7 +245,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </button>
 
           <!-- 8. USUARIOS -->
-          <button class="sidebar-link" data-target="tab-usuarios" title="Usuarios" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+          <button id="sidebar-link-usuarios" class="sidebar-link" data-target="tab-usuarios" title="Usuarios" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
@@ -1209,6 +1221,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         <ActivosLiquidosView ACTIVOS_LIQUIDOS={ACTIVOS_LIQUIDOS} metricas={metricas} />
         <ActivosDigitalesView ACTIVOS_DIGITALES={ACTIVOS_DIGITALES} />
         <UsuariosView />
+        <OperatorView NEGOCIOS={NEGOCIOS} DIVISAS={DIVISAS} CLIENTES={CLIENTES} />
       </div>
 
       <!-- ============================================================ -->
@@ -1217,6 +1230,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       <LightboxModal />
       <CreateUserModal DIVISAS={DIVISAS} />
       <CreateNegocioModal CLIENTES={CLIENTES} DIVISAS={DIVISAS} />
+      <EditNegocioModal CLIENTES={CLIENTES} DIVISAS={DIVISAS} />
+      <CreateDispersionModal CLIENTES={CLIENTES} ACTIVOS_LIQUIDOS={ACTIVOS_LIQUIDOS} />
       <CreateClientModal />
       <EditProfileModal />
       <DeleteUserModal />
@@ -1357,6 +1372,10 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
 
   /* Compact Responsive KPI Cards: evita truncamientos en mobile */
   @media (max-width: 640px) {
+    #kpis-tab-dashboard {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
     .kpis-view-group {
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       gap: 8px !important;
@@ -1866,6 +1885,11 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       breadcrumb: 'Dispersiones',
       heading: 'Control Dispersiones',
       table: 'Tabla Dispersiones'
+    },
+    'tab-operador': {
+      breadcrumb: 'Operador',
+      heading: 'Panel Operador',
+      table: 'Resumen Operativo'
     }
   };
 
@@ -1879,7 +1903,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     'tab-activos-digitales': '/activos-digitales',
     'tab-divisas': '/divisas',
     'tab-usuarios': '/usuarios',
-    'tab-dispersiones': '/dispersiones'
+    'tab-dispersiones': '/dispersiones',
+    'tab-operador': '/operador'
   };
 
   const pathToTabMap: Record<string, string> = {
@@ -1898,11 +1923,13 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     'divisas': 'tab-divisas',
     'usuarios': 'tab-usuarios',
     'dispersiones': 'tab-dispersiones',
-    'gestores': 'tab-usuarios'
+    'gestores': 'tab-usuarios',
+    'operador': 'tab-operador'
   };
 
-  const tabActionsMap: Record<string, { label: string, action: 'user' | 'client' | 'negocio' } | null> = {
+  const tabActionsMap: Record<string, { label: string, action: 'user' | 'client' | 'negocio' | 'dispersion' } | null> = {
     'tab-dashboard': null,
+    'tab-operador': { label: '+ Agregar Negocio', action: 'negocio' },
     'tab-clientes': { label: '+ Agregar Cliente', action: 'client' },
     'tab-negocios': { label: '+ Agregar Negocio', action: 'negocio' },
     'tab-compras': null,
@@ -1911,7 +1938,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     'tab-activos-digitales': null,
     'tab-divisas': null,
     'tab-usuarios': { label: '+ Agregar Usuario', action: 'user' },
-    'tab-dispersiones': null
+    'tab-dispersiones': { label: '+ Nueva Dispersión', action: 'dispersion' }
   };
 
   const btnHeaderAction = document.getElementById('btn-header-action');
@@ -1940,6 +1967,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       openCreateClientModal();
     } else if (action === 'negocio') {
       openCreateNegocioModal();
+    } else if (action === 'dispersion') {
+      openCreateDispersionModal();
     }
   };
   btnHeaderAction?.addEventListener('click', handleHeaderAction);
@@ -2968,6 +2997,252 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
   });
 
   // ==============================================================
+  // GESTIÓN DE DISPERSIONES (MODAL Y REGISTRO EN AIRTABLE)
+  // ==============================================================
+  const btnOpenCreateDispersionModal = document.getElementById('btn-open-create-dispersion-modal');
+  const modalCreateDispersionBackdrop = document.getElementById('modal-create-dispersion-backdrop');
+  const btnCloseCreateDispersionModal = document.getElementById('btn-close-create-dispersion-modal');
+  const btnCancelCreateDispersion = document.getElementById('btn-cancel-create-dispersion');
+  const formModalCreateDispersion = document.getElementById('form-modal-create-dispersion') as HTMLFormElement | null;
+  const modalDispersionFecha = document.getElementById('modal-dispersion-fecha') as HTMLInputElement | null;
+  const modalDispersionCliente = document.getElementById('modal-dispersion-cliente') as HTMLSelectElement | null;
+  const modalDispersionMonto = document.getElementById('modal-dispersion-monto') as HTMLInputElement | null;
+  const modalDispersionOrigen = document.getElementById('modal-dispersion-origen') as HTMLSelectElement | null;
+  const modalDispersionReferencia = document.getElementById('modal-dispersion-referencia') as HTMLInputElement | null;
+  const modalDispersionStatus = document.getElementById('modal-dispersion-status');
+
+  function openCreateDispersionModal() {
+    if (!modalCreateDispersionBackdrop) return;
+    if (modalDispersionFecha && !modalDispersionFecha.value) {
+      modalDispersionFecha.value = getLocalIsoDate(0);
+    }
+    if (modalDispersionStatus) {
+      modalDispersionStatus.textContent = '';
+      modalDispersionStatus.style.color = '';
+    }
+    modalCreateDispersionBackdrop.style.display = 'flex';
+  }
+
+  function closeCreateDispersionModal() {
+    if (modalCreateDispersionBackdrop) modalCreateDispersionBackdrop.style.display = 'none';
+  }
+
+  btnOpenCreateDispersionModal?.addEventListener('click', openCreateDispersionModal);
+  btnCloseCreateDispersionModal?.addEventListener('click', closeCreateDispersionModal);
+  btnCancelCreateDispersion?.addEventListener('click', closeCreateDispersionModal);
+  modalCreateDispersionBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalCreateDispersionBackdrop) closeCreateDispersionModal();
+  });
+
+  formModalCreateDispersion?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!modalDispersionFecha || !modalDispersionCliente || !modalDispersionMonto || !modalDispersionOrigen || !modalDispersionReferencia) return;
+
+    const fecha = modalDispersionFecha.value;
+    const clienteId = modalDispersionCliente.value;
+    const monto = parseFloat(modalDispersionMonto.value);
+    const origenFondosId = modalDispersionOrigen.value;
+    const referencia = modalDispersionReferencia.value.trim();
+
+    if (!fecha || !clienteId || isNaN(monto) || monto <= 0 || !origenFondosId || !referencia) {
+      if (modalDispersionStatus) {
+        modalDispersionStatus.style.color = 'var(--danger)';
+        modalDispersionStatus.textContent = 'Por favor completa todos los campos requeridos con valores válidos.';
+      }
+      return;
+    }
+
+    const btnSubmit = document.getElementById('btn-submit-create-dispersion');
+    if (btnSubmit) {
+      btnSubmit.setAttribute('disabled', 'true');
+      btnSubmit.textContent = 'Registrando en Airtable...';
+    }
+    if (modalDispersionStatus) {
+      modalDispersionStatus.style.color = 'var(--text-muted)';
+      modalDispersionStatus.textContent = 'Sincronizando dispersión en Airtable...';
+    }
+
+    try {
+      const pat = getAirtableToken();
+      const res = await fetch(EDGE_SYNC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_dispersion',
+          fecha,
+          clienteId,
+          monto,
+          origenFondosId,
+          referencia,
+          pat: pat || undefined,
+        }),
+      });
+
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok || !resData.ok) {
+        throw new Error(resData.error || 'Error registrando dispersión en Airtable.');
+      }
+
+      if (resData.snapshot) {
+        applyAirtableSnapshot(resData.snapshot);
+      }
+
+      closeCreateDispersionModal();
+      formModalCreateDispersion.reset();
+      alert('¡Dispersión registrada exitosamente en Airtable!');
+    } catch (err: any) {
+      if (modalDispersionStatus) {
+        modalDispersionStatus.style.color = 'var(--danger)';
+        modalDispersionStatus.textContent = err.message || 'Error al registrar dispersión';
+      }
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.removeAttribute('disabled');
+        btnSubmit.textContent = 'Registrar Dispersión';
+      }
+    }
+  });
+
+  // ==============================================================
+  // GESTIÓN DE EDICIÓN DE NEGOCIOS (MODAL Y ACTUALIZACIÓN EN AIRTABLE)
+  // ==============================================================
+  const modalEditNegocioBackdrop = document.getElementById('modal-edit-negocio-backdrop');
+  const btnCloseEditNegocioModal = document.getElementById('btn-close-edit-negocio-modal');
+  const btnCancelEditNegocio = document.getElementById('btn-cancel-edit-negocio');
+  const formModalEditNegocio = document.getElementById('form-modal-edit-negocio') as HTMLFormElement | null;
+  const modalEditNegocioRecordId = document.getElementById('modal-edit-negocio-record-id') as HTMLInputElement | null;
+  const modalEditNegocioBadgeId = document.getElementById('modal-edit-negocio-badge-id');
+  const modalEditNegocioFecha = document.getElementById('modal-edit-negocio-fecha') as HTMLInputElement | null;
+  const modalEditNegocioCliente = document.getElementById('modal-edit-negocio-cliente') as HTMLSelectElement | null;
+  const modalEditNegocioDivisa = document.getElementById('modal-edit-negocio-divisa') as HTMLSelectElement | null;
+  const modalEditNegocioMonto = document.getElementById('modal-edit-negocio-monto') as HTMLInputElement | null;
+  const modalEditNegocioTasa = document.getElementById('modal-edit-negocio-tasa') as HTMLInputElement | null;
+  const modalEditNegocioCalculoCop = document.getElementById('modal-edit-negocio-calculo-cop');
+  const modalEditNegocioStatus = document.getElementById('modal-edit-negocio-status');
+
+  function updateModalEditNegocioCalculo() {
+    if (!modalEditNegocioCalculoCop) return;
+    const m = parseFloat(modalEditNegocioMonto?.value || '0') || 0;
+    const t = parseFloat(modalEditNegocioTasa?.value || '0') || 0;
+    const total = m * t;
+    modalEditNegocioCalculoCop.textContent = total > 0 ? fmtCopClient(total) : '$0.00';
+  }
+
+  modalEditNegocioMonto?.addEventListener('input', updateModalEditNegocioCalculo);
+  modalEditNegocioTasa?.addEventListener('input', updateModalEditNegocioCalculo);
+
+  function closeEditNegocioModal() {
+    if (modalEditNegocioBackdrop) modalEditNegocioBackdrop.style.display = 'none';
+  }
+
+  btnCloseEditNegocioModal?.addEventListener('click', closeEditNegocioModal);
+  btnCancelEditNegocio?.addEventListener('click', closeEditNegocioModal);
+  modalEditNegocioBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalEditNegocioBackdrop) closeEditNegocioModal();
+  });
+
+  document.addEventListener('click', (e: any) => {
+    const btn = e.target.closest('.btn-open-edit-negocio');
+    if (!btn) return;
+
+    const id = btn.getAttribute('data-id');
+    const codigo = btn.getAttribute('data-codigo') || id;
+    const fecha = btn.getAttribute('data-fecha') || '';
+    const clienteId = btn.getAttribute('data-cliente-id') || '';
+    const divisaId = btn.getAttribute('data-divisa-id') || '';
+    const monto = btn.getAttribute('data-monto') || '0';
+    const tasa = btn.getAttribute('data-tasa') || '0';
+
+    if (modalEditNegocioRecordId) modalEditNegocioRecordId.value = id || '';
+    if (modalEditNegocioBadgeId) modalEditNegocioBadgeId.textContent = codigo || 'N0000';
+    if (modalEditNegocioFecha) modalEditNegocioFecha.value = fecha;
+    if (modalEditNegocioCliente) modalEditNegocioCliente.value = clienteId;
+    if (modalEditNegocioDivisa) modalEditNegocioDivisa.value = divisaId;
+    if (modalEditNegocioMonto) modalEditNegocioMonto.value = monto;
+    if (modalEditNegocioTasa) modalEditNegocioTasa.value = tasa;
+
+    updateModalEditNegocioCalculo();
+
+    if (modalEditNegocioStatus) {
+      modalEditNegocioStatus.textContent = '';
+      modalEditNegocioStatus.style.color = '';
+    }
+
+    if (modalEditNegocioBackdrop) modalEditNegocioBackdrop.style.display = 'flex';
+  });
+
+  formModalEditNegocio?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const negocioId = modalEditNegocioRecordId?.value;
+    if (!negocioId || !modalEditNegocioFecha || !modalEditNegocioCliente || !modalEditNegocioDivisa || !modalEditNegocioMonto || !modalEditNegocioTasa) return;
+
+    const fecha = modalEditNegocioFecha.value;
+    const clienteId = modalEditNegocioCliente.value;
+    const divisaCode = modalEditNegocioDivisa.value;
+    const divisaRecId = AIRTABLE_CURRENCIES_META[divisaCode]?.id || divisaCode;
+    const monto = parseFloat(modalEditNegocioMonto.value);
+    const tasa = parseFloat(modalEditNegocioTasa.value);
+
+    if (!fecha || !clienteId || isNaN(monto) || monto <= 0 || isNaN(tasa) || tasa <= 0) {
+      if (modalEditNegocioStatus) {
+        modalEditNegocioStatus.style.color = 'var(--danger)';
+        modalEditNegocioStatus.textContent = 'Por favor completa todos los campos con valores válidos.';
+      }
+      return;
+    }
+
+    const btnSubmit = document.getElementById('btn-submit-edit-negocio');
+    if (btnSubmit) {
+      btnSubmit.setAttribute('disabled', 'true');
+      btnSubmit.textContent = 'Guardando cambios...';
+    }
+    if (modalEditNegocioStatus) {
+      modalEditNegocioStatus.style.color = 'var(--text-muted)';
+      modalEditNegocioStatus.textContent = 'Actualizando negocio en Airtable...';
+    }
+
+    try {
+      const pat = getAirtableToken();
+      const res = await fetch(EDGE_SYNC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_negocio',
+          negocioId,
+          fecha,
+          clienteId,
+          divisaId: divisaRecId,
+          monto,
+          tasa,
+          pat: pat || undefined,
+        }),
+      });
+
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok || !resData.ok) {
+        throw new Error(resData.error || 'Error actualizando negocio en Airtable.');
+      }
+
+      if (resData.snapshot) {
+        applyAirtableSnapshot(resData.snapshot);
+      }
+
+      closeEditNegocioModal();
+      alert('¡Negocio actualizado exitosamente en Airtable!');
+    } catch (err: any) {
+      if (modalEditNegocioStatus) {
+        modalEditNegocioStatus.style.color = 'var(--danger)';
+        modalEditNegocioStatus.textContent = err.message || 'Error al actualizar negocio';
+      }
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.removeAttribute('disabled');
+        btnSubmit.textContent = 'Guardar Cambios';
+      }
+    }
+  });
+
+  // ==============================================================
   // GESTIÓN DE CLIENTES (MODAL Y REGISTRO)
   // ==============================================================
   const btnOpenCreateClientModal = document.getElementById('btn-open-create-client-modal');
@@ -3715,7 +3990,134 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     currentUserProfile.is_super_admin = isSuperAdminUser(currentUserProfile.email) || Boolean(currentUserProfile.is_super_admin);
 
     updateHeaderProfileUI();
+    applyRolePermissions(currentUserProfile.role);
     loadUsersList();
+  }
+
+  function applyRolePermissions(rawRole: string) {
+    const role = (rawRole || 'operador').toLowerCase().trim();
+    const isSuperAdmin = currentUserProfile?.is_super_admin;
+    const isAdmin = isSuperAdmin || role === 'administrador' || role === 'admin' || role === 'super admin';
+    const isOperator = !isAdmin && (role === 'operador' || role === 'operator');
+    const isDispersador = !isAdmin && (role === 'dispersador');
+
+    const linkOperador = document.getElementById('sidebar-link-operador');
+    const linkDashboard = document.getElementById('sidebar-link-dashboard');
+    const linkClientes = document.getElementById('sidebar-link-clientes');
+    const linkNegocios = document.getElementById('sidebar-link-negocios');
+    const linkDispersiones = document.getElementById('sidebar-link-dispersiones');
+    const linkCompras = document.getElementById('sidebar-link-compras');
+    const linkVentas = document.getElementById('sidebar-link-ventas');
+    const linkActivos = document.getElementById('sidebar-link-activos');
+    const linkActivosDigitales = document.getElementById('sidebar-link-activos-digitales');
+    const linkDivisas = document.getElementById('sidebar-link-divisas');
+    const linkUsuarios = document.getElementById('sidebar-link-usuarios');
+    const airtableCard = document.getElementById('sidebar-airtable-card');
+    const dynamicKpis = document.getElementById('dynamic-kpis-wrapper');
+
+    if (isOperator) {
+      if (linkOperador) linkOperador.style.display = 'flex';
+      if (linkDashboard) linkDashboard.style.display = 'none';
+      if (linkClientes) linkClientes.style.display = 'flex';
+      if (linkNegocios) linkNegocios.style.display = 'flex';
+      if (linkDispersiones) linkDispersiones.style.display = 'none';
+      if (linkCompras) linkCompras.style.display = 'none';
+      if (linkVentas) linkVentas.style.display = 'none';
+      if (linkActivos) linkActivos.style.display = 'none';
+      if (linkActivosDigitales) linkActivosDigitales.style.display = 'none';
+      if (linkDivisas) linkDivisas.style.display = 'none';
+      if (linkUsuarios) linkUsuarios.style.display = 'none';
+      if (airtableCard) airtableCard.style.display = 'none';
+      if (dynamicKpis) dynamicKpis.style.display = 'none';
+
+      const activePane = document.querySelector('.tab-content.active');
+      const currentActiveId = activePane?.id;
+      if (!currentActiveId || (currentActiveId !== 'tab-operador' && currentActiveId !== 'tab-negocios' && currentActiveId !== 'tab-clientes')) {
+        switchTab('tab-operador', false);
+      }
+      updateOperatorViewMetrics();
+    } else if (isDispersador) {
+      if (linkOperador) linkOperador.style.display = 'none';
+      if (linkDashboard) linkDashboard.style.display = 'none';
+      if (linkClientes) linkClientes.style.display = 'none';
+      if (linkNegocios) linkNegocios.style.display = 'none';
+      if (linkDispersiones) linkDispersiones.style.display = 'flex';
+      if (linkCompras) linkCompras.style.display = 'none';
+      if (linkVentas) linkVentas.style.display = 'none';
+      if (linkActivos) linkActivos.style.display = 'none';
+      if (linkActivosDigitales) linkActivosDigitales.style.display = 'none';
+      if (linkDivisas) linkDivisas.style.display = 'none';
+      if (linkUsuarios) linkUsuarios.style.display = 'none';
+      if (airtableCard) airtableCard.style.display = 'none';
+      if (dynamicKpis) dynamicKpis.style.display = 'none';
+
+      switchTab('tab-dispersiones', false);
+    } else {
+      if (linkOperador) linkOperador.style.display = 'flex';
+      if (linkDashboard) linkDashboard.style.display = 'flex';
+      if (linkClientes) linkClientes.style.display = 'flex';
+      if (linkNegocios) linkNegocios.style.display = 'flex';
+      if (linkDispersiones) linkDispersiones.style.display = 'flex';
+      if (linkCompras) linkCompras.style.display = 'flex';
+      if (linkVentas) linkVentas.style.display = 'flex';
+      if (linkActivos) linkActivos.style.display = 'flex';
+      if (linkActivosDigitales) linkActivosDigitales.style.display = 'flex';
+      if (linkDivisas) linkDivisas.style.display = 'flex';
+      if (linkUsuarios) linkUsuarios.style.display = 'flex';
+      if (airtableCard) airtableCard.style.display = 'flex';
+      if (dynamicKpis) dynamicKpis.style.display = 'block';
+    }
+  }
+
+  function updateOperatorViewMetrics() {
+    if (!currentUserProfile) return;
+    const opName = document.getElementById('op-welcome-name');
+    if (opName) opName.textContent = currentUserProfile.full_name || currentUserProfile.email || 'Operador';
+
+    const lastLoginEl = document.getElementById('op-kpi-last-login');
+    if (lastLoginEl) {
+      const now = new Date();
+      lastLoginEl.textContent = `${now.toLocaleDateString('es-CO')} ${now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    const authorizedCurrencies: string[] = Array.isArray(currentUserProfile.authorized_currencies) 
+      ? currentUserProfile.authorized_currencies 
+      : [];
+
+    const chipsContainer = document.getElementById('op-authorized-currencies-chips');
+    if (chipsContainer) {
+      if (currentUserProfile.is_super_admin || currentUserProfile.role === 'administrador') {
+        chipsContainer.innerHTML = '<span style="font-size: 11px; font-weight: 700; color: var(--brand-primary); background: var(--brand-primary-light); padding: 4px 10px; border-radius: 9999px;">Todas las divisas autorizadas (Acceso Total)</span>';
+      } else if (authorizedCurrencies.length === 0) {
+        chipsContainer.innerHTML = '<span style="font-size: 11px; color: var(--text-muted);">Sin divisas específicas asignadas (modo lectura general)</span>';
+      } else {
+        chipsContainer.innerHTML = authorizedCurrencies.map(currCode => {
+          const meta = AIRTABLE_CURRENCIES_META[currCode] || {};
+          const flag = meta.banderaUrl || meta.fallbackBanderaUrl || '';
+          return `
+            <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: var(--bg-card-secondary); border: 1px solid var(--border-main); font-size: 11px; font-weight: 700; color: var(--text-primary);">
+              ${flag ? `<img src="${flag}" alt="${currCode}" style="width: 16px; height: 12px; object-fit: cover; border-radius: 3px;" />` : ''}
+              <span>${currCode}</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    const opNegociosAutorizados = document.getElementById('op-kpi-negocios-autorizados');
+    const opNegociosMios = document.getElementById('op-kpi-negocios-mios');
+    
+    const rows = document.querySelectorAll('#negocios-table-tbody tr');
+    let totalAuth = 0;
+
+    rows.forEach((r: any) => {
+      const divisaCell = r.querySelector('td:nth-child(5)')?.textContent?.trim() || '';
+      const isAuth = authorizedCurrencies.length === 0 || authorizedCurrencies.includes(divisaCell) || currentUserProfile.role === 'administrador' || currentUserProfile.is_super_admin;
+      if (isAuth) totalAuth++;
+    });
+
+    if (opNegociosAutorizados) opNegociosAutorizados.textContent = `${totalAuth} Negocios`;
+    if (opNegociosMios) opNegociosMios.textContent = `${totalAuth} Registrados`;
   }
 
   function updateHeaderProfileUI() {
@@ -3736,6 +4138,10 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       } else if (currentUserProfile.role === 'administrador') {
         userRoleBadge.textContent = 'ADMINISTRADOR';
         userRoleBadge.style.background = 'var(--brand-primary-light)';
+        userRoleBadge.style.color = 'var(--brand-primary)';
+      } else if (currentUserProfile.role === 'dispersador') {
+        userRoleBadge.textContent = 'DISPERSADOR';
+        userRoleBadge.style.background = 'rgba(67, 24, 255, 0.12)';
         userRoleBadge.style.color = 'var(--brand-primary)';
       } else if (currentUserProfile.role === 'client') {
         userRoleBadge.textContent = 'CLIENTE';
@@ -5741,14 +6147,18 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       }
     }
 
-    // 8. Actualizar Negocios (2 decimales)
+    // 8. Actualizar Negocios (2 decimales con columna de Edición)
     if (negocios.length > 0) {
       const negociosTbody = document.getElementById('negocios-table-tbody');
       if (negociosTbody) {
-        negociosTbody.innerHTML = negocios.map((n: any, idx: number) => `
+        negociosTbody.innerHTML = negocios.map((n: any, idx: number) => {
+          const m = Number(n.montoDivisa ?? n.monto ?? 0);
+          const t = Number(n.tasa ?? 0);
+          const ing = Number(n.ingresoCop ?? n.montoCop ?? (m * t));
+          return `
           <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
-            <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${n.codigo || n.idNegocio}</td>
-            <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px;">#${n.numero ?? (idx + 1)}</td>
+            <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${n.numero ?? (idx + 1)}</td>
+            <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px;">${n.codigo || n.idNegocio}</td>
             <td style="padding: 14px 18px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">${n.fechaRegistro || n.fecha || ''}</td>
             <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${n.clienteNombre || 'Cliente'}</td>
             <td style="padding: 14px 18px; text-align: center;">
@@ -5757,28 +6167,49 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               </span>
             </td>
             <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">
-              ${fmtNumClient(n.montoDivisa ?? n.monto ?? 0, 2)}
+              ${fmtNumClient(m, 2)}
             </td>
             <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary); font-size: 13px;">
-              ${fmtCopClient(n.tasa || 0, 2)}
+              ${fmtCopClient(t, 2)}
             </td>
-            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: var(--text-primary); font-size: 14px;">
-              ${fmtCopClient(n.ingresoCop ?? n.montoCop ?? 0, 2)}
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 600; color: var(--success); font-size: 14px;">
+              ${fmtCopClient(ing, 2)}
             </td>
-            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-size: 13px; color: var(--text-muted);">
-              ${n.usdtPorDivisa ? fmtNumClient(n.usdtPorDivisa, 2) + ' USDT' : '-'}
+            <td style="padding: 14px 18px; text-align: center;">
+              <button 
+                type="button" 
+                class="btn-open-edit-negocio" 
+                data-id="${n.id}"
+                data-codigo="${n.codigo || n.idNegocio}"
+                data-fecha="${n.fechaRegistro || n.fecha || ''}"
+                data-cliente-id="${n.clienteId || ''}"
+                data-divisa-id="${n.divisa || n.divisaCodigo || ''}"
+                data-monto="${m}"
+                data-tasa="${t}"
+                style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card-secondary); color: var(--brand-primary); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+                title="Editar este negocio"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Editar</span>
+              </button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
       const negociosTfoot = document.getElementById('negocios-table-tfoot');
       if (negociosTfoot) {
-        const totUsdtNeg = negocios.reduce((acc: number, n: any) => acc + (Number(n.usdtPorDivisa) || 0), 0);
+        const totMontoDiv = negocios.reduce((acc: number, n: any) => acc + (Number(n.montoDivisa ?? n.monto) || 0), 0);
         negociosTfoot.innerHTML = `
-          <tr style="background: var(--bg-main); border-top: 2px solid var(--border-main); font-weight: 800;">
-            <td colspan="7" style="padding: 14px 18px; color: var(--text-primary);">TOTALES (${negocios.length} OPERACIONES)</td>
-            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace;">${fmtCopClient(totalVolumenCop, 2)}</td>
-            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--brand-primary);">${fmtNumClient(totUsdtNeg, 2)} USDT</td>
+          <tr style="background: var(--bg-card-secondary); border-top: 2px solid var(--border-main); font-weight: 800;">
+            <td colspan="5" style="padding: 14px 18px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">TOTALES CONSOLIDADOS (${negocios.length} OPERACIONES):</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">${fmtNumClient(totMontoDiv, 2)}</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-muted); font-size: 12px;">—</td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-size: 15px;">${fmtCopClient(totalVolumenCop, 2)}</td>
+            <td></td>
           </tr>
         `;
       }
@@ -6027,6 +6458,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         }).join('');
       }
     }
+    updateOperatorViewMetrics();
   }
 
   async function syncAllFromAirtable(manual = false) {

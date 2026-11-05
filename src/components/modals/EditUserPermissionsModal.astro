@@ -85,7 +85,7 @@ const { DIVISAS = [] } = Astro.props;
               <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px;">
                 Rol de Acceso en la Plataforma
               </label>
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;">
                 <button type="button" class="edit-role-card-btn" data-role="administrador" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: left; transition: all 0.2s;">
                   <span style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Administrador</span>
                   <span style="font-size: 10px; color: var(--text-muted);">Todas las divisas</span>
@@ -93,6 +93,10 @@ const { DIVISAS = [] } = Astro.props;
                 <button type="button" class="edit-role-card-btn active" data-role="operador" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--brand-primary); background: var(--brand-primary-light); cursor: pointer; text-align: left; transition: all 0.2s;">
                   <span style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Operador</span>
                   <span style="font-size: 10px; color: var(--text-muted);">Divisas asignadas</span>
+                </button>
+                <button type="button" class="edit-role-card-btn" data-role="dispersador" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: left; transition: all 0.2s;">
+                  <span style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Dispersador</span>
+                  <span style="font-size: 10px; color: var(--text-muted);">Solo dispersiones</span>
                 </button>
                 <button type="button" class="edit-role-card-btn" data-role="client" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: left; transition: all 0.2s;">
                   <span style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Cliente</span>

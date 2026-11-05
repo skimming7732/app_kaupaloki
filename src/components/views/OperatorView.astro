@@ -1,0 +1,151 @@
+---
+import { formatCop, formatDecimal } from '../../utils/formatters';
+import { getCurrencyFlag } from '../../data/airtableData';
+
+interface Props {
+  NEGOCIOS: any[];
+  DIVISAS: any[];
+  CLIENTES: any[];
+}
+
+const { NEGOCIOS = [], DIVISAS = [], CLIENTES = [] } = Astro.props;
+---
+
+<div id="tab-operador" class="tab-pane" style="display: none; padding: 24px;">
+  
+  <!-- Banner de Bienvenida -->
+  <div style="background: linear-gradient(135deg, rgba(67, 24, 255, 0.08) 0%, rgba(134, 140, 255, 0.05) 100%); border: 1.5px solid rgba(67, 24, 255, 0.2); border-radius: 20px; padding: 26px 28px; margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--brand-primary);"></span>
+        <span>Panel Operativo</span>
+      </div>
+      <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1.2;">
+        ¡Hola, <span id="op-welcome-name">Operador</span>! 👋
+      </h2>
+      <p style="margin: 6px 0 0 0; font-size: 13px; color: var(--text-muted); max-width: 550px;">
+        Gestiona las operaciones cambiarias autorizadas para tu perfil y registra nuevos negocios con cálculo automático en tiempo real.
+      </p>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <button 
+        type="button" 
+        id="btn-op-open-create-negocio" 
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 14px; background: var(--brand-primary); color: #ffffff; border: none; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.3); transition: transform 0.15s ease;"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Nuevo Negocio</span>
+      </button>
+
+      <button 
+        type="button" 
+        class="btn-switch-tab-shortcut" 
+        data-shortcut="tab-clientes" 
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-main); font-size: 13px; font-weight: 700; cursor: pointer;"
+      >
+        <span>Ver Clientes</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tarjetas KPI Simples del Operador -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    
+    <!-- KPI 1: Negocios Totales Autorizados -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 20px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
+      <div style="width: 44px; height: 44px; border-radius: 14px; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 3px;">
+          Negocios Autorizados
+        </div>
+        <div id="op-kpi-negocios-autorizados" style="font-size: 22px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+          {NEGOCIOS.length} Negocios
+        </div>
+        <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 2px;">
+          En tus divisas asignadas
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI 2: Negocios Registrados por Mí -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 20px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
+      <div style="width: 44px; height: 44px; border-radius: 14px; background: rgba(5, 205, 153, 0.12); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 3px;">
+          Registrados por Mí
+        </div>
+        <div id="op-kpi-negocios-mios" style="font-size: 22px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2;">
+          0 Negocios
+        </div>
+        <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 2px;">
+          Operaciones creadas por tu cuenta
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI 3: Última Conexión -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 20px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px;">
+      <div style="width: 44px; height: 44px; border-radius: 14px; background: rgba(255, 181, 71, 0.12); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </div>
+      <div>
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 3px;">
+          Última Conexión
+        </div>
+        <div id="op-kpi-ultima-conexion" style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+          En línea ahora
+        </div>
+        <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 2px;">
+          Sesión segura autenticada
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sección: Divisas que Tengo Autorizadas -->
+  <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 20px; padding: 22px; box-shadow: var(--shadow-card); margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <div>
+        <h4 style="margin: 0; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-primary);">
+          Divisas Habilitadas para Operar
+        </h4>
+        <p style="margin: 2px 0 0 0; font-size: 11px; color: var(--text-muted);">
+          Puedes registrar negocios y liquidaciones en cualquiera de estas monedas
+        </p>
+      </div>
+    </div>
+
+    <!-- Chips con Divisas Autorizadas -->
+    <div id="op-authorized-currencies-chips" style="display: flex; flex-wrap: wrap; gap: 10px;">
+      {DIVISAS.map(d => (
+        <div class="op-currency-pill" data-currency={d.codigo} style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: var(--bg-card-secondary); border: 1px solid var(--border-main);">
+          <span style="font-size: 18px;">{getCurrencyFlag(d.codigo)}</span>
+          <div>
+            <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace;">{d.codigo}</div>
+            <div style="font-size: 10px; color: var(--text-muted);">{d.nombreDivisa}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+</div>

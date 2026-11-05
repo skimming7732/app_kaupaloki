@@ -172,6 +172,73 @@ Deno.serve(async (req: Request) => {
       // Continues to full sync below to return updated snapshot
     }
 
+    // 0-B. ACTION: update_negocio
+    if (body.action === "update_negocio") {
+      const { negocioId, clienteId, divisaId, monto, tasa, fecha } = body;
+      if (!negocioId) {
+        return new Response(JSON.stringify({ ok: false, error: "Falta el ID del negocio a actualizar" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const fields: any = {};
+      if (monto !== undefined) fields["MONTO"] = Number(monto) || 0;
+      if (tasa !== undefined) fields["TASA"] = Number(tasa) || 0;
+      if (fecha) fields["FECHA REGISTRO"] = fecha;
+      if (clienteId) fields["CLIENTE"] = [clienteId];
+      if (divisaId) fields["DIVISA"] = [divisaId];
+
+      const airtableRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLES.NEGOCIOS}/${negocioId}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${pat}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fields, typecast: true }),
+      });
+
+      if (!airtableRes.ok) {
+        const errTxt = await airtableRes.text();
+        return new Response(
+          JSON.stringify({ ok: false, error: `Error actualizando negocio en Airtable: ${errTxt}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Continues to full sync below to return updated snapshot
+    }
+
+    // 0-C. ACTION: create_dispersion
+    if (body.action === "create_dispersion") {
+      const { clienteId, monto, referencia, origenFondosId, fecha } = body;
+      const fields: any = {
+        "MONTO (COP)": Number(monto) || 0,
+        "ESTADO": "COMPLETADO",
+      };
+      if (fecha) fields["FECHA CREACIÓN"] = fecha;
+      if (clienteId) fields["CLIENTE"] = [clienteId];
+      if (origenFondosId) fields["ORIGEN FONDOS"] = [origenFondosId];
+      if (referencia) fields["REFERENCIA"] = String(referencia).trim();
+
+      const airtableRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLES.DISPERSIONES}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${pat}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fields, typecast: true }),
+      });
+
+      if (!airtableRes.ok) {
+        const errTxt = await airtableRes.text();
+        return new Response(
+          JSON.stringify({ ok: false, error: `Error creando dispersión en Airtable: ${errTxt}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Continues to full sync below to return updated snapshot
+    }
+
     // 0A. ACTION: prepare_invited_user
     if (body.action === "prepare_invited_user" && body.email) {
       const cleanEmail = String(body.email).trim().toLowerCase();
@@ -230,6 +297,8 @@ Deno.serve(async (req: Request) => {
             ? "ADMINISTRADOR"
             : (role === "client" || role === "cliente")
             ? "CLIENTE"
+            : role === "dispersador"
+            ? "DISPERSADOR"
             : "OPERADOR";
 
           const sUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLES.USUARIOS}?filterByFormula=LOWER({EMAIL})='${encodeURIComponent(cleanEmail)}'`;
@@ -338,6 +407,8 @@ Deno.serve(async (req: Request) => {
             ? "ADMINISTRADOR"
             : (role === "client" || role === "cliente")
             ? "CLIENTE"
+            : role === "dispersador"
+            ? "DISPERSADOR"
             : "OPERADOR";
 
           if (!recordId) {
