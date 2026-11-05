@@ -4314,7 +4314,13 @@ function formatDecimal(amount: number, digits = 2): string {
   import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
   const ENV_PAT = import.meta.env.PUBLIC_AIRTABLE_PAT || "";
   const BASE_ID = "appncUKgTkDojFj4B";
+  const AIRTABLE_BASE_ID = 'appncUKgTkDojFj4B';
   const TABLE_CLIENTES_ID = "tblfEL6ENM3N5g89d";
+  const EDGE_SYNC_URL = 'https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync';
+  const PAT_STORAGE_KEY = 'kaupaloki_airtable_pat';
+
+  let currentAuthUser: any = null;
+  let currentUserProfile: any = null;
 
   // ==============================================================
   // AUTH GUARD: Verificar sesión autenticada con Supabase
@@ -4715,9 +4721,7 @@ function formatDecimal(amount: number, digits = 2): string {
     });
   });
 
-  switchTab(initialTab, false);
-  // Preload users list immediately on page startup
-  loadUsersList();
+  // (switchTab y loadUsersList se ejecutan al final del script tras cargar todas las funciones)
 
   // ==============================================================
   // COMPROBANTE LIGHTBOX MODAL (MISMA PESTAÑA, SIN NUEVA VENTANA)
@@ -5624,6 +5628,7 @@ function formatDecimal(amount: number, digits = 2): string {
   // GESTIÓN DE CLIENTES (MODAL Y REGISTRO)
   // ==============================================================
   const btnOpenCreateClientModal = document.getElementById('btn-open-create-client-modal');
+  const btnNegocioOpenAddClient = document.getElementById('btn-negocio-open-add-client');
   const modalCreateClientBackdrop = document.getElementById('modal-create-client-backdrop');
   const btnCloseCreateClientModal = document.getElementById('btn-close-create-client-modal');
   const btnCancelCreateClient = document.getElementById('btn-cancel-create-client');
@@ -6276,8 +6281,7 @@ function formatDecimal(amount: number, digits = 2): string {
   // ==============================================================
   // GESTIÓN DE PERFIL DEL USUARIO ACTUAL (HEADER & DROPDOWN)
   // ==============================================================
-  let currentAuthUser: any = null;
-  let currentUserProfile: any = null;
+  // (currentAuthUser y currentUserProfile declarados arriba)
 
   const userAvatarBtn = document.getElementById('user-avatar-btn');
   const userAvatarInitials = document.getElementById('user-avatar-initials');
@@ -7483,8 +7487,7 @@ function formatDecimal(amount: number, digits = 2): string {
     }
   });
 
-  // Inicializar perfil de usuario en carga
-  initCurrentUser();
+  // (initCurrentUser se ejecuta al final del script)
 
   // ==============================================================
   // MODAL: COMPARTIR PORTAL DE CLIENTE
@@ -7899,9 +7902,7 @@ function formatDecimal(amount: number, digits = 2): string {
   // ==============================================================
   // MOTOR DE SINCRONIZACIÓN EN TIEMPO REAL CON AIRTABLE + SUPABASE
   // ==============================================================
-  const AIRTABLE_BASE_ID = 'appncUKgTkDojFj4B';
-  const EDGE_SYNC_URL = 'https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync';
-  const PAT_STORAGE_KEY = 'kaupaloki_airtable_pat';
+  // (AIRTABLE_BASE_ID, EDGE_SYNC_URL, PAT_STORAGE_KEY declarados arriba)
 
   const modalAirtableBackdrop = document.getElementById('modal-airtable-backdrop');
   const btnCloseAirtableModal = document.getElementById('btn-close-airtable-modal');
@@ -8763,4 +8764,11 @@ function formatDecimal(amount: number, digits = 2): string {
   window.addEventListener('focus', () => {
     syncAllFromAirtable(false);
   });
+
+  // ==============================================================
+  // INICIALIZACIÓN CONTROLADA (TODO EL SCRIPT ESTÁ TOTALMENTE DECLARADO)
+  // ==============================================================
+  await initCurrentUser();
+  switchTab(initialTab, false);
+  await loadUsersList();
 </script>
