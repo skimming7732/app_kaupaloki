@@ -2676,17 +2676,20 @@ function formatDecimal(amount: number, digits = 2): string {
                 required 
                 style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border-main); background: var(--bg-main); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; box-sizing: border-box; cursor: pointer;"
               >
-                <option value="COL" selected>🇨🇴 Colombia (COL)</option>
-                <option value="BRA">🇧🇷 Brasil (BRA)</option>
-                <option value="PER">🇵🇪 Perú (PER)</option>
-                <option value="CHL">🇨🇱 Chile (CHL)</option>
-                <option value="ARG">🇦🇷 Argentina (ARG)</option>
-                <option value="MEX">🇲🇽 México (MEX)</option>
-                <option value="USA">🇺🇸 Estados Unidos (USA)</option>
-                <option value="VEN">🇻🇪 Venezuela (VEN)</option>
-                <option value="PAN">🇵🇦 Panamá (PAN)</option>
-                <option value="ESP">🇪🇸 España (ESP)</option>
-                <option value="OTRO">🌐 Otro País</option>
+                <option value="COL" selected>Colombia (COL)</option>
+                <option value="BRA">Brasil (BRA)</option>
+                <option value="PER">Perú (PER)</option>
+                <option value="ECU">Ecuador (ECU)</option>
+                <option value="PAN">Panamá (PAN)</option>
+                <option value="CHL">Chile (CHL)</option>
+                <option value="ARG">Argentina (ARG)</option>
+                <option value="MEX">México (MEX)</option>
+                <option value="USA">Estados Unidos (USA)</option>
+                <option value="VEN">Venezuela (VEN)</option>
+                <option value="HND">Honduras (HND)</option>
+                <option value="URY">Uruguay (URY)</option>
+                <option value="ESP">España (ESP)</option>
+                <option value="OTR">Otro País (OTR)</option>
               </select>
             </div>
 
@@ -2752,27 +2755,35 @@ function formatDecimal(amount: number, digits = 2): string {
               </div>
             </div>
 
-            <!-- Divisas Autorizadas para Registrar -->
+            <!-- Divisas Autorizadas para Registrar (Sincronizadas con tabla DIVISAS de Airtable) -->
             <div id="container-authorized-currencies" style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 14px; padding: 14px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-primary);">
-                  Divisas Autorizadas para Operar
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-primary); letter-spacing: 0.04em;">
+                  Divisas Autorizadas (Airtable)
                 </label>
-                <button type="button" id="btn-toggle-all-currencies" style="background: none; border: none; font-size: 11px; font-weight: 700; color: var(--brand-primary); cursor: pointer;">
-                  Seleccionar Todas
+                <button type="button" id="btn-toggle-all-currencies" style="background: none; border: none; font-size: 11px; font-weight: 800; color: var(--brand-primary); cursor: pointer;">
+                  Deseleccionar Todas
                 </button>
               </div>
               <p style="margin: 0 0 10px 0; font-size: 11px; color: var(--text-muted);">
-                Marca las divisas que este operador tiene permiso para registrar en negocios:
+                Marca las divisas de Airtable que este operador tiene permiso para registrar:
               </p>
               
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                {['USD', 'USDT', 'COP', 'BRL', 'PEN', 'CLP', 'ARS', 'HNL', 'VES'].map((curr) => (
-                  <label style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-main); background: var(--bg-card); cursor: pointer; font-size: 12px; font-weight: 700; font-family: ui-monospace, monospace; color: var(--text-primary);">
-                    <input type="checkbox" name="authorized_currency" value={curr} checked style="accent-color: var(--brand-primary);" />
-                    <span>{curr}</span>
-                  </label>
-                ))}
+              <div id="invite-currencies-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 210px; overflow-y: auto; padding-right: 2px;">
+                {DIVISAS.map((d) => {
+                  const flagSrc = d.banderaUrl || d.fallbackBanderaUrl || 'https://flagcdn.com/w80/us.png';
+                  const fallbackSrc = d.fallbackBanderaUrl || 'https://flagcdn.com/w80/us.png';
+                  return (
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-primary);">
+                      <input type="checkbox" name="authorized_currency" value={d.codigo} checked style="accent-color: var(--brand-primary); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0;" />
+                      <img src={flagSrc} alt={d.codigo} onerror={`this.onerror=null;this.src="${fallbackSrc}";`} style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-main); flex-shrink: 0;" />
+                      <div style="min-width: 0; overflow: hidden;">
+                        <div style="font-family: ui-monospace, monospace; font-weight: 800; font-size: 12px; color: var(--brand-primary); line-height: 1.1;">{d.codigo}</div>
+                        <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{d.nombreDivisa || d.codigo}</div>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
@@ -3260,18 +3271,20 @@ function formatDecimal(amount: number, digits = 2): string {
                 required 
                 style="width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 13px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: inherit; outline: none; cursor: pointer; transition: all 0.2s;"
               >
-                <option value="COL">🇨🇴 Colombia (COL)</option>
-                <option value="BRA">🇧🇷 Brasil (BRA)</option>
-                <option value="PER">🇵🇪 Perú (PER)</option>
-                <option value="CHL">🇨🇱 Chile (CHL)</option>
-                <option value="ARG">🇦🇷 Argentina (ARG)</option>
-                <option value="HND">🇭🇳 Honduras (HND)</option>
-                <option value="VEN">🇻🇪 Venezuela (VEN)</option>
-                <option value="MEX">🇲🇽 México (MEX)</option>
-                <option value="URY">🇺🇾 Uruguay (URY)</option>
-                <option value="USA">🇺🇸 Estados Unidos (USA)</option>
-                <option value="ESP">🇪🇸 España (ESP)</option>
-                <option value="OTR">🌐 Otro País</option>
+                <option value="COL">Colombia (COL)</option>
+                <option value="BRA">Brasil (BRA)</option>
+                <option value="PER">Perú (PER)</option>
+                <option value="ECU">Ecuador (ECU)</option>
+                <option value="PAN">Panamá (PAN)</option>
+                <option value="CHL">Chile (CHL)</option>
+                <option value="ARG">Argentina (ARG)</option>
+                <option value="HND">Honduras (HND)</option>
+                <option value="VEN">Venezuela (VEN)</option>
+                <option value="MEX">México (MEX)</option>
+                <option value="URY">Uruguay (URY)</option>
+                <option value="USA">Estados Unidos (USA)</option>
+                <option value="ESP">España (ESP)</option>
+                <option value="OTR">Otro País (OTR)</option>
               </select>
             </div>
 
@@ -3420,6 +3433,153 @@ function formatDecimal(amount: number, digits = 2): string {
               Sí, Eliminar
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- MODAL: EDITAR PERMISOS Y DIVISAS DE USUARIO (ADMIN / SUPER ADMIN) -->
+      <!-- ============================================================== -->
+      <div id="modal-edit-user-permissions-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(11, 20, 55, 0.72); backdrop-filter: blur(8px); z-index: 155; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 24px; padding: 28px 30px; width: 100%; max-width: 560px; box-shadow: var(--shadow-card); position: relative; max-height: 92vh; overflow-y: auto;">
+          <!-- Close Button -->
+          <button id="btn-close-edit-user-permissions-modal" type="button" style="position: absolute; top: 20px; right: 20px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <!-- Header -->
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
+            <div style="width: 46px; height: 46px; border-radius: 14px; background: var(--brand-primary-light); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-primary);">
+                Editar Permisos y Divisas
+              </h3>
+              <p id="edit-user-permissions-subtitle" style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted); font-family: ui-monospace, monospace;">
+                usuario@kaupaloki.co
+              </p>
+            </div>
+          </div>
+
+          <form id="form-edit-user-permissions" style="display: flex; flex-direction: column; gap: 16px;">
+            <input type="hidden" id="edit-user-email-hidden" value="" />
+            <input type="hidden" id="edit-user-airtable-id-hidden" value="" />
+            <input type="hidden" id="edit-user-role-hidden" value="operador" />
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <label for="modal-edit-user-name" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 6px;">
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  id="modal-edit-user-name"
+                  required
+                  style="width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none;"
+                />
+              </div>
+              <div>
+                <label for="modal-edit-user-country" style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 6px;">
+                  País (Sin Emoji)
+                </label>
+                <select
+                  id="modal-edit-user-country"
+                  style="width: 100%; box-sizing: border-box; padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; cursor: pointer;"
+                >
+                  <option value="COL">Colombia (COL)</option>
+                  <option value="BRA">Brasil (BRA)</option>
+                  <option value="PER">Perú (PER)</option>
+                  <option value="ECU">Ecuador (ECU)</option>
+                  <option value="CHL">Chile (CHL)</option>
+                  <option value="ARG">Argentina (ARG)</option>
+                  <option value="URY">Uruguay (URY)</option>
+                  <option value="PRY">Paraguay (PRY)</option>
+                  <option value="MEX">México (MEX)</option>
+                  <option value="USA">Estados Unidos (USA)</option>
+                  <option value="HND">Honduras (HND)</option>
+                  <option value="VEN">Venezuela (VEN)</option>
+                  <option value="PAN">Panamá (PAN)</option>
+                  <option value="ESP">España (ESP)</option>
+                  <option value="OTRO">Otro País (OTRO)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Selector de Rol -->
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px;">
+                Rol de Acceso en la Plataforma
+              </label>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                <button type="button" class="edit-role-card-btn" data-role="administrador" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: left; transition: all 0.2s;">
+                  <span style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Administrador</span>
+                  <span style="font-size: 10px; color: var(--text-muted);">Todas las divisas</span>
+                </button>
+                <button type="button" class="edit-role-card-btn active" data-role="operador" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--brand-primary); background: var(--brand-primary-light); cursor: pointer; text-align: left; transition: all 0.2s;">
+                  <span style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Operador</span>
+                  <span style="font-size: 10px; color: var(--text-muted);">Divisas asignadas</span>
+                </button>
+                <button type="button" class="edit-role-card-btn" data-role="client" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: left; transition: all 0.2s;">
+                  <span style="font-size: 12px; font-weight: 800; color: var(--text-primary);">Cliente</span>
+                  <span style="font-size: 10px; color: var(--text-muted);">Solo consulta</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Divisas Autorizadas Sincronizadas con Airtable -->
+            <div id="edit-container-authorized-currencies" style="display: block;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">
+                  Divisas Autorizadas (Sincronizadas con Airtable)
+                </label>
+                <button type="button" id="btn-edit-toggle-all-currencies" style="background: none; border: none; color: var(--brand-primary); font-size: 11px; font-weight: 700; cursor: pointer; padding: 0;">
+                  Seleccionar / Deseleccionar Todas
+                </button>
+              </div>
+              <div id="edit-user-currencies-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; background: var(--bg-card-secondary); padding: 12px; border-radius: 12px; border: 1px solid var(--border-main); max-height: 220px; overflow-y: auto;">
+                {DIVISAS.map((d) => (
+                  <label class="currency-check-chip" style="display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 9px; background: var(--bg-card); border: 1px solid var(--border-main); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-primary); user-select: none;">
+                    <input type="checkbox" name="edit_authorized_currency" value={d.codigo} style="accent-color: var(--brand-primary); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0;" />
+                    <img
+                      src={d.banderaUrl || d.fallbackBanderaUrl}
+                      alt={d.codigo}
+                      onerror={`this.onerror=null;this.src='${d.fallbackBanderaUrl}';`}
+                      style="width: 18px; height: 18px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-main); flex-shrink: 0;"
+                    />
+                    <div style="display: flex; flex-direction: column; line-height: 1.1; overflow: hidden;">
+                      <span style="font-family: ui-monospace, monospace; font-size: 11.5px; font-weight: 800;">{d.codigo}</span>
+                      <span style="font-size: 9px; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{d.nombreDivisa}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div id="modal-edit-user-permissions-status" style="font-size: 12px; font-weight: 700; text-align: center; min-height: 18px;"></div>
+
+            <div style="display: flex; gap: 10px; margin-top: 4px;">
+              <button
+                type="button"
+                id="btn-cancel-edit-user-permissions"
+                style="flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--border-main); background: var(--bg-main); color: var(--text-secondary); font-size: 13px; font-weight: 700; cursor: pointer;"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                id="btn-save-edit-user-permissions"
+                style="flex: 1.4; padding: 12px; border-radius: 12px; border: none; background: var(--brand-primary); color: #FFFFFF; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 24, 255, 0.25);"
+              >
+                Guardar Permisos y Divisas
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -5369,7 +5529,32 @@ function formatDecimal(amount: number, digits = 2): string {
   const roleInput = document.getElementById('modal-user-role') as HTMLInputElement | null;
   const containerAuthorizedCurrencies = document.getElementById('container-authorized-currencies');
 
-  const ALL_SYSTEM_CURRENCIES = ['USD', 'USDT', 'COP', 'BRL', 'PEN', 'CLP', 'ARS', 'HNL', 'VES'];
+  function getAllSystemCurrencies(): string[] {
+    const keys = Object.keys(AIRTABLE_CURRENCIES_META);
+    return keys.length > 0
+      ? keys
+      : ['BRL', 'PEN', 'USD-EC', 'HNL', 'VES', 'USDT', 'USD-PY', 'USD', 'ARS', 'UYU', 'CLP', 'COP', 'MXN'];
+  }
+  const ALL_SYSTEM_CURRENCIES = getAllSystemCurrencies();
+
+  function mapAirtableDivisaIdsToCodesClient(rawList: any): string[] {
+    if (!Array.isArray(rawList)) return [];
+    const idToCode: Record<string, string> = {};
+    Object.entries(AIRTABLE_CURRENCIES_META).forEach(([code, meta]: [string, any]) => {
+      if (meta?.id) idToCode[meta.id] = code;
+    });
+    return rawList
+      .map((item: any) => {
+        const val = String(item || '').trim();
+        if (!val) return '';
+        if (idToCode[val]) return idToCode[val];
+        const up = val.toUpperCase();
+        if (AIRTABLE_CURRENCIES_META[up]) return up;
+        return val;
+      })
+      .filter((v: string) => Boolean(v) && !v.startsWith('rec'));
+  }
+
   const SUPER_ADMIN_EMAIL = 'desarrollor@jeroallsolutions.com';
 
   function isSuperAdminUser(email?: string): boolean {
@@ -5542,14 +5727,21 @@ function formatDecimal(amount: number, digits = 2): string {
     const role = currentRoleInput ? currentRoleInput.value : 'operador';
     const country = countrySelect ? countrySelect.value : 'COL';
 
-    // Determinar divisas autorizadas: Si es admin o cliente, siempre todas
+    // Determinar divisas autorizadas: Si es admin o cliente, siempre todas las divisas sincronizadas con Airtable
+    const allCurrencies = getAllSystemCurrencies();
     let authorizedCurrencies: string[];
     if (role === 'administrador' || role === 'client') {
-      authorizedCurrencies = [...ALL_SYSTEM_CURRENCIES];
+      authorizedCurrencies = [...allCurrencies];
     } else {
       const checkedBoxes = Array.from(document.querySelectorAll('input[name="authorized_currency"]:checked')) as HTMLInputElement[];
       authorizedCurrencies = checkedBoxes.map(cb => cb.value);
-      if (authorizedCurrencies.length === 0) authorizedCurrencies = [...ALL_SYSTEM_CURRENCIES];
+      if (authorizedCurrencies.length === 0) {
+        if (modalCreateUserStatus) {
+          modalCreateUserStatus.style.color = 'var(--danger)';
+          modalCreateUserStatus.textContent = 'Selecciona al menos 1 divisa autorizada para el Operador.';
+        }
+        return;
+      }
     }
 
     if (modalCreateUserStatus) {
@@ -5565,8 +5757,11 @@ function formatDecimal(amount: number, digits = 2): string {
       // Si el usuario había sido eliminado previamente, quitarlo de la lista local de eliminados
       unmarkUserDeletedLocal(email);
 
+      const pat = getAirtableToken();
+
       // 1. Pre-crear el usuario en auth.users con email_confirm: true desde la Edge Function
       // Esto evita que Supabase dispare el correo en inglés "Confirm your email address" (type=signup) hacia localhost
+      // y sincroniza el perfil y las divisas en Supabase y Airtable
       let preparedUserId: string = crypto.randomUUID();
       try {
         const prepRes = await fetch('https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync', {
@@ -5578,7 +5773,8 @@ function formatDecimal(amount: number, digits = 2): string {
             fullName: name,
             role,
             pais: country,
-            authorizedCurrencies
+            authorizedCurrencies,
+            pat: pat || undefined
           })
         });
         if (prepRes.ok) {
@@ -5609,7 +5805,7 @@ function formatDecimal(amount: number, digits = 2): string {
         });
       } catch (_) {}
 
-      // 3. Asegurar registro en tabla profiles de Supabase
+      // 3. Asegurar registro en tabla profiles de Supabase (por ID y por email)
       await supabase.from('profiles').upsert({
         id: preparedUserId,
         email: email,
@@ -5620,10 +5816,18 @@ function formatDecimal(amount: number, digits = 2): string {
         status: 'invitado',
         onboarding_completed: false,
         is_super_admin: isSuperAdminUser(email)
-      }, { onConflict: 'email' });
+      }, { onConflict: 'id' });
 
-      // Sincronizar inmediatamente a Airtable si hay PAT configurado
-      const pat = getAirtableToken();
+      await supabase.from('profiles').update({
+        full_name: name,
+        role: role,
+        pais: country,
+        authorized_currencies: authorizedCurrencies,
+        status: 'invitado',
+        is_super_admin: isSuperAdminUser(email)
+      }).ilike('email', email);
+
+      // Sincronizar inmediatamente a Airtable si hay PAT configurado en el navegador
       if (pat) {
         try {
           const divisaRelIds = authorizedCurrencies.map(c => AIRTABLE_CURRENCIES_META[c]?.id).filter(Boolean);
@@ -5639,6 +5843,10 @@ function formatDecimal(amount: number, digits = 2): string {
             }
           }
 
+          const airtableRole = isSuperAdminUser(email)
+            ? 'SUPER ADMIN'
+            : (role === 'administrador' ? 'ADMINISTRADOR' : (role === 'client' ? 'CLIENTE' : 'OPERADOR'));
+
           if (existingRecId) {
             // Reactivar usuario existente y actualizar rol y divisas relacionadas
             await fetch(`https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb/${existingRecId}`, {
@@ -5652,10 +5860,10 @@ function formatDecimal(amount: number, digits = 2): string {
                   "NOMBRE": name.toUpperCase(),
                   "PAIS": country,
                   "ESTADO": "ACTIVO",
-                  "ROL": role === 'administrador' ? 'ADMINISTRADOR' : (role === 'client' ? 'CLIENTE' : 'OPERADOR'),
-                  "DIVISAS AUTORIZADAS": authorizedCurrencies,
+                  "ROL": airtableRole,
                   "DIVISAS RELACIONADAS": divisaRelIds
-                }
+                },
+                typecast: true
               })
             });
           } else {
@@ -5672,10 +5880,10 @@ function formatDecimal(amount: number, digits = 2): string {
                   "EMAIL": email,
                   "PAIS": country,
                   "ESTADO": "ACTIVO",
-                  "ROL": role === 'administrador' ? 'ADMINISTRADOR' : (role === 'client' ? 'CLIENTE' : 'OPERADOR'),
-                  "DIVISAS AUTORIZADAS": authorizedCurrencies,
+                  "ROL": airtableRole,
                   "DIVISAS RELACIONADAS": divisaRelIds
-                }
+                },
+                typecast: true
               })
             });
           }
@@ -6200,17 +6408,28 @@ function formatDecimal(amount: number, digits = 2): string {
         const email = (rec.fields['EMAIL'] || '').toLowerCase().trim();
         if (email && !deletedLocal.has(email)) {
           const exists = supabaseProfiles?.some(p => p.email?.toLowerCase() === email);
+          const airtableCurrCodes = mapAirtableDivisaIdsToCodesClient(
+            rec.fields['DIVISAS RELACIONADAS'] || rec.fields['DIVISAS AUTORIZADAS'] || []
+          );
           if (!exists) {
             await supabase.from('profiles').upsert({
               id: crypto.randomUUID(),
               email: email,
               full_name: rec.fields['NOMBRE'] || email.split('@')[0],
-              role: (rec.fields['ROL'] || 'operador').toLowerCase(),
-              authorized_currencies: rec.fields['DIVISAS AUTORIZADAS'] || ['USD', 'USDT', 'COP'],
+              role: (rec.fields['ROL'] || 'operador').toLowerCase().includes('admin') ? 'administrador' : ((rec.fields['ROL'] || '').toLowerCase().includes('client') ? 'client' : 'operador'),
+              pais: rec.fields['PAIS'] || 'COL',
+              authorized_currencies: airtableCurrCodes.length > 0 ? airtableCurrCodes : ['COP'],
               status: (rec.fields['ESTADO'] || 'ACTIVO').toLowerCase(),
               onboarding_completed: (rec.fields['ESTADO'] || '').toUpperCase() === 'ACTIVO',
               is_super_admin: isSuperAdminUser(email)
             }, { onConflict: 'email' });
+          } else if (airtableCurrCodes.length > 0) {
+            const matchProf = supabaseProfiles?.find(p => p.email?.toLowerCase() === email);
+            if (matchProf && (!Array.isArray(matchProf.authorized_currencies) || matchProf.authorized_currencies.length === 0)) {
+              await supabase.from('profiles').update({
+                authorized_currencies: airtableCurrCodes
+              }).ilike('email', email);
+            }
           }
         }
       }
@@ -6224,6 +6443,10 @@ function formatDecimal(amount: number, digits = 2): string {
         const existsInAirtable = airtableRecords.some(r => (r.fields['EMAIL'] || '').toLowerCase() === pEmail);
         if (!existsInAirtable) {
           try {
+            const profCurrencies: string[] = Array.isArray(prof.authorized_currencies) && prof.authorized_currencies.length > 0
+              ? prof.authorized_currencies
+              : getAllSystemCurrencies();
+            const divisaRelIds = profCurrencies.map(c => AIRTABLE_CURRENCIES_META[c]?.id).filter(Boolean);
             const createResp = await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tbljfI9AsgpOsfzPb', {
               method: 'POST',
               headers: {
@@ -6234,10 +6457,12 @@ function formatDecimal(amount: number, digits = 2): string {
                 fields: {
                   "NOMBRE": (prof.full_name || prof.email.split('@')[0]).toUpperCase(),
                   "EMAIL": prof.email,
-                  "PAIS": "COL",
-                  "ESTADO": (prof.status || 'ACTIVO').toUpperCase(),
-                  "DIVISAS AUTORIZADAS": prof.authorized_currencies || ['USD', 'USDT', 'COP', 'BRL', 'PEN', 'CLP', 'ARS', 'HNL', 'VES']
-                }
+                  "PAIS": prof.pais || "COL",
+                  "ESTADO": (prof.status || 'ACTIVO').toUpperCase() === 'INVITADO' ? 'ACTIVO' : (prof.status || 'ACTIVO').toUpperCase(),
+                  "ROL": isSuperAdminUser(pEmail) ? "SUPER ADMIN" : (prof.role === 'administrador' ? 'ADMINISTRADOR' : (prof.role === 'client' ? 'CLIENTE' : 'OPERADOR')),
+                  "DIVISAS RELACIONADAS": divisaRelIds
+                },
+                typecast: true
               })
             });
             if (createResp.ok) {
@@ -6291,18 +6516,25 @@ function formatDecimal(amount: number, digits = 2): string {
         if (matchingAirtable && (matchingAirtable.fields['ESTADO'] || '').toUpperCase() === 'INACTIVO') return;
 
         const userNum = idx + 1;
-        const fallbackCode = u.operator_code || computeUserAirtableCode(u.full_name, u.role, u.pais || matchingAirtable?.fields['PAIS'], userNum);
+        const resolvedPais = (u.pais || matchingAirtable?.fields['PAIS'] || 'COL').toUpperCase();
+        const fallbackCode = u.operator_code || computeUserAirtableCode(u.full_name, u.role, resolvedPais, userNum);
         const resolvedCode = matchingAirtable?.fields['ADMINISTRADOR'] || fallbackCode;
+
+        const supaCurrs = mapAirtableDivisaIdsToCodesClient(Array.isArray(u.authorized_currencies) ? u.authorized_currencies : []);
+        const airtableCurrs = mapAirtableDivisaIdsToCodesClient(
+          matchingAirtable?.fields['DIVISAS RELACIONADAS'] || matchingAirtable?.fields['DIVISAS AUTORIZADAS'] || []
+        );
+        const finalCurrencies = supaCurrs.length > 0 ? supaCurrs : airtableCurrs;
 
         allUsers.push({
           operatorCode: resolvedCode,
-          airtableRecordId: matchingAirtable?.id || '',
+          airtableRecordId: matchingAirtable?.id || u.airtable_id || '',
           nombre: u.full_name || matchingAirtable?.fields['NOMBRE'] || 'Sin Nombre',
           email: u.email,
           role: u.role || 'operador',
           is_super_admin: isSuperAdminUser(u.email),
-          pais: matchingAirtable?.fields['PAIS'] || 'COL',
-          authorized_currencies: Array.isArray(u.authorized_currencies) ? u.authorized_currencies : (matchingAirtable?.fields['DIVISAS AUTORIZADAS'] || []),
+          pais: resolvedPais,
+          authorized_currencies: finalCurrencies,
           status: u.onboarding_completed || u.status === 'activo' || matchingAirtable?.fields['ESTADO'] === 'ACTIVO' ? 'activo' : 'invitado',
           source: matchingAirtable ? 'Sincronizado (Supabase + Airtable)' : 'Supabase'
         });
@@ -6316,15 +6548,20 @@ function formatDecimal(amount: number, digits = 2): string {
         const rEmail = (r.fields['EMAIL'] || '').toLowerCase().trim();
         if (!rEmail || deletedLocal.has(rEmail)) return;
         if (!allUsers.some(u => (u.email || '').toLowerCase().trim() === rEmail)) {
+          const airtableCurrs = mapAirtableDivisaIdsToCodesClient(
+            r.fields['DIVISAS RELACIONADAS'] || r.fields['DIVISAS AUTORIZADAS'] || []
+          );
+          const rawRol = (r.fields['ROL'] || 'operador').toLowerCase();
+          const normRole = rawRol.includes('admin') ? 'administrador' : (rawRol.includes('client') ? 'client' : 'operador');
           allUsers.push({
             operatorCode: r.fields['ADMINISTRADOR'] || computeUserAirtableCode(r.fields['NOMBRE'], r.fields['ROL'], r.fields['PAIS'], idx + 1),
             airtableRecordId: r.id,
             nombre: r.fields['NOMBRE'] || 'Sin Nombre',
             email: r.fields['EMAIL'] || 'sin-correo@kaupaloki.co',
-            role: (r.fields['ROL'] || 'operador').toLowerCase(),
+            role: normRole,
             is_super_admin: isSuperAdminUser(rEmail),
-            pais: r.fields['PAIS'] || 'COL',
-            authorized_currencies: r.fields['DIVISAS AUTORIZADAS'] || ['USD', 'USDT', 'COP'],
+            pais: (r.fields['PAIS'] || 'COL').toUpperCase(),
+            authorized_currencies: airtableCurrs,
             status: (r.fields['ESTADO'] || 'ACTIVO').toLowerCase(),
             source: 'Airtable'
           });
@@ -6346,7 +6583,7 @@ function formatDecimal(amount: number, digits = 2): string {
     document.querySelectorAll('.kpi-count-users-operators').forEach(el => el.textContent = totalOperatorsCount.toString());
 
     if (allUsers.length === 0 && error) {
-      const errHtml = `<tr><td colspan="7" style="padding: 18px; text-align: center; color: var(--danger);">Error al cargar usuarios: ${error?.message}</td></tr>`;
+      const errHtml = `<tr><td colspan="8" style="padding: 18px; text-align: center; color: var(--danger);">Error al cargar usuarios: ${error?.message}</td></tr>`;
       if (usuariosViewTableBody) usuariosViewTableBody.innerHTML = errHtml;
       return;
     }
@@ -6396,6 +6633,11 @@ function formatDecimal(amount: number, digits = 2): string {
           }
         }
 
+        // LÓGICA DE PERMISOS PARA EDITAR:
+        // Super Admin puede editar a todos (excepto degradarse a sí mismo de Super Admin).
+        // Admin normal puede editar operadores y clientes, y su propio perfil.
+        const canEditPermissions = !isTargetSuperAdmin && (isSuperAdmin || (isAdmin && (!isAdm || isSelf)));
+
         const roleBg = isTargetSuperAdmin 
           ? 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)' 
           : (isAdm ? 'var(--brand-primary-light)' : (isClient ? 'rgba(67, 24, 255, 0.08)' : 'rgba(5, 205, 153, 0.12)'));
@@ -6404,21 +6646,10 @@ function formatDecimal(amount: number, digits = 2): string {
         const isCompleted = u.status === 'activo';
         const inviteLink = `https://app.kaupaloki.co/onboarding?email=${encodeURIComponent(u.email)}`;
 
-        const paisMap: Record<string, string> = {
-          'COL': '🇨🇴 COL',
-          'BRA': '🇧🇷 BRA',
-          'PER': '🇵🇪 PER',
-          'CHL': '🇨🇱 CHL',
-          'ARG': '🇦🇷 ARG',
-          'MEX': '🇲🇽 MEX',
-          'USA': '🇺🇸 USA',
-          'ESP': '🇪🇸 ESP',
-          'HND': '🇭🇳 HND',
-          'VEN': '🇻🇪 VEN',
-          'PAN': '🇵🇦 PAN'
-        };
-        const countryKey = (u.pais || 'COL').toUpperCase();
-        const countryBadge = paisMap[countryKey] || `🌐 ${countryKey}`;
+        // País siempre SIN emoji (solo código ISO limpio)
+        const countryKey = String(u.pais || 'COL').replace(/[^a-zA-Z]/g, '').toUpperCase() || 'COL';
+        const countryBadge = countryKey;
+        const encodedCurrencies = encodeURIComponent(JSON.stringify(currencies));
 
         return `
           <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
@@ -6450,7 +6681,7 @@ function formatDecimal(amount: number, digits = 2): string {
               </span>
             </td>
             <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
-              <span style="font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); white-space: nowrap;">
+              <span style="font-size: 11px; font-weight: 800; font-family: ui-monospace, monospace; padding: 4px 9px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); white-space: nowrap;">
                 ${countryBadge}
               </span>
             </td>
@@ -6483,13 +6714,13 @@ function formatDecimal(amount: number, digits = 2): string {
                   <div 
                     id="operator-curr-popover-${idx}" 
                     class="operator-currencies-popover" 
-                    style="display: none; position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; min-width: 190px; max-width: 250px; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 14px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.18);"
+                    style="display: none; position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; min-width: 210px; max-width: 260px; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 14px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.18);"
                   >
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
                       <span>Divisas Habilitadas</span>
                       <span style="background: var(--brand-primary-light); color: var(--brand-primary); padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 800;">${currencies.length}</span>
                     </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: ${canEditPermissions ? '10px' : '0'};">
                       ${currencies.length > 0 ? currencies.map(c => `
                         <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); color: var(--text-primary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; display: inline-flex; align-items: center; gap: 4px;">
                           <span style="width: 5px; height: 5px; border-radius: 50%; background: var(--brand-primary);"></span>
@@ -6497,6 +6728,25 @@ function formatDecimal(amount: number, digits = 2): string {
                         </span>
                       `).join('') : '<span style="font-size: 11px; color: var(--text-muted);">Ninguna divisa asignada</span>'}
                     </div>
+                    ${canEditPermissions ? `
+                      <button
+                        type="button"
+                        class="btn-edit-user-permissions"
+                        data-email="${u.email}"
+                        data-nombre="${u.nombre}"
+                        data-role="${u.role}"
+                        data-pais="${countryKey}"
+                        data-airtable-id="${u.airtableRecordId || ''}"
+                        data-currencies="${encodedCurrencies}"
+                        style="width: 100%; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(67, 24, 255, 0.25); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 20h9"></path>
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>
+                        <span>Editar divisas / permisos</span>
+                      </button>
+                    ` : ''}
                   </div>
                 </div>
               `)}
@@ -6521,6 +6771,27 @@ function formatDecimal(amount: number, digits = 2): string {
                   </svg>
                   <span>Link</span>
                 </button>
+
+                ${canEditPermissions ? `
+                  <button 
+                    type="button"
+                    class="btn-edit-user-permissions" 
+                    data-email="${u.email}" 
+                    data-nombre="${u.nombre}" 
+                    data-role="${u.role}"
+                    data-pais="${countryKey}"
+                    data-airtable-id="${u.airtableRecordId || ''}"
+                    data-currencies="${encodedCurrencies}"
+                    title="Editar permisos, rol, país y divisas autorizadas"
+                    style="padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(67, 24, 255, 0.28); background: var(--brand-primary-light); color: var(--brand-primary); font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    <span>Editar</span>
+                  </button>
+                ` : ''}
 
                 ${canDelete ? `
                   <button 
@@ -6557,6 +6828,225 @@ function formatDecimal(amount: number, digits = 2): string {
       }).join('');
     }
   }
+
+  // ==============================================================
+  // MODAL: EDITAR PERMISOS Y DIVISAS DE USUARIO (ADMIN / SUPER ADMIN)
+  // ==============================================================
+  const modalEditUserPermissionsBackdrop = document.getElementById('modal-edit-user-permissions-backdrop');
+  const formEditUserPermissions = document.getElementById('form-edit-user-permissions') as HTMLFormElement | null;
+  const editUserEmailHidden = document.getElementById('edit-user-email-hidden') as HTMLInputElement | null;
+  const editUserAirtableIdHidden = document.getElementById('edit-user-airtable-id-hidden') as HTMLInputElement | null;
+  const editUserRoleHidden = document.getElementById('edit-user-role-hidden') as HTMLInputElement | null;
+  const modalEditUserName = document.getElementById('modal-edit-user-name') as HTMLInputElement | null;
+  const modalEditUserCountry = document.getElementById('modal-edit-user-country') as HTMLSelectElement | null;
+  const editUserPermissionsSubtitle = document.getElementById('edit-user-permissions-subtitle');
+  const editContainerAuthorizedCurrencies = document.getElementById('edit-container-authorized-currencies');
+  const modalEditUserPermissionsStatus = document.getElementById('modal-edit-user-permissions-status');
+  const btnEditToggleAllCurrencies = document.getElementById('btn-edit-toggle-all-currencies');
+
+  function updateEditRoleSelection(selectedRole: string) {
+    if (editUserRoleHidden) editUserRoleHidden.value = selectedRole;
+    document.querySelectorAll('.edit-role-card-btn').forEach((card: any) => {
+      const r = card.getAttribute('data-role');
+      if (r === selectedRole) {
+        card.classList.add('active');
+        card.style.border = '2px solid var(--brand-primary)';
+        card.style.background = 'var(--brand-primary-light)';
+      } else {
+        card.classList.remove('active');
+        card.style.border = '1.5px solid var(--border-main)';
+        card.style.background = 'var(--bg-card)';
+      }
+    });
+
+    if (selectedRole === 'operador') {
+      if (editContainerAuthorizedCurrencies) editContainerAuthorizedCurrencies.style.display = 'block';
+    } else {
+      if (editContainerAuthorizedCurrencies) editContainerAuthorizedCurrencies.style.display = 'none';
+    }
+  }
+
+  document.querySelectorAll('.edit-role-card-btn').forEach((card) => {
+    card.addEventListener('click', () => {
+      const r = card.getAttribute('data-role');
+      if (r) updateEditRoleSelection(r);
+    });
+  });
+
+  btnEditToggleAllCurrencies?.addEventListener('click', () => {
+    const checkboxes = Array.from(document.querySelectorAll('input[name="edit_authorized_currency"]')) as HTMLInputElement[];
+    const allChecked = checkboxes.every(cb => cb.checked);
+    checkboxes.forEach(cb => {
+      cb.checked = !allChecked;
+    });
+  });
+
+  function openEditUserPermissionsModal(data: {
+    email: string;
+    nombre: string;
+    role: string;
+    pais: string;
+    airtableId: string;
+    currencies: string[];
+  }) {
+    if (!modalEditUserPermissionsBackdrop) return;
+    if (editUserEmailHidden) editUserEmailHidden.value = data.email;
+    if (editUserAirtableIdHidden) editUserAirtableIdHidden.value = data.airtableId || '';
+    if (editUserPermissionsSubtitle) editUserPermissionsSubtitle.textContent = data.email;
+    if (modalEditUserName) modalEditUserName.value = data.nombre || '';
+    if (modalEditUserCountry) {
+      const cleanPais = (data.pais || 'COL').replace(/[^a-zA-Z]/g, '').toUpperCase() || 'COL';
+      modalEditUserCountry.value = cleanPais;
+    }
+    if (modalEditUserPermissionsStatus) modalEditUserPermissionsStatus.textContent = '';
+
+    const normalizedRole = data.role === 'administrador' ? 'administrador' : (data.role === 'client' || data.role === 'cliente' ? 'client' : 'operador');
+    updateEditRoleSelection(normalizedRole);
+
+    const currSet = new Set((data.currencies || []).map(c => String(c).toUpperCase().trim()));
+    document.querySelectorAll('input[name="edit_authorized_currency"]').forEach((el: any) => {
+      el.checked = normalizedRole !== 'operador' ? true : currSet.has(String(el.value).toUpperCase().trim());
+    });
+
+    // Cerrar cualquier popover de divisas abierto
+    document.querySelectorAll('.operator-currencies-popover').forEach((p: any) => {
+      p.style.display = 'none';
+    });
+
+    modalEditUserPermissionsBackdrop.style.display = 'flex';
+  }
+
+  function closeEditUserPermissionsModal() {
+    if (modalEditUserPermissionsBackdrop) modalEditUserPermissionsBackdrop.style.display = 'none';
+  }
+
+  document.addEventListener('click', (e: any) => {
+    const editBtn = e.target.closest('.btn-edit-user-permissions');
+    if (editBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      let parsedCurrencies: string[] = [];
+      try {
+        parsedCurrencies = JSON.parse(decodeURIComponent(editBtn.getAttribute('data-currencies') || '[]'));
+      } catch (_) {}
+      openEditUserPermissionsModal({
+        email: editBtn.getAttribute('data-email') || '',
+        nombre: editBtn.getAttribute('data-nombre') || '',
+        role: editBtn.getAttribute('data-role') || 'operador',
+        pais: editBtn.getAttribute('data-pais') || 'COL',
+        airtableId: editBtn.getAttribute('data-airtable-id') || '',
+        currencies: parsedCurrencies,
+      });
+      return;
+    }
+
+    if (e.target.closest('#btn-close-edit-user-permissions-modal, #btn-cancel-edit-user-permissions')) {
+      e.preventDefault();
+      closeEditUserPermissionsModal();
+    }
+  });
+
+  modalEditUserPermissionsBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalEditUserPermissionsBackdrop) closeEditUserPermissionsModal();
+  });
+
+  formEditUserPermissions?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const targetEmail = (editUserEmailHidden?.value || '').trim().toLowerCase();
+    const targetAirtableId = (editUserAirtableIdHidden?.value || '').trim();
+    const newName = (modalEditUserName?.value || '').trim();
+    const newPais = (modalEditUserCountry?.value || 'COL').trim().toUpperCase();
+    const newRole = (editUserRoleHidden?.value || 'operador').trim().toLowerCase();
+
+    if (!targetEmail) return;
+
+    const allCurrencies = getAllSystemCurrencies();
+    let newCurrencies: string[] = [];
+    if (newRole === 'administrador' || newRole === 'client') {
+      newCurrencies = [...allCurrencies];
+    } else {
+      const checked = Array.from(document.querySelectorAll('input[name="edit_authorized_currency"]:checked')) as HTMLInputElement[];
+      newCurrencies = checked.map(cb => cb.value);
+      if (newCurrencies.length === 0) {
+        if (modalEditUserPermissionsStatus) {
+          modalEditUserPermissionsStatus.style.color = 'var(--danger)';
+          modalEditUserPermissionsStatus.textContent = 'Selecciona al menos 1 divisa autorizada para el Operador.';
+        }
+        return;
+      }
+    }
+
+    const saveBtn = document.getElementById('btn-save-edit-user-permissions') as HTMLButtonElement | null;
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando cambios...';
+    }
+    if (modalEditUserPermissionsStatus) {
+      modalEditUserPermissionsStatus.style.color = 'var(--text-muted)';
+      modalEditUserPermissionsStatus.textContent = 'Sincronizando permisos en Supabase y Airtable...';
+    }
+
+    try {
+      const pat = getAirtableToken();
+
+      // 1. Llamar a la Edge Function para actualizar en Supabase (service_role) y Airtable (DIVISAS RELACIONADAS)
+      try {
+        await fetch(EDGE_SYNC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_user_permissions',
+            email: targetEmail,
+            fullName: newName,
+            pais: newPais,
+            role: newRole,
+            authorizedCurrencies: newCurrencies,
+            airtableRecordId: targetAirtableId || undefined,
+            pat: pat || undefined
+          })
+        });
+      } catch (edgeErr) {
+        console.warn('Edge update_user_permissions warning:', edgeErr);
+      }
+
+      // 2. Asegurar actualización directa en Supabase profiles
+      await supabase.from('profiles').update({
+        full_name: newName,
+        pais: newPais,
+        role: newRole,
+        authorized_currencies: newCurrencies
+      }).ilike('email', targetEmail);
+
+      // 3. Si el usuario editado es el usuario actual en sesión, refrescar sus permisos de divisas en el dashboard
+      if (currentUserProfile && (currentUserProfile.email || '').toLowerCase().trim() === targetEmail) {
+        currentUserProfile.full_name = newName;
+        currentUserProfile.pais = newPais;
+        currentUserProfile.role = newRole;
+        currentUserProfile.authorized_currencies = newCurrencies;
+        updateHeaderProfileUI();
+      }
+
+      if (modalEditUserPermissionsStatus) {
+        modalEditUserPermissionsStatus.style.color = 'var(--success)';
+        modalEditUserPermissionsStatus.textContent = '¡Permisos y divisas actualizados correctamente!';
+      }
+
+      await loadUsersList();
+      setTimeout(() => {
+        closeEditUserPermissionsModal();
+      }, 650);
+    } catch (err: any) {
+      if (modalEditUserPermissionsStatus) {
+        modalEditUserPermissionsStatus.style.color = 'var(--danger)';
+        modalEditUserPermissionsStatus.textContent = 'Error al guardar: ' + (err?.message || err);
+      }
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Guardar Permisos y Divisas';
+      }
+    }
+  });
 
   // Delegación para copiar link de invitación desde la lista
   document.addEventListener('click', (e: any) => {
@@ -7690,6 +8180,51 @@ function formatDecimal(amount: number, digits = 2): string {
           };
         }
       });
+
+      // Sincronizar en vivo los selectores de divisas en Invitar Usuario y Editar Permisos
+      const renderCurrencyChipsHtml = (inputName: string, checkedSet: Set<string>) => {
+        return divisas.map((div: any) => {
+          const code = div.codigo || div.divisa || '';
+          if (!code) return '';
+          const meta = AIRTABLE_CURRENCIES_META[code] || ({} as any);
+          const flagImg = div.banderaUrl || meta.banderaUrl || meta.fallbackBanderaUrl || 'https://flagcdn.com/w80/un.png';
+          const fallbackImg = meta.fallbackBanderaUrl || 'https://flagcdn.com/w80/un.png';
+          const nombreDivisa = div.nombreDivisa || meta.name || code;
+          const isChecked = checkedSet.has(code);
+          return `
+            <label class="currency-check-chip" style="display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 9px; background: var(--bg-card); border: 1px solid var(--border-main); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-primary); user-select: none;">
+              <input type="checkbox" name="${inputName}" value="${code}" ${isChecked ? 'checked' : ''} style="accent-color: var(--brand-primary); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0;" />
+              <img 
+                src="${flagImg}" 
+                alt="${code}" 
+                onerror="this.onerror=null;this.src='${fallbackImg}';"
+                style="width: 18px; height: 18px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-main); flex-shrink: 0;"
+              />
+              <div style="display: flex; flex-direction: column; line-height: 1.1; overflow: hidden;">
+                <span style="font-family: ui-monospace, monospace; font-size: 11.5px; font-weight: 800;">${code}</span>
+                <span style="font-size: 9px; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nombreDivisa}</span>
+              </div>
+            </label>
+          `;
+        }).join('');
+      };
+
+      const inviteGrid = document.getElementById('invite-currencies-grid');
+      if (inviteGrid) {
+        const currentChecked = new Set(
+          Array.from(inviteGrid.querySelectorAll('input[name="authorized_currency"]:checked')).map((el: any) => String(el.value))
+        );
+        const setToUse = currentChecked.size > 0 ? currentChecked : new Set(divisas.map((d: any) => d.codigo || d.divisa));
+        inviteGrid.innerHTML = renderCurrencyChipsHtml('authorized_currency', setToUse);
+      }
+
+      const editGrid = document.getElementById('edit-user-currencies-grid');
+      if (editGrid) {
+        const currentCheckedEdit = new Set(
+          Array.from(editGrid.querySelectorAll('input[name="edit_authorized_currency"]:checked')).map((el: any) => String(el.value))
+        );
+        editGrid.innerHTML = renderCurrencyChipsHtml('edit_authorized_currency', currentCheckedEdit);
+      }
 
       const divisasTbody = document.getElementById('divisas-table-tbody');
       if (divisasTbody) {

@@ -82,7 +82,7 @@ import Layout from '../layouts/Layout.astro';
 
           <div style="margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
             <span id="perfil-hero-country-badge" style="font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 10px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 6px;">
-              🇨🇴 Colombia (COL)
+              Colombia (COL)
             </span>
           </div>
         </div>
@@ -139,17 +139,21 @@ import Layout from '../layouts/Layout.astro';
               id="perfil-input-country" 
               style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; font-weight: 600; outline: none; cursor: pointer;"
             >
-              <option value="COL">🇨🇴 Colombia (COL)</option>
-              <option value="BRA">🇧🇷 Brasil (BRA)</option>
-              <option value="PER">🇵🇪 Perú (PER)</option>
-              <option value="CHL">🇨🇱 Chile (CHL)</option>
-              <option value="ARG">🇦🇷 Argentina (ARG)</option>
-              <option value="MEX">🇲🇽 México (MEX)</option>
-              <option value="USA">🇺🇸 Estados Unidos (USA)</option>
-              <option value="VEN">🇻🇪 Venezuela (VEN)</option>
-              <option value="PAN">🇵🇦 Panamá (PAN)</option>
-              <option value="ESP">🇪🇸 España (ESP)</option>
-              <option value="OTRO">🌐 Otro País</option>
+              <option value="COL">Colombia (COL)</option>
+              <option value="BRA">Brasil (BRA)</option>
+              <option value="PER">Perú (PER)</option>
+              <option value="ECU">Ecuador (ECU)</option>
+              <option value="CHL">Chile (CHL)</option>
+              <option value="ARG">Argentina (ARG)</option>
+              <option value="URY">Uruguay (URY)</option>
+              <option value="PRY">Paraguay (PRY)</option>
+              <option value="MEX">México (MEX)</option>
+              <option value="USA">Estados Unidos (USA)</option>
+              <option value="HND">Honduras (HND)</option>
+              <option value="VEN">Venezuela (VEN)</option>
+              <option value="PAN">Panamá (PAN)</option>
+              <option value="ESP">España (ESP)</option>
+              <option value="OTRO">Otro País (OTRO)</option>
             </select>
           </div>
 
@@ -394,21 +398,26 @@ import Layout from '../layouts/Layout.astro';
     }
 
     const countryLabels: Record<string, string> = {
-      COL: '🇨🇴 Colombia (COL)',
-      BRA: '🇧🇷 Brasil (BRA)',
-      PER: '🇵🇪 Perú (PER)',
-      CHL: '🇨🇱 Chile (CHL)',
-      ARG: '🇦🇷 Argentina (ARG)',
-      MEX: '🇲🇽 México (MEX)',
-      USA: '🇺🇸 Estados Unidos (USA)',
-      VEN: '🇻🇪 Venezuela (VEN)',
-      PAN: '🇵🇦 Panamá (PAN)',
-      ESP: '🇪🇸 España (ESP)',
-      OTRO: '🌐 Otro País'
+      COL: 'Colombia (COL)',
+      BRA: 'Brasil (BRA)',
+      PER: 'Perú (PER)',
+      ECU: 'Ecuador (ECU)',
+      CHL: 'Chile (CHL)',
+      ARG: 'Argentina (ARG)',
+      URY: 'Uruguay (URY)',
+      PRY: 'Paraguay (PRY)',
+      MEX: 'México (MEX)',
+      USA: 'Estados Unidos (USA)',
+      HND: 'Honduras (HND)',
+      VEN: 'Venezuela (VEN)',
+      PAN: 'Panamá (PAN)',
+      ESP: 'España (ESP)',
+      OTRO: 'Otro País (OTRO)'
     };
 
     if (heroCountryBadge) {
-      heroCountryBadge.textContent = countryLabels[country] || `🌐 ${country}`;
+      const cleanCountry = String(country || 'COL').replace(/[^a-zA-Z]/g, '').toUpperCase() || 'COL';
+      heroCountryBadge.textContent = countryLabels[cleanCountry] || cleanCountry;
     }
 
     if (inputName) inputName.value = name;
