@@ -99,6 +99,20 @@ const { title } = Astro.props;
       ::-webkit-scrollbar-thumb:hover {
         background: var(--text-secondary);
       }
+
+      /* Theme logo toggle */
+      html.dark .theme-logo-dark {
+        display: block !important;
+      }
+      html.dark .theme-logo-light {
+        display: none !important;
+      }
+      html:not(.dark) .theme-logo-dark {
+        display: none !important;
+      }
+      html:not(.dark) .theme-logo-light {
+        display: block !important;
+      }
     </style>
   </head>
   <body class="min-h-screen">

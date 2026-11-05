@@ -8,6 +8,7 @@ export interface Cliente {
   pendienteCop: number;
   pendientePorPagarCop?: number;
   saldoCop?: number;
+  estado?: 'PENDIENTE' | 'PAGADO' | 'DEBE' | string;
   fechaCreacion: string;
   numero: number;
 }
@@ -205,6 +206,7 @@ export const CLIENTES: Cliente[] = [
     pendienteCop: 257894274.5,
     pendientePorPagarCop: 257894274.5,
     saldoCop: 257894274.5,
+    estado: "PENDIENTE",
     fechaCreacion: "2026-11-04",
     numero: 17
   },
@@ -218,6 +220,7 @@ export const CLIENTES: Cliente[] = [
     pendienteCop: 0,
     pendientePorPagarCop: 0,
     saldoCop: 0,
+    estado: "PAGADO",
     fechaCreacion: "2026-11-04",
     numero: 18
   },
@@ -231,6 +234,7 @@ export const CLIENTES: Cliente[] = [
     pendienteCop: 0,
     pendientePorPagarCop: 0,
     saldoCop: 0,
+    estado: "PAGADO",
     fechaCreacion: "2026-11-04",
     numero: 19
   }

@@ -329,8 +329,8 @@ Deno.serve(async (req: Request) => {
             ? "ADMINISTRADOR"
             : (role === "client" || role === "cliente")
             ? "CLIENTE"
-            : role === "dispersador"
-            ? "DISPERSADOR"
+            : (role === "dispersador" || role === "dispersor")
+            ? "DISPERSOR"
             : "OPERADOR";
 
           const sUrl = `https://api.airtable.com/v0/${BASE_ID}/${TABLES.USUARIOS}?filterByFormula=LOWER({EMAIL})='${encodeURIComponent(cleanEmail)}'`;
@@ -439,8 +439,8 @@ Deno.serve(async (req: Request) => {
             ? "ADMINISTRADOR"
             : (role === "client" || role === "cliente")
             ? "CLIENTE"
-            : role === "dispersador"
-            ? "DISPERSADOR"
+            : (role === "dispersador" || role === "dispersor")
+            ? "DISPERSOR"
             : "OPERADOR";
 
           if (!recordId) {
@@ -700,6 +700,8 @@ Deno.serve(async (req: Request) => {
       const pagadoCop = Number(f["PAGADO"] ?? f["TOTAL PAGADO"] ?? 0);
       const pendienteCop = Number(f["PENDIENTE"] ?? f["TOTAL PENDIENTE"] ?? 0);
       const saldoCop = Number(f["TOTAL SALDO"] !== undefined ? f["TOTAL SALDO"] : (ingresosCop - pagadoCop));
+      const rawEstado = String(f["ESTADO"] || "").trim().toUpperCase();
+      const estado = rawEstado || (pendienteCop > 1 ? "PENDIENTE" : (pendienteCop < -1 ? "DEBE" : "PAGADO"));
       const fechaCreacion = String(f["FECHA CREACIÓN"] || f["FECHA"] || new Date().toISOString());
       const numero = Number(f["#"] || idx + 1);
       return {
@@ -712,6 +714,7 @@ Deno.serve(async (req: Request) => {
         pendienteCop,
         pendientePorPagarCop: pendienteCop,
         saldoCop,
+        estado,
         fechaCreacion,
         numero,
       };

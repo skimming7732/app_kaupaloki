@@ -35,8 +35,7 @@ const { CLIENTES = [] } = Astro.props;
             </thead>
             <tbody id="clientes-table-tbody">
               {CLIENTES.map((c) => {
-                const tieneSaldo = c.pendienteCop > 0;
-                const saldoAFavor = c.pendienteCop < 0;
+                const estado = c.estado || (c.pendienteCop > 1 ? 'PENDIENTE' : (c.pendienteCop < -1 ? 'DEBE' : 'PAGADO'));
                 const clientSlug = `c-${c.codigo.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}`;
                 return (
                   <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
@@ -48,18 +47,18 @@ const { CLIENTES = [] } = Astro.props;
                     <td style="padding: 16px 20px; font-weight: 600; color: var(--text-primary); font-size: 14px;">{c.nombre}</td>
                     <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 14px;">{formatCop(c.ingresosCop)}</td>
                     <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; color: var(--success); font-weight: 600; font-size: 14px;">{formatCop(c.pagadoCop)}</td>
-                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {tieneSaldo ? 'var(--warning)' : saldoAFavor ? 'var(--info)' : 'var(--text-muted)'};">
+                    <td style="padding: 16px 20px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {estado === 'PENDIENTE' ? 'var(--warning)' : estado === 'DEBE' ? 'var(--danger)' : 'var(--text-muted)'};">
                       {formatCop(c.pendienteCop)}
                     </td>
                     <td style="padding: 16px 20px; text-align: center;">
-                      {tieneSaldo && (
-                        <span class="status-pill status-warning">POR COBRAR</span>
+                      {estado === 'PENDIENTE' && (
+                        <span class="status-pill status-warning">PENDIENTE</span>
                       )}
-                      {saldoAFavor && (
-                        <span class="status-pill status-info">SALDO A FAVOR</span>
+                      {estado === 'DEBE' && (
+                        <span class="status-pill status-danger" style="background: rgba(238, 93, 80, 0.15); color: var(--danger);">DEBE</span>
                       )}
-                      {!tieneSaldo && !saldoAFavor && (
-                        <span class="status-pill status-success">AL DÍA</span>
+                      {estado === 'PAGADO' && (
+                        <span class="status-pill status-success">PAGADO</span>
                       )}
                     </td>
                     <td style="padding: 16px 20px; text-align: center;">

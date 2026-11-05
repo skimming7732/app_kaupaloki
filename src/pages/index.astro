@@ -30,6 +30,9 @@ const totalRecaudoVentasCop = VENTAS_USDT.reduce((acc, v) => acc + (v.totalCop |
 const tasaMediaVentas = VENTAS_USDT.length ? Math.round(VENTAS_USDT.reduce((acc, v) => acc + (v.tasa || 0), 0) / VENTAS_USDT.length) : 0;
 
 const totalPagosDispersionesCop = PAGOS.reduce((acc, p) => acc + (p.montoCop || 0), 0);
+const totalIngresosEfectivoCop = EFECTIVO_MOVIMIENTOS.filter(m => m.tipo === 'INGRESO').reduce((acc, m) => acc + (m.montoCop || 0), 0);
+const totalPagosEfectivoCop = EFECTIVO_MOVIMIENTOS.filter(m => m.tipo === 'PAGO').reduce((acc, m) => acc + (m.montoCop || 0), 0);
+const saldoCajaEfectivoCop = (ACTIVOS_LIQUIDOS.find(a => a.id === 'recLw4nL1pT62fXhD') as any)?.saldoCop || 279351330;
 const numPagosConComprobante = PAGOS.filter(p => p.comprobanteUrl || (p.comprobantes && p.comprobantes.length)).length;
 const numPagosPendientes = Math.max(0, PAGOS.length - numPagosConComprobante);
 const saldoMaximoCliente = Math.max(...CLIENTES.map(c => c.saldoCop || 0), 0);
@@ -129,7 +132,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Panel Operador</span>
-            <span class="count-badge" style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 9999px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); letter-spacing: 0.04em;">OPERADOR</span>
           </button>
           <!-- 1. Panel Control -->
           <button id="sidebar-link-dashboard" class="sidebar-link active" data-target="tab-dashboard" title="Panel Control" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
@@ -140,9 +142,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Panel Control</span>
-            <span class="count-badge" style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 9999px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); letter-spacing: 0.04em;">
-              EN VIVO
-            </span>
           </button>
 
           <!-- 2. Clientes -->
@@ -154,9 +153,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Clientes</span>
-            <span class="count-badge" id="badge-count-clientes" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {CLIENTES.length}
-            </span>
           </button>
 
           <!-- 3. Negocios -->
@@ -167,9 +163,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Negocios</span>
-            <span class="count-badge" id="badge-count-negocios" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {NEGOCIOS.length}
-            </span>
           </button>
 
           <!-- 3.1. Dispersiones -->
@@ -179,9 +172,16 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Dispersiones</span>
-            <span class="count-badge" id="badge-count-dispersiones" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {PAGOS.length}
-            </span>
+          </button>
+
+          <!-- 3.2. Efectivo (Movimientos de Caja) -->
+          <button id="sidebar-link-efectivo" class="sidebar-link" data-target="tab-efectivo" title="Efectivo" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <circle cx="12" cy="12" r="2"></circle>
+              <path d="M6 12h.01M18 12h.01"></path>
+            </svg>
+            <span class="sidebar-text" style="flex: 1;">Efectivo</span>
           </button>
 
           <!-- 4. COMPRA USDT -->
@@ -191,9 +191,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <polyline points="17 6 23 6 23 12"></polyline>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Compra USDT</span>
-            <span class="count-badge" id="badge-count-compras" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {COMPRAS_USDT.length}
-            </span>
           </button>
 
           <!-- 5. VENTA USDT -->
@@ -203,9 +200,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <polyline points="17 18 23 18 23 12"></polyline>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Venta USDT</span>
-            <span class="count-badge" id="badge-count-ventas" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {VENTAS_USDT.length}
-            </span>
           </button>
 
           <!-- 6. ACTIVO LIQUIDOS (TIPO TARJETAS) -->
@@ -216,9 +210,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <circle cx="6" cy="15" r="1"></circle>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Activos Líquidos</span>
-            <span class="count-badge" id="badge-count-activos" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {ACTIVOS_LIQUIDOS.length}
-            </span>
           </button>
 
           <!-- 6.1 ACTIVOS DIGITALES (WALLETS USDT) -->
@@ -229,22 +220,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Activos Digitales</span>
-            <span class="count-badge" id="badge-count-activos-digitales" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {ACTIVOS_DIGITALES.length}
-            </span>
-          </button>
-
-          <!-- 6.2 EFECTIVO (MOVIMIENTOS DE CAJA) -->
-          <button id="sidebar-link-efectivo" class="sidebar-link" data-target="tab-efectivo" title="Efectivo" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
-              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-              <circle cx="12" cy="12" r="2"></circle>
-              <path d="M6 12h.01M18 12h.01"></path>
-            </svg>
-            <span class="sidebar-text" style="flex: 1;">Efectivo</span>
-            <span class="count-badge" id="badge-count-efectivo" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: rgba(5, 205, 153, 0.12); color: var(--success);">
-              {EFECTIVO_MOVIMIENTOS.length}
-            </span>
           </button>
 
           <!-- 7. DIVISAS -->
@@ -255,9 +230,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Divisas</span>
-            <span class="count-badge" id="badge-count-divisas" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {DIVISAS.length}
-            </span>
           </button>
 
           <!-- 8. USUARIOS -->
@@ -269,9 +241,6 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             <span class="sidebar-text" style="flex: 1;">Usuarios</span>
-            <span class="count-badge" id="badge-count-usuarios" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
-              {USUARIOS_AIRTABLE.length}
-            </span>
           </button>
         </nav>
       </div>
@@ -1164,6 +1133,65 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           </div>
         </div>
 
+        <!-- 10. KPIS TAB: EFECTIVO (MOVIMIENTOS DE CAJA) -->
+        <div id="kpis-tab-efectivo" class="kpis-view-group" style="display: none; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Saldo en Caja</div>
+              <div id="kpi-efectivo-saldo-disponible" style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(saldoCajaEfectivoCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Custodia Dosquebradas</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Ingresos Efectivo</div>
+              <div id="kpi-efectivo-total-ingresos" style="font-size: 16px; font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(totalIngresosEfectivoCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Entradas a caja</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Pagos Efectivo</div>
+              <div id="kpi-efectivo-total-pagos" style="font-size: 16px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(totalPagosEfectivoCop)}</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Salidas y entregas</div>
+            </div>
+          </div>
+
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <div style="overflow: hidden; flex: 1; min-width: 0;">
+              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Operaciones</div>
+              <div id="kpi-efectivo-total-ops" style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{EFECTIVO_MOVIMIENTOS.length} Movimientos</div>
+              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px;">Historial registrado</div>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- ============================================================== -->
@@ -1765,6 +1793,12 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     const isDark = document.documentElement.classList.contains('dark');
     if (sunIcon) sunIcon.style.display = isDark ? 'block' : 'none';
     if (moonIcon) moonIcon.style.display = isDark ? 'none' : 'block';
+    document.querySelectorAll('.theme-logo-dark').forEach((el: any) => {
+      el.style.display = isDark ? 'block' : 'none';
+    });
+    document.querySelectorAll('.theme-logo-light').forEach((el: any) => {
+      el.style.display = isDark ? 'none' : 'block';
+    });
   }
 
   syncThemeIcons();
@@ -4182,7 +4216,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     const isSuperAdmin = currentUserProfile?.is_super_admin;
     const isAdmin = isSuperAdmin || role === 'administrador' || role === 'admin' || role === 'super admin';
     const isOperator = !isAdmin && (role === 'operador' || role === 'operator');
-    const isDispersador = !isAdmin && (role === 'dispersador');
+    const isDispersador = !isAdmin && (role === 'dispersor' || role === 'dispersador');
 
     const linkOperador = document.getElementById('sidebar-link-operador');
     const linkDashboard = document.getElementById('sidebar-link-dashboard');
@@ -4326,8 +4360,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         userRoleBadge.textContent = 'ADMINISTRADOR';
         userRoleBadge.style.background = 'var(--brand-primary-light)';
         userRoleBadge.style.color = 'var(--brand-primary)';
-      } else if (currentUserProfile.role === 'dispersador') {
-        userRoleBadge.textContent = 'DISPERSADOR';
+      } else if (currentUserProfile.role === 'dispersor' || currentUserProfile.role === 'dispersador') {
+        userRoleBadge.textContent = 'DISPERSOR';
         userRoleBadge.style.background = 'rgba(67, 24, 255, 0.12)';
         userRoleBadge.style.color = 'var(--brand-primary)';
       } else if (currentUserProfile.role === 'client') {
@@ -4854,7 +4888,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
             r.fields['DIVISAS RELACIONADAS'] || r.fields['DIVISAS AUTORIZADAS'] || []
           );
           const rawRol = (r.fields['ROL'] || 'operador').toLowerCase();
-          const normRole = rawRol.includes('admin') ? 'administrador' : (rawRol.includes('client') ? 'client' : 'operador');
+          const normRole = rawRol.includes('admin') ? 'administrador' : (rawRol.includes('dispers') ? 'dispersor' : (rawRol.includes('client') ? 'client' : 'operador'));
           allUsers.push({
             operatorCode: r.fields['ADMINISTRADOR'] || computeUserAirtableCode(r.fields['NOMBRE'], r.fields['ROL'], r.fields['PAIS'], idx + 1),
             airtableRecordId: r.id,
@@ -4916,7 +4950,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       usuariosViewTableBody.innerHTML = allUsers.map((u: any, idx: number) => {
         const isAdm = u.role === 'administrador';
         const isClient = u.role === 'client' || u.role === 'cliente';
-        const isOp = u.role === 'operador';
+        const isDispersor = u.role === 'dispersor' || u.role === 'dispersador';
+        const isOp = !isAdm && !isClient && !isDispersor;
         const isTargetSuperAdmin = isSuperAdminUser(u.email);
         const currentEmail = (currentUserProfile?.email || SUPER_ADMIN_EMAIL).toLowerCase().trim();
         const isSelf = Boolean(u.email && u.email.toLowerCase().trim() === currentEmail);
@@ -4960,8 +4995,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
 
         const roleBg = isTargetSuperAdmin 
           ? 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)' 
-          : (isAdm ? 'var(--brand-primary-light)' : (isClient ? 'rgba(67, 24, 255, 0.08)' : 'rgba(5, 205, 153, 0.12)'));
-        const roleColor = isTargetSuperAdmin ? '#FFFFFF' : (isAdm ? 'var(--brand-primary)' : (isClient ? 'var(--brand-primary)' : 'var(--success)'));
+          : (isAdm ? 'var(--brand-primary-light)' : (isDispersor ? 'rgba(67, 24, 255, 0.12)' : (isClient ? 'rgba(67, 24, 255, 0.08)' : 'rgba(5, 205, 153, 0.12)')));
+        const roleColor = isTargetSuperAdmin ? '#FFFFFF' : (isAdm ? 'var(--brand-primary)' : (isDispersor ? 'var(--brand-primary)' : (isClient ? 'var(--brand-primary)' : 'var(--success)')));
         const currencies: string[] = Array.isArray(u.authorized_currencies) ? u.authorized_currencies : [];
         const isCompleted = u.status === 'activo';
         const inviteLink = `https://app.kaupaloki.co/onboarding?email=${encodeURIComponent(u.email)}`;
@@ -4997,7 +5032,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
             </td>
             <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
               <span style="font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; background: ${roleBg}; color: ${roleColor}; text-transform: uppercase; letter-spacing: 0.03em;">
-                ${isTargetSuperAdmin ? '⭐ Super Admin' : (isClient ? 'Cliente' : u.role)}
+                ${isTargetSuperAdmin ? '⭐ Super Admin' : (isDispersor ? 'DISPERSOR' : (isClient ? 'Cliente' : (isAdm ? 'Administrador' : 'Operador')))}
               </span>
             </td>
             <td style="padding: 14px 18px; text-align: center; vertical-align: middle;">
@@ -5010,6 +5045,10 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
                 <span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: var(--bg-card-secondary); color: var(--text-secondary); border: 1px solid var(--border-main); display: inline-flex; align-items: center; gap: 4px;">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   Todas (Admin)
+                </span>
+              ` : (isDispersor) ? `
+                <span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2); display: inline-flex; align-items: center; gap: 4px;">
+                  Solo Dispersiones
                 </span>
               ` : (isClient ? `
                 <span style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: rgba(67, 24, 255, 0.08); color: var(--brand-primary); border: 1px solid rgba(67, 24, 255, 0.2); display: inline-flex; align-items: center; gap: 4px;">

@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
+import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airtableData';
 ---
 
 <Layout title="Portal de Cliente - Kaupaloki">
@@ -119,18 +119,15 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
               </svg>
             </div>
             <div>
-              <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <h2 id="client-name-title" style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0;">
                   CLIENTE
                 </h2>
                 <span id="client-code-badge" style="font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 8px; background: var(--brand-primary-light); color: var(--brand-primary);" class="font-mono">
                   COD
                 </span>
-                <span style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--success-light); color: var(--success);">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Verificado</span>
+                <span id="client-estado-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px; background: rgba(5, 205, 153, 0.15); color: var(--success); text-transform: uppercase;">
+                  PAGADO
                 </span>
               </div>
               <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0;">
@@ -190,7 +187,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
             </div>
           </div>
 
-          <!-- KPI 3: TOTAL DISPERSADO COP -->
+          <!-- KPI 3: TOTAL PAGADO COP (Dispersiones + Pagos en Efectivo) -->
           <div style="background: var(--bg-card); border: 1px solid var(--border-main); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; min-height: 74px;">
             <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -200,7 +197,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
             </div>
             <div style="overflow: hidden;">
               <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-                Total Dispersado COP
+                Total Pagado COP
               </div>
               <div id="kpi-total-dispersado-cop" style="font-size: 18px; font-weight: 800; color: var(--success); line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" class="font-mono">
                 $0
@@ -301,7 +298,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
                     <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
                     <line x1="1" y1="10" x2="23" y2="10"></line>
                   </svg>
-                  <span>Dispersiones</span>
+                  <span>Pagos</span>
                   <span id="badge-count-subtab-dispersiones" style="font-size: 11px; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card); color: var(--text-secondary);">0</span>
                 </button>
               </div>
@@ -333,19 +330,20 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
             </table>
           </div>
 
-          <!-- SUB-VIEW 2: DISPERSIONES -->
+          <!-- SUB-VIEW 2: PAGOS (DISPERSIONES + EFECTIVO) -->
           <div id="subtab-content-dispersiones" class="subtab-content" style="display: none; overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
               <thead>
                 <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
-                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Fecha Creación</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Fecha</th>
                   <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Referencia</th>
-                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: right;">Monto</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Medio / Tipo</th>
+                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: right;">Monto (COP)</th>
                   <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: center;">Estado</th>
                 </tr>
               </thead>
               <tbody id="dispersiones-table-body">
-                <!-- Dispersiones injected dynamically via JS -->
+                <!-- Pagos (Dispersiones + Efectivo) injected dynamically via JS -->
               </tbody>
               <tfoot id="dispersiones-table-foot">
                 <!-- Totales consolidados -->
@@ -385,10 +383,11 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
     }
   </style>
 
-  <script define:vars={{ initialClientes: CLIENTES, initialNegocios: NEGOCIOS, initialPagos: PAGOS }}>
+  <script define:vars={{ initialClientes: CLIENTES, initialNegocios: NEGOCIOS, initialPagos: PAGOS, initialEfectivo: EFECTIVO_MOVIMIENTOS }}>
     window.INITIAL_CLIENTES = initialClientes;
     window.INITIAL_NEGOCIOS = initialNegocios;
     window.INITIAL_PAGOS = initialPagos;
+    window.INITIAL_EFECTIVO = initialEfectivo;
   </script>
 
   <script>
@@ -487,8 +486,8 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
 
     let currentClient: any = null;
     let clientNegocios: any[] = [];
-    let clientDispersiones: any[] = [];
-    let activeSubtab: 'negocios' | 'dispersiones' = 'negocios';
+    let clientPagos: any[] = [];
+    let activeSubtab: 'negocios' | 'pagos' = 'negocios';
 
     // Helper formatters (Regla Airtable: miles con ',' y decimales con '.')
     function formatCop(amount: number, digits = 2): string {
@@ -506,7 +505,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
     }
 
     // Subtab switcher
-    function setSubtab(tab: 'negocios' | 'dispersiones') {
+    function setSubtab(tab: 'negocios' | 'pagos') {
       activeSubtab = tab;
       if (tab === 'negocios') {
         subtabBtnNegocios?.style.setProperty('background', 'var(--brand-primary)');
@@ -523,12 +522,12 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
         subtabBtnNegocios?.style.setProperty('color', 'var(--text-secondary)');
         if (subtabContentDispersiones) subtabContentDispersiones.style.display = 'block';
         if (subtabContentNegocios) subtabContentNegocios.style.display = 'none';
-        if (filteredRecordsCount) filteredRecordsCount.textContent = `${clientDispersiones.length} dispersiones`;
+        if (filteredRecordsCount) filteredRecordsCount.textContent = `${clientPagos.length} pagos`;
       }
     }
 
     subtabBtnNegocios?.addEventListener('click', () => setSubtab('negocios'));
-    subtabBtnDispersiones?.addEventListener('click', () => setSubtab('dispersiones'));
+    subtabBtnDispersiones?.addEventListener('click', () => setSubtab('pagos'));
 
     // Lock portal
     btnLockPortal?.addEventListener('click', () => {
@@ -607,6 +606,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
       const clientes: any[] = (window as any).INITIAL_CLIENTES || [];
       const negocios: any[] = (window as any).INITIAL_NEGOCIOS || [];
       const pagos: any[] = (window as any).INITIAL_PAGOS || [];
+      const efectivo: any[] = (window as any).INITIAL_EFECTIVO || [];
 
       // Find client by client_id or code or name or id
       currentClient = clientes.find(c => 
@@ -631,17 +631,45 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
       );
 
       // Filter all dispersiones for this client
-      clientDispersiones = pagos.filter(p => 
+      const rawDispersiones = pagos.filter(p => 
         (p.clienteCodigo && currentClient.codigo && p.clienteCodigo.toLowerCase() === currentClient.codigo.toLowerCase()) || 
         (p.clienteNombre && currentClient.nombre && p.clienteNombre.toLowerCase() === currentClient.nombre.toLowerCase()) ||
         (p.clienteRecordId && currentClient.id && p.clienteRecordId === currentClient.id) ||
         (p.clienteCodigo && linkRecord.client_id && p.clienteCodigo.toLowerCase() === linkRecord.client_id.toLowerCase()) ||
         (currentClient.nombre && p.clienteNombre && p.clienteNombre.toLowerCase() === currentClient.nombre.toLowerCase())
-      );
+      ).map(p => ({
+        ...p,
+        medio: 'DISPERSIÓN',
+        fechaDisplay: p.fechaCreacion ? (p.fechaCreacion.includes('T') ? p.fechaCreacion.split('T')[0] : p.fechaCreacion) : (p.fecha || '-'),
+        referenciaDisplay: p.referencia || 'Dispersión bancaria',
+        montoCop: Number(p.montoCop) || 0,
+        estado: p.estado || 'COMPLETADO',
+      }));
+
+      // Filter all cash payments for this client (tipo === 'PAGO')
+      const rawEfectivoPagos = efectivo.filter(m => 
+        m.tipo === 'PAGO' && (
+          (m.clienteCodigo && currentClient.codigo && m.clienteCodigo.toLowerCase() === currentClient.codigo.toLowerCase()) ||
+          (m.clienteNombre && currentClient.nombre && m.clienteNombre.toLowerCase() === currentClient.nombre.toLowerCase()) ||
+          (m.clienteId && currentClient.id && m.clienteId === currentClient.id) ||
+          (m.clienteCodigo && linkRecord.client_id && m.clienteCodigo.toLowerCase() === linkRecord.client_id.toLowerCase())
+        )
+      ).map(m => ({
+        id: m.id,
+        codigo: m.codigo,
+        medio: 'EFECTIVO',
+        fechaDisplay: m.fecha || '-',
+        referenciaDisplay: m.referencia || 'Pago en efectivo',
+        montoCop: Number(m.montoCop) || 0,
+        estado: 'COMPLETADO',
+      }));
+
+      // Combine both Dispersiones and Efectivo into clientPagos
+      clientPagos = [...rawDispersiones, ...rawEfectivoPagos];
 
       // Update Subtabs Badges
       if (badgeCountSubtabNegocios) badgeCountSubtabNegocios.textContent = clientNegocios.length.toString();
-      if (badgeCountSubtabDispersiones) badgeCountSubtabDispersiones.textContent = clientDispersiones.length.toString();
+      if (badgeCountSubtabDispersiones) badgeCountSubtabDispersiones.textContent = clientPagos.length.toString();
 
       // Populate currency filter options
       const currencies = Array.from(new Set(clientNegocios.map(n => n.divisaCodigo).filter(Boolean)));
@@ -656,7 +684,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
       }
 
       applyFiltersAndRender();
-      renderDispersiones();
+      renderPagos();
     }
 
     function applyFiltersAndRender() {
@@ -676,29 +704,55 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
         filtered = filtered.filter(n => n.divisaCodigo === selectedCurrency);
       }
 
-      // Compute 4 KPIs (Negocios, Ingresos, Dispersado, Pendiente) - Stay identical for both subtabs
+      // Compute 4 KPIs (Negocios, Ingresos, Pagado, Pendiente)
       const numNegocios = filtered.length;
       const totalIngresoCop = (currentClient && currentClient.ingresosCop !== undefined) 
         ? currentClient.ingresosCop 
         : filtered.reduce((acc, n) => acc + (Number(n.ingresoCop) || 0), 0);
-      const totalDispersadoCop = (currentClient && currentClient.pagadoCop !== undefined)
+
+      // Pagado = sum of all completed payments in clientPagos (Dispersiones + Efectivo)
+      const totalPagadoCop = (currentClient && currentClient.pagadoCop !== undefined)
         ? currentClient.pagadoCop
-        : 0;
+        : clientPagos.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + (Number(p.montoCop) || 0), 0);
+
       const totalPendienteCop = (currentClient && currentClient.pendienteCop !== undefined)
         ? currentClient.pendienteCop
-        : (totalIngresoCop - totalDispersadoCop);
+        : (totalIngresoCop - totalPagadoCop);
 
       if (kpiNumNegocios) kpiNumNegocios.textContent = numNegocios.toString();
       if (kpiTotalIngresoCop) kpiTotalIngresoCop.textContent = formatCop(totalIngresoCop);
-      if (kpiTotalDispersadoCop) kpiTotalDispersadoCop.textContent = formatCop(totalDispersadoCop);
+      if (kpiTotalDispersadoCop) kpiTotalDispersadoCop.textContent = formatCop(totalPagadoCop);
       if (kpiTotalPendienteCop) {
         kpiTotalPendienteCop.textContent = formatCop(totalPendienteCop);
-        if (totalPendienteCop > 0) {
+        if (totalPendienteCop > 1) {
           kpiTotalPendienteCop.style.color = 'var(--warning)';
-        } else if (totalPendienteCop < 0) {
-          kpiTotalPendienteCop.style.color = 'var(--info)';
+        } else if (totalPendienteCop < -1) {
+          kpiTotalPendienteCop.style.color = 'var(--danger)';
         } else {
           kpiTotalPendienteCop.style.color = 'var(--success)';
+        }
+      }
+
+      // Update client Estado badge: PENDIENTE, PAGADO, DEBE (1 sola palabra según requerimiento)
+      const estadoBadge = document.getElementById('client-estado-badge');
+      const clientEstado = (currentClient && currentClient.estado) 
+        ? currentClient.estado.toUpperCase() 
+        : (totalPendienteCop > 1 ? 'PENDIENTE' : (totalPendienteCop < -1 ? 'DEBE' : 'PAGADO'));
+
+      if (estadoBadge) {
+        estadoBadge.textContent = clientEstado;
+        if (clientEstado === 'PENDIENTE') {
+          estadoBadge.style.background = 'rgba(255, 181, 71, 0.15)';
+          estadoBadge.style.color = 'var(--warning)';
+          estadoBadge.style.border = '1px solid rgba(255, 181, 71, 0.4)';
+        } else if (clientEstado === 'DEBE') {
+          estadoBadge.style.background = 'rgba(238, 93, 80, 0.15)';
+          estadoBadge.style.color = 'var(--danger)';
+          estadoBadge.style.border = '1px solid rgba(238, 93, 80, 0.4)';
+        } else {
+          estadoBadge.style.background = 'rgba(5, 205, 153, 0.15)';
+          estadoBadge.style.color = 'var(--success)';
+          estadoBadge.style.border = '1px solid rgba(5, 205, 153, 0.4)';
         }
       }
 
@@ -767,14 +821,14 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
       }
     }
 
-    // Render Dispersiones Table (Sin comprobantes ni códigos internos en portal público)
-    function renderDispersiones() {
+    // Render Pagos Table (Dispersiones Bancarias + Pagos en Efectivo)
+    function renderPagos() {
       if (!dispersionesTableBody) return;
-      if (clientDispersiones.length === 0) {
+      if (clientPagos.length === 0) {
         dispersionesTableBody.innerHTML = `
           <tr>
-            <td colspan="4" style="padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px;">
-              No hay dispersiones registradas para este cliente.
+            <td colspan="5" style="padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px;">
+              No hay pagos registrados (ni dispersiones ni efectivo) para este cliente.
             </td>
           </tr>
         `;
@@ -782,17 +836,27 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
         return;
       }
 
-      dispersionesTableBody.innerHTML = clientDispersiones.map(p => {
+      dispersionesTableBody.innerHTML = clientPagos.map(p => {
         const esCompletado = p.estado === 'COMPLETADO';
-        const fechaDisplay = p.fechaCreacion ? (p.fechaCreacion.includes('T') ? p.fechaCreacion.split('T')[0] : p.fechaCreacion) : (p.fecha || '-');
-        const referenciaDisplay = p.referencia || '—';
+        const esEfectivo = p.medio === 'EFECTIVO';
         return `
           <tr style="border-bottom: 1px solid var(--border-main); transition: background-color 0.15s ease;">
             <td style="padding: 14px 20px; color: var(--text-secondary); vertical-align: middle;">
-              ${fechaDisplay}
+              ${p.fechaDisplay || '-'}
             </td>
             <td style="padding: 14px 20px; color: var(--text-primary); font-weight: 600; vertical-align: middle;">
-              ${referenciaDisplay}
+              ${p.referenciaDisplay || '—'}
+            </td>
+            <td style="padding: 14px 20px; vertical-align: middle;">
+              ${esEfectivo ? `
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(5, 205, 153, 0.15); color: var(--success); font-weight: 800; font-size: 10px; text-transform: uppercase;">
+                  EFECTIVO
+                </span>
+              ` : `
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(67, 24, 255, 0.12); color: var(--brand-primary); font-weight: 800; font-size: 10px; text-transform: uppercase;">
+                  DISPERSIÓN
+                </span>
+              `}
             </td>
             <td style="padding: 14px 20px; font-weight: 800; color: ${esCompletado ? 'var(--success)' : 'var(--danger)'}; text-align: right; font-family: ui-monospace, monospace; font-size: 14px; vertical-align: middle;">
               ${formatCop(p.montoCop)}
@@ -807,14 +871,14 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
       }).join('');
 
       if (dispersionesTableFoot) {
-        const totalDispersado = clientDispersiones.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + (Number(p.montoCop) || 0), 0);
+        const totalPagado = clientPagos.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + (Number(p.montoCop) || 0), 0);
         dispersionesTableFoot.innerHTML = `
           <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); border-top: 2px solid var(--border-main);">
-            <td colspan="2" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
-              TOTAL DISPERSADO (${clientDispersiones.length} DISPERSIONES):
+            <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
+              TOTAL PAGADO (${clientPagos.length} PAGOS):
             </td>
             <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 15px;">
-              ${formatCop(totalDispersado)}
+              ${formatCop(totalPagado)}
             </td>
             <td style="padding: 18px 20px; text-align: center; color: var(--text-muted); font-size: 12px;">
               —
@@ -856,6 +920,9 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
           const livePagos = syncData.snapshot.dispersiones || syncData.snapshot.pagos;
           if (Array.isArray(livePagos) && livePagos.length > 0) {
             (window as any).INITIAL_PAGOS = livePagos;
+          }
+          if (Array.isArray(syncData.snapshot.efectivo) && syncData.snapshot.efectivo.length > 0) {
+            (window as any).INITIAL_EFECTIVO = syncData.snapshot.efectivo;
           }
         }
       } catch (errSnap) {
