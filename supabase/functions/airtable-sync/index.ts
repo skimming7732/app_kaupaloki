@@ -538,9 +538,28 @@ Deno.serve(async (req: Request) => {
     const divisasById = new Map<string, any>();
     rawDivisas.forEach((d) => divisasById.set(d.id, d));
 
+    // Lookup map for CLIENTES (resolves record ID -> first column {CLIENTE} / {Cliente} and {NOMBRE})
+    const clientesById = new Map<string, { id: string; codigo: string; nombre: string }>();
+    rawClientes.forEach((r) => {
+      const f = r.fields || {};
+      const codigo = String(f["CLIENTE"] || f["Cliente"] || f["ID CLIENTE"] || r.id);
+      const nombre = String(f["NOMBRE"] || f["CLIENTE"] || codigo);
+      clientesById.set(r.id, { id: r.id, codigo, nombre });
+    });
+
+    // Lookup map for ACTIVOS LIQUIDOS (resolves record ID -> {ACTIVO}, {EMPRESA}, {INSTITUCIÓN})
+    const activosLiqById = new Map<string, { id: string; activo: string; empresa: string; institucion: string }>();
+    rawActivosLiq.forEach((r) => {
+      const f = r.fields || {};
+      const activo = String(f["ACTIVO"] || f["ID CUENTA"] || r.id);
+      const empresa = String(f["EMPRESA"] || f["TITULAR"] || activo);
+      const institucion = String(f["INSTITUCIÓN"] || f["BANCO"] || "Coinsenda");
+      activosLiqById.set(r.id, { id: r.id, activo, empresa, institucion });
+    });
+
     const clientes = rawClientes.map((r, idx) => {
       const f = r.fields || {};
-      const codigo = String(f["Cliente"] || f["ID CLIENTE"] || f["CLIENTE"] || r.id);
+      const codigo = String(f["CLIENTE"] || f["Cliente"] || f["ID CLIENTE"] || r.id);
       const nombre = String(f["NOMBRE"] || f["CLIENTE"] || codigo);
       const ingresosCop = Number(f["INGRESOS"] ?? f["TOTAL INGRESOS"] ?? 0);
       const pagadoCop = Number(f["PAGADO"] ?? f["TOTAL PAGADO"] ?? 0);
@@ -569,7 +588,12 @@ Deno.serve(async (req: Request) => {
       const fechaRegistro = String(f["FECHA REGISTRO"] || f["FECHA"] || new Date().toISOString().slice(0, 10));
       const divisaRaw = Array.isArray(f["DIVISA"]) ? f["DIVISA"][0] : f["DIVISA"];
       const divisaCodigo = DIVISA_ID_TO_CODE[divisaRaw] || String(f["MONEDA"] || divisaRaw || "USD");
-      const clienteNombre = String(f["CLIENTE_NAME"] || (Array.isArray(f["CLIENTE"]) ? f["CLIENTE"][0] : f["CLIENTE"]) || "Cliente");
+      
+      const clienteRecordId = Array.isArray(f["CLIENTE"]) ? f["CLIENTE"][0] : f["CLIENTE"];
+      const clientObj = clientesById.get(clienteRecordId);
+      const clienteCodigo = clientObj ? clientObj.codigo : String(clienteRecordId || "Cliente");
+      const clienteNombre = clientObj ? clientObj.nombre : clienteCodigo;
+
       const montoDivisa = Number(f["MONTO"] ?? f["CANTIDAD DIVISA"] ?? 0);
       const tasa = Number(f["TASA"] || 0);
       const ingresoCop = Number(f["INGRESO (COP)"] ?? f["TOTAL COP"] ?? f["INGRESO COP"] ?? (montoDivisa * tasa));
@@ -585,8 +609,9 @@ Deno.serve(async (req: Request) => {
         idNegocio: codigo,
         fechaRegistro,
         fecha: fechaRegistro,
-        clienteCodigo: clienteNombre,
+        clienteCodigo,
         clienteNombre,
+        clienteRecordId,
         divisaCodigo,
         montoDivisa,
         cantidadDivisa: montoDivisa,
@@ -679,8 +704,13 @@ Deno.serve(async (req: Request) => {
     const pagos = rawDispersiones.map((r, idx) => {
       const f = r.fields || {};
       const codigo = String(f["DISPERSION"] || f["ID DISPERSION"] || f["ID PAGO"] || r.id);
-      const clienteRaw = Array.isArray(f["CLIENTE"]) ? f["CLIENTE"][0] : f["CLIENTE"];
-      const clienteNombre = String(f["CLIENTE_NAME"] || clienteRaw || "Cliente");
+      
+      const clienteRecordId = Array.isArray(f["CLIENTE"]) ? f["CLIENTE"][0] : f["CLIENTE"];
+      const clientObj = clientesById.get(clienteRecordId);
+      // FIRST COLUMN IN AIRTABLE: {CLIENTE} (e.g. C0017-DR-N)
+      const clienteCodigo = clientObj ? clientObj.codigo : String(clienteRecordId || "Cliente");
+      const clienteNombre = clienteCodigo;
+
       const montoCop = Number(f["MONTO (COP)"] ?? f["VALOR TOTAL DISPERSION"] ?? f["MONTO"] ?? 0);
       const rawEstado = String(f["ESTADO"] || "COMPLETADO").toUpperCase();
       const estado = rawEstado.includes("RECHAZ") ? "RECHAZADO" : "COMPLETADO";
@@ -688,6 +718,14 @@ Deno.serve(async (req: Request) => {
       const fechaCreacion = String(f["FECHA CREACIÓN"] || f["FECHA"] || new Date().toISOString().slice(0, 10));
       const referencia = String(f["REFERENCIA"] || f["CONCEPTO"] || "");
       const origenFondosIds = Array.isArray(f["ORIGEN FONDOS"]) ? f["ORIGEN FONDOS"] : (f["ORIGEN FONDOS"] ? [f["ORIGEN FONDOS"]] : []);
+      
+      // Resolve Origen Fondos name for internal view
+      const origenFondosNames = origenFondosIds.map((id: string) => {
+        const act = activosLiqById.get(id);
+        return act ? act.activo : id;
+      });
+      const origenFondos = origenFondosNames.join(", ") || "-";
+
       const comprobantes: any[] = [];
       const rawComprobantes = f["COMPROBANTES"] || f["COMPROBANTE"];
       if (Array.isArray(rawComprobantes)) {
@@ -705,8 +743,9 @@ Deno.serve(async (req: Request) => {
         id: r.id,
         codigo,
         idDispersion: codigo,
-        clienteCodigo: clienteNombre,
+        clienteCodigo,
         clienteNombre,
+        clienteRecordId,
         montoCop,
         valorTotalDispersion: montoCop,
         estado,
@@ -714,6 +753,7 @@ Deno.serve(async (req: Request) => {
         fechaCreacion,
         fecha: fechaCreacion,
         referencia,
+        origenFondos,
         origenFondosIds,
         comprobantes,
         comprobanteUrl: comprobantes[0]?.url,

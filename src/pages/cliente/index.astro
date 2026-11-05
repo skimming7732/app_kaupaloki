@@ -610,12 +610,12 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
       const negocios: any[] = (window as any).INITIAL_NEGOCIOS || [];
       const pagos: any[] = (window as any).INITIAL_PAGOS || [];
 
-      // Find client by client_id or code or name
+      // Find client by client_id or code or name or id
       currentClient = clientes.find(c => 
-        c.codigo === linkRecord.client_id || 
+        (c.codigo && linkRecord.client_id && c.codigo.toLowerCase() === linkRecord.client_id.toLowerCase()) || 
         c.id === linkRecord.client_id || 
-        c.nombre === linkRecord.client_name ||
-        c.codigo.toLowerCase().includes(linkRecord.client_name.toLowerCase())
+        (c.nombre && linkRecord.client_name && c.nombre.toLowerCase() === linkRecord.client_name.toLowerCase()) ||
+        (c.codigo && linkRecord.client_name && c.codigo.toLowerCase().includes(linkRecord.client_name.toLowerCase()))
       ) || {
         codigo: linkRecord.client_id,
         nombre: linkRecord.client_name
@@ -626,16 +626,18 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
 
       // Filter all businesses for this client
       clientNegocios = negocios.filter(n => 
-        n.clienteCodigo === currentClient.codigo || 
-        n.clienteNombre === currentClient.nombre ||
-        n.clienteCodigo === linkRecord.client_id
+        (n.clienteCodigo && currentClient.codigo && n.clienteCodigo.toLowerCase() === currentClient.codigo.toLowerCase()) || 
+        (n.clienteNombre && currentClient.nombre && n.clienteNombre.toLowerCase() === currentClient.nombre.toLowerCase()) ||
+        (n.clienteRecordId && currentClient.id && n.clienteRecordId === currentClient.id) ||
+        (n.clienteCodigo && linkRecord.client_id && n.clienteCodigo.toLowerCase() === linkRecord.client_id.toLowerCase())
       );
 
       // Filter all dispersiones for this client
       clientDispersiones = pagos.filter(p => 
-        p.clienteCodigo === currentClient.codigo || 
-        p.clienteNombre === currentClient.nombre ||
-        p.clienteCodigo === linkRecord.client_id ||
+        (p.clienteCodigo && currentClient.codigo && p.clienteCodigo.toLowerCase() === currentClient.codigo.toLowerCase()) || 
+        (p.clienteNombre && currentClient.nombre && p.clienteNombre.toLowerCase() === currentClient.nombre.toLowerCase()) ||
+        (p.clienteRecordId && currentClient.id && p.clienteRecordId === currentClient.id) ||
+        (p.clienteCodigo && linkRecord.client_id && p.clienteCodigo.toLowerCase() === linkRecord.client_id.toLowerCase()) ||
         (currentClient.nombre && p.clienteNombre && p.clienteNombre.toLowerCase() === currentClient.nombre.toLowerCase())
       );
 
@@ -844,6 +846,30 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
 
     // Check existing session or internal dashboard access (Bypasses PIN for internal users)
     async function initClientAccess() {
+      // Fetch latest live snapshot from Supabase airtable_sync_state
+      try {
+        const { data: syncData } = await supabase
+          .from('airtable_sync_state')
+          .select('snapshot')
+          .eq('id', 'main')
+          .single();
+
+        if (syncData?.snapshot) {
+          if (Array.isArray(syncData.snapshot.clientes) && syncData.snapshot.clientes.length > 0) {
+            (window as any).INITIAL_CLIENTES = syncData.snapshot.clientes;
+          }
+          if (Array.isArray(syncData.snapshot.negocios) && syncData.snapshot.negocios.length > 0) {
+            (window as any).INITIAL_NEGOCIOS = syncData.snapshot.negocios;
+          }
+          const livePagos = syncData.snapshot.dispersiones || syncData.snapshot.pagos;
+          if (Array.isArray(livePagos) && livePagos.length > 0) {
+            (window as any).INITIAL_PAGOS = livePagos;
+          }
+        }
+      } catch (errSnap) {
+        console.warn('Error al cargar snapshot en vivo de Airtable:', errSnap);
+      }
+
       const fromDashboard = urlParams.get('from') === 'dashboard' || sessionStorage.getItem('kaupaloki_internal_session') === 'true';
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -852,9 +878,9 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
         const clientes: any[] = (window as any).INITIAL_CLIENTES || [];
         const clean = slug.toLowerCase().replace(/^c-/, '');
         const target = clientes.find(c => 
-          c.codigo.toLowerCase() === slug.toLowerCase() ||
-          c.codigo.toLowerCase() === clean ||
-          c.codigo.toLowerCase().replace(/[^a-z0-9]/g, '-') === clean ||
+          (c.codigo && c.codigo.toLowerCase() === slug.toLowerCase()) ||
+          (c.codigo && c.codigo.toLowerCase() === clean) ||
+          (c.codigo && c.codigo.toLowerCase().replace(/[^a-z0-9]/g, '-') === clean) ||
           c.id === slug ||
           (c.nombre && c.nombre.toLowerCase().replace(/[^a-z0-9]/g, '-') === clean)
         );

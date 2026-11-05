@@ -277,7 +277,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       <!-- ============================================================== -->
       <!-- TOP FLOATING NAVBAR (HORIZON UI EXACT TO DESIGN REFERENCE) -->
       <!-- ============================================================== -->
-      <header class="horizon-header" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; padding: 4px 0;">
+      <header class="horizon-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; padding: 4px 0; width: 100%;">
         <!-- Left: Toggle & Breadcrumb & Title -->
         <div class="header-left-box" style="display: flex; align-items: center; gap: 14px; min-width: 0;">
           <!-- Mobile only menu button (oculto en PC) -->
@@ -411,7 +411,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         <!-- 1. KPIS TAB: DASHBOARD (PANEL CONTROL) -->
         <div id="kpis-tab-dashboard" class="kpis-view-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
           <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="8" y1="10" x2="16" y2="10"></line>
@@ -419,14 +419,14 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               </svg>
             </div>
             <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Saldo en USDT</div>
-              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtEnCustodia, 0)} <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">USDT</span></div>
-              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtComprado, 0)} compras</div>
+              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Saldo en USDT</div>
+              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtEnCustodia, 0)} <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">USDT</span></div>
+              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtComprado, 0)} compras</div>
             </div>
           </div>
 
           <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -434,14 +434,14 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               </svg>
             </div>
             <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Por Liquidar</div>
-              <div style="font-size: 16px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalFaltaLiquidarClientes)}</div>
-              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Pasivo exigible</div>
+              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Por Liquidar</div>
+              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalFaltaLiquidarClientes, 0)}</div>
+              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Pasivo exigible</div>
             </div>
           </div>
 
           <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="4" width="20" height="16" rx="2"></rect>
                 <line x1="6" y1="12" x2="18" y2="12"></line>
@@ -449,28 +449,28 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               </svg>
             </div>
             <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Activos Líquidos</div>
-              <div style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalActivosLiquidosCop)}</div>
-              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Coinsenda y Efectivo</div>
+              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Activos Líquidos</div>
+              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalActivosLiquidosCop, 0)}</div>
+              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Coinsenda y Efectivo</div>
             </div>
           </div>
 
           <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
                 <polyline points="17 6 23 6 23 12"></polyline>
               </svg>
             </div>
             <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Ganancia Neta</div>
-              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.gananciaEstimadaCop)}</div>
-              <div style="font-size: 10px; font-weight: 700; color: var(--success); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">+19.04% margen</div>
+              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Ganancia Neta</div>
+              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.gananciaEstimadaCop, 0)}</div>
+              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 700; color: var(--success); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">+19.04% margen</div>
             </div>
           </div>
 
           <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -478,9 +478,9 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               </svg>
             </div>
             <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Negocios Totales</div>
-              <div style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{metricas.numNegocios} Negocios</div>
-              <div style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{CLIENTES.length} clientes</div>
+              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Negocios Totales</div>
+              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{metricas.numNegocios} Negocios</div>
+              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{CLIENTES.length} clientes</div>
             </div>
           </div>
         </div>
@@ -1243,7 +1243,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
   </div>
 </Layout>
 
-<style>
+<style is:global>
   /* Sidebar styles Horizon */
   .sidebar-link {
     background: transparent;
@@ -1276,21 +1276,19 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
   .mobile-only-toggle {
     display: none !important;
   }
+
+  /* Header Responsive Compact Mobile (Una sola línea garantizada sin saltos) */
   @media (max-width: 900px) {
     #btn-navbar-sidebar-toggle,
     .mobile-only-toggle {
       display: flex !important;
     }
-  }
-
-  /* Header Responsive Compact Mobile (Una sola línea sin saltos) */
-  @media (max-width: 768px) {
     .horizon-header {
       flex-wrap: nowrap !important;
       justify-content: space-between !important;
       align-items: center !important;
       gap: 8px !important;
-      margin-bottom: 16px !important;
+      margin-bottom: 14px !important;
       padding: 0 !important;
       width: 100% !important;
       box-sizing: border-box !important;
@@ -1312,29 +1310,25 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       overflow: hidden !important;
     }
     .header-breadcrumb {
-      font-size: 10px !important;
-      margin-bottom: 1px !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
+      display: none !important;
     }
     #page-heading {
-      font-size: 19px !important;
-      line-height: 1.2 !important;
+      font-size: 18px !important;
+      line-height: 1.15 !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
     }
     .horizon-capsule {
-      padding: 4px 8px !important;
+      padding: 3px 6px !important;
       gap: 4px !important;
       border-radius: 9999px !important;
       flex-shrink: 0 !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
     }
     #btn-sync-now {
-      padding: 5px 8px !important;
-      border-radius: 14px !important;
+      padding: 4px 7px !important;
+      border-radius: 12px !important;
       gap: 4px !important;
       font-size: 10px !important;
     }
@@ -1345,13 +1339,15 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       width: 6px !important;
       height: 6px !important;
     }
-    #btn-open-airtable-config {
-      width: 28px !important;
-      height: 28px !important;
-    }
+    #btn-open-airtable-config,
     #btn-theme-toggle {
       width: 28px !important;
       height: 28px !important;
+    }
+    #btn-open-airtable-config svg,
+    #btn-theme-toggle svg {
+      width: 14px !important;
+      height: 14px !important;
     }
     #header-info-icon {
       display: none !important;
@@ -1360,6 +1356,39 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       width: 32px !important;
       height: 32px !important;
       font-size: 12px !important;
+    }
+  }
+
+  /* Compact Responsive KPI Cards: evita truncamientos en mobile */
+  @media (max-width: 640px) {
+    .kpis-view-group {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+    }
+    .kpi-mini-card {
+      padding: 8px 10px !important;
+      gap: 8px !important;
+      min-height: 54px !important;
+      border-radius: 14px !important;
+    }
+    .kpi-icon-box {
+      width: 28px !important;
+      height: 28px !important;
+    }
+    .kpi-icon-box svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
+    .kpi-title {
+      font-size: 9.5px !important;
+      letter-spacing: 0.02em !important;
+    }
+    .kpi-value {
+      font-size: clamp(11.5px, 3.4vw, 14.5px) !important;
+      letter-spacing: -0.02em !important;
+    }
+    .kpi-subtitle {
+      font-size: 9px !important;
     }
   }
 
@@ -1374,7 +1403,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       gap: 6px !important;
     }
     .horizon-capsule {
-      padding: 3px 6px !important;
+      padding: 3px 5px !important;
       gap: 3px !important;
     }
     #btn-sync-now {
@@ -1387,8 +1416,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     }
     #btn-open-airtable-config svg,
     #btn-theme-toggle svg {
-      width: 14px !important;
-      height: 14px !important;
+      width: 13px !important;
+      height: 13px !important;
     }
     #user-avatar-btn {
       width: 30px !important;
@@ -5726,7 +5755,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
               <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 13px;">${p.numero || '#'}</td>
               <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 14px;">${p.codigo || p.idPago || p.idDispersion}</td>
               <td style="padding: 14px 18px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 13px;">${p.fechaCreacion || p.fecha || ''}</td>
-              <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${p.clienteNombre || 'Cliente'}</td>
+              <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 14px;">${p.clienteCodigo || p.clienteNombre || 'Cliente'}</td>
               <td style="padding: 14px 18px; font-size: 13px; color: var(--text-secondary);">${p.referencia || '-'}</td>
               <td style="padding: 14px 18px; font-size: 13px; color: var(--text-secondary);">${p.origenFondos || p.empresaPagadora || '-'}</td>
               <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 700; color: var(--text-primary); font-size: 14px;">${fmtCopClient(p.montoCop ?? p.valorTotalDispersion, 2)}</td>

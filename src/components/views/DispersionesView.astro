@@ -34,7 +34,7 @@ const { PAGOS = [] } = Astro.props;
                     <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 12px; vertical-align: middle;">{p.numero}</td>
                     <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; vertical-align: middle;">{p.codigo}</td>
                     <td style="padding: 14px 18px; color: var(--text-secondary); font-size: 13px; vertical-align: middle;">{p.fechaCreacion || '—'}</td>
-                    <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 13px; vertical-align: middle;">{p.clienteNombre}</td>
+                    <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 13px; vertical-align: middle;">{p.clienteCodigo || p.clienteNombre || 'Cliente'}</td>
                     <td style="padding: 14px 18px; color: var(--text-primary); font-weight: 500; font-size: 13px; vertical-align: middle;">{p.referencia || '—'}</td>
                     <td style="padding: 14px 18px; color: var(--text-secondary); font-size: 12px; vertical-align: middle;">
                       <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; font-size: 11px;">
