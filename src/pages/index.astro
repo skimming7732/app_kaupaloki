@@ -2706,64 +2706,91 @@ function formatDecimal(amount: number, digits = 2): string {
             </div>
 
             <div>
-              <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">
-                Rol en la Plataforma *
-              </label>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label for="modal-user-role-select" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">
+                  Rol en la Plataforma *
+                </label>
+                <span id="role-badge-indicator" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: var(--brand-primary-light); color: var(--brand-primary); font-family: ui-monospace, monospace;">
+                  OPERADOR
+                </span>
+              </div>
+
+              <!-- Selector Dropdown accesible y sincronizado -->
+              <div style="position: relative; margin-bottom: 10px;">
+                <select 
+                  id="modal-user-role-select" 
+                  style="width: 100%; box-sizing: border-box; padding: 11px 36px 11px 14px; border-radius: 12px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none;"
+                >
+                  <option value="operador">⚡ Operador (Registra negocios / Divisas asignadas)</option>
+                  <option value="administrador">🛡️ Administrador (Control total de operaciones)</option>
+                  <option value="cliente">👤 Cliente (Portal contable / Todas las divisas)</option>
+                </select>
+                <div style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); display: flex; align-items: center;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </div>
+
               <input type="hidden" id="modal-user-role" name="role" value="operador" />
               
+              <!-- Botones de Rol interactivos -->
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;" id="role-selector-container">
                 <!-- Operador -->
-                <div 
+                <button 
+                  type="button"
                   class="role-card-btn active" 
                   data-role="operador" 
-                  style="padding: 12px 10px; border-radius: 14px; border: 2px solid var(--brand-primary); background: var(--brand-primary-light); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px;"
+                  style="padding: 12px 10px; border-radius: 14px; border: 2px solid var(--brand-primary); background: var(--brand-primary-light); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; appearance: none; -webkit-appearance: none; font-family: inherit; width: 100%; box-sizing: border-box;"
                 >
-                  <div class="role-icon-box" style="width: 34px; height: 34px; border-radius: 10px; background: var(--brand-primary); color: #fff; display: flex; align-items: center; justify-content: center;">
+                  <div class="role-icon-box" style="width: 34px; height: 34px; border-radius: 10px; background: var(--brand-primary); color: #fff; display: flex; align-items: center; justify-content: center; pointer-events: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                     </svg>
                   </div>
-                  <div>
+                  <div style="pointer-events: none;">
                     <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); line-height: 1.2;">Operador</div>
                     <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Registra negocios</div>
                   </div>
-                </div>
+                </button>
 
                 <!-- Administrador -->
-                <div 
+                <button 
+                  type="button"
                   class="role-card-btn" 
                   data-role="administrador" 
-                  style="padding: 12px 10px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px;"
+                  style="padding: 12px 10px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; appearance: none; -webkit-appearance: none; font-family: inherit; width: 100%; box-sizing: border-box;"
                 >
-                  <div class="role-icon-box" style="width: 34px; height: 34px; border-radius: 10px; background: var(--bg-card-secondary); color: var(--text-secondary); display: flex; align-items: center; justify-content: center;">
+                  <div class="role-icon-box" style="width: 34px; height: 34px; border-radius: 10px; background: var(--bg-card-secondary); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; pointer-events: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                       <polyline points="9 12 11 14 15 10"></polyline>
                     </svg>
                   </div>
-                  <div>
+                  <div style="pointer-events: none;">
                     <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); line-height: 1.2;">Administrador</div>
                     <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Control total</div>
                   </div>
-                </div>
+                </button>
 
                 <!-- Cliente -->
-                <div 
+                <button 
+                  type="button"
                   class="role-card-btn" 
-                  data-role="client" 
-                  style="padding: 12px 10px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px;"
+                  data-role="cliente" 
+                  style="padding: 12px 10px; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 6px; appearance: none; -webkit-appearance: none; font-family: inherit; width: 100%; box-sizing: border-box;"
                 >
-                  <div class="role-icon-box" style="width: 34px; height: 34px; border-radius: 10px; background: var(--bg-card-secondary); color: var(--text-secondary); display: flex; align-items: center; justify-content: center;">
+                  <div class="role-icon-box" style="width: 34px; height: 34px; border-radius: 10px; background: var(--bg-card-secondary); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; pointer-events: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                       <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                   </div>
-                  <div>
+                  <div style="pointer-events: none;">
                     <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); line-height: 1.2;">Cliente</div>
                     <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Portal contable</div>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
 
@@ -5551,6 +5578,8 @@ function formatDecimal(amount: number, digits = 2): string {
   const btnToggleAllCurrencies = document.getElementById('btn-toggle-all-currencies');
   const roleCards = document.querySelectorAll('.role-card-btn');
   const roleInput = document.getElementById('modal-user-role') as HTMLInputElement | null;
+  const modalUserRoleSelect = document.getElementById('modal-user-role-select') as HTMLSelectElement | null;
+  const roleBadgeIndicator = document.getElementById('role-badge-indicator');
   const containerAuthorizedCurrencies = document.getElementById('container-authorized-currencies');
 
   function getAllSystemCurrencies(): string[] {
@@ -5605,12 +5634,33 @@ function formatDecimal(amount: number, digits = 2): string {
 
 
   function updateRoleSelection(selectedRole: string) {
-    if (roleInput) roleInput.value = selectedRole;
+    const raw = (selectedRole || 'operador').toLowerCase();
+    const normRole = (raw === 'client' || raw === 'cliente') ? 'cliente' : (raw === 'administrador' || raw === 'admin') ? 'administrador' : 'operador';
 
-    roleCards.forEach((card: any) => {
-      const cardRole = card.getAttribute('data-role');
+    if (roleInput) roleInput.value = normRole;
+    if (modalUserRoleSelect && modalUserRoleSelect.value !== normRole) {
+      modalUserRoleSelect.value = normRole;
+    }
+    if (roleBadgeIndicator) {
+      roleBadgeIndicator.textContent = normRole.toUpperCase();
+      if (normRole === 'administrador') {
+        roleBadgeIndicator.style.background = 'rgba(67, 24, 255, 0.15)';
+        roleBadgeIndicator.style.color = 'var(--brand-primary)';
+      } else if (normRole === 'cliente') {
+        roleBadgeIndicator.style.background = 'rgba(5, 205, 153, 0.15)';
+        roleBadgeIndicator.style.color = '#05CD99';
+      } else {
+        roleBadgeIndicator.style.background = 'var(--brand-primary-light)';
+        roleBadgeIndicator.style.color = 'var(--brand-primary)';
+      }
+    }
+
+    document.querySelectorAll('.role-card-btn').forEach((card: any) => {
+      const cardRole = (card.getAttribute('data-role') || '').toLowerCase();
+      const cardNorm = (cardRole === 'client' || cardRole === 'cliente') ? 'cliente' : cardRole;
+      const isSelected = cardNorm === normRole;
       const iconBox = card.querySelector('.role-icon-box');
-      if (cardRole === selectedRole) {
+      if (isSelected) {
         card.classList.add('active');
         card.style.border = '2px solid var(--brand-primary)';
         card.style.background = 'var(--brand-primary-light)';
@@ -5631,7 +5681,7 @@ function formatDecimal(amount: number, digits = 2): string {
 
     // Para Administrador y Cliente NO se muestran las divisas (se seleccionan todas automáticamente)
     // Solo para Operador se muestran
-    if (selectedRole === 'operador') {
+    if (normRole === 'operador') {
       if (containerAuthorizedCurrencies) containerAuthorizedCurrencies.style.display = 'block';
     } else {
       if (containerAuthorizedCurrencies) containerAuthorizedCurrencies.style.display = 'none';
@@ -5641,11 +5691,20 @@ function formatDecimal(amount: number, digits = 2): string {
     }
   }
 
-  roleCards.forEach(card => {
-    card.addEventListener('click', () => {
+  // Delegación global al hacer clic en cualquier botón/tarjeta de rol
+  document.addEventListener('click', (e: any) => {
+    const card = e.target.closest('.role-card-btn');
+    if (card) {
+      e.preventDefault();
       const r = card.getAttribute('data-role');
       if (r) updateRoleSelection(r);
-    });
+    }
+  });
+
+  // Listener para el selector dropdown sincronizado
+  modalUserRoleSelect?.addEventListener('change', (e) => {
+    const target = e.target as HTMLSelectElement;
+    if (target?.value) updateRoleSelection(target.value);
   });
 
   function openCreateUserModal() {
@@ -5748,13 +5807,14 @@ function formatDecimal(amount: number, digits = 2): string {
 
     const name = nameInput.value.trim();
     const email = emailInput.value.trim().toLowerCase();
-    const role = currentRoleInput ? currentRoleInput.value : 'operador';
+    const rawRole = currentRoleInput?.value || modalUserRoleSelect?.value || 'operador';
+    const role = (rawRole === 'client' || rawRole === 'cliente') ? 'cliente' : (rawRole === 'administrador' || rawRole === 'admin') ? 'administrador' : 'operador';
     const country = countrySelect ? countrySelect.value : 'COL';
 
     // Determinar divisas autorizadas: Si es admin o cliente, siempre todas las divisas sincronizadas con Airtable
     const allCurrencies = getAllSystemCurrencies();
     let authorizedCurrencies: string[];
-    if (role === 'administrador' || role === 'client') {
+    if (role === 'administrador' || role === 'client' || role === 'cliente') {
       authorizedCurrencies = [...allCurrencies];
     } else {
       const checkedBoxes = Array.from(document.querySelectorAll('input[name="authorized_currency"]:checked')) as HTMLInputElement[];
