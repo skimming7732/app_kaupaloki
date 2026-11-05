@@ -408,81 +408,75 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       <!-- ============================================================== -->
       <section id="dynamic-kpis-wrapper" style="margin-bottom: 22px;">
         
-        <!-- 1. KPIS TAB: DASHBOARD (PANEL CONTROL) -->
-        <div id="kpis-tab-dashboard" class="kpis-view-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
-          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- 1. KPIS TAB: DASHBOARD (PANEL CONTROL) - SIMPLIFICADO -->
+        <div id="kpis-tab-dashboard" class="kpis-view-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;">
+          
+          <!-- Card 1: Total Activos Digitales USDT -->
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-main); min-height: 72px; box-sizing: border-box; overflow: hidden;">
+            <div class="kpi-icon-box" style="width: 42px; height: 42px; border-radius: 12px; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="8" y1="10" x2="16" y2="10"></line>
                 <line x1="12" y1="10" x2="12" y2="18"></line>
               </svg>
             </div>
             <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Saldo en USDT</div>
-              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtEnCustodia, 0)} <span style="font-size: 11px; font-weight: 700; color: var(--brand-primary);">USDT</span></div>
-              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatDecimal(metricas.totalUsdtComprado, 0)} compras</div>
+              <div class="kpi-title" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.2; margin-bottom: 2px;">
+                Total activos digitales USDT
+              </div>
+              <div class="kpi-value" id="kpi-dash-activos-digitales-usdt" style="font-size: 20px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+                {formatDecimal(metricas.totalActivosDigitalesUsdt, 0)} <span style="font-size: 12px; font-weight: 700; color: var(--brand-primary);">USDT</span>
+              </div>
+              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 2px;">
+                Custodia en Wallets TRC20
+              </div>
             </div>
           </div>
 
-          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-            </div>
-            <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Por Liquidar</div>
-              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalFaltaLiquidarClientes, 0)}</div>
-              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Pasivo exigible</div>
-            </div>
-          </div>
-
-          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Card 2: Total Activos Líquidos (COP) -->
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-main); min-height: 72px; box-sizing: border-box; overflow: hidden;">
+            <div class="kpi-icon-box" style="width: 42px; height: 42px; border-radius: 12px; background: var(--success-light); color: var(--success); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="4" width="20" height="16" rx="2"></rect>
                 <line x1="6" y1="12" x2="18" y2="12"></line>
                 <circle cx="12" cy="12" r="2"></circle>
               </svg>
             </div>
             <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Activos Líquidos</div>
-              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.totalActivosLiquidosCop, 0)}</div>
-              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Coinsenda y Efectivo</div>
+              <div class="kpi-title" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.2; margin-bottom: 2px;">
+                Total activos líquidos (COP)
+              </div>
+              <div class="kpi-value" id="kpi-dash-activos-liquidos-cop" style="font-size: 20px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2;">
+                {formatCop(metricas.totalActivosLiquidosCop, 0)}
+              </div>
+              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 2px;">
+                Coinsenda y Caja Efectivo
+              </div>
             </div>
           </div>
 
-          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(5, 205, 153, 0.12); color: #05CD99; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                <polyline points="17 6 23 6 23 12"></polyline>
+          <!-- Card 3: Saldo Pendiente (COP) - Lo que se le debe a clientes -->
+          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 14px; border: 1px solid var(--border-main); min-height: 72px; box-sizing: border-box; overflow: hidden;">
+            <div class="kpi-icon-box" style="width: 42px; height: 42px; border-radius: 12px; background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
             </div>
             <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Ganancia Neta</div>
-              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{formatCop(metricas.gananciaEstimadaCop, 0)}</div>
-              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 700; color: var(--success); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">+19.04% margen</div>
+              <div class="kpi-title" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--warning); line-height: 1.2; margin-bottom: 2px;">
+                Saldo pendiente (COP)
+              </div>
+              <div class="kpi-value" id="kpi-dash-saldo-pendiente-cop" style="font-size: 20px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2;">
+                {formatCop(metricas.totalSaldoPendienteClientesCop, 0)}
+              </div>
+              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 2px;">
+                Lo que se le debe a clientes
+              </div>
             </div>
           </div>
 
-          <div class="kpi-mini-card" style="background: var(--bg-card); border-radius: 16px; padding: 12px 14px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-main); min-height: 64px; box-sizing: border-box; overflow: hidden;">
-            <div class="kpi-icon-box" style="width: 36px; height: 36px; border-radius: 50%; background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                <line x1="8" y1="21" x2="16" y2="21"></line>
-                <line x1="12" y1="17" x2="12" y2="21"></line>
-              </svg>
-            </div>
-            <div style="overflow: hidden; flex: 1; min-width: 0;">
-              <div class="kpi-title" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); line-height: 1.1; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Negocios Totales</div>
-              <div class="kpi-value" style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">{metricas.numNegocios} Negocios</div>
-              <div class="kpi-subtitle" style="font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{CLIENTES.length} clientes</div>
-            </div>
-          </div>
         </div>
 
         <!-- 2. KPIS TAB: CLIENTES -->
@@ -1202,6 +1196,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           CLIENTES={CLIENTES} 
           COMPRAS_USDT={COMPRAS_USDT} 
           VENTAS_USDT={VENTAS_USDT} 
+          ACTIVOS_DIGITALES={ACTIVOS_DIGITALES}
+          NEGOCIOS={NEGOCIOS}
           metricas={metricas} 
         />
         <ClientesView CLIENTES={CLIENTES} />
@@ -2328,8 +2324,21 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
   const modalNegocioDivisa = document.getElementById('modal-negocio-divisa') as HTMLSelectElement | null;
   const modalNegocioDivisaHint = document.getElementById('modal-negocio-divisa-hint');
   const modalNegocioMonto = document.getElementById('modal-negocio-monto') as HTMLInputElement | null;
+  const modalNegocioTasa = document.getElementById('modal-negocio-tasa') as HTMLInputElement | null;
+  const modalNegocioCalculoCop = document.getElementById('modal-negocio-calculo-cop');
   const modalNegocioStatus = document.getElementById('modal-negocio-status');
   const negociosTableTbody = document.getElementById('negocios-table-tbody');
+
+  function updateModalNegocioCalculo() {
+    if (!modalNegocioCalculoCop) return;
+    const m = parseFloat(modalNegocioMonto?.value || '0') || 0;
+    const t = parseFloat(modalNegocioTasa?.value || '0') || 0;
+    const total = m * t;
+    modalNegocioCalculoCop.textContent = total > 0 ? fmtCopClient(total) : '$0.00';
+  }
+
+  modalNegocioMonto?.addEventListener('input', updateModalNegocioCalculo);
+  modalNegocioTasa?.addEventListener('input', updateModalNegocioCalculo);
 
   // --- Elementos del Selector de Divisa con Foto de Bandera ---
   const divisaPickerTrigger = document.getElementById('divisa-picker-trigger') as HTMLButtonElement | null;
@@ -2884,11 +2893,12 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     const clienteNombre = clienteSelectedOption?.getAttribute('data-nombre') || (clienteSelectedOption ? clienteSelectedOption.text.split('(')[0].trim() : 'Cliente');
     const divisa = modalNegocioDivisa.value;
     const monto = parseFloat(modalNegocioMonto.value);
+    const tasa = modalNegocioTasa ? parseFloat(modalNegocioTasa.value) : 0;
 
-    if (!fecha || !clienteId || !divisa || isNaN(monto) || monto <= 0) {
+    if (!fecha || !clienteId || !divisa || isNaN(monto) || monto <= 0 || isNaN(tasa) || tasa <= 0) {
       if (modalNegocioStatus) {
         modalNegocioStatus.style.color = 'var(--danger)';
-        modalNegocioStatus.textContent = 'Por favor selecciona cliente, divisa y un monto válido.';
+        modalNegocioStatus.textContent = 'Por favor selecciona cliente, divisa, monto y una tasa COP válida (> 0).';
       }
       return;
     }
@@ -2918,6 +2928,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
           clienteId,
           divisaId: divisaRecId,
           monto,
+          tasa,
           operadorEmail: currentUserProfile?.email,
           operadorId: currentUserProfile?.airtableRecordId,
           pat: pat || undefined,
@@ -5376,7 +5387,39 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     const totalVolumenCop = negocios.reduce((acc: number, n: any) => acc + (Number(n.ingresoCop ?? n.montoCop) || 0), 0);
     const totalComisionesCop = negocios.reduce((acc: number, n: any) => acc + (Number(n.totalRevenue) || 0), 0);
 
-    // 4. Actualizar KPIs del Dashboard
+    // 4. Actualizar KPIs del Dashboard y Sección Liquidación
+    const totalActivosDigitalesUsdt = snapshot.resumenLiquidacion?.totalActivosDigitalesUsdt ?? activosDig.reduce((acc: number, d: any) => acc + (Number(d.saldoUsdt) || 0), 0);
+    const totalActivosLiquidosCop = snapshot.resumenLiquidacion?.totalActivosLiquidosCop ?? totalLiquidezCop;
+    const totalSaldoPendienteClientesCop = snapshot.resumenLiquidacion?.totalSaldoPendienteClientesCop ?? totalPasivoClientes;
+
+    const totalNegocioCop = snapshot.resumenLiquidacion?.totalNegocioCop ?? negocios.reduce((acc: number, n: any) => acc + (Number(n.ingresoCop ?? n.montoCop) || 0), 0);
+    const totalVentasUsdtCop = snapshot.resumenLiquidacion?.totalVentasUsdtCop ?? ventasUsdt.reduce((acc: number, v: any) => acc + (Number(v.totalCop) || 0), 0);
+    const totalLiquidezEsperadaCop = snapshot.resumenLiquidacion?.totalLiquidezEsperadaCop ?? activosDig.reduce((acc: number, a: any) => acc + (Number(a.liquidezEsperadaCop) || ((Number(a.rateFinal) || 3200) * (Number(a.saldoUsdt) || 0))), 0);
+    const gananciaEsperadaCop = snapshot.resumenLiquidacion?.gananciaEsperadaCop ?? ((totalVentasUsdtCop + totalLiquidezEsperadaCop) - totalNegocioCop);
+
+    // Actualizar las 3 tarjetas superiores del Dashboard
+    const elDashUsdt = document.getElementById('kpi-dash-activos-digitales-usdt');
+    if (elDashUsdt) elDashUsdt.innerHTML = `${fmtNumClient(totalActivosDigitalesUsdt, 0)} <span style="font-size: 12px; font-weight: 700; color: var(--brand-primary);">USDT</span>`;
+
+    const elDashLiqCop = document.getElementById('kpi-dash-activos-liquidos-cop');
+    if (elDashLiqCop) elDashLiqCop.textContent = fmtCopClient(totalActivosLiquidosCop);
+
+    const elDashPendiente = document.getElementById('kpi-dash-saldo-pendiente-cop');
+    if (elDashPendiente) elDashPendiente.textContent = fmtCopClient(totalSaldoPendienteClientesCop);
+
+    // Actualizar la Sección Liquidación
+    const elLiqNegocio = document.getElementById('dash-liq-total-negocio');
+    if (elLiqNegocio) elLiqNegocio.textContent = fmtCopClient(totalNegocioCop);
+
+    const elLiqVentas = document.getElementById('dash-liq-total-ventas');
+    if (elLiqVentas) elLiqVentas.textContent = fmtCopClient(totalVentasUsdtCop);
+
+    const elLiqEsperada = document.getElementById('dash-liq-total-liquidez-esp');
+    if (elLiqEsperada) elLiqEsperada.textContent = fmtCopClient(totalLiquidezEsperadaCop);
+
+    const elLiqGanancia = document.getElementById('dash-liq-ganancia-esperada');
+    if (elLiqGanancia) elLiqGanancia.textContent = fmtCopClient(gananciaEsperadaCop);
+
     const kpiLiquidez = document.getElementById('kpi-liquidez');
     if (kpiLiquidez && activosLiq.length) kpiLiquidez.textContent = fmtCopClient(totalLiquidezCop);
 

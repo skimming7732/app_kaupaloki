@@ -297,20 +297,49 @@ const { CLIENTES = [], DIVISAS = [] } = Astro.props;
               </div>
             </div>
 
-            <!-- Campo 4: Monto -->
-            <div>
-              <label for="modal-negocio-monto" style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.06em;">
-                4. Monto en Divisa *
-              </label>
-              <input 
-                type="number" 
-                step="any" 
-                min="0.01" 
-                id="modal-negocio-monto" 
-                placeholder="0.00" 
-                required 
-                style="width: 100%; box-sizing: border-box; padding: 12px 15px; font-size: 16px; font-weight: 800; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: ui-monospace, monospace; outline: none; transition: all 0.2s;"
-              />
+            <!-- Fila de Monto y Tasa en 2 columnas -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <!-- Campo 4: Monto -->
+              <div>
+                <label for="modal-negocio-monto" style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.06em;">
+                  4. Monto Divisa *
+                </label>
+                <input 
+                  type="number" 
+                  step="any" 
+                  min="0.01" 
+                  id="modal-negocio-monto" 
+                  placeholder="0.00" 
+                  required 
+                  style="width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 15px; font-weight: 800; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: ui-monospace, monospace; outline: none; transition: all 0.2s;"
+                />
+              </div>
+
+              <!-- Campo 5: Tasa de Cambio (COP) -->
+              <div>
+                <label for="modal-negocio-tasa" style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.06em;">
+                  5. Tasa (COP) *
+                </label>
+                <input 
+                  type="number" 
+                  step="any" 
+                  min="0.0001" 
+                  id="modal-negocio-tasa" 
+                  placeholder="Ej: 3110" 
+                  required 
+                  style="width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 15px; font-weight: 800; border-radius: 14px; border: 1.5px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); font-family: ui-monospace, monospace; outline: none; transition: all 0.2s;"
+                />
+              </div>
+            </div>
+
+            <!-- Previsualización en Vivo de Ingreso COP -->
+            <div id="modal-negocio-calculo-box" style="padding: 10px 14px; border-radius: 12px; background: rgba(5, 205, 153, 0.08); border: 1px solid rgba(5, 205, 153, 0.25); display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">
+                Ingreso Estimado (COP):
+              </span>
+              <span id="modal-negocio-calculo-cop" style="font-size: 15px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace;">
+                $0.00
+              </span>
             </div>
 
             <!-- Mensaje de estado -->

@@ -142,6 +142,36 @@ Deno.serve(async (req: Request) => {
       pat = body.pat;
     }
 
+    // 0. ACTION: create_negocio
+    if (body.action === "create_negocio") {
+      const { clienteId, divisaId, monto, tasa, fecha } = body;
+      const fields: any = {
+        "MONTO": Number(monto) || 0,
+        "TASA": Number(tasa) || 0,
+      };
+      if (fecha) fields["FECHA REGISTRO"] = fecha;
+      if (clienteId) fields["CLIENTE"] = [clienteId];
+      if (divisaId) fields["DIVISA"] = [divisaId];
+
+      const airtableRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLES.NEGOCIOS}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${pat}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fields }),
+      });
+
+      if (!airtableRes.ok) {
+        const errTxt = await airtableRes.text();
+        return new Response(
+          JSON.stringify({ ok: false, error: `Error creando negocio en Airtable: ${errTxt}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Continues to full sync below to return updated snapshot
+    }
+
     // 0A. ACTION: prepare_invited_user
     if (body.action === "prepare_invited_user" && body.email) {
       const cleanEmail = String(body.email).trim().toLowerCase();
@@ -863,6 +893,9 @@ Deno.serve(async (req: Request) => {
         return { ...m, balance: running };
       }).reverse();
 
+      const rateFinal = Number(f["RATE FINAL"] ?? 3200);
+      const liquidezEsperadaCop = Number(f["LIQUIDEZ ESP. (COP)"] ?? (rateFinal * saldoUsdt));
+
       return {
         id: r.id,
         idWallet,
@@ -875,6 +908,8 @@ Deno.serve(async (req: Request) => {
         egresosUsdt,
         saldoUsdt,
         saldoReal,
+        rateFinal,
+        liquidezEsperadaCop,
         comprasIds: Array.isArray(f["COMPRA-USDT"]) ? f["COMPRA-USDT"] : [],
         ventasIds: Array.isArray(f["VENTA USDT"]) ? f["VENTA USDT"] : (Array.isArray(f["VENTAS-USDT"]) ? f["VENTAS-USDT"] : []),
         movimientos,
@@ -929,6 +964,24 @@ Deno.serve(async (req: Request) => {
       };
     });
 
+    const totalNegocioCop = negocios.reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0);
+    const totalVentasUsdtCop = ventasUsdt.reduce((acc: number, v: any) => acc + (v.totalCop || 0), 0);
+    const totalLiquidezEsperadaCop = activosDigitales.reduce((acc: number, a: any) => acc + (a.liquidezEsperadaCop || 0), 0);
+    const gananciaEsperadaCop = (totalVentasUsdtCop + totalLiquidezEsperadaCop) - totalNegocioCop;
+    const totalActivosDigitalesUsdt = activosDigitales.reduce((acc: number, a: any) => acc + (a.saldoUsdt || 0), 0);
+    const totalActivosLiquidosCop = activosLiquidos.reduce((acc: number, a: any) => acc + (a.saldoCop || 0), 0);
+    const totalSaldoPendienteClientesCop = clientes.reduce((acc: number, c: any) => acc + (c.pendienteCop || 0), 0);
+
+    const resumenLiquidacion = {
+      totalNegocioCop,
+      totalVentasUsdtCop,
+      totalLiquidezEsperadaCop,
+      gananciaEsperadaCop,
+      totalActivosDigitalesUsdt,
+      totalActivosLiquidosCop,
+      totalSaldoPendienteClientesCop,
+    };
+
     const snapshot = {
       syncedAt: new Date().toISOString(),
       clientes,
@@ -941,6 +994,7 @@ Deno.serve(async (req: Request) => {
       activosLiquidos,
       activosDigitales,
       usuarios,
+      resumenLiquidacion,
     };
 
     await supabase.from("airtable_sync_state").upsert({

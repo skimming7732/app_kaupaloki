@@ -160,6 +160,8 @@ export interface ActivoDigital {
   egresosUsdt: number;
   saldoUsdt: number;
   saldoReal?: number;
+  rateFinal?: number;
+  liquidezEsperadaCop?: number;
   movimientos?: MovimientoActivo[];
 }
 
@@ -184,10 +186,10 @@ export const CLIENTES: Cliente[] = [
     idCliente: "C0017-DR-N",
     nombre: "DR N",
     ingresosCop: 841980951.5,
-    pagadoCop: 400000000,
-    pendienteCop: 441980951.5,
-    pendientePorPagarCop: 441980951.5,
-    saldoCop: 441980951.5,
+    pagadoCop: 584086677,
+    pendienteCop: 257894274.5,
+    pendientePorPagarCop: 257894274.5,
+    saldoCop: 257894274.5,
     fechaCreacion: "2026-11-04",
     numero: 17
   },
@@ -815,6 +817,23 @@ export const VENTAS_USDT: VentaUsdt[] = [
     cuentaDestinoNombre: "Coinsenda-Kaupaloki",
     totalCop: 96000000,
     montoNetoRecibidoCop: 96000000
+  },
+  {
+    id: "recohjfAcs5mzpldm",
+    nombre: "COP-05-11-26-0008",
+    idTransaccion: "COP-05-11-26-0008",
+    fecha: "2026-11-05",
+    concepto: "FRANZ",
+    walletOrigen: "CUY WALLET",
+    usdtVendido: 32107,
+    cantidadUsdt: 32107,
+    tasa: 3190,
+    tasaVentaCop: 3190,
+    impuestos: 0,
+    destinoFondosNombre: "Efectivo-Dosquebradas",
+    cuentaDestinoNombre: "Efectivo-Dosquebradas",
+    totalCop: 102421330,
+    montoNetoRecibidoCop: 102421330
   }
 ];
 
@@ -827,13 +846,13 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     titular: "Coinsenda-Jero All Solutions",
     cuenta: "COINSENDA-JERO",
     tarifas: "% FEE $1,000.00 COP",
-    saldoDisponible: 174000000,
-    saldoTotal: 174000000,
+    saldoDisponible: 151000000,
+    saldoTotal: 151000000,
     ingresosCop: 224000000,
-    egresosCop: 50000000,
-    saldoCop: 174000000,
+    egresosCop: 73000000,
+    saldoCop: 151000000,
     movimientos: [
-      { fecha: "2026-11-04", origen: "D0012", concepto: "EGRESO / DISPERSIÓN D0012 — DR N", monto: -50000000, balance: 174000000 },
+      { fecha: "2026-11-04", origen: "D0012", concepto: "EGRESO / DISPERSIÓN D0012 — DR N", monto: -73000000, balance: 151000000 },
       { fecha: "2026-11-04", origen: "COP-04-11-26-0005", concepto: "ABONO MONETIZACIÓN USDT (70,000.00 USDT @ $3,200.00)", monto: 224000000, balance: 224000000 }
     ]
   },
@@ -845,13 +864,13 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     titular: "Coinsenda-Kaupaloki",
     cuenta: "COINSENDA-KAUPALOKI",
     tarifas: "% FEE $1,000.00 COP",
-    saldoDisponible: 46000000,
-    saldoTotal: 46000000,
+    saldoDisponible: 21742323,
+    saldoTotal: 21742323,
     ingresosCop: 96000000,
-    egresosCop: 50000000,
-    saldoCop: 46000000,
+    egresosCop: 74257677,
+    saldoCop: 21742323,
     movimientos: [
-      { fecha: "2026-11-04", origen: "D0011", concepto: "EGRESO / DISPERSIÓN D0011 — DR N", monto: -50000000, balance: 46000000 },
+      { fecha: "2026-11-04", origen: "D0011", concepto: "EGRESO / DISPERSIÓN D0011 — DR N", monto: -74257677, balance: 21742323 },
       { fecha: "2026-11-04", origen: "COP-04-11-26-0007", concepto: "ABONO MONETIZACIÓN USDT (30,000.00 USDT @ $3,200.00)", monto: 96000000, balance: 96000000 }
     ]
   },
@@ -863,13 +882,13 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
     titular: "Efectivo-Dosquebradas",
     cuenta: "CAJA-DOSQUEBRADAS",
     tarifas: "EXENTO DE FEE",
-    saldoDisponible: 9430000,
-    saldoTotal: 9430000,
-    ingresosCop: 309430000,
-    egresosCop: 300000000,
-    saldoCop: 9430000,
+    saldoDisponible: 22330,
+    saldoTotal: 22330,
+    ingresosCop: 411851330,
+    egresosCop: 411829000,
+    saldoCop: 22330,
     movimientos: [
-      { fecha: "2026-11-04", origen: "D0013", concepto: "EGRESO / DISPERSIÓN D0013 — DR N", monto: -300000000, balance: 9430000 },
+      { fecha: "2026-11-04", origen: "D0013", concepto: "EGRESO / DISPERSIÓN D0013 — DR N", monto: -411829000, balance: 22330 },
       { fecha: "2026-11-04", origen: "COP-04-11-26-0006", concepto: "ABONO MONETIZACIÓN USDT (97,000.00 USDT @ $3,190.00)", monto: 309430000, balance: 309430000 }
     ]
   }
@@ -886,10 +905,13 @@ export const ACTIVOS_DIGITALES: ActivoDigital[] = [
     tarifas: "RED TRON (TRC20) • 1 USDT",
     ingresoUsdt: 132107,
     ingresosUsdt: 132107,
-    egresosUsdt: 100000,
-    saldoUsdt: 32107,
-    saldoReal: 32107,
+    egresosUsdt: 132107,
+    saldoUsdt: 0,
+    saldoReal: 0,
+    rateFinal: 3200,
+    liquidezEsperadaCop: 0,
     movimientos: [
+      { fecha: "2026-11-05", origen: "COP-05-11-26-0008", concepto: "VENTA USDT → Efectivo-Dosquebradas", monto: -32107, balance: 0 },
       { fecha: "2026-11-04", origen: "COP-04-11-26-0007", concepto: "VENTA USDT → Coinsenda-Kaupaloki", monto: -30000, balance: 32107 },
       { fecha: "2026-11-04", origen: "COP-04-11-26-0005", concepto: "VENTA USDT → Coinsenda-Jero All Solutions", monto: -70000, balance: 62107 },
       { fecha: "2026-11-04", origen: "BRL-04-11-26-0011", concepto: "COMPRA USDT (BRL) — N0018-BRL", monto: 107107, balance: 132107 },
@@ -904,13 +926,15 @@ export const ACTIVOS_DIGITALES: ActivoDigital[] = [
     red: "TRON (TRC20)",
     titular: "BETO WALLET",
     tarifas: "RED TRON (TRC20) • 1 USDT",
-    ingresoUsdt: 22867,
-    ingresosUsdt: 22867,
+    ingresoUsdt: 29743,
+    ingresosUsdt: 29743,
     egresosUsdt: 0,
-    saldoUsdt: 22867,
-    saldoReal: 22867,
+    saldoUsdt: 29743,
+    saldoReal: 29743,
+    rateFinal: 3200,
+    liquidezEsperadaCop: 95177600,
     movimientos: [
-      { fecha: "2026-11-04", origen: "N0023-USDT", concepto: "RECEPCIÓN DIRECTA USDT — N0023-USDT (DR N)", monto: 22867, balance: 22867 }
+      { fecha: "2026-11-04", origen: "N0023-USDT", concepto: "RECEPCIÓN DIRECTA USDT — N0023-USDT (DR N)", monto: 29743, balance: 29743 }
     ]
   },
   {
@@ -921,16 +945,15 @@ export const ACTIVOS_DIGITALES: ActivoDigital[] = [
     red: "TRON (TRC20)",
     titular: "FRANZ WALLET",
     tarifas: "RED TRON (TRC20) • 1 USDT",
-    ingresoUsdt: 97000,
-    ingresosUsdt: 97000,
+    ingresoUsdt: 108304,
+    ingresosUsdt: 108304,
     egresosUsdt: 97000,
-    saldoUsdt: 0,
-    saldoReal: 0,
+    saldoUsdt: 11304,
+    saldoReal: 11304,
+    rateFinal: 3200,
+    liquidezEsperadaCop: 36172800,
     movimientos: [
-      { fecha: "2026-11-04", origen: "COP-04-11-26-0006", concepto: "VENTA USDT → Efectivo-Dosquebradas", monto: -97000, balance: 0 },
-      { fecha: "2026-11-04", origen: "MXN-04-11-26-0014", concepto: "COMPRA USDT (MXN) — N0022-MXN", monto: 15000, balance: 97000 },
-      { fecha: "2026-11-04", origen: "CLP-04-11-26-0013", concepto: "COMPRA USDT (CLP) — N0020-CLP", monto: 50000, balance: 82000 },
-      { fecha: "2026-11-04", origen: "PEN-04-11-26-0012", concepto: "COMPRA USDT (PEN) — N0019-PEN", monto: 32000, balance: 32000 }
+      { fecha: "2026-11-04", origen: "COP-04-11-26-0006", concepto: "VENTA USDT → Efectivo-Dosquebradas", monto: -97000, balance: 11304 }
     ]
   }
 ];
@@ -1013,15 +1036,25 @@ export function formatCurrencyWithFlag(code: string): string {
 }
 
 export function getMetricasContables() {
-  const totalIngresosCop = NEGOCIOS.reduce((acc, n) => acc + n.ingresoCop, 0);
-  const totalPagadoCop = PAGOS.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + p.montoCop, 0);
+  const totalIngresosCop = NEGOCIOS.reduce((acc, n) => acc + (n.ingresoCop || 0), 0);
+  const totalPagadoCop = PAGOS.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + (p.montoCop || 0), 0);
   const saldoPendienteNeto = totalIngresosCop - totalPagadoCop;
-  const totalUsdtComprado = COMPRAS_USDT.reduce((acc, c) => acc + c.usdtComprado, 0);
-  const totalUsdtVendido = VENTAS_USDT.reduce((acc, v) => acc + v.usdtVendido, 0);
-  const totalUsdtEnCustodia = ACTIVOS_DIGITALES.reduce((acc, d) => acc + (d.saldoUsdt || 0), 0);
-  const totalActivosLiquidosCop = ACTIVOS_LIQUIDOS.reduce((acc, a) => acc + a.saldoCop, 0);
-  const totalFaltaLiquidarClientes = CLIENTES.reduce((acc, c) => acc + (c.pendienteCop > 0 ? c.pendienteCop : 0), 0);
-  const gananciaEstimadaCop = NEGOCIOS.reduce((acc, n) => acc + (n.totalRevenue || 0), 0);
+  const totalUsdtComprado = COMPRAS_USDT.reduce((acc, c) => acc + (c.usdtComprado || 0), 0);
+  const totalUsdtVendido = VENTAS_USDT.reduce((acc, v) => acc + (v.usdtVendido || 0), 0);
+  
+  // Dashboard Simplified Metrics
+  const totalActivosDigitalesUsdt = ACTIVOS_DIGITALES.reduce((acc, d) => acc + (d.saldoUsdt || 0), 0);
+  const totalUsdtEnCustodia = totalActivosDigitalesUsdt;
+  const totalActivosLiquidosCop = ACTIVOS_LIQUIDOS.reduce((acc, a) => acc + (a.saldoCop || 0), 0);
+  const totalSaldoPendienteClientesCop = CLIENTES.reduce((acc, c) => acc + (c.pendienteCop > 0 ? c.pendienteCop : 0), 0);
+  const totalFaltaLiquidarClientes = totalSaldoPendienteClientesCop;
+  
+  // Liquidación Section Exact Formula
+  const totalNegocioCop = totalIngresosCop;
+  const totalVentasUsdtCop = VENTAS_USDT.reduce((acc, v) => acc + (v.totalCop || 0), 0);
+  const totalLiquidezEsperadaCop = ACTIVOS_DIGITALES.reduce((acc, a) => acc + (a.liquidezEsperadaCop ?? ((a.rateFinal ?? 3200) * (a.saldoUsdt || 0))), 0);
+  const gananciaEsperadaCop = (totalVentasUsdtCop + totalLiquidezEsperadaCop) - totalNegocioCop;
+  const gananciaEstimadaCop = gananciaEsperadaCop;
 
   return {
     totalIngresosCop,
@@ -1030,8 +1063,14 @@ export function getMetricasContables() {
     totalUsdtComprado,
     totalUsdtVendido,
     totalUsdtEnCustodia,
+    totalActivosDigitalesUsdt,
     totalActivosLiquidosCop,
+    totalSaldoPendienteClientesCop,
     totalFaltaLiquidarClientes,
+    totalNegocioCop,
+    totalVentasUsdtCop,
+    totalLiquidezEsperadaCop,
+    gananciaEsperadaCop,
     gananciaEstimadaCop,
     numClientes: CLIENTES.length,
     numNegocios: NEGOCIOS.length,

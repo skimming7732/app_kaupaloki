@@ -317,7 +317,6 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
               <thead>
                 <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
-                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Negocio</th>
                   <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Fecha de Registro</th>
                   <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Divisa</th>
                   <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: right;">Monto</th>
@@ -339,7 +338,6 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
               <thead>
                 <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
-                  <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Código (Dispersión)</th>
                   <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Fecha Creación</th>
                   <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">Referencia</th>
                   <th style="padding: 14px 20px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; text-align: right;">Monto</th>
@@ -713,7 +711,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
         if (filtered.length === 0) {
           operationsTableBody.innerHTML = `
             <tr>
-              <td colspan="6" style="padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px;">
+              <td colspan="5" style="padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px;">
                 No se encontraron operaciones para los filtros seleccionados.
               </td>
             </tr>
@@ -724,9 +722,6 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
 
         operationsTableBody.innerHTML = filtered.map(item => `
           <tr style="border-bottom: 1px solid var(--border-main); transition: background-color 0.15s ease;">
-            <td style="padding: 14px 20px; font-weight: 700; color: var(--text-primary);" class="font-mono">
-              ${item.codigo || '-'}
-            </td>
             <td style="padding: 14px 20px; color: var(--text-secondary);">
               ${item.fechaRegistro || '-'}
             </td>
@@ -754,7 +749,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
           
           operationsTableFoot.innerHTML = `
             <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); border-top: 2px solid var(--border-main);">
-              <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
+              <td colspan="2" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
                 TOTALES CONSOLIDADOS (${numNegocios} OPS):
               </td>
               <td style="padding: 18px 20px; text-align: right; font-size: 14px; color: var(--text-primary);">
@@ -772,13 +767,13 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
       }
     }
 
-    // Render Dispersiones Table (Sin comprobantes en portal público)
+    // Render Dispersiones Table (Sin comprobantes ni códigos internos en portal público)
     function renderDispersiones() {
       if (!dispersionesTableBody) return;
       if (clientDispersiones.length === 0) {
         dispersionesTableBody.innerHTML = `
           <tr>
-            <td colspan="5" style="padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px;">
+            <td colspan="4" style="padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px;">
               No hay dispersiones registradas para este cliente.
             </td>
           </tr>
@@ -793,9 +788,6 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
         const referenciaDisplay = p.referencia || '—';
         return `
           <tr style="border-bottom: 1px solid var(--border-main); transition: background-color 0.15s ease;">
-            <td style="padding: 14px 20px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; vertical-align: middle;">
-              ${p.codigo || '-'}
-            </td>
             <td style="padding: 14px 20px; color: var(--text-secondary); vertical-align: middle;">
               ${fechaDisplay}
             </td>
@@ -818,7 +810,7 @@ import { CLIENTES, NEGOCIOS, PAGOS } from '../../data/airtableData';
         const totalDispersado = clientDispersiones.filter(p => p.estado === 'COMPLETADO').reduce((acc, p) => acc + (Number(p.montoCop) || 0), 0);
         dispersionesTableFoot.innerHTML = `
           <tr style="background: var(--bg-card-secondary); font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); border-top: 2px solid var(--border-main);">
-            <td colspan="3" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
+            <td colspan="2" style="padding: 18px 20px; text-transform: uppercase; font-size: 12px; color: var(--text-secondary);">
               TOTAL DISPERSADO (${clientDispersiones.length} DISPERSIONES):
             </td>
             <td style="padding: 18px 20px; text-align: right; color: var(--success); font-size: 15px;">
