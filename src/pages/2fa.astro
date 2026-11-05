@@ -73,92 +73,144 @@ import Layout from '../layouts/Layout.astro';
         </div>
       </div>
 
-      <!-- MODE 2: SETUP (Configuración Inicial Obligatoria) -->
-      <div id="container-setup" style="display: none; flex-direction: column; gap: 22px;">
-        <div style="text-align: center;">
-          <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(5, 205, 153, 0.15); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            </svg>
-          </div>
-          <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
-            Configurar 2FA Obligatorio
-          </h2>
-          <p style="margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
-            Por seguridad de Kaupaloki, todas las cuentas deben activar la autenticación de dos factores antes de continuar.
-          </p>
-        </div>
-
-        <!-- Step 1: Scan QR Code -->
-        <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 20px; border: 1px solid var(--border-main); text-align: center;">
-          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--brand-primary); margin-bottom: 12px;">
-            Paso 1: Escanea con tu App Authenticator
-          </div>
-          
-          <div style="display: flex; justify-content: center; margin-bottom: 14px;">
-            <div style="padding: 10px; background: #fff; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: inline-block;">
-              <img id="setup-qr-img" src="" alt="Código QR 2FA" style="width: 160px; height: 160px; display: block;" />
+      <!-- MODE 2: SETUP (Configuración en 2 Pantallas / Pasos) -->
+      <div id="container-setup" style="display: none; flex-direction: column; gap: 20px;">
+        
+        <!-- PANTALLA 1: Escanear QR y Verificar Código -->
+        <div id="setup-step-1" style="display: flex; flex-direction: column; gap: 20px;">
+          <div style="text-align: center;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; background: rgba(67, 24, 255, 0.1); color: var(--brand-primary); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+              <span>Paso 1 de 2: Vincular App</span>
             </div>
+            <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+              Configurar Autenticador
+            </h2>
+            <p style="margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+              Escanea el código QR con Google Authenticator, Authy o 1Password e ingresa el código generado.
+            </p>
           </div>
 
-          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-            ¿No puedes escanear? Copia esta clave secreta en tu aplicación:
-          </div>
-          <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--bg-card); padding: 6px 12px; border-radius: 10px; border: 1px solid var(--border-main);">
-            <code id="setup-secret-text" style="font-size: 13px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); letter-spacing: 0.08em;">
-              Cargando...
-            </code>
-            <button type="button" id="btn-copy-secret" title="Copiar clave secreta" style="background: none; border: none; cursor: pointer; color: var(--brand-primary); display: flex; align-items: center; padding: 2px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 2: Verification Input -->
-        <form id="form-setup-verify" style="display: flex; flex-direction: column; gap: 16px;">
-          <div>
-            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px; text-align: center;">
-              Paso 2: Ingresa el código de 6 dígitos de la app
-            </div>
-            <input 
-              type="text" 
-              id="input-setup-code" 
-              inputmode="numeric" 
-              maxlength="6" 
-              placeholder="000000" 
-              required 
-              style="width: 100%; box-sizing: border-box; height: 52px; text-align: center; font-size: 22px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: 0.25em; border-radius: 14px; border: 2px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); outline: none;"
-            />
-          </div>
-
-          <div id="setup-error-msg" style="display: none; padding: 10px 14px; border-radius: 10px; background: var(--danger-light); color: var(--danger); font-size: 12px; font-weight: 700; text-align: center;"></div>
-
-          <!-- Step 3: Backup Codes Card -->
-          <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 18px; border: 1px solid var(--border-main);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">
-                Paso 3: Códigos de Respaldo de Emergencia
+          <!-- QR Code Box -->
+          <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 20px; border: 1px solid var(--border-main); text-align: center;">
+            <div style="display: flex; justify-content: center; margin-bottom: 14px;">
+              <div style="padding: 10px; background: #fff; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); display: inline-block;">
+                <img id="setup-qr-img" src="" alt="Código QR 2FA" style="width: 170px; height: 170px; display: block;" />
               </div>
-              <button type="button" id="btn-copy-backup-codes" style="background: none; border: none; color: var(--brand-primary); font-size: 11px; font-weight: 700; cursor: pointer;">
-                Copiar Todos
+            </div>
+
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+              ¿No puedes escanear? Copia esta clave secreta:
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--bg-card); padding: 7px 14px; border-radius: 10px; border: 1px solid var(--border-main);">
+              <code id="setup-secret-text" style="font-size: 13px; font-weight: 800; font-family: ui-monospace, monospace; color: var(--text-primary); letter-spacing: 0.08em;">
+                Cargando...
+              </code>
+              <button type="button" id="btn-copy-secret" title="Copiar clave secreta" style="background: none; border: none; cursor: pointer; color: var(--brand-primary); display: flex; align-items: center; padding: 2px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               </button>
             </div>
-            <p style="margin: 0 0 10px 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-              Guarda estos 8 códigos en un lugar seguro. Si pierdes tu celular, podrás utilizarlos para acceder a tu cuenta.
+          </div>
+
+          <!-- Verification Input Form -->
+          <form id="form-setup-step-1" style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label for="input-setup-code" style="display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px; text-align: center;">
+                Ingresa el código de 6 dígitos que muestra tu app
+              </label>
+              <input 
+                type="text" 
+                id="input-setup-code" 
+                inputmode="numeric" 
+                maxlength="6" 
+                placeholder="000000" 
+                required 
+                autofocus
+                style="width: 100%; box-sizing: border-box; height: 54px; text-align: center; font-size: 24px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: 0.25em; border-radius: 14px; border: 2px solid var(--border-main); background: var(--bg-card-secondary); color: var(--text-primary); outline: none; transition: border-color 0.2s;"
+              />
+            </div>
+
+            <div id="setup-error-msg-1" style="display: none; padding: 10px 14px; border-radius: 10px; background: var(--danger-light); color: var(--danger); font-size: 12px; font-weight: 700; text-align: center;"></div>
+
+            <button 
+              type="submit" 
+              id="btn-submit-step-1" 
+              style="width: 100%; padding: 14px; border-radius: 14px; border: none; background: var(--brand-primary); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.3); transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;"
+            >
+              <span>Verificar y Continuar</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- PANTALLA 2: Códigos de Respaldo y Descargar TXT -->
+        <div id="setup-step-2" style="display: none; flex-direction: column; gap: 20px;">
+          <div style="text-align: center;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; background: rgba(5, 205, 153, 0.15); color: var(--success); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+              <span>Paso 2 de 2: Códigos de Emergencia</span>
+            </div>
+            <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.01em;">
+              Guarda tus Códigos de Respaldo
+            </h2>
+            <p style="margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+              ¡Tu aplicación autenticadora ha sido verificada! Si alguna vez pierdes acceso a tu teléfono, necesitarás estos códigos para ingresar.
             </p>
-            <div id="setup-backup-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; color: var(--text-primary);">
+          </div>
+
+          <!-- Backup Codes Container -->
+          <div style="background: var(--bg-card-secondary); border-radius: 16px; padding: 20px; border: 1.5px solid var(--border-main);">
+            <div id="setup-backup-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 800; color: var(--text-primary); margin-bottom: 16px;">
               <!-- Generated backup codes -->
+            </div>
+
+            <!-- Action Buttons for Backup Codes -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <button 
+                type="button" 
+                id="btn-download-backup-txt" 
+                style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Descargar (.txt)</span>
+              </button>
+
+              <button 
+                type="button" 
+                id="btn-copy-backup-codes" 
+                style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-main); background: var(--bg-card); color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="btn-copy-backup-text">Copiar Todos</span>
+              </button>
             </div>
           </div>
 
+          <div style="background: rgba(255, 181, 71, 0.1); border-left: 3px solid #FFB547; border-radius: 8px; padding: 10px 14px;">
+            <p style="margin: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+              ⚠️ Cada código es de un solo uso. Guárdalos en tu administrador de contraseñas o en un archivo seguro.
+            </p>
+          </div>
+
+          <div id="setup-error-msg-2" style="display: none; padding: 10px 14px; border-radius: 10px; background: var(--danger-light); color: var(--danger); font-size: 12px; font-weight: 700; text-align: center;"></div>
+
+          <!-- Final Submit Button -->
           <button 
-            type="submit" 
-            id="btn-submit-setup" 
-            style="width: 100%; padding: 14px; border-radius: 14px; border: none; background: var(--brand-primary); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.3); transition: all 0.2s;"
+            type="button" 
+            id="btn-finalize-setup" 
+            style="width: 100%; padding: 14px; border-radius: 14px; border: none; background: #05CD99; color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(5, 205, 153, 0.35); transition: all 0.2s;"
           >
-            Activar 2FA y Entrar
+            He Guardado mis Códigos · Entrar al Dashboard
           </button>
-        </form>
+        </div>
 
       </div>
 
@@ -209,17 +261,24 @@ import Layout from '../layouts/Layout.astro';
     const btnToggleBackupMode = document.getElementById('btn-toggle-backup-mode');
 
     // Setup elements
-    const formSetup = document.getElementById('form-setup-verify');
+    const setupStep1 = document.getElementById('setup-step-1');
+    const setupStep2 = document.getElementById('setup-step-2');
+    const formSetupStep1 = document.getElementById('form-setup-step-1');
     const setupQrImg = document.getElementById('setup-qr-img') as HTMLImageElement | null;
     const setupSecretText = document.getElementById('setup-secret-text');
     const btnCopySecret = document.getElementById('btn-copy-secret');
     const inputSetupCode = document.getElementById('input-setup-code') as HTMLInputElement | null;
-    const setupErrorMsg = document.getElementById('setup-error-msg');
-    const btnSubmitSetup = document.getElementById('btn-submit-setup') as HTMLButtonElement | null;
+    const setupErrorMsg1 = document.getElementById('setup-error-msg-1');
+    const setupErrorMsg2 = document.getElementById('setup-error-msg-2');
+    const btnSubmitStep1 = document.getElementById('btn-submit-step-1') as HTMLButtonElement | null;
     const setupBackupGrid = document.getElementById('setup-backup-grid');
     const btnCopyBackupCodes = document.getElementById('btn-copy-backup-codes');
+    const btnCopyBackupText = document.getElementById('btn-copy-backup-text');
+    const btnDownloadBackupTxt = document.getElementById('btn-download-backup-txt');
+    const btnFinalizeSetup = document.getElementById('btn-finalize-setup') as HTMLButtonElement | null;
 
     let currentUserProfile: any = null;
+    let currentUserEmail = '';
     let generatedSecret = '';
     let generatedBackupCodes: string[] = [];
 
@@ -230,17 +289,16 @@ import Layout from '../layouts/Layout.astro';
         return;
       }
 
-      const email = session.user.email?.toLowerCase().trim();
+      currentUserEmail = session.user.email?.toLowerCase().trim() || 'usuario@kaupaloki.co';
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .ilike('email', email || '')
+        .ilike('email', currentUserEmail)
         .maybeSingle();
 
       currentUserProfile = profile;
 
       // Determine mode:
-      // If profile already has 2FA enabled AND modeParam !== 'setup', show verify mode
       const has2FA = profile?.two_factor_enabled && profile?.two_factor_secret;
 
       if (has2FA && modeParam !== 'setup') {
@@ -248,10 +306,10 @@ import Layout from '../layouts/Layout.astro';
         if (containerVerify) containerVerify.style.display = 'flex';
         if (containerSetup) containerSetup.style.display = 'none';
       } else {
-        // Mode Setup (Mandatory enrollment)
+        // Mode Setup (Mandatory 2-step enrollment)
         if (containerSetup) containerSetup.style.display = 'flex';
         if (containerVerify) containerVerify.style.display = 'none';
-        initSetupMode(email || 'usuario@kaupaloki.co');
+        initSetupMode(currentUserEmail);
       }
     }
 
@@ -267,9 +325,15 @@ import Layout from '../layouts/Layout.astro';
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpUri)}`;
       if (setupQrImg) setupQrImg.src = qrUrl;
 
+      // Always show Step 1 initially
+      if (setupStep1) setupStep1.style.display = 'flex';
+      if (setupStep2) setupStep2.style.display = 'none';
+    }
+
+    function populateBackupCodesGrid() {
       if (setupBackupGrid) {
         setupBackupGrid.innerHTML = generatedBackupCodes.map(code => `
-          <div style="background: var(--bg-card); padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-main); text-align: center;">
+          <div style="background: var(--bg-card); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-main); text-align: center; letter-spacing: 0.05em; font-weight: 800;">
             ${code}
           </div>
         `).join('');
@@ -282,31 +346,85 @@ import Layout from '../layouts/Layout.astro';
       alert('Clave secreta copiada al portapapeles');
     });
 
-    // Copy backup codes
-    btnCopyBackupCodes?.addEventListener('click', () => {
-      navigator.clipboard.writeText(generatedBackupCodes.join('\n'));
-      alert('8 Códigos de respaldo copiados al portapapeles');
-    });
-
-    // Handle Setup Submission
-    formSetup?.addEventListener('submit', async (e) => {
+    // Step 1 Submission: Validate code & proceed to Step 2
+    formSetupStep1?.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!inputSetupCode) return;
       const code = inputSetupCode.value.trim();
 
+      if (setupErrorMsg1) setupErrorMsg1.style.display = 'none';
+
       const isValid = await verifyTotpCode(generatedSecret, code);
       if (!isValid) {
-        if (setupErrorMsg) {
-          setupErrorMsg.textContent = 'Código incorrecto. Revisa la hora de tu celular e ingresa los 6 dígitos actuales.';
-          setupErrorMsg.style.display = 'block';
+        if (setupErrorMsg1) {
+          setupErrorMsg1.textContent = 'Código incorrecto. Revisa la hora de tu dispositivo e ingresa el código actual de 6 dígitos.';
+          setupErrorMsg1.style.display = 'block';
         }
         return;
       }
 
-      if (btnSubmitSetup) {
-        btnSubmitSetup.disabled = true;
-        btnSubmitSetup.textContent = 'Guardando configuración 2FA...';
+      // Validated! Move to Step 2
+      if (setupStep1) setupStep1.style.display = 'none';
+      if (setupStep2) setupStep2.style.display = 'flex';
+      populateBackupCodesGrid();
+    });
+
+    // Download TXT file with backup codes
+    btnDownloadBackupTxt?.addEventListener('click', () => {
+      const now = new Date();
+      const txtContent = `=====================================================
+KAUPALOKI - CÓDIGOS DE RECUPERACIÓN DE EMERGENCIA (2FA)
+=====================================================
+Usuario: ${currentUserEmail}
+Fecha de emisión: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}
+
+IMPORTANTE:
+- Cada uno de estos 8 códigos puede utilizarse UNA SOLA VEZ.
+- Si pierdes acceso a tu teléfono o a tu aplicación de autenticación,
+  estos códigos son tu único método para recuperar el acceso.
+- Guárdalos en tu gestor de contraseñas o en una ubicación segura y confidencial.
+
+TUS CÓDIGOS DE RESPALDO:
+-----------------------------------------------------
+${generatedBackupCodes.map((c, i) => `  [${i + 1}]  ${c}`).join('\n')}
+-----------------------------------------------------
+
+Plataforma de Finanzas y Operaciones Kaupaloki
+https://app.kaupaloki.co
+=====================================================
+`;
+      const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const userPrefix = (currentUserEmail.split('@')[0] || 'usuario').replace(/[^a-zA-Z0-9_-]/g, '_');
+      link.href = url;
+      link.download = `kaupaloki-codigos-respaldo-2fa-${userPrefix}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
+
+    // Copy backup codes to clipboard
+    btnCopyBackupCodes?.addEventListener('click', () => {
+      navigator.clipboard.writeText(generatedBackupCodes.join('\n'));
+      if (btnCopyBackupText) {
+        const prevText = btnCopyBackupText.textContent;
+        btnCopyBackupText.textContent = '¡Copiados!';
+        setTimeout(() => {
+          if (btnCopyBackupText) btnCopyBackupText.textContent = prevText;
+        }, 2000);
       }
+    });
+
+    // Finalize Step 2 & Save to Supabase
+    btnFinalizeSetup?.addEventListener('click', async () => {
+      if (btnFinalizeSetup) {
+        btnFinalizeSetup.disabled = true;
+        btnFinalizeSetup.textContent = 'Guardando configuración 2FA...';
+      }
+
+      if (setupErrorMsg2) setupErrorMsg2.style.display = 'none';
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -321,13 +439,13 @@ import Layout from '../layouts/Layout.astro';
         sessionStorage.setItem('kaupaloki_2fa_verified', 'true');
         window.location.replace('/');
       } catch (err: any) {
-        if (setupErrorMsg) {
-          setupErrorMsg.textContent = 'Error al activar 2FA: ' + (err?.message || err);
-          setupErrorMsg.style.display = 'block';
+        if (setupErrorMsg2) {
+          setupErrorMsg2.textContent = 'Error al registrar 2FA: ' + (err?.message || err);
+          setupErrorMsg2.style.display = 'block';
         }
-        if (btnSubmitSetup) {
-          btnSubmitSetup.disabled = false;
-          btnSubmitSetup.textContent = 'Activar 2FA y Entrar';
+        if (btnFinalizeSetup) {
+          btnFinalizeSetup.disabled = false;
+          btnFinalizeSetup.textContent = 'He Guardado mis Códigos · Entrar al Dashboard';
         }
       }
     });
