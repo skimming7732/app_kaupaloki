@@ -9,8 +9,11 @@ export function getStaticPaths() {
 
   const paths = CLIENTES.flatMap(c => [
     { params: { id: `c-${slugify(c.codigo)}` } },
+    { params: { id: slugify(c.codigo) } },
     { params: { id: c.codigo.toLowerCase() } },
-    { params: { id: c.codigo } }
+    { params: { id: c.codigo } },
+    { params: { id: `c-${slugify(c.nombre)}` } },
+    { params: { id: slugify(c.nombre) } }
   ]);
   return paths;
 }

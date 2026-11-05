@@ -658,7 +658,7 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
         id: m.id,
         codigo: m.codigo,
         medio: 'EFECTIVO',
-        fechaDisplay: m.fecha || '-',
+        fechaDisplay: m.fecha || (m.createdTime ? m.createdTime.split('T')[0] : '-'),
         referenciaDisplay: m.referencia || 'Pago en efectivo',
         montoCop: Number(m.montoCop) || 0,
         estado: 'COMPLETADO',
@@ -936,13 +936,26 @@ import { CLIENTES, NEGOCIOS, PAGOS, EFECTIVO_MOVIMIENTOS } from '../../data/airt
         sessionStorage.setItem('kaupaloki_internal_session', 'true');
         const clientes: any[] = (window as any).INITIAL_CLIENTES || [];
         const clean = slug.toLowerCase().replace(/^c-/, '');
-        const target = clientes.find(c => 
-          (c.codigo && c.codigo.toLowerCase() === slug.toLowerCase()) ||
-          (c.codigo && c.codigo.toLowerCase() === clean) ||
-          (c.codigo && c.codigo.toLowerCase().replace(/[^a-z0-9]/g, '-') === clean) ||
-          c.id === slug ||
-          (c.nombre && c.nombre.toLowerCase().replace(/[^a-z0-9]/g, '-') === clean)
-        );
+        const cleanSlugAlnum = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        const target = clientes.find(c => {
+          const cod = String(c.codigo || '').toLowerCase();
+          const cleanCodAlnum = cod.replace(/[^a-z0-9]/g, '');
+          const nom = String(c.nombre || '').toLowerCase();
+          const cleanNomAlnum = nom.replace(/[^a-z0-9]/g, '');
+
+          return (
+            cod === slug.toLowerCase() ||
+            cod === clean ||
+            (c.codigo && c.codigo.toLowerCase().replace(/[^a-z0-9]/g, '-') === clean) ||
+            cleanSlugAlnum.includes(cleanCodAlnum) ||
+            cleanCodAlnum.includes(cleanSlugAlnum) ||
+            cleanNomAlnum === cleanSlugAlnum ||
+            cleanNomAlnum.includes(cleanSlugAlnum) ||
+            cleanSlugAlnum.includes(cleanNomAlnum) ||
+            c.id === slug
+          );
+        });
 
         if (target) {
           loadClientPortalData({
