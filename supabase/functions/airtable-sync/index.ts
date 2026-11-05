@@ -18,6 +18,7 @@ const TABLES = {
   ACTIVOS_LIQUIDOS: "tblzXaxH5FN1wswWq",
   ACTIVOS_DIGITALES: "tblHWI0ANH7RNYaQD",
   USUARIOS: "tbljfI9AsgpOsfzPb",
+  EFECTIVO: "tblsuI9n7n7nL0weE",
 };
 
 const DIVISA_CODE_TO_ID: Record<string, string> = {
@@ -233,6 +234,37 @@ Deno.serve(async (req: Request) => {
         const errTxt = await airtableRes.text();
         return new Response(
           JSON.stringify({ ok: false, error: `Error creando dispersión en Airtable: ${errTxt}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Continues to full sync below to return updated snapshot
+    }
+
+    // 0-D. ACTION: create_movimiento_efectivo
+    if (body.action === "create_movimiento_efectivo") {
+      const { codigo, tipo, montoCop, clienteId, origenFondosId, referencia } = body;
+      const fields: any = {
+        "TIPO": (String(tipo || "INGRESO").toUpperCase() === "PAGO") ? "PAGO" : "INGRESO",
+        "MONTO (COP)": Number(montoCop) || 0,
+      };
+      if (codigo) fields["EFECTIVO"] = String(codigo).trim();
+      if (clienteId) fields["CLIENTE"] = [clienteId];
+      if (origenFondosId) fields["ORIGEN FONDOS"] = [origenFondosId];
+      if (referencia) fields["REFERENCIA"] = String(referencia).trim();
+
+      const airtableRes = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${TABLES.EFECTIVO}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${pat}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fields, typecast: true }),
+      });
+
+      if (!airtableRes.ok) {
+        const errTxt = await airtableRes.text();
+        return new Response(
+          JSON.stringify({ ok: false, error: `Error creando movimiento de efectivo en Airtable: ${errTxt}` }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -624,6 +656,7 @@ Deno.serve(async (req: Request) => {
       rawActivosLiq,
       rawActivosDig,
       rawUsuarios,
+      rawEfectivo,
     ] = await Promise.all([
       fetchAirtableTable(TABLES.CLIENTES, pat),
       fetchAirtableTable(TABLES.NEGOCIOS, pat),
@@ -634,6 +667,7 @@ Deno.serve(async (req: Request) => {
       fetchAirtableTable(TABLES.ACTIVOS_LIQUIDOS, pat),
       fetchAirtableTable(TABLES.ACTIVOS_DIGITALES, pat),
       fetchAirtableTable(TABLES.USUARIOS, pat),
+      fetchAirtableTable(TABLES.EFECTIVO, pat),
     ]);
 
     const divisasById = new Map<string, any>();
@@ -1035,6 +1069,29 @@ Deno.serve(async (req: Request) => {
       };
     });
 
+    const efectivo = rawEfectivo.map((r) => {
+      const f = r.fields || {};
+      const clienteLink = Array.isArray(f["CLIENTE"]) ? f["CLIENTE"][0] : undefined;
+      const clienteInfo = clienteLink ? clientesById.get(clienteLink) : undefined;
+      const origenLink = Array.isArray(f["ORIGEN FONDOS"]) ? f["ORIGEN FONDOS"][0] : undefined;
+      const origenInfo = origenLink ? activosLiqById.get(origenLink) : undefined;
+
+      return {
+        id: r.id,
+        codigo: String(f["EFECTIVO"] || "").trim(),
+        tipo: String(f["TIPO"] || "INGRESO").toUpperCase(),
+        montoCop: Number(f["MONTO (COP)"]) || 0,
+        clienteId: clienteLink,
+        clienteCodigo: clienteInfo ? clienteInfo.codigo : undefined,
+        clienteNombre: clienteInfo ? clienteInfo.nombre : undefined,
+        origenFondosId: origenLink,
+        origenFondosNombre: origenInfo ? origenInfo.activo : undefined,
+        referencia: String(f["REFERENCIA"] || "").trim(),
+        balance: String(f["BALANCE"] || "").trim(),
+        createdTime: r.createdTime,
+      };
+    });
+
     const totalNegocioCop = negocios.reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0);
     const totalVentasUsdtCop = ventasUsdt.reduce((acc: number, v: any) => acc + (v.totalCop || 0), 0);
     const totalLiquidezEsperadaCop = activosDigitales.reduce((acc: number, a: any) => acc + (a.liquidezEsperadaCop || 0), 0);
@@ -1064,6 +1121,7 @@ Deno.serve(async (req: Request) => {
       ventasUsdt,
       activosLiquidos,
       activosDigitales,
+      efectivo,
       usuarios,
       resumenLiquidacion,
     };

@@ -9,6 +9,7 @@ import {
   VENTAS_USDT,
   ACTIVOS_LIQUIDOS,
   ACTIVOS_DIGITALES,
+  EFECTIVO_MOVIMIENTOS,
   USUARIOS_AIRTABLE,
   ADMINS, 
   CURRENCY_FLAGS,
@@ -62,6 +63,7 @@ import ActivosLiquidosView from '../components/views/ActivosLiquidosView.astro';
 import ActivosDigitalesView from '../components/views/ActivosDigitalesView.astro';
 import UsuariosView from '../components/views/UsuariosView.astro';
 import OperatorView from '../components/views/OperatorView.astro';
+import EfectivoView from '../components/views/EfectivoView.astro';
 
 // Modular Modals
 import LightboxModal from '../components/modals/LightboxModal.astro';
@@ -69,6 +71,7 @@ import CreateUserModal from '../components/modals/CreateUserModal.astro';
 import CreateNegocioModal from '../components/modals/CreateNegocioModal.astro';
 import EditNegocioModal from '../components/modals/EditNegocioModal.astro';
 import CreateDispersionModal from '../components/modals/CreateDispersionModal.astro';
+import CreateMovimientoEfectivoModal from '../components/modals/CreateMovimientoEfectivoModal.astro';
 import CreateClientModal from '../components/modals/CreateClientModal.astro';
 import EditProfileModal from '../components/modals/EditProfileModal.astro';
 import DeleteUserModal from '../components/modals/DeleteUserModal.astro';
@@ -228,6 +231,19 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
             <span class="sidebar-text" style="flex: 1;">Activos Digitales</span>
             <span class="count-badge" id="badge-count-activos-digitales" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: var(--bg-card-secondary); color: var(--text-secondary);">
               {ACTIVOS_DIGITALES.length}
+            </span>
+          </button>
+
+          <!-- 6.2 EFECTIVO (MOVIMIENTOS DE CAJA) -->
+          <button id="sidebar-link-efectivo" class="sidebar-link" data-target="tab-efectivo" title="Efectivo" style="display: flex; align-items: center; gap: 14px; padding: 13px 18px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s ease;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <circle cx="12" cy="12" r="2"></circle>
+              <path d="M6 12h.01M18 12h.01"></path>
+            </svg>
+            <span class="sidebar-text" style="flex: 1;">Efectivo</span>
+            <span class="count-badge" id="badge-count-efectivo" style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; background: rgba(5, 205, 153, 0.12); color: var(--success);">
+              {EFECTIVO_MOVIMIENTOS.length}
             </span>
           </button>
 
@@ -1220,6 +1236,12 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         <VentasView VENTAS_USDT={VENTAS_USDT} />
         <ActivosLiquidosView ACTIVOS_LIQUIDOS={ACTIVOS_LIQUIDOS} metricas={metricas} />
         <ActivosDigitalesView ACTIVOS_DIGITALES={ACTIVOS_DIGITALES} />
+        <EfectivoView 
+          EFECTIVO_MOVIMIENTOS={EFECTIVO_MOVIMIENTOS} 
+          CLIENTES={CLIENTES} 
+          ACTIVOS_LIQUIDOS={ACTIVOS_LIQUIDOS} 
+          saldoEfectivo={metricas.saldoEfectivoCop} 
+        />
         <UsuariosView />
         <OperatorView NEGOCIOS={NEGOCIOS} DIVISAS={DIVISAS} CLIENTES={CLIENTES} />
       </div>
@@ -1232,6 +1254,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       <CreateNegocioModal CLIENTES={CLIENTES} DIVISAS={DIVISAS} />
       <EditNegocioModal CLIENTES={CLIENTES} DIVISAS={DIVISAS} />
       <CreateDispersionModal CLIENTES={CLIENTES} ACTIVOS_LIQUIDOS={ACTIVOS_LIQUIDOS} />
+      <CreateMovimientoEfectivoModal CLIENTES={CLIENTES} ACTIVOS_LIQUIDOS={ACTIVOS_LIQUIDOS} />
       <CreateClientModal />
       <EditProfileModal />
       <DeleteUserModal />
@@ -1886,6 +1909,11 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       heading: 'Control Dispersiones',
       table: 'Tabla Dispersiones'
     },
+    'tab-efectivo': {
+      breadcrumb: 'Efectivo',
+      heading: 'Control Efectivo',
+      table: 'Movimientos de Efectivo'
+    },
     'tab-operador': {
       breadcrumb: 'Operador',
       heading: 'Panel Operador',
@@ -1901,6 +1929,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     'tab-ventas': '/ventas',
     'tab-activos': '/activos',
     'tab-activos-digitales': '/activos-digitales',
+    'tab-efectivo': '/efectivo',
     'tab-divisas': '/divisas',
     'tab-usuarios': '/usuarios',
     'tab-dispersiones': '/dispersiones',
@@ -1920,6 +1949,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     'activos': 'tab-activos',
     'activos-liquidos': 'tab-activos',
     'activos-digitales': 'tab-activos-digitales',
+    'efectivo': 'tab-efectivo',
     'divisas': 'tab-divisas',
     'usuarios': 'tab-usuarios',
     'dispersiones': 'tab-dispersiones',
@@ -1927,7 +1957,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     'operador': 'tab-operador'
   };
 
-  const tabActionsMap: Record<string, { label: string, action: 'user' | 'client' | 'negocio' | 'dispersion' } | null> = {
+  const tabActionsMap: Record<string, { label: string, action: 'user' | 'client' | 'negocio' | 'dispersion' | 'efectivo' } | null> = {
     'tab-dashboard': null,
     'tab-operador': { label: '+ Agregar Negocio', action: 'negocio' },
     'tab-clientes': { label: '+ Agregar Cliente', action: 'client' },
@@ -1936,6 +1966,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     'tab-ventas': null,
     'tab-activos': null,
     'tab-activos-digitales': null,
+    'tab-efectivo': { label: '+ Agregar Movimiento', action: 'efectivo' },
     'tab-divisas': null,
     'tab-usuarios': { label: '+ Agregar Usuario', action: 'user' },
     'tab-dispersiones': { label: '+ Nueva Dispersión', action: 'dispersion' }
@@ -1969,6 +2000,8 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       openCreateNegocioModal();
     } else if (action === 'dispersion') {
       openCreateDispersionModal();
+    } else if (action === 'efectivo') {
+      openCreateMovimientoEfectivoModal();
     }
   };
   btnHeaderAction?.addEventListener('click', handleHeaderAction);
@@ -3104,6 +3137,156 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
   });
 
   // ==============================================================
+  // GESTIÓN DE MOVIMIENTOS DE EFECTIVO (MODAL Y REGISTRO EN AIRTABLE)
+  // ==============================================================
+  const btnOpenCreateMovimientoEfectivo = document.getElementById('btn-open-create-movimiento-efectivo');
+  const modalCreateMovimientoEfectivoBackdrop = document.getElementById('modal-create-movimiento-efectivo-backdrop');
+  const btnCloseCreateMovimientoEfectivoModal = document.getElementById('btn-close-create-movimiento-efectivo-modal');
+  const btnCancelCreateMovimientoEfectivo = document.getElementById('btn-cancel-create-movimiento-efectivo');
+  const formModalCreateMovimientoEfectivo = document.getElementById('form-modal-create-movimiento-efectivo') as HTMLFormElement | null;
+  const modalEfectivoMonto = document.getElementById('modal-efectivo-monto') as HTMLInputElement | null;
+  const modalEfectivoMontoPreview = document.getElementById('modal-efectivo-monto-preview');
+  const modalEfectivoCliente = document.getElementById('modal-efectivo-cliente') as HTMLSelectElement | null;
+  const modalEfectivoOrigen = document.getElementById('modal-efectivo-origen') as HTMLSelectElement | null;
+  const modalEfectivoReferencia = document.getElementById('modal-efectivo-referencia') as HTMLInputElement | null;
+  const modalEfectivoCodigo = document.getElementById('modal-efectivo-codigo') as HTMLInputElement | null;
+  const modalEfectivoFeedback = document.getElementById('modal-efectivo-feedback');
+  const lblTipoIngreso = document.getElementById('lbl-tipo-ingreso');
+  const lblTipoPago = document.getElementById('lbl-tipo-pago');
+
+  function openCreateMovimientoEfectivoModal() {
+    if (!modalCreateMovimientoEfectivoBackdrop) return;
+    if (modalEfectivoFeedback) {
+      modalEfectivoFeedback.style.display = 'none';
+      modalEfectivoFeedback.textContent = '';
+    }
+    if (modalEfectivoMontoPreview) {
+      modalEfectivoMontoPreview.textContent = '$ 0 COP';
+    }
+    modalCreateMovimientoEfectivoBackdrop.style.display = 'flex';
+  }
+
+  function closeCreateMovimientoEfectivoModal() {
+    if (modalCreateMovimientoEfectivoBackdrop) {
+      modalCreateMovimientoEfectivoBackdrop.style.display = 'none';
+    }
+  }
+
+  btnOpenCreateMovimientoEfectivo?.addEventListener('click', openCreateMovimientoEfectivoModal);
+  btnCloseCreateMovimientoEfectivoModal?.addEventListener('click', closeCreateMovimientoEfectivoModal);
+  btnCancelCreateMovimientoEfectivo?.addEventListener('click', closeCreateMovimientoEfectivoModal);
+  modalCreateMovimientoEfectivoBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalCreateMovimientoEfectivoBackdrop) closeCreateMovimientoEfectivoModal();
+  });
+
+  // Radio button type styling
+  const tipoRadios = document.querySelectorAll('input[name="modal-efectivo-tipo"]');
+  tipoRadios.forEach(radio => {
+    radio.addEventListener('change', (e: any) => {
+      const isIngreso = e.target.value === 'INGRESO';
+      if (lblTipoIngreso && lblTipoPago) {
+        if (isIngreso) {
+          lblTipoIngreso.style.border = '2px solid var(--success)';
+          lblTipoIngreso.style.background = 'rgba(5, 205, 153, 0.08)';
+          lblTipoPago.style.border = '2px solid var(--border-main)';
+          lblTipoPago.style.background = 'var(--bg-main)';
+        } else {
+          lblTipoPago.style.border = '2px solid var(--warning)';
+          lblTipoPago.style.background = 'rgba(255, 181, 71, 0.08)';
+          lblTipoIngreso.style.border = '2px solid var(--border-main)';
+          lblTipoIngreso.style.background = 'var(--bg-main)';
+        }
+      }
+    });
+  });
+
+  // Live amount preview
+  modalEfectivoMonto?.addEventListener('input', () => {
+    const val = parseFloat(modalEfectivoMonto.value) || 0;
+    if (modalEfectivoMontoPreview) {
+      modalEfectivoMontoPreview.textContent = fmtCopClient(val, 0);
+    }
+  });
+
+  formModalCreateMovimientoEfectivo?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!modalEfectivoMonto || !modalEfectivoReferencia) return;
+
+    const selectedTipo = (document.querySelector('input[name="modal-efectivo-tipo"]:checked') as HTMLInputElement)?.value || 'INGRESO';
+    const monto = parseFloat(modalEfectivoMonto.value);
+    const referencia = modalEfectivoReferencia.value.trim();
+    const clienteId = modalEfectivoCliente?.value || '';
+    const origenFondosId = modalEfectivoOrigen?.value || '';
+    const codigo = modalEfectivoCodigo?.value.trim() || '';
+
+    if (isNaN(monto) || monto <= 0 || !referencia) {
+      if (modalEfectivoFeedback) {
+        modalEfectivoFeedback.style.display = 'block';
+        modalEfectivoFeedback.style.background = 'rgba(238, 93, 80, 0.12)';
+        modalEfectivoFeedback.style.color = 'var(--danger)';
+        modalEfectivoFeedback.textContent = 'Por favor ingresa un monto válido mayor a 0 y una referencia.';
+      }
+      return;
+    }
+
+    const btnSubmit = document.getElementById('btn-submit-create-movimiento-efectivo');
+    const btnSubmitText = document.getElementById('btn-submit-create-movimiento-efectivo-text');
+    const btnSubmitSpinner = document.getElementById('btn-submit-create-movimiento-efectivo-spinner');
+    if (btnSubmit) btnSubmit.setAttribute('disabled', 'true');
+    if (btnSubmitText) btnSubmitText.textContent = 'Guardando en Airtable...';
+    if (btnSubmitSpinner) btnSubmitSpinner.style.display = 'inline';
+
+    if (modalEfectivoFeedback) {
+      modalEfectivoFeedback.style.display = 'block';
+      modalEfectivoFeedback.style.background = 'rgba(67, 24, 255, 0.08)';
+      modalEfectivoFeedback.style.color = 'var(--brand-primary)';
+      modalEfectivoFeedback.textContent = 'Sincronizando movimiento en Airtable...';
+    }
+
+    try {
+      const pat = getAirtableToken();
+      const res = await fetch(EDGE_SYNC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_movimiento_efectivo',
+          tipo: selectedTipo,
+          montoCop: monto,
+          referencia,
+          clienteId: clienteId || undefined,
+          origenFondosId: origenFondosId || undefined,
+          codigo: codigo || undefined,
+          pat: pat || undefined,
+        }),
+      });
+
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok || !resData.ok) {
+        throw new Error(resData.error || 'Error registrando movimiento en Airtable.');
+      }
+
+      if (resData.snapshot) {
+        applyAirtableSnapshot(resData.snapshot);
+      }
+
+      closeCreateMovimientoEfectivoModal();
+      formModalCreateMovimientoEfectivo.reset();
+      alert('¡Movimiento de efectivo registrado exitosamente en Airtable!');
+    } catch (err: any) {
+      if (modalEfectivoFeedback) {
+        modalEfectivoFeedback.style.display = 'block';
+        modalEfectivoFeedback.style.background = 'rgba(238, 93, 80, 0.12)';
+        modalEfectivoFeedback.style.color = 'var(--danger)';
+        modalEfectivoFeedback.textContent = err.message || 'Error al registrar movimiento';
+      }
+    } finally {
+      if (btnSubmit) btnSubmit.removeAttribute('disabled');
+      if (btnSubmitText) btnSubmitText.textContent = 'Guardar Movimiento';
+      if (btnSubmitSpinner) btnSubmitSpinner.style.display = 'none';
+    }
+  });
+
+  // ==============================================================
   // GESTIÓN DE EDICIÓN DE NEGOCIOS (MODAL Y ACTUALIZACIÓN EN AIRTABLE)
   // ==============================================================
   const modalEditNegocioBackdrop = document.getElementById('modal-edit-negocio-backdrop');
@@ -4010,6 +4193,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
     const linkVentas = document.getElementById('sidebar-link-ventas');
     const linkActivos = document.getElementById('sidebar-link-activos');
     const linkActivosDigitales = document.getElementById('sidebar-link-activos-digitales');
+    const linkEfectivo = document.getElementById('sidebar-link-efectivo');
     const linkDivisas = document.getElementById('sidebar-link-divisas');
     const linkUsuarios = document.getElementById('sidebar-link-usuarios');
     const airtableCard = document.getElementById('sidebar-airtable-card');
@@ -4025,6 +4209,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       if (linkVentas) linkVentas.style.display = 'none';
       if (linkActivos) linkActivos.style.display = 'none';
       if (linkActivosDigitales) linkActivosDigitales.style.display = 'none';
+      if (linkEfectivo) linkEfectivo.style.display = 'none';
       if (linkDivisas) linkDivisas.style.display = 'none';
       if (linkUsuarios) linkUsuarios.style.display = 'none';
       if (airtableCard) airtableCard.style.display = 'none';
@@ -4046,6 +4231,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       if (linkVentas) linkVentas.style.display = 'none';
       if (linkActivos) linkActivos.style.display = 'none';
       if (linkActivosDigitales) linkActivosDigitales.style.display = 'none';
+      if (linkEfectivo) linkEfectivo.style.display = 'none';
       if (linkDivisas) linkDivisas.style.display = 'none';
       if (linkUsuarios) linkUsuarios.style.display = 'none';
       if (airtableCard) airtableCard.style.display = 'none';
@@ -4062,6 +4248,7 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
       if (linkVentas) linkVentas.style.display = 'flex';
       if (linkActivos) linkActivos.style.display = 'flex';
       if (linkActivosDigitales) linkActivosDigitales.style.display = 'flex';
+      if (linkEfectivo) linkEfectivo.style.display = 'flex';
       if (linkDivisas) linkDivisas.style.display = 'flex';
       if (linkUsuarios) linkUsuarios.style.display = 'flex';
       if (airtableCard) airtableCard.style.display = 'flex';
@@ -6458,6 +6645,84 @@ import AirtableModal from '../components/modals/AirtableModal.astro';
         }).join('');
       }
     }
+
+    // 10. Actualizar Tabla y Métricas de EFECTIVO
+    const rawEfectivoList = Array.isArray(snapshot.efectivo) ? snapshot.efectivo : [];
+    if (rawEfectivoList.length > 0) {
+      const efectivoTbody = document.getElementById('efectivo-table-tbody');
+      const efectivoTfoot = document.getElementById('efectivo-tfoot');
+      const badgeCountEfectivo = document.getElementById('badge-count-efectivo');
+      if (badgeCountEfectivo) badgeCountEfectivo.textContent = String(rawEfectivoList.length);
+
+      let totIng = 0;
+      let totPag = 0;
+
+      if (efectivoTbody) {
+        efectivoTbody.innerHTML = rawEfectivoList.map((m: any, idx: number) => {
+          const esIngreso = String(m.tipo || 'INGRESO').toUpperCase() === 'INGRESO';
+          const monto = Number(m.montoCop) || 0;
+          if (esIngreso) totIng += monto;
+          else totPag += monto;
+
+          const clienteLabel = m.clienteCodigo 
+            ? `<span style="font-family: ui-monospace, monospace; font-weight: 700; color: var(--brand-primary);">${m.clienteCodigo}</span>${m.clienteNombre && m.clienteNombre !== m.clienteCodigo ? ` <span style="color: var(--text-secondary); font-size: 12px;">• ${m.clienteNombre}</span>` : ''}`
+            : `<span style="color: var(--text-muted); font-style: italic;">Sin cliente asignado</span>`;
+
+          const tipoBadge = esIngreso 
+            ? `<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; background: rgba(5, 205, 153, 0.12); color: var(--success); font-weight: 800; font-size: 11px; text-transform: uppercase;">
+                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                 INGRESO
+               </span>`
+            : `<span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; background: rgba(255, 181, 71, 0.15); color: var(--warning); font-weight: 800; font-size: 11px; text-transform: uppercase;">
+                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                 PAGO
+               </span>`;
+
+          return `
+            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+              <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 12px; vertical-align: middle;">${idx + 1}</td>
+              <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; vertical-align: middle;">${m.codigo || `EF-0${idx + 1}`}</td>
+              <td style="padding: 14px 18px; vertical-align: middle;">${tipoBadge}</td>
+              <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 13px; vertical-align: middle;">${clienteLabel}</td>
+              <td style="padding: 14px 18px; color: var(--text-primary); font-weight: 600; font-size: 13px; vertical-align: middle;">${m.referencia || '—'}</td>
+              <td style="padding: 14px 18px; color: var(--text-secondary); font-size: 12px; vertical-align: middle;">
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; font-size: 11px;">
+                  ${m.origenFondosNombre || 'EFECTIVO-Dosquebradas'}
+                </span>
+              </td>
+              <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: ${esIngreso ? 'var(--success)' : 'var(--warning)'}; vertical-align: middle;">
+                ${esIngreso ? '+' : '-'}${fmtCopClient(monto, 2)}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      if (efectivoTfoot) {
+        efectivoTfoot.innerHTML = `
+          <tr style="background: var(--bg-card-secondary); border-top: 2px solid var(--border-main); font-weight: 800;">
+            <td colspan="4" style="padding: 14px 18px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">
+              TOTALES CONSOLIDADOS (${rawEfectivoList.length} MOVIMIENTOS):
+            </td>
+            <td colspan="2" style="padding: 14px 18px; text-align: right; font-size: 12px; color: var(--text-secondary);">
+              INGRESOS: <span style="color: var(--success); font-family: ui-monospace, monospace;">+${fmtCopClient(totIng, 2)}</span> | 
+              PAGOS: <span style="color: var(--warning); font-family: ui-monospace, monospace;">-${fmtCopClient(totPag, 2)}</span>
+            </td>
+            <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 15px;">
+              ${fmtCopClient(totIng - totPag, 2)}
+            </td>
+          </tr>
+        `;
+      }
+
+      const kpiIng = document.getElementById('kpi-efectivo-total-ingresos');
+      if (kpiIng) kpiIng.textContent = fmtCopClient(totIng, 2);
+      const kpiPag = document.getElementById('kpi-efectivo-total-pagos');
+      if (kpiPag) kpiPag.textContent = fmtCopClient(totPag, 2);
+      const kpiOps = document.getElementById('kpi-efectivo-total-ops');
+      if (kpiOps) kpiOps.textContent = `${rawEfectivoList.length} Movimientos`;
+    }
+
     updateOperatorViewMetrics();
   }
 

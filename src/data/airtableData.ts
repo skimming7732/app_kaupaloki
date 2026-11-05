@@ -179,6 +179,21 @@ export interface Admin {
 
 export interface UsuarioAirtable extends Admin {}
 
+export interface MovimientoEfectivo {
+  id: string;
+  codigo: string;
+  tipo: 'INGRESO' | 'PAGO';
+  montoCop: number;
+  clienteId?: string;
+  clienteCodigo?: string;
+  clienteNombre?: string;
+  origenFondosId?: string;
+  origenFondosNombre?: string;
+  referencia: string;
+  balance?: string;
+  createdTime?: string;
+}
+
 export const CLIENTES: Cliente[] = [
   {
     id: "recg4j8GuJAxEBQsF",
@@ -894,6 +909,54 @@ export const ACTIVOS_LIQUIDOS: ActivoLiquido[] = [
   }
 ];
 
+export const EFECTIVO_MOVIMIENTOS: MovimientoEfectivo[] = [
+  {
+    id: "recxhRrNTECEWOy1d",
+    codigo: "EF-01",
+    tipo: "INGRESO",
+    montoCop: 541000000,
+    origenFondosId: "recdOSGJZMR2xqUFq",
+    origenFondosNombre: "EFECTIVO-Dosquebradas",
+    referencia: "HERMAN",
+  },
+  {
+    id: "recmPpuGUIFIPlWTL",
+    codigo: "EF-02",
+    tipo: "PAGO",
+    montoCop: 380400000,
+    clienteId: "recyTbYkyo0gStzQa",
+    clienteCodigo: "C-0017",
+    clienteNombre: "DR-N",
+    origenFondosId: "recdOSGJZMR2xqUFq",
+    origenFondosNombre: "EFECTIVO-Dosquebradas",
+    referencia: "PAGO USDT",
+  },
+  {
+    id: "recmEpHV5LJtSIMmI",
+    codigo: "EF-03",
+    tipo: "PAGO",
+    montoCop: 300000000,
+    clienteId: "recg4j8GuJAxEBQsF",
+    clienteCodigo: "C-0019",
+    clienteNombre: "CLIENTE PRUEBA VERIFICADO",
+    origenFondosId: "recdOSGJZMR2xqUFq",
+    origenFondosNombre: "EFECTIVO-Dosquebradas",
+    referencia: "ALEJANDRO",
+  },
+  {
+    id: "rec2Vq1pIzi54DrhO",
+    codigo: "EF-04",
+    tipo: "PAGO",
+    montoCop: 25000000,
+    clienteId: "recg4j8GuJAxEBQsF",
+    clienteCodigo: "C-0019",
+    clienteNombre: "CLIENTE PRUEBA VERIFICADO",
+    origenFondosId: "recdOSGJZMR2xqUFq",
+    origenFondosNombre: "EFECTIVO-Dosquebradas",
+    referencia: "ALEJANDRO",
+  },
+];
+
 export const ACTIVOS_DIGITALES: ActivoDigital[] = [
   {
     id: "recblQW6ViJ9MxCle",
@@ -1077,6 +1140,10 @@ export function getMetricasContables() {
     numPagosCompletados: PAGOS.filter(p => p.estado === 'COMPLETADO').length,
     numComprasUsdt: COMPRAS_USDT.length,
     numVentasUsdt: VENTAS_USDT.length,
-    numActivosLiquidos: ACTIVOS_LIQUIDOS.length
+    numActivosLiquidos: ACTIVOS_LIQUIDOS.length,
+    totalIngresosEfectivoCop: EFECTIVO_MOVIMIENTOS.filter(m => m.tipo === 'INGRESO').reduce((acc, m) => acc + (m.montoCop || 0), 0),
+    totalPagosEfectivoCop: EFECTIVO_MOVIMIENTOS.filter(m => m.tipo === 'PAGO').reduce((acc, m) => acc + (m.montoCop || 0), 0),
+    saldoEfectivoCop: ACTIVOS_LIQUIDOS.find(a => a.activo.toLowerCase().includes('efectivo'))?.saldoCop || 279351330,
+    numMovimientosEfectivo: EFECTIVO_MOVIMIENTOS.length,
   };
 }

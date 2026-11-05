@@ -1,0 +1,196 @@
+---
+import { formatCop } from '../../utils/formatters';
+import type { MovimientoEfectivo, Cliente, ActivoLiquido } from '../../data/airtableData';
+
+interface Props {
+  EFECTIVO_MOVIMIENTOS?: MovimientoEfectivo[];
+  CLIENTES?: Cliente[];
+  ACTIVOS_LIQUIDOS?: ActivoLiquido[];
+  saldoEfectivo?: number;
+}
+
+const { 
+  EFECTIVO_MOVIMIENTOS = [],
+  CLIENTES = [],
+  ACTIVOS_LIQUIDOS = [],
+  saldoEfectivo = 279351330
+} = Astro.props;
+
+const totalIngresos = EFECTIVO_MOVIMIENTOS.filter(m => m.tipo === 'INGRESO').reduce((acc, m) => acc + (m.montoCop || 0), 0);
+const totalPagos = EFECTIVO_MOVIMIENTOS.filter(m => m.tipo === 'PAGO').reduce((acc, m) => acc + (m.montoCop || 0), 0);
+---
+
+<div id="tab-efectivo" class="tab-pane" style="display: none;">
+  <!-- Header Bar de Efectivo con Botón Agregar Movimiento -->
+  <div style="padding: 18px 24px; border-bottom: 1px solid var(--border-main); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; background: var(--bg-card-secondary); border-radius: 20px 20px 0 0;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: rgba(5, 205, 153, 0.15); color: var(--success); text-transform: uppercase; letter-spacing: 0.05em;">
+          Caja Fí­sica
+        </span>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.04em;">
+          Control de Efectivo
+        </h3>
+      </div>
+      <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">
+        Registro de entradas, pagos y entregas de efectivo vinculados a cuentas y clientes en Airtable
+      </p>
+    </div>
+
+    <!-- Botón Agregar Movimiento -->
+    <button 
+      type="button" 
+      id="btn-open-create-movimiento-efectivo" 
+      style="display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 12px; background: linear-gradient(135deg, #4318FF 0%, #3311CC 100%); color: #ffffff; border: none; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(67, 24, 255, 0.28); transition: transform 0.15s, box-shadow 0.15s;"
+    >
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      <span>+ Agregar Movimiento</span>
+    </button>
+  </div>
+
+  <!-- Mini KPIs de Efectivo -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; padding: 20px 24px; border-bottom: 1px solid var(--border-main); background: var(--bg-card);">
+    <!-- KPI 1: Saldo Disponible en Caja Efectivo -->
+    <div style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 16px; padding: 16px;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 4px;">
+        Saldo en Caja Efectivo
+      </div>
+      <div id="kpi-efectivo-saldo-disponible" style="font-size: 20px; font-weight: 800; color: var(--success); font-family: ui-monospace, monospace; line-height: 1.2;">
+        {formatCop(saldoEfectivo)}
+      </div>
+      <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+        Custodia física (Dosquebradas)
+      </div>
+    </div>
+
+    <!-- KPI 2: Total Ingresos Efectivo -->
+    <div style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 16px; padding: 16px;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--brand-primary); margin-bottom: 4px;">
+        Ingresos de Efectivo
+      </div>
+      <div id="kpi-efectivo-total-ingresos" style="font-size: 20px; font-weight: 800; color: var(--brand-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+        {formatCop(totalIngresos)}
+      </div>
+      <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+        Entradas registradas a caja
+      </div>
+    </div>
+
+    <!-- KPI 3: Total Pagos Efectivo -->
+    <div style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 16px; padding: 16px;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--warning); margin-bottom: 4px;">
+        Pagos / Egresos de Efectivo
+      </div>
+      <div id="kpi-efectivo-total-pagos" style="font-size: 20px; font-weight: 800; color: var(--warning); font-family: ui-monospace, monospace; line-height: 1.2;">
+        {formatCop(totalPagos)}
+      </div>
+      <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+        Salidas y entregas pagadas
+      </div>
+    </div>
+
+    <!-- KPI 4: Operaciones -->
+    <div style="background: var(--bg-card-secondary); border: 1px solid var(--border-main); border-radius: 16px; padding: 16px;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 4px;">
+        Total Operaciones
+      </div>
+      <div id="kpi-efectivo-total-ops" style="font-size: 20px; font-weight: 800; color: var(--text-primary); font-family: ui-monospace, monospace; line-height: 1.2;">
+        {EFECTIVO_MOVIMIENTOS.length} Movimientos
+      </div>
+      <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+        Historial registrado
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Movimientos en Efectivo -->
+  <div style="overflow-x: auto;">
+    <table class="horizon-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-main); background: var(--bg-card-secondary);">
+          <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">#</th>
+          <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Código</th>
+          <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Tipo</th>
+          <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Cliente</th>
+          <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Referencia / Detalle</th>
+          <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Caja / Origen Fondos</th>
+          <th style="padding: 14px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right;">Monto (COP)</th>
+        </tr>
+      </thead>
+      <tbody id="efectivo-table-tbody">
+        {EFECTIVO_MOVIMIENTOS.map((m, idx) => {
+          const esIngreso = m.tipo === 'INGRESO';
+          return (
+            <tr class="horizon-row" style="border-bottom: 1px solid var(--border-main); transition: background 0.15s ease;">
+              <td style="padding: 14px 18px; color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 12px; vertical-align: middle;">
+                {idx + 1}
+              </td>
+              <td style="padding: 14px 18px; font-weight: 700; color: var(--brand-primary); font-family: ui-monospace, monospace; font-size: 13px; vertical-align: middle;">
+                {m.codigo || `EF-0${idx + 1}`}
+              </td>
+              <td style="padding: 14px 18px; vertical-align: middle;">
+                {esIngreso ? (
+                  <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; background: rgba(5, 205, 153, 0.12); color: var(--success); font-weight: 800; font-size: 11px; text-transform: uppercase;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="12" y1="19" x2="12" y2="5"></line>
+                      <polyline points="5 12 12 5 19 12"></polyline>
+                    </svg>
+                    INGRESO
+                  </span>
+                ) : (
+                  <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; background: rgba(255, 181, 71, 0.15); color: var(--warning); font-weight: 800; font-size: 11px; text-transform: uppercase;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <polyline points="19 12 12 19 5 12"></polyline>
+                    </svg>
+                    PAGO
+                  </span>
+                )}
+              </td>
+              <td style="padding: 14px 18px; font-weight: 600; color: var(--text-primary); font-size: 13px; vertical-align: middle;">
+                {m.clienteCodigo ? (
+                  <span style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="font-family: ui-monospace, monospace; font-weight: 700; color: var(--brand-primary);">{m.clienteCodigo}</span>
+                    {m.clienteNombre && m.clienteNombre !== m.clienteCodigo && (
+                      <span style="color: var(--text-secondary); font-size: 12px;">• {m.clienteNombre}</span>
+                    )}
+                  </span>
+                ) : (
+                  <span style="color: var(--text-muted); font-style: italic;">Sin cliente asignado</span>
+                )}
+              </td>
+              <td style="padding: 14px 18px; color: var(--text-primary); font-weight: 600; font-size: 13px; vertical-align: middle;">
+                {m.referencia || '—'}
+              </td>
+              <td style="padding: 14px 18px; color: var(--text-secondary); font-size: 12px; vertical-align: middle;">
+                <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: var(--bg-card-secondary); border: 1px solid var(--border-main); font-family: ui-monospace, monospace; font-size: 11px;">
+                  {m.origenFondosNombre || 'EFECTIVO-Dosquebradas'}
+                </span>
+              </td>
+              <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; font-weight: 800; font-size: 14px; color: {esIngreso ? 'var(--success)' : 'var(--warning)'}; vertical-align: middle;">
+                {esIngreso ? '+' : '-'}{formatCop(m.montoCop)}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+      <tfoot id="efectivo-tfoot">
+        <tr style="background: var(--bg-card-secondary); border-top: 2px solid var(--border-main); font-weight: 800;">
+          <td colspan="4" style="padding: 14px 18px; text-transform: uppercase; font-size: 12px; color: var(--text-muted);">
+            TOTALES CONSOLIDADOS ({EFECTIVO_MOVIMIENTOS.length} MOVIMIENTOS):
+          </td>
+          <td colspan="2" style="padding: 14px 18px; text-align: right; font-size: 12px; color: var(--text-secondary);">
+            INGRESOS: <span style="color: var(--success); font-family: ui-monospace, monospace;">+{formatCop(totalIngresos)}</span> | 
+            PAGOS: <span style="color: var(--warning); font-family: ui-monospace, monospace;">-{formatCop(totalPagos)}</span>
+          </td>
+          <td style="padding: 14px 18px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-primary); font-size: 15px;">
+            {formatCop(totalIngresos - totalPagos)}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
