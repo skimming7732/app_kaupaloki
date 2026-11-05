@@ -253,6 +253,48 @@ export const CLIENTES: Cliente[] = [
     numero: 26
   },
   {
+    id: "recOOFVUSF9AEXoYL",
+    codigo: "C0027-DANIEL-RAMIREZ",
+    idCliente: "C0027-DANIEL-RAMIREZ",
+    nombre: "DANIEL RAMIREZ",
+    ingresosCop: 10000000,
+    pagadoCop: 10000000,
+    pendienteCop: 0,
+    pendientePorPagarCop: 0,
+    saldoCop: 0,
+    estado: "PAGADO",
+    fechaCreacion: "2026-11-05",
+    numero: 27
+  },
+  {
+    id: "recRiIk7Psw3283aZ",
+    codigo: "C0028-MARIO-CIFUENTES",
+    idCliente: "C0028-MARIO-CIFUENTES",
+    nombre: "MARIO CIFUENTES",
+    ingresosCop: 0,
+    pagadoCop: 0,
+    pendienteCop: 4209904.7575,
+    pendientePorPagarCop: 4209904.7575,
+    saldoCop: 0,
+    estado: "PENDIENTE",
+    fechaCreacion: "2026-11-05",
+    numero: 28
+  },
+  {
+    id: "recynCn2hqakDb5cH",
+    codigo: "C0029-MIGUEL-COLORADO",
+    idCliente: "C0029-MIGUEL-COLORADO",
+    nombre: "MIGUEL COLORADO",
+    ingresosCop: 56000000,
+    pagadoCop: 56000000,
+    pendienteCop: 280000,
+    pendientePorPagarCop: 280000,
+    saldoCop: 0,
+    estado: "PENDIENTE",
+    fechaCreacion: "2026-11-05",
+    numero: 29
+  },
+  {
     id: "reclaNodta2RwisAg",
     codigo: "C0018-TEST-1",
     idCliente: "C0018-TEST-1",
