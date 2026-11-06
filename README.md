@@ -1,40 +1,47 @@
 # Kaupaloki - Plataforma Contable y Cambiaria
 
-Aplicación contable desarrollada en **Astro** y optimizada para despliegue estático ultra-rápido en **Cloudflare Pages**. Muestra y consolida las tablas y registros financieros de la base de datos de Airtable (`appncUKgTkDojFj4B`).
+Aplicación de gestión operativa, cambiaria y de tesorería desarrollada en **React 19 + Vite 5 + TypeScript** y optimizada para despliegue en **Cloudflare Workers Assets**. Conexión y sincronización en tiempo real con Supabase y Airtable (`appncUKgTkDojFj4B`).
 
 ---
 
-## Características Contables
+## 📐 Reglas Estrictas de Diseño y Desarrollo (UI Guidelines)
 
-- **Diseño financiero estricto**: Interfaz oscura, limpia, sin emojis, con iconografía técnica en formato SVG.
-- **Métricas consolidadas**:
-  - Total Ingresos (COP)
-  - Total Pagos Recibidos (COP)
-  - Saldo Pendiente Neto por cobrar (COP)
-  - Total USDT Comprado y tasa promedio
-- **Vistas tabulares completas**:
-  - `CLIENTES`: Códigos contables, ingresos totales, pagos acreditados y saldo pendiente por cliente.
-  - `NEGOCIOS`: Operaciones cambiarias, tasas, ingresos en COP y equivalentes en USDT.
-  - `PAGOS`: Detalle de caja, estados (`COMPLETADO` / `RECHAZADO`) y acceso a comprobantes.
-  - `DIVISAS`: Control de inventario de monedas recibidas, compradas y saldos en custodia.
-  - `COMPRA-USDT`: Libro de compras de USDT, tasas ejecutadas y costo unitario.
-  - `ADMINS`: Administradores por territorio.
-- **Herramientas interactivas**:
-  - Búsqueda y filtrado instantáneo en vivo sin recargas.
-  - Exportación de cualquier tabla a archivo CSV con un clic.
-  - Sumatorias de totales en pie de tabla (`TFOOT`).
+### 🚫 Prohibición Total de Emojis
+- **Está estrictamente prohibido el uso de caracteres Emoji** en cualquier componente, vista, modal, menú, botón o texto de la aplicación.
+- **Toda iconografía debe ser técnica y vectorial**:
+  - Utilizar exclusivamente la librería **Remix Icon** con clases estándar de formato `<i className="ri-[icon-name]-[style]" />` (ej. `ri-home-5-line`, `ri-briefcase-4-line`, `ri-team-line`, `ri-send-plane-2-line`).
+  - Para selectores de países o divisas, utilizar únicamente el nombre y código formal (ej. `Colombia (COL)`, `Estados Unidos (USA)`, `COP`, `USD`), sin banderas de caracteres emoji.
+- Mantener una apariencia corporativa, limpia, formal y de grado institucional financiero.
 
 ---
 
-## Despliegue en Cloudflare Pages
+## Características de la Plataforma
 
-1. Conecta tu repositorio de GitHub `skimming7732/app_kaupaloki` en el panel de **Cloudflare Pages**.
-2. Parámetros de compilación:
-   * **Framework preset**: `Astro`
-   * **Build command**: `npm run build`
-   * **Build output directory**: `dist`
-   * **Node version**: `20` o superior (en variables de entorno: `NODE_VERSION=22.15.0`)
-3. ¡Listo! Cloudflare compilará y servirá el panel con latencia global mínima.
+- **SPA reactiva**: Migrada a React 19 con Vite 5, TypeScript y Tailwind CSS.
+- **Control de Acceso basado en Roles (RBAC)**:
+  - **Super Admin / Administrador**: Acceso total al panel de control, gastos, divisas, usuarios y métricas globales.
+  - **Operador**: Acceso enfocado en *Inicio*, *Clientes* y *Negocios*, restringido a sus divisas autorizadas.
+  - **Dispersor**: Acceso enfocado en *Inicio*, *Dispersiones* y *Clientes*.
+- **Seguridad**:
+  - Autenticación multifactor obligatoria (2FA / TOTP) compatible con Google Authenticator.
+  - Códigos de respaldo descargables con nomenclatura personalizada por correo de usuario.
+- **Vistas Contables**:
+  - Negocios y conversión de divisas en vivo.
+  - Dispersiones y pagos bancarios.
+  - Movimientos de efectivo físico y gastos contables por categoría.
+  - Activos líquidos e instituciones financieras.
+  - Activos digitales (USDT) y wallets corporativas.
+- **Sincronización en Vivo**:
+  - Edge Functions en Supabase para sincronización bidireccional con Airtable.
+  - Supabase Realtime para actualización instantánea.
+
+---
+
+## Despliegue en Cloudflare
+
+- **Build command**: `npm run build`
+- **Output directory**: `dist`
+- **Single Page Application mode**: Configurado en `wrangler.jsonc` mediante `"not_found_handling": "single-page-application"`.
 
 ---
 
@@ -44,12 +51,12 @@ Aplicación contable desarrollada en **Astro** y optimizada para despliegue est�
 # Instalar dependencias
 npm install
 
-# Servidor de desarrollo
+# Iniciar servidor de desarrollo Vite
 npm run dev
 
 # Compilar para producción
 npm run build
 
-# Previsualizar build de producción
+# Previsualizar build local
 npm run preview
 ```

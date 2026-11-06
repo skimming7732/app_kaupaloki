@@ -1,0 +1,6 @@
+# Kaupaloki AI & Dev Rules
+
+- NO EMOJIS: Do not use emoji characters anywhere in UI components, HTML, TSX, CSS, or data files. Always use Remix Icon (`ri-*` classes) for all iconography.
+- Countries and currencies must be displayed as text with standard ISO codes (e.g., 'Colombia (COL)', 'COP', 'USD'), never with emoji flags.
+- Maintain RBAC: Operador only sees Inicio, Clientes, Negocios; Dispersor only sees Inicio, Dispersiones, Clientes.
+- 2FA downloads must follow: kaupaloki-backup-codes-<user_email>.txt.

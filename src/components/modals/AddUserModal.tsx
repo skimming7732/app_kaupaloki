@@ -9,16 +9,16 @@ interface AddUserModalProps {
 const EDGE_SYNC_URL = 'https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync';
 
 const PAISES_DISPONIBLES = [
-  { code: 'COL', name: 'Colombia', flag: '🇨🇴' },
-  { code: 'VEN', name: 'Venezuela', flag: '🇻🇪' },
-  { code: 'PAN', name: 'Panamá', flag: '🇵🇦' },
-  { code: 'USA', name: 'Estados Unidos', flag: '🇺🇸' },
-  { code: 'CHL', name: 'Chile', flag: '🇨🇱' },
-  { code: 'PER', name: 'Perú', flag: '🇵🇪' },
-  { code: 'MEX', name: 'México', flag: '🇲🇽' },
-  { code: 'ESP', name: 'España', flag: '🇪🇸' },
-  { code: 'BRA', name: 'Brasil', flag: '🇧🇷' },
-  { code: 'ARG', name: 'Argentina', flag: '🇦🇷' },
+  { code: 'COL', name: 'Colombia' },
+  { code: 'VEN', name: 'Venezuela' },
+  { code: 'PAN', name: 'Panamá' },
+  { code: 'USA', name: 'Estados Unidos' },
+  { code: 'CHL', name: 'Chile' },
+  { code: 'PER', name: 'Perú' },
+  { code: 'MEX', name: 'México' },
+  { code: 'ESP', name: 'España' },
+  { code: 'BRA', name: 'Brasil' },
+  { code: 'ARG', name: 'Argentina' },
 ];
 
 export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
@@ -237,7 +237,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                     >
                       {PAISES_DISPONIBLES.map((p) => (
                         <option key={p.code} value={p.code}>
-                          {p.flag} {p.name} ({p.code})
+                          {p.name} ({p.code})
                         </option>
                       ))}
                     </select>

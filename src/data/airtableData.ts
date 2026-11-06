@@ -1159,31 +1159,30 @@ export const ADMINS: Admin[] = [
 export const USUARIOS_AIRTABLE: UsuarioAirtable[] = ADMINS;
 
 export const CURRENCY_FLAGS: Record<string, string> = {
-  'USD': '🇺🇸',
-  'USD-EC': '🇺🇸',
-  'USD-PY': '🇺🇸',
-  'USDT': '🟢',
-  'COP': '🇨🇴',
-  'BRL': '🇧🇷',
-  'PEN': '🇵🇪',
-  'CLP': '🇨🇱',
-  'ARS': '🇦🇷',
-  'HNL': '🇭🇳',
-  'VES': '🇻🇪',
-  'MXN': '🇲🇽',
-  'UYU': '🇺🇾',
-  'EUR': '🇪🇺'
+  'USD': 'USD',
+  'USD-EC': 'USD-EC',
+  'USD-PY': 'USD-PY',
+  'USDT': 'USDT',
+  'COP': 'COP',
+  'BRL': 'BRL',
+  'PEN': 'PEN',
+  'CLP': 'CLP',
+  'ARS': 'ARS',
+  'HNL': 'HNL',
+  'VES': 'VES',
+  'MXN': 'MXN',
+  'UYU': 'UYU',
+  'EUR': 'EUR'
 };
 
 export function getCurrencyFlag(code: string): string {
-  if (!code) return '🌐';
-  const clean = code.trim().toUpperCase();
-  return CURRENCY_FLAGS[clean] || '🌐';
+  if (!code) return '';
+  return code.trim().toUpperCase();
 }
 
 export function formatCurrencyWithFlag(code: string): string {
   if (!code) return '';
-  return `${getCurrencyFlag(code)} ${code.toUpperCase()}`;
+  return code.trim().toUpperCase();
 }
 
 export function getMetricasContables() {

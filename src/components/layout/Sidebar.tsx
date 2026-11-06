@@ -20,30 +20,30 @@ export const Sidebar: React.FC<SidebarProps> = () => {
 
   if (isDispersor) {
     navItems = [
-      { to: '/inicio', label: 'Inicio', icon: '🏠' },
-      { to: '/dispersiones', label: 'Dispersiones', icon: '💸' },
-      { to: '/clientes', label: 'Clientes', icon: '👥' },
+      { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
+      { to: '/dispersiones', label: 'Dispersiones', icon: 'ri-send-plane-2-line' },
+      { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
     ];
   } else if (isOperador) {
     navItems = [
-      { to: '/inicio', label: 'Inicio', icon: '🏠' },
-      { to: '/clientes', label: 'Clientes', icon: '👥' },
-      { to: '/negocios', label: 'Negocios', icon: '💼' },
+      { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
+      { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
+      { to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' },
     ];
   } else {
     // Admin / Super Admin (full suite)
     navItems = [
-      { to: '/inicio', label: 'Inicio', icon: '🏠' },
-      { to: '/dashboard', label: 'Panel de Control', icon: '📊' },
-      { to: '/clientes', label: 'Clientes', icon: '👥' },
-      { to: '/negocios', label: 'Negocios', icon: '💼' },
-      { to: '/dispersiones', label: 'Dispersiones', icon: '💸' },
-      { to: '/efectivo', label: 'Efectivo', icon: '💵' },
-      { to: '/activos-liquidos', label: 'Activos Líquidos', icon: '🏦' },
-      { to: '/activos-digitales', label: 'Activos Digitales', icon: '🪙' },
-      { to: '/divisas', label: 'Divisas', icon: '🌐' },
-      { to: '/gastos', label: 'Gastos', icon: '🧾' },
-      { to: '/usuarios', label: 'Usuarios & Accesos', icon: '🛡️' },
+      { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
+      { to: '/dashboard', label: 'Panel de Control', icon: 'ri-dashboard-3-line' },
+      { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
+      { to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' },
+      { to: '/dispersiones', label: 'Dispersiones', icon: 'ri-send-plane-2-line' },
+      { to: '/efectivo', label: 'Efectivo', icon: 'ri-money-dollar-circle-line' },
+      { to: '/activos-liquidos', label: 'Activos Líquidos', icon: 'ri-bank-line' },
+      { to: '/activos-digitales', label: 'Activos Digitales', icon: 'ri-coin-line' },
+      { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
+      { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
+      { to: '/usuarios', label: 'Usuarios & Accesos', icon: 'ri-shield-user-line' },
     ];
   }
 
@@ -89,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                 transition: 'all 0.15s ease',
               })}
             >
-              <span style={{ fontSize: '15px' }}>{item.icon}</span>
+              <i className={`${item.icon} text-base`} />
               <span>{item.label}</span>
             </NavLink>
           ))}

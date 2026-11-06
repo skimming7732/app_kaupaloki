@@ -120,13 +120,13 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
                 onChange={(e) => setPais(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               >
-                <option value="Colombia">🇨🇴 Colombia</option>
-                <option value="Venezuela">🇻🇪 Venezuela</option>
-                <option value="Panamá">🇵🇦 Panamá</option>
-                <option value="Estados Unidos">🇺🇸 Estados Unidos</option>
-                <option value="Chile">🇨🇱 Chile</option>
-                <option value="Perú">🇵🇪 Perú</option>
-                <option value="España">🇪🇸 España</option>
+                <option value="Colombia">Colombia (COL)</option>
+                <option value="Venezuela">Venezuela (VEN)</option>
+                <option value="Panamá">Panamá (PAN)</option>
+                <option value="Estados Unidos">Estados Unidos (USA)</option>
+                <option value="Chile">Chile (CHL)</option>
+                <option value="Perú">Perú (PER)</option>
+                <option value="España">España (ESP)</option>
               </select>
             </div>
 
