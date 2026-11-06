@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState, useEffect } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import type { AirtableUser } from '../../context/AirtableContext';
@@ -43,6 +44,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
     setLoading(true);
     setError(null);
 
+    const finishSound = prepareSuccessSound();
     try {
       await updateRecord('Usuarios', user.id, {
         'Nombre': nombre.trim(),
@@ -51,10 +53,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
         'Divisas Autorizadas': divisas,
         'Estado': estado
       });
+      finishSound(true);
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Error al actualizar usuario');
     } finally {
+      finishSound(false);
       setLoading(false);
     }
   };

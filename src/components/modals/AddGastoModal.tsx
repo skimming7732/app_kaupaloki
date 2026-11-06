@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import { AccountSelect, accountLabel } from './AccountSelect';
@@ -39,6 +40,7 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
 
     setBusy(true);
     setError('');
+    const finishSound = prepareSuccessSound();
     try {
       const success = await createGasto({
         concepto, divisa, monto, origenFondos: accountLabel(account), origenFondosId: account.id,
@@ -46,10 +48,12 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
         comprobanteUrl: String(fields.get('comprobanteUrl')).trim(),
       });
       if (!success) throw new Error();
+      finishSound(true);
       onClose();
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : 'No se pudo registrar el gasto.');
     } finally {
+      finishSound(false);
       setBusy(false);
     }
   };

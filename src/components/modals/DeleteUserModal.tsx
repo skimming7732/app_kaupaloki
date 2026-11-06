@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import type { AirtableUser } from '../../context/AirtableContext';
@@ -18,9 +19,11 @@ export const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, user, 
   const handleDelete = async () => {
     setLoading(true);
     setError(null);
+    const finishSound = prepareSuccessSound();
     try {
       const res = await deleteUser(user.id);
       if (res.success) {
+        finishSound(true);
         onClose();
       } else {
         setError(res.error || 'No se pudo eliminar el usuario');
@@ -28,6 +31,7 @@ export const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, user, 
     } catch (err: any) {
       setError(err?.message || 'Error de conexión');
     } finally {
+      finishSound(false);
       setLoading(false);
     }
   };

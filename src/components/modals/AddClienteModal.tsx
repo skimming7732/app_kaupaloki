@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 
@@ -22,6 +23,7 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
     setLoading(true);
     setError(null);
 
+    const finishSound = prepareSuccessSound();
     try {
       const code = 'C-' + Math.floor(1000 + Math.random() * 9000);
       const result = await createRecord('Clientes', {
@@ -33,10 +35,12 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
       });
       if (!result?.success) throw new Error('No se pudo guardar el cliente.');
       setNombre('');
+      finishSound(true);
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Error al crear cliente');
     } finally {
+      finishSound(false);
       setLoading(false);
     }
   };

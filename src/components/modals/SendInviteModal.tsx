@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import type { AirtableUser } from '../../context/AirtableContext';
@@ -19,9 +20,11 @@ export const SendInviteModal: React.FC<SendInviteModalProps> = ({ isOpen, user, 
   const handleSend = async () => {
     setLoading(true);
     setError(null);
+    const finishSound = prepareSuccessSound();
     try {
       const res = await sendUserInvite(user.correo, user.nombre);
       if (res.success) {
+        finishSound(true);
         setSuccess(true);
         setTimeout(() => {
           setSuccess(false);
@@ -33,6 +36,7 @@ export const SendInviteModal: React.FC<SendInviteModalProps> = ({ isOpen, user, 
     } catch (err: any) {
       setError(err?.message || 'Error de conexión');
     } finally {
+      finishSound(false);
       setLoading(false);
     }
   };

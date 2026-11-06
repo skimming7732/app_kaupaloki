@@ -65,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
         { to: '/compras-usdt', label: 'Compras USDT', icon: 'ri-shopping-cart-2-line' },
         { to: '/ventas-usdt', label: 'Ventas USDT', icon: 'ri-funds-line' },
         { to: '/comisionistas', label: 'Comisionistas', icon: 'ri-user-star-line' },
+        { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
       ] : []),
     ] },
     { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin ? [
@@ -74,7 +75,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
     ] : [] },
     { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin ? [
-      { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
       { to: '/usuarios', label: 'Usuarios y accesos', icon: 'ri-shield-user-line' },
     ] : [] },
   ].filter((section) => section.items.length > 0);

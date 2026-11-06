@@ -1,11 +1,15 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
+import { prepareSuccessSound } from '../../utils/confirmationSound';
+import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
 import { useAuth } from '../../context/AuthContext';
 import { DIVISAS, type Divisa } from '../../data/airtableData';
 import { fallbackBanderaUrl, formatCOP } from '../../utils/formatters';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 
+export type EditableNegocio = NormalizedData['negocios'][number];
+
 interface AddNegocioModalProps {
+  negocio?: EditableNegocio;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -25,43 +29,6 @@ const formatAmountInput = (value: string) => {
   const [integer, decimal] = value.replace(/,/g, '').split('.');
   const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return decimal === undefined ? grouped : `${grouped}.${decimal}`;
-};
-
-// Prepare audio during the submit gesture so it can play after the save completes.
-const prepareSuccessSound = () => {
-  if (!window.AudioContext) return () => {};
-
-  try {
-    const audio = new AudioContext();
-    void audio.resume().catch(() => {});
-    const close = () => { void audio.close().catch(() => {}); };
-
-    return (success: boolean) => {
-      if (!success || audio.state !== 'running') {
-        close();
-        return;
-      }
-
-      try {
-        const tone = audio.createOscillator();
-        const volume = audio.createGain();
-        const start = audio.currentTime;
-        tone.frequency.setValueAtTime(523.25, start);
-        tone.frequency.setValueAtTime(659.25, start + 0.09);
-        volume.gain.setValueAtTime(0, start);
-        volume.gain.linearRampToValueAtTime(0.045, start + 0.02);
-        volume.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
-        tone.connect(volume).connect(audio.destination);
-        tone.onended = close;
-        tone.start(start);
-        tone.stop(start + 0.26);
-      } catch {
-        close();
-      }
-    };
-  } catch {
-    return () => {};
-  }
 };
 
 const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showName?: boolean }) => {
@@ -92,11 +59,11 @@ const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showNa
   );
 };
 
-export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClose }) =>
-  isOpen ? <NegocioDialog onClose={onClose} /> : null;
+export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClose, negocio }) =>
+  isOpen ? <NegocioDialog key={negocio?.id ?? 'new'} onClose={onClose} negocio={negocio} /> : null;
 
-const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
-  const { data, createNegocio, createCliente } = useAirtable();
+const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'>) => {
+  const { data, createNegocio, createCliente, updateNegocio } = useAirtable();
   const { profile } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const currencyTrigger = useRef<HTMLButtonElement>(null);
@@ -104,11 +71,17 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
   const restoreClientFocus = useRef(false);
   const id = useId();
 
-  const [clienteId, setClienteId] = useState('');
-  const [divisaId, setDivisaId] = useState('');
-  const [monto, setMonto] = useState('');
-  const [tasa, setTasa] = useState('');
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [clienteId, setClienteId] = useState(() =>
+    negocio
+      ? data.clientes.find((client) => client.id === negocio.clienteId || client.codigo === negocio.clienteCodigo)?.id
+        || negocio.clienteId || ''
+      : ''
+  );
+  const [divisaCode, setDivisaCode] = useState(negocio?.divisaCodigo || '');
+  const [monto, setMonto] = useState(() => negocio ? formatAmountInput(String(negocio.montoDivisa)) : '');
+  const [tasa, setTasa] = useState(negocio ? String(negocio.tasaCambio) : '');
+  const [fecha, setFecha] = useState(() => negocio ? negocio.fecha.slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const [authorId, setAuthorId] = useState('');
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [currencyQuery, setCurrencyQuery] = useState('');
   const [isCreatingClient, setIsCreatingClient] = useState(false);
@@ -134,7 +107,11 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
   const currencies = profile?.role === 'operador' && authorizedCurrencies?.length
     ? data.divisas.filter((currency) => authorizedCurrencies.includes(currency.codigo))
     : data.divisas;
-  const selectedCurrency = currencies.find((currency) => currency.id === divisaId);
+  const selectedCurrency = currencies.find((currency) => currency.codigo === divisaCode);
+  const authorName = negocio?.createdByName?.trim() ||
+    (negocio?.createdBy && (data.usuarios.find((user) => user.id === negocio.createdBy)?.nombre || negocio.createdBy));
+  const canAssignAuthor = Boolean(negocio && !authorName &&
+    (profile?.role === 'administrador' || profile?.role === 'super_admin'));
   const query = normalizeSearch(currencyQuery.trim());
   const matchingCurrencies = currencies.filter((currency) =>
     normalizeSearch([currency.codigo, currencyName(currency), currency.pais].join(' ')).includes(query)
@@ -146,7 +123,7 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
     parsedMonto > 0 && parsedTasa > 0 && Number.isFinite(ingresoCOP));
 
   const selectCurrency = (currency: Divisa) => {
-    setDivisaId(currency.id);
+    setDivisaCode(currency.codigo);
     setCurrencyOpen(false);
     currencyTrigger.current?.focus();
   };
@@ -202,15 +179,21 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
     const finishSound = prepareSuccessSound();
 
     try {
-      const success = await createNegocio({
+      const fields = {
         fecha,
         clienteId,
         divisaCodigo: selectedCurrency.codigo,
         montoDivisa: parsedMonto,
         tasaCambio: parsedTasa,
         ingresoCOP,
-      });
-      if (!success) throw new Error('No se pudo registrar el negocio. Inténtalo de nuevo.');
+      };
+      const success = negocio
+        ? await updateNegocio({
+          ...fields, id: negocio.id, divisaId: selectedCurrency.id,
+          ...(canAssignAuthor && authorId ? { authorId } : {}),
+        })
+        : await createNegocio(fields);
+      if (!success) throw new Error('No se pudo guardar el negocio.');
       finishSound(true);
       onClose();
     } catch (err) {
@@ -239,10 +222,10 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
         </div>
         <div className="flex-1">
           <h2 id={id + '-title'} className="text-lg font-bold">
-            {isCreatingClient ? 'Agregar cliente' : 'Registrar negocio'}
+            {isCreatingClient ? 'Agregar cliente' : negocio ? 'Editar negocio ' + negocio.codigo : 'Registrar negocio'}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {isCreatingClient ? 'El cliente quedará seleccionado para esta operación.' : 'Registra una operación de cambio y consulta el ingreso en COP.'}
+            {isCreatingClient ? 'El cliente quedará seleccionado para esta operación.' : negocio ? 'Actualiza los datos de la operación.' : 'Registra una operación de cambio y consulta el ingreso en COP.'}
           </p>
         </div>
         <button
@@ -293,6 +276,23 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
         </form>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6">
+          {negocio && (
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              {canAssignAuthor ? (
+                <>
+                  <label htmlFor={id + '-author'} className={labelClass}>Creado por</label>
+                  <select id={id + '-author'} value={authorId} onChange={(event) => setAuthorId(event.target.value)} className={fieldClass}>
+                    <option value="">Sin registro</option>
+                    {data.usuarios.filter((user) => ['administrador', 'super_admin', 'operador', 'dispersor'].includes(user.rol)).map((user) => (
+                      <option key={user.id} value={user.id}>{user.nombre}{user.correo ? ' · ' + user.correo : ''}</option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <p className="text-sm"><span className="font-medium">Creado por</span> · {authorName || 'Sin registro'}</p>
+              )}
+            </div>
+          )}
           <div ref={clientField}>
             <label htmlFor={id + '-client'} className={labelClass}>Cliente</label>
             <ClientSearchSelect
@@ -369,7 +369,7 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
                       <button
                         type="button"
                         key={currency.id}
-                        aria-pressed={currency.id === divisaId}
+                        aria-pressed={currency.codigo === divisaCode}
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => selectCurrency(currency)}
                         className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted aria-pressed:bg-primary/10"
@@ -409,7 +409,7 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
           <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
             <button type="button" onClick={onClose} disabled={saving} className={secondaryClass}>Cancelar</button>
             <button type="submit" disabled={saving || !canSubmit} className={primaryClass}>
-              {saving ? 'Registrando…' : 'Registrar negocio'}
+              {saving ? 'Guardando…' : negocio ? 'Guardar cambios' : 'Registrar negocio'}
             </button>
           </div>
         </form>

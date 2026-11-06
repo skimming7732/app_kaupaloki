@@ -1,12 +1,87 @@
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState } from 'react';
-import { useAirtable } from '../context/AirtableContext';
-import { formatCurrency } from '../utils/formatters';
+import { useAirtable, type NormalizedData } from '../context/AirtableContext';
+import { formatCurrency, formatDate } from '../utils/formatters';
+
+type Divisa = NormalizedData['divisas'][number];
+
+const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: NormalizedData; onBack: () => void }) => {
+  const { codigo } = divisa;
+  const movimientos = [
+    ...data.negocios.filter((item) => item.divisaCodigo === codigo).map((item) => ({
+      ...item, tipo: 'Negocio', detalle: item.clienteNombre, entrada: item.montoDivisa, salida: 0,
+    })),
+    ...data.comprasUsdt.filter((item) => item.divisaCodigo === codigo || codigo === 'USDT').map((item) => ({
+      ...item, tipo: 'Compra USDT', detalle: item.walletDestino,
+      entrada: codigo === 'USDT' ? item.usdtComprado : 0,
+      salida: item.divisaCodigo === codigo ? item.valorComprado : 0,
+    })),
+    ...(codigo === 'USDT' || codigo === 'COP' ? data.ventasUsdt : []).map((item) => ({
+      ...item, tipo: 'Venta USDT', detalle: item.concepto,
+      entrada: codigo === 'COP' ? item.totalCOP : 0, salida: codigo === 'USDT' ? item.usdtVendido : 0,
+    })),
+  ].sort((a, b) => b.fecha.localeCompare(a.fecha) || a.codigo.localeCompare(b.codigo));
+
+  return (
+    <div className="space-y-4">
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10">
+        <i className="ri-arrow-left-line" aria-hidden="true" /> Volver a divisas
+      </button>
+      <div>
+        <h2 className="text-xl font-bold">Extracto de {codigo}</h2>
+        <p className="text-sm text-muted-foreground">{divisa.nombre} · Movimientos de cambio registrados</p>
+      </div>
+      <dl className="grid gap-3 sm:grid-cols-3">
+        {[
+          ['Total recibido', divisa.totalRecibido],
+          ['Total comprado', divisa.totalComprado],
+          ['Total pendiente', divisa.totalPendiente],
+        ].map(([label, amount]) => (
+          <div key={label} className="rounded-xl border border-border bg-card p-4">
+            <dt className="text-sm text-muted-foreground">{label}</dt>
+            <dd className="mt-1 text-lg font-semibold">{formatCurrency(Number(amount), codigo)}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <table className="w-full text-left text-xs">
+          <caption className="sr-only">Movimientos de cambio en {codigo}</caption>
+          <thead className="bg-muted/40 text-muted-foreground">
+            <tr>
+              {['Fecha', 'Operación', 'Referencia', 'Detalle', 'Entrada', 'Salida'].map((label) => (
+                <th key={label} scope="col" className="px-4 py-3">{label}</th>
+              ))}
+              <CreatedByHeader />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {movimientos.length === 0 && (
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No hay movimientos registrados para esta divisa.</td></tr>
+            )}
+            {movimientos.map((item) => (
+              <tr key={item.tipo + '-' + item.id}>
+                <td className="whitespace-nowrap px-4 py-3">{formatDate(item.fecha)}</td>
+                <td className="whitespace-nowrap px-4 py-3">{item.tipo}</td>
+                <td className="whitespace-nowrap px-4 py-3 font-mono">{item.codigo}</td>
+                <td className="px-4 py-3">{item.detalle || '—'}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-emerald-600">{item.entrada ? formatCurrency(item.entrada, codigo) : '—'}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-rose-600">{item.salida ? formatCurrency(item.salida, codigo) : '—'}</td>
+                <CreatedByCell name={item.createdByName} />
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 export const DivisasView: React.FC = () => {
   const { data } = useAirtable();
   const [search, setSearch] = useState('');
+  const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const selectedDivisa = data.divisas.find((item) => item.codigo === selectedCode);
 
   const filteredDivisas = data.divisas.filter((d) => {
     return (
@@ -15,6 +90,8 @@ export const DivisasView: React.FC = () => {
       (d.pais && d.pais.toLowerCase().includes(search.toLowerCase()))
     );
   });
+
+  if (selectedDivisa) return <ExtractoDivisa divisa={selectedDivisa} data={data} onBack={() => setSelectedCode(null)} />;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -63,9 +140,14 @@ export const DivisasView: React.FC = () => {
                 filteredDivisas.map((d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary font-bold font-mono text-xs">
-                        {d.codigo}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCode(d.codigo)}
+                        aria-label={'Ver extracto de ' + d.codigo}
+                        className="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary hover:bg-primary/20"
+                      >
+                        {d.codigo} <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                      </button>
                     </td>
                     <td className="py-3 px-4 font-semibold text-foreground">{d.nombre}</td>
                     <td className="py-3 px-4 text-muted-foreground">{d.pais || 'Internacional'}</td>

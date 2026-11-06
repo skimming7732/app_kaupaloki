@@ -1014,9 +1014,13 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updates.monto_cop = Number(fields.ingresoCOP);
       }
       if (fields.estado !== undefined) updates.estado = fields.estado;
+      if (fields.authorId) updates.created_by = fields.authorId;
 
       const { error } = await writeDashboardRecord(updates,
-        (record) => supabase.from('negocios').update(record).eq('id', id).select('id').single(),
+        (record) => {
+          const update = supabase.from('negocios').update(record).eq('id', id);
+          return (fields.authorId ? update.is('created_by', null) : update).select('id').single();
+        },
         { generatedColumns: negocioGeneratedFields },
       );
       if (error) throw error;

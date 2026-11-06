@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 
 interface ShareClientModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface ShareClientModalProps {
 export const ShareClientModal: React.FC<ShareClientModalProps> = ({ isOpen, onClose, cliente }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
+  const [copyError, setCopyError] = useState('');
 
   if (!isOpen || !cliente) return null;
 
@@ -25,16 +27,19 @@ ${publicUrl}
 
 Tu código de acceso es: *${clientCode}*`;
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(publicUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
-
-  const handleCopyMessage = () => {
-    navigator.clipboard.writeText(defaultMessage);
-    setCopiedMessage(true);
-    setTimeout(() => setCopiedMessage(false), 2000);
+  const copy = async (text: string, setCopied: (value: boolean) => void) => {
+    setCopyError('');
+    const finishSound = prepareSuccessSound();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      finishSound(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError('No se pudo copiar al portapapeles.');
+    } finally {
+      finishSound(false);
+    }
   };
 
   const handleOpenWhatsApp = () => {
@@ -65,6 +70,7 @@ Tu código de acceso es: *${clientCode}*`;
         </div>
 
         <div className="space-y-4">
+          {copyError && <p role="alert" className="text-sm text-destructive">{copyError}</p>}
           {/* Client Code Highlight */}
           <div className="p-3 rounded-2xl bg-muted/40 border border-border flex items-center justify-between">
             <div>
@@ -94,7 +100,7 @@ Tu código de acceso es: *${clientCode}*`;
               />
               <button
                 type="button"
-                onClick={handleCopyLink}
+            onClick={() => void copy(publicUrl, setCopiedLink)}
                 className="px-3 py-2 rounded-xl border border-border hover:bg-muted text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
               >
                 <i className={copiedLink ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
@@ -111,7 +117,7 @@ Tu código de acceso es: *${clientCode}*`;
               </label>
               <button
                 type="button"
-                onClick={handleCopyMessage}
+            onClick={() => void copy(defaultMessage, setCopiedMessage)}
                 className="text-[11px] text-primary hover:underline font-semibold flex items-center gap-1"
               >
                 <i className={copiedMessage ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />

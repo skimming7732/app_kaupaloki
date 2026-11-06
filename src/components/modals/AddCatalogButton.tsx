@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable, type CatalogTable } from '../../context/AirtableContext';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
@@ -99,12 +100,15 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
 
     setBusy(true);
     setError('');
+    const finishSound = prepareSuccessSound();
     try {
       await createCatalogRecord(table, record);
+      finishSound(true);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el registro.');
     } finally {
+      finishSound(false);
       setBusy(false);
     }
   };

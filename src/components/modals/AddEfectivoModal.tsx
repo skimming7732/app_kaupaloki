@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useId, useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
@@ -34,14 +35,17 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
     const fields = new FormData(event.currentTarget);
     setBusy(true);
     setError('');
+    const finishSound = prepareSuccessSound();
     try {
       const result = await createCliente(name.trim(), String(fields.get('pais')).trim());
       if (!result?.success || !result.id) throw new Error();
       setClienteId(result.id);
+      finishSound(true);
       back();
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : 'No se pudo guardar el cliente.');
     } finally {
+      finishSound(false);
       setBusy(false);
     }
   };
@@ -59,16 +63,19 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
 
     setBusy(true);
     setError('');
+    const finishSound = prepareSuccessSound();
     try {
       const success = await createMovimientoEfectivo({
         tipo, montoCop, clienteId, origenFondosId: account.id, origenFondos: accountLabel(account),
         fecha: fields.get('fecha'), referencia: String(fields.get('referencia')).trim(),
       });
       if (!success) throw new Error();
+      finishSound(true);
       onClose();
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : 'No se pudo registrar el movimiento.');
     } finally {
+      finishSound(false);
       setBusy(false);
     }
   };

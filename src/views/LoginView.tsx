@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { prepareSuccessSound } from '../utils/confirmationSound';
 
 export const LoginView: React.FC = () => {
   const { theme, toggleTheme } = useAuth();
@@ -25,6 +26,7 @@ export const LoginView: React.FC = () => {
     setForgotLoading(true);
     setForgotError(null);
     setForgotSuccess(false);
+    const finishSound = prepareSuccessSound();
 
     try {
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
@@ -32,9 +34,11 @@ export const LoginView: React.FC = () => {
       });
       if (resetErr) throw resetErr;
       setForgotSuccess(true);
+      finishSound(true);
     } catch (err: any) {
       setForgotError(err?.message || 'Error al enviar el correo de recuperación');
     } finally {
+      finishSound(false);
       setForgotLoading(false);
     }
   };

@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
@@ -40,6 +41,7 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
     setLoading(true);
     setError(null);
 
+    const finishSound = prepareSuccessSound();
     try {
       const ok = await createComisionista({
         comisionistaId,
@@ -54,10 +56,12 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
       setComisionistaId('');
       setSelectedReferidos([]);
       setPorcentaje('1');
+      finishSound(true);
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Error al guardar comisionista');
     } finally {
+      finishSound(false);
       setLoading(false);
     }
   };

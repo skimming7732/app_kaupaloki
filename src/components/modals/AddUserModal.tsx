@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import { supabase } from '../../lib/supabase';
@@ -148,6 +149,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
     setLoading(true);
     setError(null);
 
+    const finishSound = prepareSuccessSound();
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Inicia sesión para invitar usuarios.');
@@ -171,6 +173,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
         throw new Error(resJson.error || 'Error al invitar al usuario');
       }
 
+      finishSound(true);
       setSuccess(true);
       await syncWithAirtable(true);
 
@@ -180,6 +183,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
     } catch (err: any) {
       setError(err?.message || 'Error al procesar la invitación');
     } finally {
+      finishSound(false);
       setLoading(false);
     }
   };

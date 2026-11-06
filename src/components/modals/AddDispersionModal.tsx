@@ -1,3 +1,4 @@
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useEffect, useId, useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
@@ -48,6 +49,7 @@ const DispersionForm = ({ onClose }: Pick<AddDispersionModalProps, 'onClose'>) =
 
     setBusy(true);
     setError('');
+    const finishSound = prepareSuccessSound();
     try {
       const success = await createDispersion({
         clienteId,
@@ -59,10 +61,12 @@ const DispersionForm = ({ onClose }: Pick<AddDispersionModalProps, 'onClose'>) =
         comprobanteUrl: String(fields.get('comprobanteUrl')).trim(),
       });
       if (!success) throw new Error();
+      finishSound(true);
       onClose();
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : 'No se pudo registrar la dispersión.');
     } finally {
+      finishSound(false);
       setBusy(false);
     }
   };
