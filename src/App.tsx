@@ -12,6 +12,7 @@ import { NegociosView } from './views/NegociosView';
 import { ClientesView } from './views/ClientesView';
 import { DispersionesView } from './views/DispersionesView';
 import { EfectivoView } from './views/EfectivoView';
+import { GastosView } from './views/GastosView';
 import { ActivosLiquidosView } from './views/ActivosLiquidosView';
 import { ActivosDigitalesView } from './views/ActivosDigitalesView';
 import { DivisasView } from './views/DivisasView';
@@ -27,12 +28,15 @@ import { AddNegocioModal } from './components/modals/AddNegocioModal';
 import { AddClienteModal } from './components/modals/AddClienteModal';
 import { AddDispersionModal } from './components/modals/AddDispersionModal';
 import { AddEfectivoModal } from './components/modals/AddEfectivoModal';
+import { AddGastoModal } from './components/modals/AddGastoModal';
 
-const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AppLayout: React.FC<{
+  children: React.ReactNode;
+  activeModal: string | null;
+  setActiveModal: (m: string | null) => void;
+}> = ({ children, activeModal, setActiveModal }) => {
   const { user, is2FAVerified, loading } = useAuth();
   const location = useLocation();
-
-  const [activeModal, setActiveModal] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -66,16 +70,25 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </main>
       </div>
 
-      {/* Global Modals triggered from Header button */}
+      {/* Global Modals */}
       <AddNegocioModal isOpen={activeModal === 'add-negocio'} onClose={() => setActiveModal(null)} />
       <AddClienteModal isOpen={activeModal === 'add-cliente'} onClose={() => setActiveModal(null)} />
       <AddDispersionModal isOpen={activeModal === 'add-dispersion'} onClose={() => setActiveModal(null)} />
       <AddEfectivoModal isOpen={activeModal === 'add-efectivo'} onClose={() => setActiveModal(null)} />
+      <AddGastoModal isOpen={activeModal === 'add-gasto'} onClose={() => setActiveModal(null)} />
     </div>
   );
 };
 
 export const App: React.FC = () => {
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+
+  const renderWithLayout = (component: React.ReactNode) => (
+    <AppLayout activeModal={activeModal} setActiveModal={setActiveModal}>
+      {component}
+    </AppLayout>
+  );
+
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -89,19 +102,33 @@ export const App: React.FC = () => {
             <Route path="/cliente" element={<ClientPublicView />} />
 
             {/* Authenticated Dashboard App Layout routes */}
-            <Route path="/" element={<AppLayout><InicioView /></AppLayout>} />
-            <Route path="/inicio" element={<AppLayout><InicioView /></AppLayout>} />
-            <Route path="/dashboard" element={<AppLayout><DashboardView /></AppLayout>} />
-            <Route path="/negocios" element={<AppLayout><NegociosView /></AppLayout>} />
-            <Route path="/clientes" element={<AppLayout><ClientesView /></AppLayout>} />
-            <Route path="/dispersiones" element={<AppLayout><DispersionesView /></AppLayout>} />
-            <Route path="/efectivo" element={<AppLayout><EfectivoView /></AppLayout>} />
-            <Route path="/activos" element={<AppLayout><ActivosLiquidosView /></AppLayout>} />
-            <Route path="/activos-liquidos" element={<AppLayout><ActivosLiquidosView /></AppLayout>} />
-            <Route path="/activos-digitales" element={<AppLayout><ActivosDigitalesView /></AppLayout>} />
-            <Route path="/divisas" element={<AppLayout><DivisasView /></AppLayout>} />
-            <Route path="/usuarios" element={<AppLayout><UsuariosView /></AppLayout>} />
-            <Route path="/perfil" element={<AppLayout><PerfilView /></AppLayout>} />
+            <Route path="/" element={renderWithLayout(<InicioView />)} />
+            <Route path="/inicio" element={renderWithLayout(<InicioView />)} />
+            <Route path="/dashboard" element={renderWithLayout(<DashboardView />)} />
+            <Route path="/negocios" element={renderWithLayout(<NegociosView />)} />
+            <Route path="/clientes" element={renderWithLayout(<ClientesView />)} />
+            <Route path="/dispersiones" element={renderWithLayout(<DispersionesView />)} />
+            <Route
+              path="/efectivo"
+              element={renderWithLayout(
+                <EfectivoView
+                  onOpenAddMovimiento={() => setActiveModal('add-efectivo')}
+                  onOpenAddGasto={() => setActiveModal('add-gasto')}
+                />
+              )}
+            />
+            <Route
+              path="/gastos"
+              element={renderWithLayout(
+                <GastosView onOpenAddGasto={() => setActiveModal('add-gasto')} />
+              )}
+            />
+            <Route path="/activos" element={renderWithLayout(<ActivosLiquidosView />)} />
+            <Route path="/activos-liquidos" element={renderWithLayout(<ActivosLiquidosView />)} />
+            <Route path="/activos-digitales" element={renderWithLayout(<ActivosDigitalesView />)} />
+            <Route path="/divisas" element={renderWithLayout(<DivisasView />)} />
+            <Route path="/usuarios" element={renderWithLayout(<UsuariosView />)} />
+            <Route path="/perfil" element={renderWithLayout(<PerfilView />)} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/inicio" replace />} />

@@ -11,18 +11,18 @@ export const ActivosLiquidosView: React.FC = () => {
       id: d.id,
       tipo: 'Egreso (Dispersión)',
       fecha: d.fecha,
-      cuenta: d.origenFondos || 'Bancolombia',
+      institucion: d.origenFondos || 'Bancolombia',
       detalle: `Pago a ${d.clienteNombre}`,
-      monto: -d.monto
+      monto: -d.monto,
     })),
     ...data.efectivo.slice(0, 10).map((e) => ({
       id: e.id,
       tipo: e.tipo === 'Ingreso' ? 'Ingreso Efectivo' : 'Egreso Efectivo',
       fecha: e.fecha,
-      cuenta: e.origenFondos || 'Caja Efectivo',
+      institucion: e.origenFondos || 'Efectivo Dosquebradas',
       detalle: e.referencia || `Movimiento ${e.clienteNombre}`,
-      monto: e.tipo === 'Ingreso' ? e.monto : -e.monto
-    }))
+      monto: e.tipo === 'Ingreso' ? e.monto : -e.monto,
+    })),
   ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()).slice(0, 15);
 
   return (
@@ -31,35 +31,35 @@ export const ActivosLiquidosView: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-card border border-border shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase">Total Bancos</span>
+            <span className="text-xs font-semibold uppercase">Total en Instituciones</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <i className="ri-bank-line" />
             </div>
           </div>
           <span className="text-2xl font-black text-foreground">{formatCOP(metrics.totalActivosLiquidos)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-1">Saldo consolidado en cuentas</span>
+          <span className="text-[11px] text-muted-foreground block mt-1">Saldo consolidado en custodia</span>
         </div>
 
         <div className="p-5 rounded-2xl bg-card border border-border shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase">Bancolombia Principal</span>
+            <span className="text-xs font-semibold uppercase">Institución Principal (Bancolombia)</span>
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
               <i className="ri-building-line" />
             </div>
           </div>
           <span className="text-2xl font-black text-foreground">{formatCOP(metrics.totalActivosLiquidos * 0.75)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-1">Cuenta corriente operativa</span>
+          <span className="text-[11px] text-muted-foreground block mt-1">Cuenta corriente institucional</span>
         </div>
 
         <div className="p-5 rounded-2xl bg-card border border-border shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase">Davivienda / Otras</span>
+            <span className="text-xs font-semibold uppercase">Otras Instituciones y Efectivo</span>
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
               <i className="ri-wallet-line" />
             </div>
           </div>
           <span className="text-2xl font-black text-foreground">{formatCOP(metrics.totalActivosLiquidos * 0.25)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-1">Fondos de contingencia</span>
+          <span className="text-[11px] text-muted-foreground block mt-1">Caja física y contingencia</span>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export const ActivosLiquidosView: React.FC = () => {
         <div className="p-4 border-b border-border flex items-center justify-between bg-card">
           <div>
             <h3 className="text-sm font-bold text-foreground">Extracto de Movimientos Líquidos</h3>
-            <p className="text-xs text-muted-foreground">Últimos movimientos bancarios y de caja</p>
+            <p className="text-xs text-muted-foreground">Movimientos por Institución y caja física</p>
           </div>
           <span className="text-xs font-mono text-muted-foreground">{recentMovements.length} movimientos</span>
         </div>
@@ -78,7 +78,7 @@ export const ActivosLiquidosView: React.FC = () => {
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
                 <th className="py-3 px-4">Fecha</th>
-                <th className="py-3 px-4">Cuenta / Origen</th>
+                <th className="py-3 px-4">Institución / Origen</th>
                 <th className="py-3 px-4">Tipo</th>
                 <th className="py-3 px-4">Detalle</th>
                 <th className="py-3 px-4 text-right">Monto</th>
@@ -95,7 +95,7 @@ export const ActivosLiquidosView: React.FC = () => {
                 recentMovements.map((m) => (
                   <tr key={m.id} className="hover:bg-muted/40 transition-colors">
                     <td className="py-3 px-4 text-muted-foreground font-mono">{formatDate(m.fecha)}</td>
-                    <td className="py-3 px-4 font-medium text-foreground">{m.cuenta}</td>
+                    <td className="py-3 px-4 font-medium text-foreground">{m.institucion}</td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         m.monto > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'

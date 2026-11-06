@@ -6,10 +6,11 @@ import { SendInviteModal } from '../components/modals/SendInviteModal';
 import { DeleteUserModal } from '../components/modals/DeleteUserModal';
 
 export const UsuariosView: React.FC = () => {
-  const { data } = useAirtable();
+  const { data, updateRecord } = useAirtable();
   const [selectedRole, setSelectedRole] = useState('Todos');
   const [search, setSearch] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   // Modal states
   const [editingUser, setEditingUser] = useState<AirtableUser | null>(null);
@@ -36,6 +37,16 @@ export const UsuariosView: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleToggleEstado = async (u: AirtableUser) => {
+    const nuevoEstado = (u.estado || '').toLowerCase() === 'activo' ? 'Invitado' : 'Activo';
+    setUpdatingId(u.id);
+    try {
+      await updateRecord('Usuarios', u.id, { Estado: nuevoEstado });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const getRoleIcon = (rol: string) => {
     switch (rol) {
       case 'Super Admin':
@@ -46,17 +57,6 @@ export const UsuariosView: React.FC = () => {
         return <i className="ri-send-plane-line text-purple-500" />;
       default:
         return <i className="ri-user-star-line text-emerald-500" />;
-    }
-  };
-
-  const getStatusBadge = (estado: string) => {
-    switch (estado) {
-      case 'Activo':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">Activo</span>;
-      case 'Invitado':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500">Invitado</span>;
-      default:
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">Inactivo</span>;
     }
   };
 
@@ -100,13 +100,13 @@ export const UsuariosView: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
-                <th className="py-3 px-4">Código</th>
-                <th className="py-3 px-4">Usuario</th>
-                <th className="py-3 px-4">País</th>
-                <th className="py-3 px-4">Rol</th>
-                <th className="py-3 px-4">Divisas</th>
-                <th className="py-3 px-4 text-center">Estado</th>
-                <th className="py-3 px-4 text-center">Acciones</th>
+                <th className="py-3.5 px-4 font-bold">Código</th>
+                <th className="py-3.5 px-4">Usuario</th>
+                <th className="py-3.5 px-4">País</th>
+                <th className="py-3.5 px-4">Rol</th>
+                <th className="py-3.5 px-4">Divisas</th>
+                <th className="py-3.5 px-4 text-center">Estado (Click para cambiar)</th>
+                <th className="py-3.5 px-4 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -117,87 +117,113 @@ export const UsuariosView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-mono font-medium text-foreground">{u.codigo}</td>
-                    
-                    {/* User with role-specific avatar */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-muted/80 flex items-center justify-center text-sm border border-border">
-                          {getRoleIcon(u.rol)}
+                filteredUsers.map((u) => {
+                  const isActivo = (u.estado || '').toLowerCase() === 'activo';
+                  return (
+                    <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+                      {/* Prominent Code Column - No row numbers */}
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-xl font-mono font-bold text-xs bg-primary/10 text-primary border border-primary/20 tracking-wide shadow-sm">
+                          {u.codigo}
+                        </span>
+                      </td>
+
+                      {/* User with avatar */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-muted/80 flex items-center justify-center text-sm border border-border">
+                            {getRoleIcon(u.rol)}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-foreground block">{u.nombre || 'Sin nombre'}</span>
+                            <span className="text-[11px] text-muted-foreground">{u.correo}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-semibold text-foreground block">{u.nombre || 'Sin nombre'}</span>
-                          <span className="text-[11px] text-muted-foreground">{u.correo}</span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-muted-foreground font-medium">{u.pais || 'Colombia'}</td>
+
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-foreground border border-border">
+                          {u.rol}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        {u.divisasAutorizadas && u.divisasAutorizadas.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {u.divisasAutorizadas.map((d) => (
+                              <span key={d} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px]">
+                                {d}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-[11px]">Todas</span>
+                        )}
+                      </td>
+
+                      {/* Interactive Status Pill Toggle */}
+                      <td className="py-3.5 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleEstado(u)}
+                          disabled={updatingId === u.id}
+                          title="Haz clic para alternar entre Invitado y Activo"
+                          className={`px-3 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 ${
+                            isActivo
+                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/20'
+                              : 'bg-amber-500/10 text-amber-500 border border-amber-500/30 hover:bg-amber-500/20'
+                          }`}
+                        >
+                          {updatingId === u.id ? (
+                            <i className="ri-loader-4-line animate-spin text-xs" />
+                          ) : (
+                            <span className={`w-2 h-2 rounded-full ${isActivo ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                          )}
+                          <span>{isActivo ? 'Activo' : 'Invitado'}</span>
+                        </button>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleCopyLink(u)}
+                            title="Copiar enlace de acceso"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <i className={copiedId === u.id ? "ri-check-line text-emerald-500" : "ri-share-line"} />
+                          </button>
+
+                          <button
+                            onClick={() => setInvitingUser(u)}
+                            title="Enviar correo de invitación"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+                          >
+                            <i className="ri-mail-send-line" />
+                          </button>
+
+                          <button
+                            onClick={() => setEditingUser(u)}
+                            title="Editar permisos y rol"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          >
+                            <i className="ri-edit-line" />
+                          </button>
+
+                          <button
+                            onClick={() => setDeletingUser(u)}
+                            title="Eliminar usuario"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <i className="ri-delete-bin-line" />
+                          </button>
                         </div>
-                      </div>
-                    </td>
-
-                    <td className="py-3 px-4 text-muted-foreground">{u.pais || 'Colombia'}</td>
-
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-foreground border border-border">
-                        {u.rol}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-4">
-                      {u.divisasAutorizadas && u.divisasAutorizadas.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {u.divisasAutorizadas.map((d) => (
-                            <span key={d} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px]">
-                              {d}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-[11px]">Todas</span>
-                      )}
-                    </td>
-
-                    <td className="py-3 px-4 text-center">
-                      {getStatusBadge(u.estado)}
-                    </td>
-
-                    {/* Icon-only Actions */}
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => handleCopyLink(u)}
-                          title="Copiar enlace de acceso"
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                        >
-                          <i className={copiedId === u.id ? "ri-check-line text-emerald-500" : "ri-share-line"} />
-                        </button>
-
-                        <button
-                          onClick={() => setInvitingUser(u)}
-                          title="Enviar correo de invitación"
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-                        >
-                          <i className="ri-mail-send-line" />
-                        </button>
-
-                        <button
-                          onClick={() => setEditingUser(u)}
-                          title="Editar permisos y rol"
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        >
-                          <i className="ri-edit-line" />
-                        </button>
-
-                        <button
-                          onClick={() => setDeletingUser(u)}
-                          title="Eliminar usuario"
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        >
-                          <i className="ri-delete-bin-line" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

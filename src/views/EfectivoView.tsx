@@ -2,10 +2,23 @@ import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
 
-export const EfectivoView: React.FC = () => {
+interface EfectivoViewProps {
+  onOpenAddMovimiento?: () => void;
+  onOpenAddGasto?: () => void;
+}
+
+export const EfectivoView: React.FC<EfectivoViewProps> = ({
+  onOpenAddMovimiento,
+  onOpenAddGasto,
+}) => {
   const { data } = useAirtable();
+
+  // Filters
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
+  const [selectedCliente, setSelectedCliente] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
 
   const { totalIngresos, totalPagos, balanceEfectivo, filteredMovimientos } = useMemo(() => {
     let ingresos = 0;
@@ -22,81 +35,172 @@ export const EfectivoView: React.FC = () => {
         m.clienteNombre.toLowerCase().includes(search.toLowerCase()) ||
         (m.referencia && m.referencia.toLowerCase().includes(search.toLowerCase()));
       const matchTipo = !filterTipo || m.tipo === filterTipo;
-      return matchSearch && matchTipo;
+      const matchCliente =
+        !selectedCliente ||
+        m.clienteId === selectedCliente ||
+        m.clienteNombre.toLowerCase().includes(selectedCliente.toLowerCase());
+
+      let matchFecha = true;
+      if (fechaDesde && m.fecha) {
+        matchFecha = matchFecha && m.fecha >= fechaDesde;
+      }
+      if (fechaHasta && m.fecha) {
+        matchFecha = matchFecha && m.fecha <= fechaHasta;
+      }
+
+      return matchSearch && matchTipo && matchCliente && matchFecha;
     });
 
     return {
       totalIngresos: ingresos,
       totalPagos: pagos,
       balanceEfectivo: ingresos - pagos,
-      filteredMovimientos: filtered
+      filteredMovimientos: filtered,
     };
-  }, [data.efectivo, search, filterTipo]);
+  }, [data.efectivo, search, filterTipo, selectedCliente, fechaDesde, fechaHasta]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Single KPI Row (Clean, no duplicate cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="space-y-4 animate-fade-in">
+      {/* KPI Row & Action Buttons */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-semibold uppercase">Saldo en Efectivo</span>
+          <div className="flex items-center justify-between text-muted-foreground mb-1">
+            <span className="text-xs font-semibold uppercase">Saldo en Caja</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <i className="ri-wallet-3-line" />
             </div>
           </div>
           <span className="text-xl font-bold text-foreground">{formatCOP(balanceEfectivo)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-1">Disponible en caja física</span>
+          <span className="text-[11px] text-muted-foreground block mt-0.5">Efectivo Dosquebradas</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-semibold uppercase">Total Ingresos Caja</span>
+          <div className="flex items-center justify-between text-muted-foreground mb-1">
+            <span className="text-xs font-semibold uppercase">Total Ingresos</span>
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
               <i className="ri-arrow-down-line" />
             </div>
           </div>
           <span className="text-xl font-bold text-foreground">{formatCOP(totalIngresos)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-1">Entradas de efectivo</span>
+          <span className="text-[11px] text-muted-foreground block mt-0.5">Entradas registradas</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs font-semibold uppercase">Total Pagos en Efectivo</span>
+          <div className="flex items-center justify-between text-muted-foreground mb-1">
+            <span className="text-xs font-semibold uppercase">Total Pagos</span>
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
               <i className="ri-arrow-up-line" />
             </div>
           </div>
           <span className="text-xl font-bold text-foreground">{formatCOP(totalPagos)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-1">Entregas a clientes</span>
+          <span className="text-[11px] text-muted-foreground block mt-0.5">Entregas a clientes</span>
+        </div>
+
+        {/* Both Action Buttons on Header/Top Card */}
+        <div className="p-3.5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-center gap-2">
+          <button
+            onClick={onOpenAddMovimiento}
+            className="w-full py-1.5 px-3 rounded-xl bg-emerald-600 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 hover:bg-emerald-700 flex items-center justify-center gap-1.5 transition-all"
+          >
+            <i className="ri-add-line text-sm" />
+            <span>Registrar Movimiento</span>
+          </button>
+          <button
+            onClick={onOpenAddGasto}
+            className="w-full py-1.5 px-3 rounded-xl bg-rose-600 text-white font-semibold text-xs shadow-md shadow-rose-600/20 hover:bg-rose-700 flex items-center justify-center gap-1.5 transition-all"
+          >
+            <i className="ri-receipt-line text-sm" />
+            <span>Registrar Gasto</span>
+          </button>
         </div>
       </div>
 
-      {/* Filter and Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border">
-        <div className="relative w-full sm:w-80">
-          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por código, cliente o nota..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-          />
+      {/* Comprehensive Filter Bar: Rango de fechas, Cliente, Tipo, Búsqueda */}
+      <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          {/* Search */}
+          <div className="relative lg:col-span-2">
+            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por código, cliente o referencia..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+            />
+          </div>
+
+          {/* Tipo */}
+          <div>
+            <select
+              value={filterTipo}
+              onChange={(e) => setFilterTipo(e.target.value)}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+            >
+              <option value="">Todos los tipos</option>
+              <option value="Ingreso">Ingreso a Caja</option>
+              <option value="Pago">Pago a Cliente</option>
+            </select>
+          </div>
+
+          {/* Fecha Desde */}
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground font-medium">Desde:</span>
+            <input
+              type="date"
+              value={fechaDesde}
+              onChange={(e) => setFechaDesde(e.target.value)}
+              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+            />
+          </div>
+
+          {/* Fecha Hasta */}
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground font-medium">Hasta:</span>
+            <input
+              type="date"
+              value={fechaHasta}
+              onChange={(e) => setFechaHasta(e.target.value)}
+              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <select
-            value={filterTipo}
-            onChange={(e) => setFilterTipo(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
-          >
-            <option value="">Todos los movimientos</option>
-            <option value="Ingreso">Ingresos</option>
-            <option value="Pago">Pagos</option>
-          </select>
-          <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
-            {filteredMovimientos.length} registros
-          </span>
+        {/* Cliente quick selector */}
+        <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold">Cliente:</span>
+            <select
+              value={selectedCliente}
+              onChange={(e) => setSelectedCliente(e.target.value)}
+              className="px-2.5 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none max-w-xs"
+            >
+              <option value="">Todos los clientes</option>
+              {data.clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.codigo} - {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span>{filteredMovimientos.length} movimientos</span>
+            {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta) && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setFilterTipo('');
+                  setSelectedCliente('');
+                  setFechaDesde('');
+                  setFechaHasta('');
+                }}
+                className="text-primary hover:underline font-semibold text-xs"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -109,9 +213,9 @@ export const EfectivoView: React.FC = () => {
                 <th className="py-3 px-4">Código</th>
                 <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Tipo</th>
-                <th className="py-3 px-4">Cliente</th>
+                <th className="py-3 px-4">Cliente Asignado</th>
                 <th className="py-3 px-4 text-right">Monto (COP)</th>
-                <th className="py-3 px-4">Caja / Ubicación</th>
+                <th className="py-3 px-4">Institución / Caja</th>
                 <th className="py-3 px-4">Referencia / Detalle</th>
               </tr>
             </thead>
@@ -119,7 +223,7 @@ export const EfectivoView: React.FC = () => {
               {filteredMovimientos.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                    No hay movimientos de efectivo registrados
+                    No hay movimientos de efectivo que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
@@ -138,15 +242,20 @@ export const EfectivoView: React.FC = () => {
                         {m.tipo}
                       </span>
                     </td>
+                    {/* Exact Client Name from {CLIENTE} column */}
                     <td className="py-3 px-4 font-semibold text-foreground">
-                      {m.clienteNombre || 'Movimiento Interno'}
+                      {m.clienteNombre && m.clienteNombre !== 'Ingreso de Caja' && m.clienteNombre !== 'Movimiento Interno' ? (
+                        <span className="font-mono text-xs">{m.clienteNombre}</span>
+                      ) : (
+                        <span className="text-muted-foreground italic text-[11px]">{m.clienteNombre || 'Sin cliente asignado'}</span>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-foreground">
                       {formatCOP(m.monto)}
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                        {m.origenFondos || 'Caja Efectivo'}
+                        {m.origenFondos || 'Efectivo Dosquebradas'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{m.referencia || '—'}</td>

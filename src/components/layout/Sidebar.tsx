@@ -27,6 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
     ...(isAdmin ? [{ to: '/activos-liquidos', label: 'Activos Líquidos', icon: '🏦', roles: ['admin'] }] : []),
     ...(isAdmin ? [{ to: '/activos-digitales', label: 'Activos Digitales', icon: '🪙', roles: ['admin'] }] : []),
     ...(isAdmin ? [{ to: '/divisas', label: 'Divisas', icon: '🌐', roles: ['admin'] }] : []),
+    ...(isAdmin ? [{ to: '/gastos', label: 'Gastos', icon: '🧾', roles: ['admin'] }] : []),
     ...(isAdmin ? [{ to: '/usuarios', label: 'Usuarios & Accesos', icon: '🛡️', roles: ['admin'] }] : []),
   ];
 

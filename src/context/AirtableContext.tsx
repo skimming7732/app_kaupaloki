@@ -37,8 +37,22 @@ export interface AirtableSnapshot {
   activosLiquidos: any[];
   activosDigitales: any[];
   efectivo: any[];
+  gastos?: any[];
   usuarios: any[];
   resumenLiquidacion?: ResumenLiquidacion;
+}
+
+export interface GastoItem {
+  id: string;
+  codigo: string;
+  concepto: string;
+  categoria: string;
+  divisa: 'COP' | 'USDT';
+  monto: number;
+  origenFondos: string;
+  fecha: string;
+  comprobanteUrl?: string;
+  raw: any;
 }
 
 export interface NormalizedData {
@@ -59,6 +73,7 @@ export interface NormalizedData {
     fecha: string;
     clienteId?: string;
     clienteNombre: string;
+    divisaId?: string;
     divisaCodigo: string;
     montoDivisa: number;
     tasaCambio: number;
@@ -91,11 +106,12 @@ export interface NormalizedData {
     referencia?: string;
     raw: any;
   }>;
+  gastos: GastoItem[];
   divisas: Array<{
     id: string;
     codigo: string;
     nombre: string;
-    pais?: string;
+    pais: string;
     totalRecibido: number;
     totalComprado: number;
     totalPendiente: number;
@@ -115,6 +131,7 @@ export interface MetricsSummary {
   totalNegocioCOP: number;
   totalVentasUSDT: number;
   liquidezEsperada: number;
+  totalGastosCOP: number;
 }
 
 interface AirtableContextType {
@@ -131,6 +148,7 @@ interface AirtableContextType {
   updateNegocio: (payload: any) => Promise<boolean>;
   createDispersion: (payload: any) => Promise<boolean>;
   createMovimientoEfectivo: (payload: any) => Promise<boolean>;
+  createGasto: (payload: any) => Promise<boolean>;
   createCliente: (nombre: string, pais: string) => Promise<any>;
   deleteUser: (idOrEmail: string) => Promise<{ success: boolean; error?: string }>;
   sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
@@ -148,6 +166,7 @@ const defaultSnapshot: AirtableSnapshot = {
   activosLiquidos: [],
   activosDigitales: [],
   efectivo: [],
+  gastos: [],
   usuarios: [],
 };
 
@@ -228,6 +247,27 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Normalization layer
   const data: NormalizedData = useMemo(() => {
+    // 1. Build Client mapping dictionary (by id and by code)
+    const clientMap = new Map<string, string>();
+    const clientRecordIdMap = new Map<string, string>(); // maps code/name to record id
+
+    (snapshot.clientes || []).forEach((c: any) => {
+      // Primary Airtable column is {CLIENTE} which produces e.g. "C0027-DANIEL-RAMIREZ"
+      const fullLabel = c.codigo || c.idCliente || c.cliente || c['CLIENTE'] || c.nombre || 'Cliente';
+      if (c.id) {
+        clientMap.set(c.id, fullLabel);
+        clientRecordIdMap.set(c.id, c.id);
+      }
+      if (c.codigo) {
+        clientMap.set(c.codigo, fullLabel);
+        clientRecordIdMap.set(c.codigo, c.id);
+      }
+      if (c.nombre) {
+        clientMap.set(c.nombre, fullLabel);
+        clientRecordIdMap.set(c.nombre, c.id);
+      }
+    });
+
     const clientes = (snapshot.clientes || []).map((c: any) => {
       const totalIngresos = Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0);
       const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
@@ -241,10 +281,13 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         else estado = 'PENDIENTE';
       }
 
+      // Display the full {CLIENTE} column text as requested
+      const fullCode = c.codigo || c.idCliente || c.cliente || c['CLIENTE'] || c.nombre || 'C-000';
+
       return {
         id: c.id || c.codigo,
-        codigo: c.codigo || c.idCliente || 'C-000',
-        nombre: c.nombre || c['Nombre'] || 'Cliente',
+        codigo: fullCode,
+        nombre: c.nombre || c['Nombre'] || fullCode,
         pais: c.pais || c['País'] || 'Colombia',
         totalIngresosCOP: totalIngresos,
         totalDispersadoCOP: totalDispersado,
@@ -254,18 +297,36 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     });
 
+    // Divisa lookup map
+    const divisaMap = new Map<string, string>();
+    (snapshot.divisas || []).forEach((d: any) => {
+      const code = d.codigo || 'USD';
+      if (d.id) divisaMap.set(d.id, code);
+      divisaMap.set(code, code);
+    });
+
     const negocios = (snapshot.negocios || []).map((n: any) => {
-      const montoDiv = Number(n.montoDivisa ?? n.cantidadDivisa ?? 0);
-      const tasa = Number(n.tasa ?? n.tasaClienteCop ?? 0);
+      const montoDiv = Number(n.montoDivisa ?? n.cantidadDivisa ?? n.monto ?? 0);
+      const tasa = Number(n.tasa ?? n.tasaClienteCop ?? n.tasaCambio ?? 0);
       const ingreso = Number(n.ingresoCop ?? n.montoCop ?? (montoDiv * tasa));
+
+      // Resolve client id and full label
+      const rawClient = Array.isArray(n.cliente) ? n.cliente[0] : (n.clienteId || n.cliente);
+      const clienteId = clientRecordIdMap.get(rawClient) || rawClient;
+      const clienteNombre = clientMap.get(rawClient) || n.clienteNombre || n.clienteCodigo || 'Cliente';
+
+      // Resolve divisa
+      const rawDivisa = Array.isArray(n.divisa) ? n.divisa[0] : (n.divisaId || n.divisaCodigo || n.divisa);
+      const divisaCodigo = divisaMap.get(rawDivisa) || n.divisaCodigo || 'USD';
 
       return {
         id: n.id || n.codigo,
         codigo: n.codigo || n.idNegocio || 'NEG-000',
         fecha: n.fecha || n.fechaRegistro || '',
-        clienteId: Array.isArray(n.cliente) ? n.cliente[0] : (n.clienteId || undefined),
-        clienteNombre: n.clienteNombre || n.clienteCodigo || 'Cliente',
-        divisaCodigo: n.divisaCodigo || 'USD',
+        clienteId,
+        clienteNombre,
+        divisaId: rawDivisa,
+        divisaCodigo,
         montoDivisa: montoDiv,
         tasaCambio: tasa,
         ingresoCOP: ingreso,
@@ -274,15 +335,19 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     });
 
-    // Dispersiones (from dispersiones or pagos)
+    // Dispersiones
     const rawDispersiones = snapshot.dispersiones?.length ? snapshot.dispersiones : (snapshot.pagos || []);
     const dispersiones = rawDispersiones.map((d: any) => {
+      const rawClient = Array.isArray(d.cliente) ? d.cliente[0] : (d.clienteId || d.cliente);
+      const clienteId = clientRecordIdMap.get(rawClient) || rawClient;
+      const clienteNombre = clientMap.get(rawClient) || d.clienteNombre || d.clienteCodigo || 'Cliente';
+
       return {
         id: d.id || d.codigo,
         codigo: d.codigo || d.idDispersion || 'DISP-000',
         fecha: d.fecha || d.fechaCreacion || '',
-        clienteId: Array.isArray(d.cliente) ? d.cliente[0] : (d.clienteId || undefined),
-        clienteNombre: d.clienteNombre || d.clienteCodigo || 'Cliente',
+        clienteId,
+        clienteNombre,
         monto: Number(d.monto ?? d.montoCop ?? d.valorTotalDispersion ?? 0),
         origenFondos: d.origenFondos || d.medioPagoNombre || 'Bancolombia',
         referencia: d.referencia || d.concepto || '',
@@ -292,27 +357,52 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     });
 
+    // Efectivo (resolve assigned client from CLIENTE column)
     const efectivo = (snapshot.efectivo || []).map((e: any) => {
+      const rawClient = Array.isArray(e.cliente) ? e.cliente[0] : (e.clienteId || e.cliente);
+      const clienteId = clientRecordIdMap.get(rawClient) || rawClient;
+      const clienteNombre = clientMap.get(rawClient) || (typeof e.cliente === 'string' && e.cliente.trim() ? e.cliente : (e.clienteNombre || ''));
+
       return {
         id: e.id || e.codigo,
         codigo: e.codigo || 'EFEC-000',
         fecha: e.fecha || '',
         tipo: (e.tipo === 'Ingreso' ? 'Ingreso' : 'Pago') as 'Ingreso' | 'Pago',
-        clienteId: Array.isArray(e.cliente) ? e.cliente[0] : (e.clienteId || undefined),
-        clienteNombre: e.clienteNombre || e.cliente || '',
+        clienteId,
+        clienteNombre: clienteNombre || (e.tipo === 'Ingreso' ? 'Ingreso de Caja' : 'Movimiento Interno'),
         monto: Number(e.monto ?? 0),
-        origenFondos: e.origenFondos || 'Caja Efectivo',
+        origenFondos: e.origenFondos || 'Efectivo Dosquebradas',
         referencia: e.referencia || '',
         raw: e,
       };
     });
 
+    // Gastos
+    const gastos: GastoItem[] = (snapshot.gastos || []).map((g: any) => {
+      return {
+        id: g.id || g.gasto,
+        codigo: g.codigo || g.gasto || 'GST-000',
+        concepto: g.concepto || g['CONCEPTO'] || 'Gasto Operativo',
+        categoria: g.categoria || g['CATEGORÍA'] || 'Otros Gastos Operativos',
+        divisa: (g.divisa || g['DIVISA'] || 'COP') as 'COP' | 'USDT',
+        monto: Number(g.monto ?? g['MONTO'] ?? 0),
+        origenFondos: g.origenFondos || g['ORIGEN FONDOS'] || 'Efectivo Dosquebradas',
+        fecha: g.fecha || g['FECHA'] || '',
+        comprobanteUrl: g.comprobanteUrl || (g.comprobante && g.comprobante[0]?.url) || undefined,
+        raw: g,
+      };
+    });
+
+    // Divisas: remove (BRA), (COL), (USA) from country name
     const divisas = (snapshot.divisas || []).map((d: any) => {
+      const rawPais = d.pais || d.nombrePais || '';
+      const cleanPais = rawPais.replace(/\s*\([A-Z0-9-]+\)\s*/g, '').trim() || 'Internacional';
+
       return {
         id: d.id || d.codigo,
         codigo: d.codigo || 'USD',
         nombre: d.nombre || d.nombreDivisa || d.divisa || d.codigo,
-        pais: d.pais || '',
+        pais: cleanPais,
         totalRecibido: Number(d.totalRecibido ?? d.ingresoEnDivisa ?? 0),
         totalComprado: Number(d.totalComprado ?? d.egresoEnDivisa ?? 0),
         totalPendiente: Number(d.totalPendiente ?? d.saldo ?? 0),
@@ -321,6 +411,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     });
 
+    // Usuarios: Initial default is Invitado
     const usuarios: AirtableUser[] = (snapshot.usuarios || []).map((u: any) => {
       let divisasAut: string[] = [];
       if (Array.isArray(u.divisasAutorizadas)) {
@@ -337,7 +428,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         rol: u.rol || 'Operador',
         pais: u.pais || 'Colombia',
         divisasAutorizadas: divisasAut,
-        estado: u.estado || 'Activo',
+        estado: u.estado || 'Invitado',
       };
     });
 
@@ -346,6 +437,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       negocios,
       dispersiones,
       efectivo,
+      gastos,
       divisas,
       usuarios,
       activosLiquidos: snapshot.activosLiquidos || [],
@@ -355,6 +447,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const metrics: MetricsSummary = useMemo(() => {
     const res = snapshot.resumenLiquidacion;
+    const totalGastosCOP = (data.gastos || []).reduce((acc, g) => acc + (g.divisa === 'COP' ? g.monto : g.monto * 4000), 0);
     return {
       totalActivosLiquidos: res?.totalActivosLiquidosCop ?? 0,
       totalActivosDigitales: res?.totalActivosDigitalesUsdt ?? 0,
@@ -363,8 +456,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       totalNegocioCOP: res?.totalNegocioCop ?? 0,
       totalVentasUSDT: res?.totalVentasUsdtCop ?? 0,
       liquidezEsperada: res?.totalLiquidezEsperadaCop ?? 0,
+      totalGastosCOP,
     };
-  }, [snapshot.resumenLiquidacion]);
+  }, [snapshot.resumenLiquidacion, data.gastos]);
 
   // Direct operations
   const createNegocio = async (payload: any): Promise<boolean> => {
@@ -419,6 +513,31 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return res.ok;
   };
 
+  const createGasto = async (payload: any): Promise<boolean> => {
+    const pat = getPat();
+    const res = await fetch(EDGE_SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create_record',
+        pat,
+        table: 'GASTOS',
+        record: {
+          fields: {
+            'CONCEPTO': payload.concepto,
+            'CATEGORÍA': payload.categoria,
+            'DIVISA': payload.divisa || 'COP',
+            'MONTO': Number(payload.monto) || 0,
+            'ORIGEN FONDOS': payload.origenFondos || 'Efectivo Dosquebradas',
+            ...(payload.fecha ? { 'FECHA': payload.fecha } : {})
+          }
+        }
+      }),
+    });
+    await syncWithAirtable(true);
+    return res.ok;
+  };
+
   const createCliente = async (nombre: string, pais: string): Promise<any> => {
     const pat = getPat();
     const res = await fetch(EDGE_SYNC_URL, {
@@ -454,7 +573,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (table === 'Efectivo') {
       return createMovimientoEfectivo(fields);
     }
-    // Generic fallback
+    if (table === 'Gastos' || table === 'GASTOS') {
+      return createGasto(fields);
+    }
     const pat = getPat();
     const res = await fetch(EDGE_SYNC_URL, {
       method: 'POST',
@@ -579,6 +700,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateNegocio,
         createDispersion,
         createMovimientoEfectivo,
+        createGasto,
         createCliente,
         deleteUser,
         sendUserInvite,

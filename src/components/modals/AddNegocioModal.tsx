@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 import { formatCOP } from '../../utils/formatters';
+import { ClientSearchSelect } from '../common/ClientSearchSelect';
 
 interface AddNegocioModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clienteId || !divisaId || parsedMonto <= 0 || parsedTasa <= 0) {
-      setError('Por favor complete todos los campos obligatorios');
+      setError('Por favor complete todos los campos');
       return;
     }
 
@@ -43,10 +44,11 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
         'Monto Divisa': parsedMonto,
         'Tasa Cambio': parsedTasa,
         'Ingreso COP': ingresoCOP,
-        'Estado': 'Completado'
+        'Estado': 'Completado',
       });
       setMonto('');
       setTasa('');
+      setClienteId('');
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Error al registrar el negocio');
@@ -56,56 +58,50 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl p-6 relative">
-        <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              <i className="ri-exchange-dollar-line text-xl" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-5 relative">
+        <div className="flex items-center justify-between pb-3 border-b border-border mb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-base">
+              <i className="ri-exchange-dollar-line" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-foreground">Nuevo Negocio</h3>
-              <p className="text-xs text-muted-foreground">Registrar compra/venta y conversión de divisa</p>
+              <h3 className="text-sm font-bold text-foreground">Nuevo Negocio</h3>
+              <p className="text-[11px] text-muted-foreground">Registro de operación cambiaria</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted">
-            <i className="ri-close-line text-lg" />
+          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted">
+            <i className="ri-close-line text-base" />
           </button>
         </div>
 
         {error && (
-          <div className="p-3 mb-4 rounded-xl bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
-            <i className="ri-error-warning-line text-sm" />
+          <div className="p-2 mb-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
+            <i className="ri-error-warning-line text-xs" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Cliente *</label>
-              <select
-                required
-                value={clienteId}
-                onChange={(e) => setClienteId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-              >
-                <option value="">Seleccionar cliente...</option>
-                {data.clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre || c.codigo} ({c.codigo})
-                  </option>
-                ))}
-              </select>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Client Selector using Searchable Picker */}
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Cliente *</label>
+            <ClientSearchSelect
+              value={clienteId}
+              onChange={(id) => setClienteId(id)}
+              placeholder="Buscar por código o nombre..."
+              required
+            />
+          </div>
 
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Divisa *</label>
+              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Divisa *</label>
               <select
                 required
                 value={divisaId}
                 onChange={(e) => setDivisaId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
               >
                 <option value="">Seleccionar divisa...</option>
                 {data.divisas.map((d) => (
@@ -115,11 +111,21 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
                 ))}
               </select>
             </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Fecha Operación</label>
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Monto en Divisa *</label>
+              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Monto en Divisa *</label>
               <input
                 type="number"
                 step="any"
@@ -127,12 +133,12 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
                 value={monto}
                 onChange={(e) => setMonto(e.target.value)}
                 placeholder="Ej: 5000"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">Tasa de Cambio (COP) *</label>
+              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Tasa de Cambio (COP) *</label>
               <input
                 type="number"
                 step="any"
@@ -140,40 +146,30 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
                 value={tasa}
                 onChange={(e) => setTasa(e.target.value)}
                 placeholder="Ej: 3950"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
               />
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-muted/60 border border-border flex items-center justify-between">
-            <div>
-              <span className="text-xs text-muted-foreground block">Ingreso Estimado (COP)</span>
-              <span className="text-base font-bold text-foreground">{formatCOP(ingresoCOP)}</span>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-muted-foreground block">Fecha</span>
-              <input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                className="bg-transparent text-xs font-medium text-foreground outline-none text-right"
-              />
-            </div>
+          {/* Compact calculation display */}
+          <div className="px-3 py-2 rounded-xl bg-muted/50 border border-border flex items-center justify-between">
+            <span className="text-[11px] text-muted-foreground font-medium">Ingreso Estimado (COP):</span>
+            <span className="text-sm font-bold text-foreground">{formatCOP(ingresoCOP)}</span>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-3">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading || !clienteId || !divisaId || parsedMonto <= 0}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/25 flex items-center gap-2"
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/20 flex items-center gap-1.5"
             >
               {loading && <i className="ri-loader-4-line animate-spin" />}
               <span>Registrar Negocio</span>

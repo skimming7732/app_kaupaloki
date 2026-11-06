@@ -1,186 +1,160 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
-  title: string;
+  title?: string;
   subtitle?: string;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
   onExportCsv?: () => void;
+  onOpenModal?: (modalId: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  title,
-  subtitle,
+  title: propTitle,
+  subtitle: propSubtitle,
   primaryActionLabel,
   onPrimaryAction,
   onExportCsv,
+  onOpenModal,
 }) => {
-  const { profile, theme, toggleTheme } = useAuth();
-  const name = profile?.full_name || profile?.email?.split('@')[0] || 'Usuario';
+  const { profile, user, theme, toggleTheme } = useAuth();
+  const location = useLocation();
+
+  // Dynamic route metadata
+  let title = propTitle;
+  let subtitle = propSubtitle;
+  let actionLabel = primaryActionLabel;
+  let onAction = onPrimaryAction;
+
+  if (!title) {
+    switch (location.pathname) {
+      case '/inicio':
+        title = 'Inicio';
+        subtitle = 'Plataforma operativa Kaupaloki';
+        break;
+      case '/dashboard':
+        title = 'Panel de Control';
+        subtitle = 'Liquidación y métricas en tiempo real';
+        break;
+      case '/negocios':
+        title = 'Negocios';
+        subtitle = 'Conversiones y operaciones cambiarias';
+        actionLabel = 'Registrar Negocio';
+        onAction = () => onOpenModal && onOpenModal('add-negocio');
+        break;
+      case '/clientes':
+        title = 'Clientes';
+        subtitle = 'Gestión y estado de cuentas de clientes';
+        actionLabel = 'Nuevo Cliente';
+        onAction = () => onOpenModal && onOpenModal('add-cliente');
+        break;
+      case '/dispersiones':
+        title = 'Dispersiones';
+        subtitle = 'Pagos bancarios y transferencias';
+        actionLabel = 'Nueva Dispersión';
+        onAction = () => onOpenModal && onOpenModal('add-dispersion');
+        break;
+      case '/efectivo':
+        title = 'Efectivo';
+        subtitle = 'Efectivo Dosquebradas y pagos físicos';
+        break;
+      case '/gastos':
+        title = 'Gastos';
+        subtitle = 'Control contable de egresos y costos operativos';
+        actionLabel = 'Registrar Gasto';
+        onAction = () => onOpenModal && onOpenModal('add-gasto');
+        break;
+      case '/activos':
+      case '/activos-liquidos':
+        title = 'Activos Líquidos';
+        subtitle = 'Saldos consolidados en instituciones y caja';
+        break;
+      case '/activos-digitales':
+        title = 'Activos Digitales';
+        subtitle = 'Custodia en USDT y wallets corporativas';
+        break;
+      case '/divisas':
+        title = 'Divisas';
+        subtitle = 'Monedas habilitadas y saldo en custodia';
+        break;
+      case '/usuarios':
+        title = 'Usuarios & Accesos';
+        subtitle = 'Control de roles, operadores y permisos';
+        break;
+      case '/perfil':
+        title = 'Mi Perfil';
+        subtitle = 'Configuración de cuenta y seguridad 2FA';
+        break;
+      default:
+        title = 'Kaupaloki';
+        subtitle = 'Plataforma de finanzas';
+    }
+  }
+
+  const name = profile?.nombre || user?.nombre || user?.email?.split('@')[0] || 'Operador';
   const initial = name.charAt(0).toUpperCase();
 
   return (
-    <header style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '20px 32px',
-      background: 'transparent',
-      borderBottom: '1px solid var(--border-main)',
-      flexWrap: 'wrap',
-      gap: '16px',
-    }}>
+    <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-30">
       <div>
-        <h1 style={{
-          margin: 0,
-          fontSize: '24px',
-          fontWeight: 800,
-          color: 'var(--text-primary)',
-          letterSpacing: '-0.02em',
-        }}>
-          {title}
-        </h1>
-        {subtitle && (
-          <p style={{ margin: '2px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-            {subtitle}
-          </p>
-        )}
+        <h1 className="text-xl font-black text-foreground tracking-tight">{title}</h1>
+        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="flex items-center gap-3">
         {/* Export CSV button */}
         {onExportCsv && (
           <button
             type="button"
             onClick={onExportCsv}
-            title="Exportar tabla a CSV"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '12px',
-              border: '1px solid var(--border-main)',
-              background: 'var(--bg-card)',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              boxShadow: 'var(--shadow-nav)',
-            }}
+            title="Exportar a CSV"
+            className="w-9 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center shadow-sm transition-colors"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
+            <i className="ri-download-2-line text-sm" />
           </button>
         )}
 
-        {/* ONLY ONE PRIMARY ACTION BUTTON NEXT TO CSV */}
-        {primaryActionLabel && onPrimaryAction && (
+        {/* Primary Action Button (Header right) */}
+        {actionLabel && onAction && (
           <button
             type="button"
-            onClick={onPrimaryAction}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
-              borderRadius: '12px',
-              border: 'none',
-              background: 'var(--brand-primary)',
-              color: '#FFFFFF',
-              fontSize: '13px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(67, 24, 255, 0.35)',
-              transition: 'all 0.2s',
-            }}
+            onClick={onAction}
+            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center gap-1.5 transition-all"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span>{primaryActionLabel}</span>
+            <i className="ri-add-line text-sm" />
+            <span>{actionLabel}</span>
           </button>
         )}
 
-        {/* Theme toggle */}
+        {/* Theme Toggle */}
         <button
           type="button"
           onClick={toggleTheme}
           title="Cambiar tema claro / oscuro"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-main)',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            boxShadow: 'var(--shadow-nav)',
-          }}
+          className="w-9 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center shadow-sm transition-colors"
         >
           {theme === 'dark' ? (
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
+            <i className="ri-sun-line text-sm text-amber-400" />
           ) : (
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
+            <i className="ri-moon-line text-sm text-blue-500" />
           )}
         </button>
 
-        {/* User Profile Pill */}
+        {/* Profile Pill */}
         <Link
           to="/perfil"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '4px 12px 4px 6px',
-            borderRadius: '24px',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-main)',
-            textDecoration: 'none',
-            boxShadow: 'var(--shadow-nav)',
-          }}
+          className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted/60 transition-colors shadow-sm"
         >
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #FFB547 0%, #FF8500 100%)',
-            color: '#FFFFFF',
-            fontSize: '13px',
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
             {initial}
           </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              {name}
-            </div>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase' }}>
-              {profile?.role === 'super_admin' ? '⭐ Super Admin' : (profile?.role === 'administrador' ? '🛡️ Admin' : (profile?.role === 'dispersor' ? '💸 Dispersor' : '💼 Operador'))}
-            </div>
+          <div className="text-left hidden sm:block">
+            <span className="text-xs font-bold text-foreground block leading-tight">{name}</span>
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+              {profile?.rol || 'Operador'}
+            </span>
           </div>
         </Link>
       </div>

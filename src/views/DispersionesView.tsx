@@ -5,36 +5,110 @@ import { ReceiptModal } from '../components/modals/ReceiptModal';
 
 export const DispersionesView: React.FC = () => {
   const { data } = useAirtable();
+
+  // Filters
   const [search, setSearch] = useState('');
+  const [selectedCliente, setSelectedCliente] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+
   const [selectedReceipt, setSelectedReceipt] = useState<{ url: string; title: string } | null>(null);
 
   const filteredDispersiones = useMemo(() => {
     return data.dispersiones.filter((d) => {
-      const match =
+      const matchSearch =
         d.codigo.toLowerCase().includes(search.toLowerCase()) ||
         d.clienteNombre.toLowerCase().includes(search.toLowerCase()) ||
         (d.referencia && d.referencia.toLowerCase().includes(search.toLowerCase()));
-      return match;
+      const matchCliente =
+        !selectedCliente ||
+        d.clienteId === selectedCliente ||
+        d.clienteNombre.toLowerCase().includes(selectedCliente.toLowerCase());
+
+      let matchFecha = true;
+      if (fechaDesde && d.fecha) {
+        matchFecha = matchFecha && d.fecha >= fechaDesde;
+      }
+      if (fechaHasta && d.fecha) {
+        matchFecha = matchFecha && d.fecha <= fechaHasta;
+      }
+
+      return matchSearch && matchCliente && matchFecha;
     });
-  }, [data.dispersiones, search]);
+  }, [data.dispersiones, search, selectedCliente, fechaDesde, fechaHasta]);
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border">
-        <div className="relative w-full sm:w-80">
-          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por código, cliente o referencia..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-          />
+      {/* Comprehensive Filter Bar */}
+      <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          {/* Search */}
+          <div className="relative lg:col-span-2">
+            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por código, cliente o referencia..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+            />
+          </div>
+
+          {/* Cliente */}
+          <div>
+            <select
+              value={selectedCliente}
+              onChange={(e) => setSelectedCliente(e.target.value)}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+            >
+              <option value="">Todos los clientes</option>
+              {data.clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.codigo} - {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Fecha Desde */}
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground font-medium">Desde:</span>
+            <input
+              type="date"
+              value={fechaDesde}
+              onChange={(e) => setFechaDesde(e.target.value)}
+              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+            />
+          </div>
+
+          {/* Fecha Hasta */}
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground font-medium">Hasta:</span>
+            <input
+              type="date"
+              value={fechaHasta}
+              onChange={(e) => setFechaHasta(e.target.value)}
+              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+            />
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground font-medium">
-          {filteredDispersiones.length} dispersiones registradas
-        </span>
+
+        {(search || selectedCliente || fechaDesde || fechaHasta) && (
+          <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
+            <span>{filteredDispersiones.length} dispersiones encontradas</span>
+            <button
+              onClick={() => {
+                setSearch('');
+                setSelectedCliente('');
+                setFechaDesde('');
+                setFechaHasta('');
+              }}
+              className="text-primary hover:underline font-semibold text-xs"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -47,7 +121,7 @@ export const DispersionesView: React.FC = () => {
                 <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Cliente</th>
                 <th className="py-3 px-4 text-right">Monto (COP)</th>
-                <th className="py-3 px-4">Origen / Banco</th>
+                <th className="py-3 px-4">Institución / Origen</th>
                 <th className="py-3 px-4">Referencia</th>
                 <th className="py-3 px-4 text-center">Comprobante</th>
                 <th className="py-3 px-4 text-center">Estado</th>
