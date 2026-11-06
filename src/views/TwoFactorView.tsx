@@ -5,10 +5,10 @@ import { supabase } from '../lib/supabase';
 import { generateTotpSecret, generateTotpUri, verifyTotp, generateBackupCodes } from '../utils/totp';
 
 export const TwoFactorView: React.FC = () => {
-  const { user, profile, verify2FASession } = useAuth();
+  const { user, profile, loading: authLoading, is2faVerified, set2faVerified, verify2FASession, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
-  // Wizard state: 'verify' (if already has secret in profile), or setup: 1 | 2
+  // Wizard state: 'verify' (default for users with 2FA), 'setup_step1' or 'setup_step2'
   const [mode, setMode] = useState<'verify' | 'setup_step1' | 'setup_step2'>('verify');
   const [secret, setSecret] = useState('');
   const [qrUrl, setQrUrl] = useState('');
@@ -18,18 +18,29 @@ export const TwoFactorView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [copiedCodes, setCopiedCodes] = useState(false);
 
+  // If already verified in this session, redirect to home
   useEffect(() => {
-    if (profile?.two_factor_secret) {
+    if (is2faVerified) {
+      navigate('/inicio', { replace: true });
+    }
+  }, [is2faVerified, navigate]);
+
+  // Determine mode once profile is loaded
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (profile?.two_factor_secret || profile?.two_factor_enabled) {
       setMode('verify');
-    } else {
+    } else if (user) {
+      // User does not have 2FA configured yet
       initSetup();
     }
-  }, [profile]);
+  }, [profile, authLoading, user]);
 
   const initSetup = () => {
     const newSecret = generateTotpSecret();
     setSecret(newSecret);
-    const email = user?.email || 'operador@kaupaloki.co';
+    const email = user?.email || profile?.email || 'operador@kaupaloki.co';
     const uri = generateTotpUri(newSecret, email);
     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(uri)}`;
     setQrUrl(qr);
@@ -39,16 +50,21 @@ export const TwoFactorView: React.FC = () => {
 
   const handleVerifyExisting = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.two_factor_secret) return;
+    const activeSecret = profile?.two_factor_secret;
+    if (!activeSecret) {
+      setError('No se encontró el secreto 2FA en tu perfil. Por favor vuelve a vincular.');
+      return;
+    }
     setError(null);
     setLoading(true);
 
-    const isValid = await verifyTotp(code.trim(), profile.two_factor_secret);
+    const isValid = await verifyTotp(code.trim(), activeSecret);
     if (isValid) {
-      verify2FASession();
+      if (verify2FASession) verify2FASession();
+      else if (set2faVerified) set2faVerified(true);
       navigate('/inicio');
     } else {
-      setError('Código incorrecto o expirado. Intente con el código actual.');
+      setError('Código incorrecto o expirado. Ingresa el código actual de 6 dígitos.');
       setLoading(false);
     }
   };
@@ -80,12 +96,19 @@ export const TwoFactorView: React.FC = () => {
         .update({
           two_factor_secret: secret,
           two_factor_enabled: true,
-          two_factor_backup_codes: backupCodes
+          two_factor_backup_codes: backupCodes,
         })
         .eq('id', user.id);
 
       if (updateError) throw updateError;
-      verify2FASession();
+
+      if (refreshProfile) {
+        await refreshProfile();
+      }
+
+      if (verify2FASession) verify2FASession();
+      else if (set2faVerified) set2faVerified(true);
+
       navigate('/inicio');
     } catch (err: any) {
       setError(err?.message || 'Error al guardar la configuración 2FA');
@@ -94,12 +117,13 @@ export const TwoFactorView: React.FC = () => {
   };
 
   const handleDownloadTxt = () => {
-    const content = `KAUPALOKI - CÓDIGOS DE RESPALDO 2FA\nUsuario: ${user?.email}\nFecha: ${new Date().toLocaleString()}\n\nGuarde estos códigos en un lugar seguro. Cada código solo puede usarse una vez:\n\n${backupCodes.join('\n')}\n`;
+    const userEmail = (user?.email || profile?.email || 'user').trim();
+    const content = `KAUPALOKI - CÓDIGOS DE RESPALDO 2FA\nUsuario: ${userEmail}\nFecha: ${new Date().toLocaleString()}\n\nGuarde estos códigos en un lugar seguro. Cada código solo puede usarse una vez:\n\n${backupCodes.join('\n')}\n`;
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `kaupaloki-backup-codes-${Date.now()}.txt`;
+    link.download = `kaupaloki-backup-codes-${userEmail}.txt`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -109,6 +133,17 @@ export const TwoFactorView: React.FC = () => {
     setCopiedCodes(true);
     setTimeout(() => setCopiedCodes(false), 2000);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-3">
+          <i className="ri-loader-4-line animate-spin text-3xl text-primary" />
+          <span className="text-xs text-muted-foreground font-semibold">Cargando verificación 2FA...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">

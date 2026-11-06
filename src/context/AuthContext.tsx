@@ -29,6 +29,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   set2faVerified: (val: boolean) => void;
+  verify2FASession: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -190,6 +191,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  const verify2FASession = () => {
+    set2faVerified(true);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -202,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         refreshProfile,
         set2faVerified,
+        verify2FASession,
       }}
     >
       {children}
