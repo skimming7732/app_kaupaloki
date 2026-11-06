@@ -18,8 +18,10 @@ export interface AirtableUser {
 
 export interface ResumenLiquidacion {
   totalNegocioCop: number;
+  totalClientesIngresosCop?: number;
   totalVentasUsdtCop: number;
   totalLiquidezEsperadaCop: number;
+  totalGastosCop?: number;
   gananciaEsperadaCop: number;
   totalActivosDigitalesUsdt: number;
   totalActivosLiquidosCop: number;
@@ -175,6 +177,7 @@ export interface MetricsSummary {
   saldoPendienteClientes: number;
   gananciaEsperada: number;
   totalNegocioCOP: number;
+  totalClientesIngresosCOP: number;
   totalVentasUSDT: number;
   liquidezEsperada: number;
   totalGastosCOP: number;
@@ -629,6 +632,110 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     });
 
+    // Enrich Activos Liquidos with complete movements (Gastos and Efectivo)
+    const rawLiquidos = (snapshot.activosLiquidos && snapshot.activosLiquidos.length > 0) ? snapshot.activosLiquidos : ACTIVOS_LIQUIDOS;
+    const enrichedActivosLiquidos = rawLiquidos.map((a: any) => {
+      const existingMovs = Array.isArray(a.movimientos) ? [...a.movimientos] : [];
+      
+      // Inject Gastos COP linked to this account
+      gastos.forEach((g: any) => {
+        if (g.divisa !== 'COP') return;
+        const belongs = 
+          g.activoLiquidoId === a.id ||
+          g.origenFondosIds?.includes(a.id) ||
+          g.origenCuentaId === a.id ||
+          (g.origenFondos && (
+            g.origenFondos.toLowerCase().includes((a.institucion || '').toLowerCase()) ||
+            g.origenFondos.toLowerCase().includes((a.empresa || '').toLowerCase()) ||
+            g.origenFondos.toLowerCase().includes((a.activo || '').toLowerCase())
+          ));
+        if (belongs) {
+          const already = existingMovs.some((m: any) => m.origen === g.codigo || m.concepto?.includes(g.codigo));
+          if (!already) {
+            existingMovs.push({
+              fecha: g.fecha,
+              origen: g.codigo,
+              concepto: `Gasto: ${g.concepto} (${g.categoria || 'Operativo'})`,
+              monto: -Math.abs(g.monto),
+            });
+          }
+        }
+      });
+
+      // Inject Efectivo movements linked to this account
+      efectivo.forEach((e: any) => {
+        const belongs = e.origenFondosId === a.id || (a.activo || '').toLowerCase().includes('efectivo');
+        if (belongs) {
+          const already = existingMovs.some((m: any) => m.origen === e.codigo);
+          if (!already) {
+            const isIngreso = e.tipo === 'INGRESO';
+            existingMovs.push({
+              fecha: e.fecha,
+              origen: e.codigo,
+              concepto: isIngreso
+                ? `Ingreso Efectivo: ${e.referencia || e.clienteNombre || 'Caja'}`
+                : `Pago Efectivo: ${e.referencia || e.clienteNombre || 'Entrega'}`,
+              monto: isIngreso ? Math.abs(e.montoCop) : -Math.abs(e.montoCop),
+            });
+          }
+        }
+      });
+
+      // Re-sort and recalculate running balances
+      existingMovs.sort((m1: any, m2: any) => (m1.fecha || '').localeCompare(m2.fecha || ''));
+      let running = 0;
+      const movimientosWithBalance = existingMovs.map((m: any) => {
+        running += Number(m.monto || 0);
+        return { ...m, balance: running };
+      }).reverse();
+
+      return {
+        ...a,
+        movimientos: movimientosWithBalance,
+      };
+    });
+
+    // Enrich Activos Digitales with complete movements (Gastos USDT)
+    const rawDigitales = (snapshot.activosDigitales && snapshot.activosDigitales.length > 0) ? snapshot.activosDigitales : ACTIVOS_DIGITALES;
+    const enrichedActivosDigitales = rawDigitales.map((d: any) => {
+      const existingMovs = Array.isArray(d.movimientos) ? [...d.movimientos] : [];
+      
+      gastos.forEach((g: any) => {
+        if (g.divisa !== 'USDT') return;
+        const belongs = 
+          g.activoDigitalId === d.id ||
+          g.origenFondosIds?.includes(d.id) ||
+          (g.origenFondos && (
+            g.origenFondos.toLowerCase().includes('usdt') ||
+            g.origenFondos.toLowerCase().includes((d.wallet || '').toLowerCase()) ||
+            g.origenFondos.toLowerCase().includes((d.activo || '').toLowerCase())
+          ));
+        if (belongs) {
+          const already = existingMovs.some((m: any) => m.origen === g.codigo || m.concepto?.includes(g.codigo));
+          if (!already) {
+            existingMovs.push({
+              fecha: g.fecha,
+              origen: g.codigo,
+              concepto: `Gasto USDT: ${g.concepto} (${g.categoria || 'Software'})`,
+              monto: -Math.abs(g.monto),
+            });
+          }
+        }
+      });
+
+      existingMovs.sort((m1: any, m2: any) => (m1.fecha || '').localeCompare(m2.fecha || ''));
+      let running = 0;
+      const movimientosWithBalance = existingMovs.map((m: any) => {
+        running += Number(m.monto || 0);
+        return { ...m, balance: running };
+      }).reverse();
+
+      return {
+        ...d,
+        movimientos: movimientosWithBalance,
+      };
+    });
+
     return {
       clientes,
       negocios,
@@ -640,27 +747,40 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       comprasUsdt,
       ventasUsdt,
       comisionistas,
-      activosLiquidos: (snapshot.activosLiquidos && snapshot.activosLiquidos.length > 0) ? snapshot.activosLiquidos : ACTIVOS_LIQUIDOS,
-      activosDigitales: (snapshot.activosDigitales && snapshot.activosDigitales.length > 0) ? snapshot.activosDigitales : ACTIVOS_DIGITALES,
+      activosLiquidos: enrichedActivosLiquidos,
+      activosDigitales: enrichedActivosDigitales,
     };
   }, [snapshot]);
 
   const metrics: MetricsSummary = useMemo(() => {
     const res = snapshot.resumenLiquidacion;
-    const totalGastosCOP = (data.gastos || []).reduce((acc, g) => acc + (g.divisa === 'COP' ? g.monto : g.monto * 4000), 0);
+    const totalGastosCOP = res?.totalGastosCop ?? (data.gastos || []).reduce((acc, g) => acc + (g.divisa === 'COP' ? g.monto : g.monto * 4000), 0);
     const totalLiqFallback = (data.activosLiquidos || []).reduce((acc: number, a: any) => acc + (a.saldoCop || 0), 0);
     const totalDigFallback = (data.activosDigitales || []).reduce((acc: number, d: any) => acc + (d.saldoUsdt || 0), 0);
+    const totalClientesIngresosFallback = (data.clientes || []).reduce((acc: number, c: any) => acc + (c.totalIngresosCOP || c.ingresosCop || 0), 0);
+    const totalClientesIngresosCOP = (res?.totalClientesIngresosCop && res.totalClientesIngresosCop > 0)
+      ? res.totalClientesIngresosCop
+      : totalClientesIngresosFallback;
+
+    const totalVentasUSDT = res?.totalVentasUsdtCop ?? (data.ventasUsdt || []).reduce((acc: number, v: any) => acc + (v.totalCOP || 0), 0);
+    const liquidezEsperada = res?.totalLiquidezEsperadaCop ?? (data.activosDigitales || []).reduce((acc: number, a: any) => acc + (a.liquidezEsperadaCop || 0), 0);
+
+    // Exact audited calculation:
+    // Ganancia = (Ventas USDT + Liquidez Esperada) - Ingresos Clientes - Gastos Operativos
+    const gananciaEsperada = (totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP;
+
     return {
       totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
       totalActivosDigitales: res?.totalActivosDigitalesUsdt ?? totalDigFallback,
       saldoPendienteClientes: res?.totalSaldoPendienteClientesCop ?? 0,
-      gananciaEsperada: res?.gananciaEsperadaCop ?? 0,
-      totalNegocioCOP: res?.totalNegocioCop ?? 0,
-      totalVentasUSDT: res?.totalVentasUsdtCop ?? 0,
-      liquidezEsperada: res?.totalLiquidezEsperadaCop ?? 0,
+      gananciaEsperada,
+      totalNegocioCOP: res?.totalNegocioCop ?? (data.negocios || []).reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0),
+      totalClientesIngresosCOP,
+      totalVentasUSDT,
+      liquidezEsperada,
       totalGastosCOP,
     };
-  }, [snapshot.resumenLiquidacion, data.gastos]);
+  }, [snapshot.resumenLiquidacion, data.gastos, data.clientes, data.activosLiquidos, data.activosDigitales, data.ventasUsdt, data.negocios]);
 
   // Direct operations
   const createNegocio = async (payload: any): Promise<boolean> => {

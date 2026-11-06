@@ -20,6 +20,7 @@ const TABLES = {
   USUARIOS: "tbljfI9AsgpOsfzPb",
   EFECTIVO: "tblsuI9n7n7nL0weE",
   GASTOS: "tblNfTwl3rOXdUVbf",
+  CUENTAS: "tbl4urX1SzjmW3Ud5",
 };
 
 const DIVISA_CODE_TO_ID: Record<string, string> = {
@@ -774,6 +775,7 @@ Deno.serve(async (req: Request) => {
       rawUsuarios,
       rawEfectivo,
       rawGastos,
+      rawCuentas,
     ] = await Promise.all([
       fetchAirtableTable(TABLES.CLIENTES, pat),
       fetchAirtableTable(TABLES.NEGOCIOS, pat),
@@ -786,10 +788,25 @@ Deno.serve(async (req: Request) => {
       fetchAirtableTable(TABLES.USUARIOS, pat),
       fetchAirtableTable(TABLES.EFECTIVO, pat),
       fetchAirtableTable(TABLES.GASTOS, pat),
+      fetchAirtableTable(TABLES.CUENTAS, pat),
     ]);
 
     const divisasById = new Map<string, any>();
     rawDivisas.forEach((d) => divisasById.set(d.id, d));
+
+    // Lookup maps for CUENTAS (bridges gastos to specific activo liquido or digital)
+    const cuentaToActivoLiqIdMap = new Map<string, string>();
+    const cuentaToActivoDigIdMap = new Map<string, string>();
+    const cuentaNombreMap = new Map<string, string>();
+    rawCuentas.forEach((r) => {
+      const f = r.fields || {};
+      const actLiqId = Array.isArray(f["ACTIVO LIQUIDO"]) ? f["ACTIVO LIQUIDO"][0] : f["ACTIVO LIQUIDO"];
+      const actDigId = Array.isArray(f["ACTIVO DIGITAL"]) ? f["ACTIVO DIGITAL"][0] : f["ACTIVO DIGITAL"];
+      const nombre = String(f["CUENTA"] || r.id);
+      if (actLiqId) cuentaToActivoLiqIdMap.set(r.id, actLiqId);
+      if (actDigId) cuentaToActivoDigIdMap.set(r.id, actDigId);
+      cuentaNombreMap.set(r.id, nombre);
+    });
 
     // Lookup map for CLIENTES (resolves record ID -> first column {CLIENTE} / {Cliente} and {NOMBRE})
     const clientesById = new Map<string, { id: string; codigo: string; nombre: string }>();
@@ -1029,6 +1046,63 @@ Deno.serve(async (req: Request) => {
       };
     });
 
+    const efectivo = rawEfectivo.map((r, idx) => {
+      const f = r.fields || {};
+      const clienteLink = Array.isArray(f["CLIENTE"]) ? f["CLIENTE"][0] : undefined;
+      const clienteInfo = clienteLink ? clientesById.get(clienteLink) : undefined;
+      const origenLink = Array.isArray(f["ORIGEN FONDOS"]) ? f["ORIGEN FONDOS"][0] : undefined;
+      const origenInfo = origenLink ? activosLiqById.get(origenLink) : undefined;
+      const monto = Number(f["MONTO (COP)"]) || 0;
+      const fecha = String(f["FECHA MOVIMIENTO"] || f["FECHA CREACIÓN"] || r.createdTime || "").slice(0, 10);
+      const tipo = String(f["TIPO"] || "INGRESO").toUpperCase();
+
+      return {
+        id: r.id,
+        codigo: String(f["EFECTIVO"] || `EF-${f["#"] || (idx + 1)}`).trim(),
+        tipo,
+        monto,
+        montoCop: monto,
+        fecha,
+        clienteId: clienteLink,
+        clienteCodigo: clienteInfo ? clienteInfo.codigo : undefined,
+        clienteNombre: clienteInfo ? clienteInfo.nombre : undefined,
+        origenFondosId: origenLink,
+        origenFondosNombre: origenInfo ? origenInfo.activo : undefined,
+        referencia: String(f["REFERENCIA"] || "").trim(),
+        balance: String(f["BALANCE"] || "").trim(),
+        createdTime: r.createdTime,
+      };
+    });
+
+    const gastos = rawGastos.map((r, idx) => {
+      const f = r.fields || {};
+      const origenIds = Array.isArray(f["ORIGEN FONDOS"]) ? f["ORIGEN FONDOS"] : (f["ORIGEN FONDOS"] ? [f["ORIGEN FONDOS"]] : []);
+      const origenNames = origenIds.map((id: string) => {
+        const act = activosLiqById.get(id);
+        const cuentaNom = cuentaNombreMap.get(id);
+        return cuentaNom || (act ? act.activo : id);
+      });
+      const origenCuentaId = origenIds[0];
+      const activoLiquidoId = cuentaToActivoLiqIdMap.get(origenCuentaId);
+      const activoDigitalId = cuentaToActivoDigIdMap.get(origenCuentaId);
+
+      return {
+        id: r.id,
+        codigo: String(f["GASTO"] || `GST-${String(idx + 1).padStart(3, "0")}`),
+        concepto: String(f["CONCEPTO"] || "Gasto Operativo"),
+        categoria: String(f["CATEGORÍA"] || "Otros Gastos Operativos"),
+        divisa: String(f["DIVISA"] || "COP"),
+        monto: Number(f["MONTO"] || 0),
+        origenFondos: origenNames.join(", ") || "Efectivo Dosquebradas",
+        origenFondosIds: origenIds,
+        origenCuentaId,
+        activoLiquidoId,
+        activoDigitalId,
+        fecha: String(f["FECHA GASTO"] || f["FECHA"] || f["FECHA CREACIÓN"] || r.createdTime || "").slice(0, 10),
+        createdTime: r.createdTime,
+      };
+    });
+
     const activosLiquidos = rawActivosLiq.map((r) => {
       const f = r.fields || {};
       const idCuenta = String(f["ACTIVO"] || f["ID CUENTA"] || r.id);
@@ -1044,7 +1118,7 @@ Deno.serve(async (req: Request) => {
       const tarifas = String(f["TARIFAS"] || "");
 
       const rawMovs: any[] = [];
-      // Ingresos vinculados por Venta USDT
+      // 1. Ingresos vinculados por Venta USDT
       const ventasRel = ventasUsdt.filter((v: any) => v.destinoFondosIds?.includes(r.id) || v.destinoFondosNombre?.toLowerCase().includes(institucion.toLowerCase()));
       ventasRel.forEach((v: any) => {
         rawMovs.push({
@@ -1055,14 +1129,45 @@ Deno.serve(async (req: Request) => {
         });
       });
 
-      // Egresos vinculados por Dispersión
-      const dispersionesRel = pagos.filter((p: any) => p.origenFondosIds?.includes(r.id) || p.estado === "COMPLETADO");
+      // 2. Movimientos de Efectivo (Ingresos y Pagos de Caja)
+      const efectivoRel = efectivo.filter((e: any) => e.origenFondosId === r.id || idCuenta.toLowerCase().includes("efectivo"));
+      efectivoRel.forEach((e: any) => {
+        const isIngreso = e.tipo === "INGRESO";
+        rawMovs.push({
+          fecha: e.fecha,
+          origen: e.codigo,
+          concepto: isIngreso
+            ? `Ingreso Efectivo: ${e.referencia || e.clienteNombre || "Caja"}`
+            : `Pago Efectivo: ${e.referencia || e.clienteNombre || "Entrega"}`,
+          monto: isIngreso ? Math.abs(e.montoCop) : -Math.abs(e.montoCop),
+        });
+      });
+
+      // 3. Egresos vinculados por Dispersión Bancaria
+      const dispersionesRel = pagos.filter((p: any) => p.origenFondosIds?.includes(r.id) || (idCuenta.toLowerCase().includes("coinsenda") && p.estado === "COMPLETADO"));
       dispersionesRel.forEach((p: any) => {
         rawMovs.push({
           fecha: p.fecha,
           origen: p.codigo,
           concepto: `Dispersión - ${p.clienteNombre || "Cliente"} (${p.referencia || "Pago"})`,
           monto: -Math.abs(p.montoCop),
+        });
+      });
+
+      // 4. Egresos vinculados por Gastos Operativos (COP)
+      const gastosRel = gastos.filter((g: any) =>
+        g.divisa === "COP" && (
+          g.activoLiquidoId === r.id ||
+          g.origenFondosIds?.includes(r.id) ||
+          (g.origenFondos && (g.origenFondos.toLowerCase().includes(institucion.toLowerCase()) || g.origenFondos.toLowerCase().includes(empresa.toLowerCase())))
+        )
+      );
+      gastosRel.forEach((g: any) => {
+        rawMovs.push({
+          fecha: g.fecha,
+          origen: g.codigo,
+          concepto: `Gasto: ${g.concepto} (${g.categoria || "Operativo"})`,
+          monto: -Math.abs(g.monto),
         });
       });
 
@@ -1120,6 +1225,23 @@ Deno.serve(async (req: Request) => {
           origen: v.codigo,
           concepto: `${v.concepto || "Venta USDT"} → ${v.destinoFondosNombre}`,
           monto: -Math.abs(v.usdtVendido),
+        });
+      });
+
+      // Egresos vinculados por Gastos (USDT)
+      const gastosRel = gastos.filter((g: any) =>
+        g.divisa === "USDT" && (
+          g.activoDigitalId === r.id ||
+          g.origenFondosIds?.includes(r.id) ||
+          (g.origenFondos && (g.origenFondos.toLowerCase().includes("usdt") || g.origenFondos.toLowerCase().includes(wallet.toLowerCase())))
+        )
+      );
+      gastosRel.forEach((g: any) => {
+        rawMovs.push({
+          fecha: g.fecha,
+          origen: g.codigo,
+          concepto: `Gasto USDT: ${g.concepto} (${g.categoria || "Software"})`,
+          monto: -Math.abs(g.monto),
         });
       });
 
@@ -1201,67 +1323,29 @@ Deno.serve(async (req: Request) => {
       };
     });
 
-    const efectivo = rawEfectivo.map((r, idx) => {
-      const f = r.fields || {};
-      const clienteLink = Array.isArray(f["CLIENTE"]) ? f["CLIENTE"][0] : undefined;
-      const clienteInfo = clienteLink ? clientesById.get(clienteLink) : undefined;
-      const origenLink = Array.isArray(f["ORIGEN FONDOS"]) ? f["ORIGEN FONDOS"][0] : undefined;
-      const origenInfo = origenLink ? activosLiqById.get(origenLink) : undefined;
-      const monto = Number(f["MONTO (COP)"]) || 0;
-      const fecha = String(f["FECHA MOVIMIENTO"] || f["FECHA CREACIÓN"] || r.createdTime || "").slice(0, 10);
-      const tipo = String(f["TIPO"] || "INGRESO").toUpperCase();
-
-      return {
-        id: r.id,
-        codigo: String(f["EFECTIVO"] || `EF-${f["#"] || (idx + 1)}`).trim(),
-        tipo,
-        monto,
-        montoCop: monto,
-        fecha,
-        clienteId: clienteLink,
-        clienteCodigo: clienteInfo ? clienteInfo.codigo : undefined,
-        clienteNombre: clienteInfo ? clienteInfo.nombre : undefined,
-        origenFondosId: origenLink,
-        origenFondosNombre: origenInfo ? origenInfo.activo : undefined,
-        referencia: String(f["REFERENCIA"] || "").trim(),
-        balance: String(f["BALANCE"] || "").trim(),
-        createdTime: r.createdTime,
-      };
-    });
-
-    const gastos = rawGastos.map((r, idx) => {
-      const f = r.fields || {};
-      const origenIds = Array.isArray(f["ORIGEN FONDOS"]) ? f["ORIGEN FONDOS"] : (f["ORIGEN FONDOS"] ? [f["ORIGEN FONDOS"]] : []);
-      const origenNames = origenIds.map((id: string) => {
-        const act = activosLiqById.get(id);
-        return act ? act.activo : id;
-      });
-      return {
-        id: r.id,
-        codigo: String(f["GASTO"] || `GST-${String(idx + 1).padStart(3, "0")}`),
-        concepto: String(f["CONCEPTO"] || "Gasto Operativo"),
-        categoria: String(f["CATEGORÍA"] || "Otros Gastos Operativos"),
-        divisa: String(f["DIVISA"] || "COP"),
-        monto: Number(f["MONTO"] || 0),
-        origenFondos: origenNames.join(", ") || "Efectivo Dosquebradas",
-        origenFondosIds: origenIds,
-        fecha: String(f["FECHA"] || f["FECHA CREACIÓN"] || r.createdTime || "").slice(0, 10),
-        createdTime: r.createdTime,
-      };
-    });
-
+    const totalClientesIngresosCop = clientes.reduce((acc: number, c: any) => acc + (c.ingresosCop || 0), 0);
     const totalNegocioCop = negocios.reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0);
     const totalVentasUsdtCop = ventasUsdt.reduce((acc: number, v: any) => acc + (v.totalCop || 0), 0);
     const totalLiquidezEsperadaCop = activosDigitales.reduce((acc: number, a: any) => acc + (a.liquidezEsperadaCop || 0), 0);
-    const gananciaEsperadaCop = (totalVentasUsdtCop + totalLiquidezEsperadaCop) - totalNegocioCop;
+    const totalGastosCop = gastos.reduce((acc: number, g: any) => {
+      const monto = Number(g.monto || 0);
+      if (String(g.divisa).toUpperCase() === "USDT") {
+        return acc + (monto * 4000);
+      }
+      return acc + monto;
+    }, 0);
+    const baseIngresosCop = totalClientesIngresosCop > 0 ? totalClientesIngresosCop : totalNegocioCop;
+    const gananciaEsperadaCop = (totalVentasUsdtCop + totalLiquidezEsperadaCop) - baseIngresosCop - totalGastosCop;
     const totalActivosDigitalesUsdt = activosDigitales.reduce((acc: number, a: any) => acc + (a.saldoUsdt || 0), 0);
     const totalActivosLiquidosCop = activosLiquidos.reduce((acc: number, a: any) => acc + (a.saldoCop || 0), 0);
     const totalSaldoPendienteClientesCop = clientes.reduce((acc: number, c: any) => acc + (c.pendienteCop || 0), 0);
 
     const resumenLiquidacion = {
       totalNegocioCop,
+      totalClientesIngresosCop,
       totalVentasUsdtCop,
       totalLiquidezEsperadaCop,
+      totalGastosCop,
       gananciaEsperadaCop,
       totalActivosDigitalesUsdt,
       totalActivosLiquidosCop,

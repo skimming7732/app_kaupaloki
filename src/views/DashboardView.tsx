@@ -64,27 +64,45 @@ export const DashboardView: React.FC = () => {
 
       {/* Settlement Breakdown Card */}
       <div className="p-6 rounded-2xl bg-card border border-border shadow-sm">
-        <h3 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
-          <i className="ri-calculator-line text-primary" />
-          <span>Resumen de Liquidación y Negocios</span>
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+          <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+            <i className="ri-calculator-line text-primary" />
+            <span>Resumen de Liquidación y Negocios</span>
+          </h3>
+          <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1 rounded-lg border border-border">
+            Fórmula: (Ventas USDT + Liquidez) - Ingresos Clientes - Gastos
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="p-4 rounded-xl bg-muted/40 border border-border">
-            <span className="text-xs text-muted-foreground block mb-1">Volumen Total Negocios</span>
-            <span className="text-xl font-bold text-foreground">{formatCOP(metrics.totalNegocioCOP)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">{data.negocios.length} operaciones registradas</span>
+            <span className="text-xs text-muted-foreground block mb-1">Total Ingresos Clientes</span>
+            <span className="text-xl font-bold text-foreground">{formatCOP(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP)}</span>
+            <span className="text-[11px] text-muted-foreground block mt-1">Columna {"{INGRESOS}"} ({data.clientes.length} clientes)</span>
           </div>
 
           <div className="p-4 rounded-xl bg-muted/40 border border-border">
             <span className="text-xs text-muted-foreground block mb-1">Total Ventas USDT</span>
-            <span className="text-xl font-bold text-foreground">{formatCOP(metrics.totalVentasUSDT)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">Equivalente de venta</span>
+            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCOP(metrics.totalVentasUSDT)}</span>
+            <span className="text-[11px] text-muted-foreground block mt-1">{data.ventasUsdt.length} ventas monetizadas</span>
           </div>
 
           <div className="p-4 rounded-xl bg-muted/40 border border-border">
-            <span className="text-xs text-muted-foreground block mb-1">Liquidez Esperada</span>
-            <span className="text-xl font-bold text-foreground">{formatCOP(metrics.liquidezEsperada)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">Margen libre estimado</span>
+            <span className="text-xs text-muted-foreground block mb-1">Liquidez Esperada USDT</span>
+            <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatCOP(metrics.liquidezEsperada)}</span>
+            <span className="text-[11px] text-muted-foreground block mt-1">Saldo billeteras en COP</span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-muted/40 border border-border">
+            <span className="text-xs text-muted-foreground block mb-1">Gastos Operativos</span>
+            <span className="text-xl font-bold text-rose-600 dark:text-rose-400">-{formatCOP(metrics.totalGastosCOP)}</span>
+            <span className="text-[11px] text-muted-foreground block mt-1">{data.gastos.length} gastos deducidos</span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+            <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold block mb-1">Ganancia Estimada Neta</span>
+            <span className="text-xl font-black text-purple-700 dark:text-purple-300">{formatCOP(metrics.gananciaEsperada)}</span>
+            <span className="text-[11px] text-purple-600/80 dark:text-purple-400/80 block mt-1">Margen real auditado</span>
           </div>
         </div>
       </div>
