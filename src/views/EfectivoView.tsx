@@ -3,6 +3,8 @@ import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
+import { AddClienteModal } from '../components/modals/AddClienteModal';
+import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 
 interface EfectivoViewProps {
   onOpenAddMovimiento?: () => void;
@@ -16,6 +18,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const { data } = useAirtable();
   const [isAddMovOpen, setIsAddMovOpen] = useState(false);
   const [isAddGastoOpen, setIsAddGastoOpen] = useState(false);
+  const [isAddClienteOpen, setIsAddClienteOpen] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -187,26 +190,36 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
           </div>
         </div>
 
-        {/* Cliente quick selector */}
-        <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold">Cliente:</span>
-            <select
-              value={selectedCliente}
-              onChange={(e) => setSelectedCliente(e.target.value)}
-              className="px-2.5 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none max-w-xs"
+        {/* Cliente quick selector with Search & + Nuevo Cliente */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 flex-1 max-w-lg">
+            <span className="text-xs font-bold text-foreground shrink-0 flex items-center gap-1.5">
+              <i className="ri-user-3-line text-primary" />
+              <span>Cliente:</span>
+            </span>
+            <div className="flex-1">
+              <ClientSearchSelect
+                value={selectedCliente}
+                onChange={(id) => setSelectedCliente(id)}
+                placeholder="Todos los clientes (buscar por nombre o código)..."
+                onAddNewClient={() => setIsAddClienteOpen(true)}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsAddClienteOpen(true)}
+              className="h-[38px] px-3.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 flex items-center gap-1.5 text-xs font-bold transition-all shrink-0 shadow-sm"
+              title="Registrar nuevo cliente"
             >
-              <option value="">Todos los clientes</option>
-              {data.clientes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.codigo} - {c.nombre}
-                </option>
-              ))}
-            </select>
+              <i className="ri-user-add-line text-sm" />
+              <span className="hidden sm:inline">+ Cliente</span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span>{filteredMovimientos.length} movimientos</span>
+          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+            <span className="font-semibold text-foreground bg-muted/60 px-3 py-1.5 rounded-xl border border-border">
+              {filteredMovimientos.length} movimientos
+            </span>
             {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta) && (
               <button
                 onClick={() => {
@@ -216,9 +229,10 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                   setFechaDesde('');
                   setFechaHasta('');
                 }}
-                className="text-primary hover:underline font-semibold text-xs"
+                className="text-primary hover:underline font-bold text-xs flex items-center gap-1 bg-primary/10 px-2.5 py-1.5 rounded-lg border border-primary/20"
               >
-                Limpiar filtros
+                <i className="ri-filter-off-line" />
+                <span>Limpiar filtros</span>
               </button>
             )}
           </div>
@@ -288,7 +302,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         </div>
       </div>
 
-      {/* Fallback Modals */}
+      {/* Modals */}
       <AddEfectivoModal
         isOpen={isAddMovOpen}
         onClose={() => setIsAddMovOpen(false)}
@@ -296,6 +310,10 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       <AddGastoModal
         isOpen={isAddGastoOpen}
         onClose={() => setIsAddGastoOpen(false)}
+      />
+      <AddClienteModal
+        isOpen={isAddClienteOpen}
+        onClose={() => setIsAddClienteOpen(false)}
       />
     </div>
   );
