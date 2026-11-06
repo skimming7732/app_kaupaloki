@@ -84,7 +84,7 @@ export const ComprasUsdtView: React.FC = () => {
             </div>
           </div>
           <span className="text-xl font-black text-foreground">{totalOperaciones}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Transacciones registradas en Airtable</span>
+          <span className="text-[11px] text-muted-foreground block mt-0.5">Transacciones registradas en el sistema</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">

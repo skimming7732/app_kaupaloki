@@ -151,10 +151,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Inicia sesión para invitar usuarios.');
-      const pat = localStorage.getItem('kaupaloki_airtable_pat') || '';
       const payload = {
         action: 'prepare_invited_user',
-        pat,
         email: email.trim().toLowerCase(),
         fullName: nombre.trim(),
         role: rol,

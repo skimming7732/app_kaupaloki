@@ -47,7 +47,7 @@ export const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, user, 
 
         <p className="text-sm text-muted-foreground mb-4">
           ¿Estás seguro de que deseas eliminar permanentemente a <strong className="text-foreground">{user.nombre || user.correo}</strong>? 
-          Se revocarán sus accesos y se eliminará tanto de Supabase como de Airtable.
+          Se revocarán sus accesos y se eliminará del sistema.
         </p>
 
         {error && (

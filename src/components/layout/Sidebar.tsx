@@ -213,7 +213,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
             onClick={() => syncWithAirtable(true)}
             title={
               !isExpanded
-                ? `Airtable (${syncStatus === 'syncing' ? 'Sincronizando...' : lastSyncTime || 'En vivo'})`
+                ? `Base de Datos (${syncStatus === 'syncing' ? 'Sincronizando...' : lastSyncTime || 'En vivo'})`
                 : undefined
             }
             style={{
@@ -254,7 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
               />
               {isExpanded && (
                 <span>
-                  {syncStatus === 'syncing' ? 'Sincronizando...' : 'Airtable'}
+                  {syncStatus === 'syncing' ? 'Sincronizando...' : 'Base de Datos'}
                 </span>
               )}
             </div>
@@ -343,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
           </nav>
         </div>
 
-        {/* Mobile Drawer Bottom Airtable Sync */}
+        {/* Mobile Drawer Bottom Database Sync */}
         <div className="p-4 border-t border-[var(--border-main)] pb-8">
           <button
             type="button"
@@ -364,7 +364,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
                       : 'var(--success)',
                 }}
               />
-              <span>{syncStatus === 'syncing' ? 'Sincronizando...' : 'Airtable'}</span>
+              <span>{syncStatus === 'syncing' ? 'Sincronizando...' : 'Base de Datos'}</span>
             </div>
             <span className="text-[10px] text-muted-foreground font-mono">{lastSyncTime || 'En vivo'}</span>
           </button>

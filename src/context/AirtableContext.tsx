@@ -933,7 +933,6 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Direct Supabase operations (100% decoupled from Airtable)
   const createNegocio = async (payload: any): Promise<boolean> => {
     try {
-      const code = payload['Código'] || payload.codigo || ('N' + Math.floor(1000 + Math.random() * 9000));
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
       const divisaCode = payload.divisaCodigo || payload['Divisa'] || (Array.isArray(payload.Divisa) ? payload.Divisa[0] : 'USD');
@@ -943,10 +942,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const tasaNum = Number(payload['Tasa Cambio'] || payload.tasa || payload.tasaCambio || 0);
       const ingresoCopNum = Number(payload['Ingreso COP'] || payload.ingresoCOP || (montoDiv * tasaNum) || 0);
 
-      const { error } = await supabase.from('negocios').insert({
-        id: 'neg_' + Date.now(),
-        codigo: code,
-        numero: Math.floor(10 + Math.random() * 90),
+      const insertData: any = {
         fecha: payload['Fecha'] || payload.fecha || new Date().toISOString().split('T')[0],
         cliente_id: clientObj?.id || clientRaw,
         cliente_codigo: clientObj?.codigo || clientRaw,
@@ -960,7 +956,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         usdt_por_divisa: 0,
         costo_usdt_comp: 0,
         estado: 'Completado',
-      });
+      };
+      if (payload.codigo) insertData.codigo = payload.codigo;
+
+      const { error } = await supabase.from('negocios').insert(insertData);
 
       if (error) throw error;
       await fetchFromSupabase();
@@ -998,28 +997,26 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const createDispersion = async (payload: any): Promise<boolean> => {
     try {
-      const code = payload['Código'] || payload.codigo || ('D' + Math.floor(1000 + Math.random() * 9000));
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
       const montoNum = Number(payload.monto || payload.montoCop || payload['Monto'] || payload['MONTO (COP)'] || 0);
 
-      const { error } = await supabase.from('dispersiones').insert({
-        id: 'disp_' + Date.now(),
-        codigo: code,
-        numero: Math.floor(10 + Math.random() * 90),
+      const insertData: any = {
         fecha: payload.fecha || payload['Fecha'] || new Date().toISOString(),
         cliente_id: clientObj?.id || clientRaw,
         cliente_codigo: clientObj?.codigo || clientRaw,
         cliente_nombre: clientObj?.nombre || 'Cliente',
         monto: montoNum,
         monto_cop: montoNum,
-        origen_fondos: payload.origenFondos || payload['Origen de Fondos'] || payload['Origen Fondos'] || 'Sin especificar',
-        origen_fondos_id: payload.origenFondosId || null,
+        origen_fondos: payload.origenFondos || payload['Origen de Fondos'] || payload['Origen Fondos'] || 'COINSENDA-KAUPALOKI',
         referencia: payload.referencia || payload['Referencia'] || '',
         estado: 'COMPLETADO',
         tiene_comprobante: Boolean(payload.comprobanteUrl),
         comprobante_url: payload.comprobanteUrl || null,
-      });
+      };
+      if (payload.codigo) insertData.codigo = payload.codigo;
+
+      const { error } = await supabase.from('dispersiones').insert(insertData);
 
       if (error) throw error;
       await fetchFromSupabase();
@@ -1032,25 +1029,24 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const createMovimientoEfectivo = async (payload: any): Promise<boolean> => {
     try {
-      const code = payload.codigo || payload['Código'] || ('EFEC-' + Math.floor(1000 + Math.random() * 9000));
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
       const montoNum = Number(payload.montoCop ?? payload.monto ?? payload['Monto'] ?? 0);
-      const tipoStr = String(payload.tipo || payload['Tipo'] || 'Pago');
+      const tipoStr = String(payload.tipo || payload['Tipo'] || 'PAGO').toUpperCase();
 
-      const { error } = await supabase.from('efectivo').insert({
-        id: 'efec_' + Date.now(),
-        codigo: code,
+      const insertData: any = {
         fecha: payload.fecha || payload['Fecha'] || new Date().toISOString().split('T')[0],
         tipo: tipoStr,
         cliente_id: clientObj?.id || clientRaw || null,
         cliente_codigo: clientObj?.codigo || null,
-        cliente_nombre: clientObj?.nombre || (tipoStr === 'Ingreso' ? 'Ingreso a Caja' : 'Movimiento Interno'),
+        cliente_nombre: clientObj?.nombre || (tipoStr === 'INGRESO' ? 'Ingreso a Caja' : 'Movimiento Interno'),
         monto: montoNum,
-        origen_fondos: payload.origenFondos || 'Efectivo Dosquebradas',
-        origen_fondos_id: payload.origenFondosId || null,
+        origen_fondos: payload.origenFondos || 'EFECTIVO-CAJA',
         referencia: payload.referencia || payload['Referencia'] || null,
-      });
+      };
+      if (payload.codigo) insertData.codigo = payload.codigo;
+
+      const { error } = await supabase.from('efectivo').insert(insertData);
 
       if (error) throw error;
       await fetchFromSupabase();
@@ -1063,21 +1059,20 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const createGasto = async (payload: any): Promise<boolean> => {
     try {
-      const code = payload.codigo || ('GST-' + Math.floor(100 + Math.random() * 900));
       const montoNum = Number(payload.monto || payload['Monto'] || 0);
 
-      const { error } = await supabase.from('gastos').insert({
-        id: 'gst_' + Date.now(),
-        codigo: code,
+      const insertData: any = {
         fecha: payload.fecha || new Date().toISOString().split('T')[0],
         concepto: payload.concepto || 'Gasto Operativo',
         categoria: payload.categoria || 'Otros Gastos Operativos',
         divisa: payload.divisa || 'COP',
         monto: montoNum,
-        origen_fondos: payload.origenFondos || 'Efectivo Dosquebradas',
-        origen_fondos_id: payload.origenFondosId || null,
+        origen_fondos: payload.origenFondos || 'COINSENDA-KAUPALOKI',
         comprobante_url: payload.comprobanteUrl || null,
-      });
+      };
+      if (payload.codigo) insertData.codigo = payload.codigo;
+
+      const { error } = await supabase.from('gastos').insert(insertData);
 
       if (error) throw error;
       await fetchFromSupabase();
@@ -1090,27 +1085,20 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const createCliente = async (nombre: string, pais: string): Promise<any> => {
     try {
-      const nextNum = (data.clientes.length || 0) + 1;
-      const code = `C${String(nextNum).padStart(4, '0')}-${nombre.toUpperCase().replace(/\s+/g, '-')}`;
-      const newId = 'cli_' + Date.now();
-
-      const { error } = await supabase.from('clientes').insert({
-        id: newId,
-        codigo: code,
+      const { data: inserted, error } = await supabase.from('clientes').insert({
         nombre: nombre.toUpperCase(),
-        pais: pais || null,
-        numero: nextNum,
+        pais: pais || 'COL',
         ingresos_cop: 0,
         pagado_cop: 0,
         pendiente_cop: 0,
         saldo_cop: 0,
         estado: 'PENDIENTE',
         fecha_creacion: new Date().toISOString(),
-      });
+      }).select().single();
 
       if (error) throw error;
       await fetchFromSupabase();
-      return { success: true, id: newId };
+      return { success: true, id: inserted?.id };
     } catch (err) {
       console.error('Error creating cliente in Supabase:', err);
       return { success: false };
