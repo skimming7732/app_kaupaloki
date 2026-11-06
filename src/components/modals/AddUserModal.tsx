@@ -21,6 +21,48 @@ const PAISES_DISPONIBLES = [
   { code: 'ARG', name: 'Argentina' },
 ];
 
+const ROLES_OPTIONS: {
+  id: 'operador' | 'dispersor' | 'administrador' | 'super_admin';
+  title: string;
+  badge: string;
+  desc: string;
+  icon: string;
+  colorClass: string;
+}[] = [
+  {
+    id: 'operador',
+    title: 'Operador',
+    badge: '2 Pasos',
+    desc: 'Inicio, Negocios y Clientes con divisas asignadas.',
+    icon: 'ri-briefcase-4-line',
+    colorClass: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+  },
+  {
+    id: 'dispersor',
+    title: 'Dispersor',
+    badge: 'Dispersión',
+    desc: 'Pagos bancarios, transferencias y clientes.',
+    icon: 'ri-send-plane-2-line',
+    colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+  },
+  {
+    id: 'administrador',
+    title: 'Administrador',
+    badge: 'Gestión',
+    desc: 'Control de finanzas, activos, divisas y gastos.',
+    icon: 'ri-shield-check-line',
+    colorClass: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
+  },
+  {
+    id: 'super_admin',
+    title: 'Super Admin',
+    badge: 'Total',
+    desc: 'Control global, gestión de usuarios y seguridad.',
+    icon: 'ri-shield-star-line',
+    colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+  },
+];
+
 export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
   const { data, syncWithAirtable } = useAirtable();
 
@@ -143,7 +185,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl p-6 relative">
+      <div className="bg-card w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-border shadow-2xl p-6 md:p-7 relative">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
           <div className="flex items-center gap-3">
@@ -225,50 +267,86 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      País de Operación
-                    </label>
-                    <select
-                      value={pais}
-                      onChange={(e) => setPais(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                    >
-                      {PAISES_DISPONIBLES.map((p) => (
-                        <option key={p.code} value={p.code}>
-                          {p.name} ({p.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Rol Asignado *
-                    </label>
-                    <select
-                      value={rol}
-                      onChange={(e) => setRol(e.target.value as any)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                    >
-                      <option value="operador">Operador (2 pasos: Divisas)</option>
-                      <option value="dispersor">Dispersor (Inicio, Dispersiones, Clientes)</option>
-                      <option value="administrador">Admin (Acceso Completo)</option>
-                      <option value="super_admin">Super Admin</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    País de Operación
+                  </label>
+                  <select
+                    value={pais}
+                    onChange={(e) => setPais(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  >
+                    {PAISES_DISPONIBLES.map((p) => (
+                      <option key={p.code} value={p.code}>
+                        {p.name} ({p.code})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Role description badge */}
-                <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs text-muted-foreground flex items-center gap-2">
-                  <i className="ri-information-line text-primary text-base" />
-                  <span>
-                    {rol === 'operador' && 'Operador: Tendrá acceso a Inicio, Clientes y Negocios restringido a sus divisas autorizadas.'}
-                    {rol === 'dispersor' && 'Dispersor: Tendrá acceso exclusivo a Inicio, Dispersiones y Clientes.'}
-                    {rol === 'administrador' && 'Admin: Control y acceso a todas las secciones contables y operativas.'}
-                    {rol === 'super_admin' && 'Super Admin: Acceso total de gestión y configuración global.'}
-                  </span>
+                {/* 4 Cajitas para Selección de Rol */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider">
+                      Selecciona el Rol *
+                    </label>
+                    <span className="text-[11px] text-muted-foreground font-semibold">
+                      {rol === 'operador' && 'Requiere autorizar divisas'}
+                      {rol === 'dispersor' && 'Pagos y transferencias'}
+                      {rol === 'administrador' && 'Acceso a todo el sistema'}
+                      {rol === 'super_admin' && 'Control global'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {ROLES_OPTIONS.map((r) => {
+                      const isSelected = rol === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setRol(r.id)}
+                          className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between relative cursor-pointer ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary'
+                              : 'border-border bg-card hover:bg-muted/50 hover:border-border/80'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div
+                              className={`w-8 h-8 rounded-xl flex items-center justify-center text-base transition-colors ${
+                                isSelected ? 'bg-primary text-white shadow-sm' : r.colorClass
+                              }`}
+                            >
+                              <i className={r.icon} />
+                            </div>
+                            {isSelected ? (
+                              <i className="ri-checkbox-circle-fill text-primary text-lg" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-muted-foreground/40" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`text-xs font-bold ${
+                                  isSelected ? 'text-primary' : 'text-foreground'
+                                }`}
+                              >
+                                {r.title}
+                              </span>
+                              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded font-extrabold bg-muted text-muted-foreground border border-border">
+                                {r.badge}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-muted-foreground leading-tight mt-1 block">
+                              {r.desc}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Footer Buttons */}
