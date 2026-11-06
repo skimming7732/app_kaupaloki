@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Kaupaloki - Plataforma Contable y Cambiaria (Horizon UI)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              background: 'var(--bg-main)',
+              card: 'var(--bg-card)',
+              'card-secondary': 'var(--bg-card-secondary)',
+              sidebar: 'var(--bg-sidebar)',
+              border: 'var(--border-main)',
+              input: 'var(--border-main)',
+              foreground: 'var(--text-primary)',
+              'muted-foreground': 'var(--text-secondary)',
+              muted: 'var(--bg-card-secondary)',
+              primary: {
+                DEFAULT: '#4318FF',
+                foreground: '#FFFFFF',
+              },
+              destructive: {
+                DEFAULT: '#EE5D50',
+                foreground: '#FFFFFF',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <title>Kaupaloki - Finanzas y Gestión Cambiaria</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function() {
+        var savedTheme = localStorage.getItem('kaupaloki_theme');
+        if (savedTheme === 'light') {
+          document.documentElement.classList.remove('dark');
+        } else {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </body>
+</html>

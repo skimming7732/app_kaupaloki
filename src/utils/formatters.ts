@@ -1,9 +1,18 @@
 export function formatCop(amount: number, decimals = 2): string {
   const num = Number(amount) || 0;
-  return '$' + new Intl.NumberFormat('en-US', {
+  return '$' + new Intl.NumberFormat('es-CO', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(num);
+}
+
+export function formatCOP(val: number | undefined | null): string {
+  const n = Number(val) || 0;
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(n);
 }
 
 export function formatUsd(amount: number, decimals = 2): string {
@@ -14,12 +23,66 @@ export function formatUsd(amount: number, decimals = 2): string {
   }).format(num);
 }
 
+export function formatUSD(val: number | undefined | null, decimals: number = 2): string {
+  const n = Number(val) || 0;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(n);
+}
+
 export function formatDecimal(amount: number, decimals = 2): string {
   const num = Number(amount) || 0;
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('es-CO', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(num);
+}
+
+export function formatCurrency(amount: number | undefined | null, currencyCode: string = 'USD'): string {
+  const n = Number(amount) || 0;
+  if (currencyCode === 'COP') return formatCOP(n);
+  return `${currencyCode} ${new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n)}`;
+}
+
+export function formatDate(val: string | undefined | null): string {
+  if (!val) return '-';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    return d.toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return val;
+  }
+}
+
+export function computeUserAirtableCode(name: string, role: string, country: string, num: number = 1): string {
+  let rolePrefix = 'OP';
+  const r = (role || '').toUpperCase();
+  if (r.includes('SUPER') || r === 'SUPER ADMIN') {
+    rolePrefix = 'SA';
+  } else if (r.includes('ADMIN') || r === 'ADMINISTRADOR') {
+    rolePrefix = 'AD';
+  } else if (r.includes('CLIENT') || r === 'CLIENTE') {
+    rolePrefix = 'CL';
+  } else if (r.includes('DISPERS')) {
+    rolePrefix = 'DS';
+  } else {
+    rolePrefix = 'OP';
+  }
+  const paddedNum = String(num || 1).padStart(3, '0');
+  const firstWord = (name || 'USR').trim().split(/\s+/)[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'USR';
+  const cleanCountry = (country || 'COL').trim().slice(0, 3).toUpperCase();
+  return `U${rolePrefix}${paddedNum}-${firstWord}-${cleanCountry}`;
 }
 
 export const fallbackBanderaUrl: Record<string, string> = {

@@ -1,0 +1,227 @@
+import React, { useState, useMemo } from 'react';
+import { useAirtable } from '../context/AirtableContext';
+import type { AirtableUser } from '../context/AirtableContext';
+import { EditUserModal } from '../components/modals/EditUserModal';
+import { SendInviteModal } from '../components/modals/SendInviteModal';
+import { DeleteUserModal } from '../components/modals/DeleteUserModal';
+
+export const UsuariosView: React.FC = () => {
+  const { data } = useAirtable();
+  const [selectedRole, setSelectedRole] = useState('Todos');
+  const [search, setSearch] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Modal states
+  const [editingUser, setEditingUser] = useState<AirtableUser | null>(null);
+  const [invitingUser, setInvitingUser] = useState<AirtableUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState<AirtableUser | null>(null);
+
+  const roles = ['Todos', 'Super Admin', 'Admin', 'Operador', 'Dispersor'];
+
+  const filteredUsers = useMemo(() => {
+    return data.usuarios.filter((u) => {
+      const matchSearch =
+        u.nombre.toLowerCase().includes(search.toLowerCase()) ||
+        u.correo.toLowerCase().includes(search.toLowerCase()) ||
+        u.codigo.toLowerCase().includes(search.toLowerCase());
+      const matchRole = selectedRole === 'Todos' || u.rol === selectedRole;
+      return matchSearch && matchRole;
+    });
+  }, [data.usuarios, search, selectedRole]);
+
+  const handleCopyLink = (u: AirtableUser) => {
+    const link = `${window.location.origin}/onboarding?email=${encodeURIComponent(u.correo)}`;
+    navigator.clipboard.writeText(link);
+    setCopiedId(u.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const getRoleIcon = (rol: string) => {
+    switch (rol) {
+      case 'Super Admin':
+        return <i className="ri-vip-crown-line text-amber-500" />;
+      case 'Admin':
+        return <i className="ri-shield-user-line text-blue-500" />;
+      case 'Dispersor':
+        return <i className="ri-send-plane-line text-purple-500" />;
+      default:
+        return <i className="ri-user-star-line text-emerald-500" />;
+    }
+  };
+
+  const getStatusBadge = (estado: string) => {
+    switch (estado) {
+      case 'Activo':
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">Activo</span>;
+      case 'Invitado':
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500">Invitado</span>;
+      default:
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">Inactivo</span>;
+    }
+  };
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {/* Role Filter Bar & Search */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border">
+        {/* Roles pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+          {roles.map((r) => (
+            <button
+              key={r}
+              onClick={() => setSelectedRole(r)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                selectedRole === r
+                  ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="relative w-full md:w-72">
+          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por usuario o correo..."
+            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
+              <tr>
+                <th className="py-3 px-4">Código</th>
+                <th className="py-3 px-4">Usuario</th>
+                <th className="py-3 px-4">País</th>
+                <th className="py-3 px-4">Rol</th>
+                <th className="py-3 px-4">Divisas</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                    No se encontraron usuarios
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((u) => (
+                  <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-4 font-mono font-medium text-foreground">{u.codigo}</td>
+                    
+                    {/* User with role-specific avatar */}
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-muted/80 flex items-center justify-center text-sm border border-border">
+                          {getRoleIcon(u.rol)}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-foreground block">{u.nombre || 'Sin nombre'}</span>
+                          <span className="text-[11px] text-muted-foreground">{u.correo}</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4 text-muted-foreground">{u.pais || 'Colombia'}</td>
+
+                    <td className="py-3 px-4">
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-foreground border border-border">
+                        {u.rol}
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      {u.divisasAutorizadas && u.divisasAutorizadas.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {u.divisasAutorizadas.map((d) => (
+                            <span key={d} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px]">
+                              {d}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-[11px]">Todas</span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4 text-center">
+                      {getStatusBadge(u.estado)}
+                    </td>
+
+                    {/* Icon-only Actions */}
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleCopyLink(u)}
+                          title="Copiar enlace de acceso"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          <i className={copiedId === u.id ? "ri-check-line text-emerald-500" : "ri-share-line"} />
+                        </button>
+
+                        <button
+                          onClick={() => setInvitingUser(u)}
+                          title="Enviar correo de invitación"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+                        >
+                          <i className="ri-mail-send-line" />
+                        </button>
+
+                        <button
+                          onClick={() => setEditingUser(u)}
+                          title="Editar permisos y rol"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                          <i className="ri-edit-line" />
+                        </button>
+
+                        <button
+                          onClick={() => setDeletingUser(u)}
+                          title="Eliminar usuario"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          <i className="ri-delete-bin-line" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modals */}
+      <EditUserModal
+        isOpen={Boolean(editingUser)}
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
+      />
+
+      <SendInviteModal
+        isOpen={Boolean(invitingUser)}
+        user={invitingUser}
+        onClose={() => setInvitingUser(null)}
+      />
+
+      <DeleteUserModal
+        isOpen={Boolean(deletingUser)}
+        user={deletingUser}
+        onClose={() => setDeletingUser(null)}
+      />
+    </div>
+  );
+};

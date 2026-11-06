@@ -96,3 +96,8 @@ export function buildOtpAuthUri(email: string, secret: string, issuer = 'Kaupalo
   const cleanIssuer = encodeURIComponent(issuer);
   return `otpauth://totp/${cleanIssuer}:${cleanEmail}?secret=${secret}&issuer=${cleanIssuer}&algorithm=SHA1&digits=6&period=30`;
 }
+
+// Aliases for convenience
+export const generateTotpSecret = generateBase32Secret;
+export const generateTotpUri = (secret: string, email: string, issuer = 'Kaupaloki') => buildOtpAuthUri(email, secret, issuer);
+export const verifyTotp = (code: string, secret: string) => verifyTotpCode(secret, code);
