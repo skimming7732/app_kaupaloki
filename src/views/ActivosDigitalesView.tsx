@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
+import { useAuth } from '../context/AuthContext';
 import { formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
   const { metrics, data } = useAirtable();
+  const { theme } = useAuth();
+  const isDark = theme === 'dark';
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
 
   const wallets = data.activosDigitales || [];
@@ -53,15 +56,21 @@ export const ActivosDigitalesView: React.FC = () => {
     return `${address.slice(0, 8)}...${address.slice(-6)}`;
   };
 
-  // Card background gradients for crypto wallets
+  // Card background gradients for crypto wallets (vibrant in light theme, deep in dark theme)
   const getCardGradient = (index: number) => {
-    const gradients = [
+    const lightGradients = [
+      'linear-gradient(135deg, #059669 0%, #047857 100%)', // TRON Emerald Vibrant
+      'linear-gradient(135deg, #4318FF 0%, #2563EB 100%)', // Crypto Royal Blue
+      'linear-gradient(135deg, #0891B2 0%, #0E7490 100%)', // Cyan / Ocean Blue
+      'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', // Radiant Violet
+    ];
+    const darkGradients = [
       'linear-gradient(135deg, #047857 0%, #064e3b 100%)', // TRON Emerald Green
       'linear-gradient(135deg, #3730a3 0%, #1e1b4b 100%)', // Crypto Indigo
       'linear-gradient(135deg, #0284c7 0%, #082f49 100%)', // Cyan / Ocean Blue
       'linear-gradient(135deg, #6b21a8 0%, #3b0764 100%)', // Deep Violet
     ];
-    return gradients[index % gradients.length];
+    return isDark ? darkGradients[index % darkGradients.length] : lightGradients[index % lightGradients.length];
   };
 
   return (
@@ -117,8 +126,10 @@ export const ActivosDigitalesView: React.FC = () => {
           {/* Master Horizon Crypto Card */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: isDark
+                ? 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)'
+                : 'linear-gradient(135deg, #059669 0%, #047857 50%, #065F46 100%)',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(5, 150, 105, 0.25)',
             }}
             className="rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden"
           >

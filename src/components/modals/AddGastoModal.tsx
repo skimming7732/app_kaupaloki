@@ -14,6 +14,7 @@ export const AddGastoModal: React.FC<AddGastoModalProps> = ({ isOpen, onClose })
   const [monto, setMonto] = useState('');
   const [origenFondos, setOrigenFondos] = useState('Efectivo Dosquebradas');
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [comprobanteUrl, setComprobanteUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,9 +51,11 @@ export const AddGastoModal: React.FC<AddGastoModalProps> = ({ isOpen, onClose })
         monto: parsedMonto,
         origenFondos,
         fecha,
+        comprobanteUrl: comprobanteUrl.trim() || undefined,
       });
       setConcepto('');
       setMonto('');
+      setComprobanteUrl('');
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Error al registrar el gasto');
@@ -164,6 +167,22 @@ export const AddGastoModal: React.FC<AddGastoModalProps> = ({ isOpen, onClose })
                 onChange={(e) => setFecha(e.target.value)}
                 className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Comprobante (Enlace o URL del Soporte)
+            </label>
+            <div className="relative">
+              <input
+                type="url"
+                value={comprobanteUrl}
+                onChange={(e) => setComprobanteUrl(e.target.value)}
+                placeholder="https://... (enlace a imagen o PDF de soporte)"
+                className="w-full px-2.5 py-1.5 pl-8 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+              />
+              <i className="ri-link absolute left-2.5 top-2 text-muted-foreground text-xs" />
             </div>
           </div>
 

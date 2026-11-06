@@ -6,12 +6,16 @@ interface HeaderProps {
   title?: string;
   subtitle?: string;
   onExportCsv?: () => void;
+  onToggleMobileMenu?: () => void;
+  onOpenModal?: (modalId: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   title: propTitle,
   subtitle: propSubtitle,
   onExportCsv,
+  onToggleMobileMenu,
+  onOpenModal,
 }) => {
   const { profile, user, theme, toggleTheme, logout } = useAuth();
   const location = useLocation();
@@ -87,7 +91,15 @@ export const Header: React.FC<HeaderProps> = ({
         break;
       case '/perfil':
         title = 'Mi Perfil';
-        subtitle = 'Configuración de cuenta y seguridad 2FA';
+        subtitle = 'Resumen general y estado de tu cuenta';
+        break;
+      case '/perfil/datos':
+        title = 'Datos Personales';
+        subtitle = 'Actualización de datos y confirmación de seguridad';
+        break;
+      case '/perfil/seguridad':
+        title = 'Seguridad & Accesos';
+        subtitle = 'Gestión de contraseña y autenticación 2FA';
         break;
       default:
         title = 'Kaupaloki';
@@ -116,31 +128,48 @@ export const Header: React.FC<HeaderProps> = ({
       : 'OPERADOR');
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-30">
-      <div>
-        <h1 className="text-xl font-black text-foreground tracking-tight">{title}</h1>
-        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+    <header className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-30">
+      <div className="flex items-center gap-2.5">
+        {onToggleMobileMenu && (
+          <button
+            type="button"
+            onClick={onToggleMobileMenu}
+            className="w-9 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center md:hidden transition-colors flex-shrink-0"
+            title="Abrir menú"
+          >
+            <i className="ri-menu-2-line text-base" />
+          </button>
+        )}
+        <div>
+          <h1 className="text-lg sm:text-xl font-black text-foreground tracking-tight leading-tight">{title}</h1>
+          {subtitle && <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate max-w-[180px] sm:max-w-none">{subtitle}</p>}
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {/* Export CSV button */}
         {onExportCsv && (
           <button
             type="button"
             onClick={onExportCsv}
             title="Exportar a CSV"
-            className="w-9 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center shadow-sm transition-colors"
+            className="w-9 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center shadow-sm transition-colors flex-shrink-0"
           >
             <i className="ri-download-2-line text-sm" />
           </button>
         )}
 
-        {/* Theme Toggle (Dark / Light) */}
+        {/* 1. Rol de Usuario */}
+        <div className="hidden sm:inline-flex items-center px-3 h-9 rounded-xl bg-primary/10 border border-primary/20 text-primary text-[11px] font-extrabold tracking-wider uppercase shadow-sm select-none">
+          {rolDisplay}
+        </div>
+
+        {/* 2. Theme Toggle (Dark / Light) */}
         <button
           type="button"
           onClick={toggleTheme}
           title="Cambiar tema claro / oscuro"
-          className="w-9 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center shadow-sm transition-colors"
+          className="w-9 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center shadow-sm transition-colors flex-shrink-0"
         >
           {theme === 'dark' ? (
             <i className="ri-sun-line text-sm text-amber-400" />
@@ -149,22 +178,19 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* Profile with Dropdown Submenu */}
+        {/* 3. User Trigger Button: Icono + Nombre + Flecha (misma altura h-9 que dark/light) */}
         <div className="relative" ref={menuRef}>
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted/70 transition-all shadow-sm focus:outline-none"
+            className="h-9 flex items-center gap-2 px-2.5 rounded-xl border border-border bg-card hover:bg-muted/70 transition-all shadow-sm focus:outline-none flex-shrink-0"
           >
-            <div className="w-7 h-7 rounded-full bg-primary/15 text-primary font-bold text-xs flex items-center justify-center border border-primary/20">
+            <div className="w-6 h-6 rounded-lg bg-primary/15 text-primary font-bold text-xs flex items-center justify-center border border-primary/20 flex-shrink-0">
               {initial}
             </div>
-            <div className="text-left hidden sm:block">
-              <span className="text-xs font-bold text-foreground block leading-tight">{fullName}</span>
-              <span className="text-[10px] text-muted-foreground uppercase font-semibold">
-                {rolDisplay}
-              </span>
-            </div>
+            <span className="text-xs font-bold text-foreground truncate max-w-[130px] hidden sm:inline-block leading-none">
+              {fullName}
+            </span>
             <i className={`ri-arrow-down-s-line text-muted-foreground text-xs transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
 
@@ -205,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </Link>
 
                 <Link
-                  to="/2fa"
+                  to="/perfil/seguridad"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-foreground hover:bg-muted transition-colors"
                 >

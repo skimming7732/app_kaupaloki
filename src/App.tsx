@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { AirtableProvider } from './context/AirtableContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
 
 // Views
 import { InicioView } from './views/InicioView';
@@ -74,15 +75,23 @@ const AppLayout: React.FC<{
     return <Navigate to="/2fa" replace />;
   }
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
-      <Sidebar />
+      <Sidebar isMobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
-        <Header onOpenModal={(modalId) => setActiveModal(modalId)} />
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+        <Header
+          onOpenModal={(modalId) => setActiveModal(modalId)}
+          onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
+        />
+        <main className="flex-1 p-3 sm:p-5 md:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8">
           {children}
         </main>
       </div>
+
+      {/* App-Style Mobile Bottom Navigation */}
+      <MobileBottomNav onOpenMore={() => setMobileMenuOpen(true)} />
 
       {/* Global Modals */}
       <AddNegocioModal isOpen={activeModal === 'add-negocio'} onClose={() => setActiveModal(null)} />
@@ -184,6 +193,8 @@ export const App: React.FC = () => {
               element={renderWithLayout(<UsuariosView />, ['super_admin', 'administrador'])}
             />
             <Route path="/perfil" element={renderWithLayout(<PerfilView />)} />
+            <Route path="/perfil/datos" element={renderWithLayout(<PerfilView />)} />
+            <Route path="/perfil/seguridad" element={renderWithLayout(<PerfilView />)} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/inicio" replace />} />

@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
+import { useAuth } from '../context/AuthContext';
 import { formatCOP, formatDate } from '../utils/formatters';
 
 export const ActivosLiquidosView: React.FC = () => {
   const { metrics, data } = useAirtable();
+  const { theme } = useAuth();
+  const isDark = theme === 'dark';
   const [selectedActivoId, setSelectedActivoId] = useState<string | null>(null);
 
   const activos = data.activosLiquidos || [];
@@ -44,15 +47,21 @@ export const ActivosLiquidosView: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Card background gradients matching Horizon UI
+  // Card background gradients matching Horizon UI (vibrant in light theme, deep in dark theme)
   const getCardGradient = (index: number) => {
-    const gradients = [
+    const lightGradients = [
+      'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', // Vibrant Sapphire Blue
+      'linear-gradient(135deg, #059669 0%, #047857 100%)', // Vibrant Emerald
+      'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', // Vibrant Royal Violet
+      'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)', // Vibrant Warm Amber
+    ];
+    const darkGradients = [
       'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)', // Deep Navy
       'linear-gradient(135deg, #065f46 0%, #022c22 100%)', // Emerald Green
       'linear-gradient(135deg, #581c87 0%, #1e1b4b 100%)', // Royal Purple
       'linear-gradient(135deg, #7c2d12 0%, #27272a 100%)', // Warm Amber
     ];
-    return gradients[index % gradients.length];
+    return isDark ? darkGradients[index % darkGradients.length] : lightGradients[index % lightGradients.length];
   };
 
   return (
@@ -97,8 +106,10 @@ export const ActivosLiquidosView: React.FC = () => {
           {/* Master Horizon Bank Statement Card */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: isDark
+                ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
+                : 'linear-gradient(135deg, #4318FF 0%, #2563EB 50%, #1D4ED8 100%)',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(67, 24, 255, 0.25)',
             }}
             className="rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden"
           >

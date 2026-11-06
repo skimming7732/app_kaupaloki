@@ -183,13 +183,14 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                 <th className="py-3 px-4">Concepto</th>
                 <th className="py-3 px-4">Categoría Contable</th>
                 <th className="py-3 px-4">Institución / Origen</th>
+                <th className="py-3 px-4">Comprobante</th>
                 <th className="py-3 px-4 text-right">Monto</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredGastos.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
                     No se encontraron gastos registrados
                   </td>
                 </tr>
@@ -205,6 +206,23 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{g.origenFondos}</td>
+                    <td className="py-3 px-4">
+                      {g.comprobanteUrl ? (
+                        <a
+                          href={g.comprobanteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-bold text-[11px] transition-colors shadow-sm"
+                          title={g.comprobanteNombre || "Ver comprobante adjunto"}
+                        >
+                          <i className="ri-attachment-2 text-xs" />
+                          <span>Ver</span>
+                          <i className="ri-external-link-line text-[10px]" />
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground/60 italic">Sin adjunto</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-right font-bold text-foreground">
                       {g.divisa === 'COP' ? formatCOP(g.monto) : formatUSD(g.monto)}
                     </td>

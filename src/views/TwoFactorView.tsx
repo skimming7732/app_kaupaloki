@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { generateTotpSecret, generateTotpUri, verifyTotp, generateBackupCodes } from '../utils/totp';
 
 export const TwoFactorView: React.FC = () => {
-  const { user, profile, loading: authLoading, is2faVerified, verify2FASession, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, is2faVerified, verify2FASession, refreshProfile, theme, toggleTheme, logout } = useAuth();
   const navigate = useNavigate();
 
   // Mode:
@@ -348,8 +348,43 @@ export const TwoFactorView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-md bg-card border border-border rounded-3xl p-6 md:p-8 shadow-xl">
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Top Standalone Header */}
+      <header className="w-full flex items-center justify-between px-6 py-4 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Kaupaloki" className="theme-logo-dark h-8 w-auto" />
+          <img src="/logo-blue.png" alt="Kaupaloki" className="theme-logo-light h-8 w-auto" />
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title="Cambiar tema claro / oscuro"
+            className="w-9 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center shadow-sm transition-colors"
+          >
+            {theme === 'dark' ? (
+              <i className="ri-sun-line text-sm text-amber-400" />
+            ) : (
+              <i className="ri-moon-line text-sm text-blue-500" />
+            )}
+          </button>
+          {user && (
+            <button
+              type="button"
+              onClick={logout}
+              title="Cerrar sesión"
+              className="px-3 h-9 rounded-xl border border-border bg-card hover:bg-destructive/10 text-destructive text-xs font-bold flex items-center gap-1.5 transition-colors"
+            >
+              <i className="ri-logout-box-r-line" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Main 2FA Card Container */}
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-card border border-border rounded-3xl p-6 md:p-8 shadow-xl">
         {/* Brand Header */}
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
@@ -706,5 +741,6 @@ export const TwoFactorView: React.FC = () => {
         )}
       </div>
     </div>
+  </div>
   );
 };

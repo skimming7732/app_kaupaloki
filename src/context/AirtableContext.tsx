@@ -176,7 +176,9 @@ const defaultSnapshot: AirtableSnapshot = {
       divisa: "COP",
       monto: 150000,
       origenFondos: "Coinsenda 1 (Bancolombia)",
-      fecha: "2026-11-05"
+      fecha: "2026-11-05",
+      comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793944800000/NGBpi5DKNrB54Uyn1pBxAg/ZeF1IEXq0cW4_UpAOtg08K9rwaGmA_NONcMkFyDWcH2ug0zGR6Km88l_xyB0-D9LKca2YCGRr6J6r235ouAWn8r5fGgTFWz63FKgi0CbfT8esT0XrQvxC5x1_sNIzlfVP2LHjN5dcG63A1bITfI7tZ_wj8Fyhf2WIR5w6l3tBOF2mQ54XghFI0SDV6gaG011/s93J13Vxrq3vZaUus5mVFsgh7ut9t-jsThohuiTLP70",
+      comprobanteNombre: "WhatsApp Image 2026-11-04 at 5.14.17 PM.jpeg"
     },
     {
       id: "recUn0XruxKU5wZla",
@@ -271,7 +273,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     divisa: String(f['DIVISA'] || 'COP'),
                     monto: Number(f['MONTO'] || 0),
                     origenFondos: String(f['ORIGEN FONDOS'] || 'Efectivo Dosquebradas'),
-                    fecha: String(f['FECHA'] || f['FECHA CREACIÓN'] || r.createdTime || '').slice(0, 10),
+                    fecha: String(f['FECHA GASTO'] || f['FECHA'] || f['FECHA CREACIÓN'] || r.createdTime || '').slice(0, 10),
+                    comprobanteUrl: (f['COMPROBANTE'] && f['COMPROBANTE'][0]?.url) || undefined,
+                    comprobanteNombre: (f['COMPROBANTE'] && f['COMPROBANTE'][0]?.filename) || undefined,
                     createdTime: r.createdTime,
                   };
                 });
@@ -439,17 +443,26 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
 
     // Gastos
-    const gastos: GastoItem[] = (snapshot.gastos || []).map((g: any) => {
+    const rawGastosList = (snapshot.gastos && snapshot.gastos.length > 0)
+      ? snapshot.gastos
+      : defaultSnapshot.gastos;
+
+    const gastos: GastoItem[] = rawGastosList.map((g: any) => {
+      const compArr = g['COMPROBANTE'] || g.comprobante || g.comprobantes;
+      const compUrl = g.comprobanteUrl || (Array.isArray(compArr) && compArr[0]?.url) || (typeof compArr === 'string' ? compArr : undefined);
+      const compNombre = g.comprobanteNombre || (Array.isArray(compArr) && compArr[0]?.filename) || undefined;
+
       return {
-        id: g.id || g.gasto,
-        codigo: g.codigo || g.gasto || 'GST-000',
+        id: g.id || g.gasto || g['GASTO'],
+        codigo: g.codigo || g.gasto || g['GASTO'] || 'GST-000',
         concepto: g.concepto || g['CONCEPTO'] || 'Gasto Operativo',
         categoria: g.categoria || g['CATEGORÍA'] || 'Otros Gastos Operativos',
         divisa: (g.divisa || g['DIVISA'] || 'COP') as 'COP' | 'USDT',
         monto: Number(g.monto ?? g['MONTO'] ?? 0),
         origenFondos: g.origenFondos || g['ORIGEN FONDOS'] || 'Efectivo Dosquebradas',
-        fecha: g.fecha || g['FECHA'] || '',
-        comprobanteUrl: g.comprobanteUrl || (g.comprobante && g.comprobante[0]?.url) || undefined,
+        fecha: g.fecha || g['FECHA'] || g['FECHA GASTO'] || g['FECHA CREACIÓN'] || '',
+        comprobanteUrl: compUrl,
+        comprobanteNombre: compNombre,
         raw: g,
       };
     });
@@ -592,7 +605,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             'DIVISA': payload.divisa || 'COP',
             'MONTO': Number(payload.monto) || 0,
             'ORIGEN FONDOS': payload.origenFondos || 'Efectivo Dosquebradas',
-            ...(payload.fecha ? { 'FECHA': payload.fecha } : {})
+            ...(payload.fecha ? { 'FECHA GASTO': payload.fecha, 'FECHA': payload.fecha } : {}),
+            ...(payload.comprobanteUrl ? { 'COMPROBANTE': [{ url: payload.comprobanteUrl }] } : {})
           }
         }
       }),
