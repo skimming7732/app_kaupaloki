@@ -60,3 +60,7 @@ npm run build
 # Previsualizar build local
 npm run preview
 ```
+
+## Publicación de cambios en GitHub
+
+Al terminar cada tarea que cambie el proyecto, ejecuta las verificaciones correspondientes, crea un commit con los cambios de la tarea y ejecuta `git push origin <rama>`. Usa `main` por defecto cuando la tarea no indique otra rama. Antes de dar la tarea por terminada, confirma que GitHub recibió el commit e incluye su enlace en la entrega. Si falla el push, informa qué quedó pendiente.
