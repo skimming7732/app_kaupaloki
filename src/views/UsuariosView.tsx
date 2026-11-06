@@ -1,3 +1,4 @@
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import type { AirtableUser } from '../context/AirtableContext';
@@ -119,12 +120,13 @@ export const UsuariosView: React.FC = () => {
                 <th className="py-3.5 px-4">Divisas</th>
                 <th className="py-3.5 px-4 text-center">Estado (Click para cambiar)</th>
                 <th className="py-3.5 px-4 text-center">Acciones</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     No se encontraron usuarios
                   </td>
                 </tr>
@@ -233,6 +235,7 @@ export const UsuariosView: React.FC = () => {
                           </button>
                         </div>
                       </td>
+                      <CreatedByCell name={u.createdByName} />
                     </tr>
                   );
                 })

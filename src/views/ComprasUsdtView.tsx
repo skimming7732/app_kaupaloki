@@ -1,3 +1,5 @@
+import { AddCatalogButton } from '../components/modals/AddCatalogButton';
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatDate } from '../utils/formatters';
@@ -51,7 +53,8 @@ export const ComprasUsdtView: React.FC = () => {
           <h2 className="text-base font-bold text-foreground">Compras USDT</h2>
           <p className="text-xs text-muted-foreground">Registro y custodia de adquisición de Tether en divisas internacionales</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <AddCatalogButton table="compras_usdt" />
           <span className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs border border-primary/20">
             {filteredCompras.length} de {totalOperaciones} Registros
           </span>
@@ -164,12 +167,13 @@ export const ComprasUsdtView: React.FC = () => {
                 <th className="py-3 px-4 text-right">USDT Comprado</th>
                 <th className="py-3 px-4 text-right">Costo</th>
                 <th className="py-3 px-4">Destino</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredCompras.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     No hay registros de compras USDT coincidentes con los filtros
                   </td>
                 </tr>
@@ -197,9 +201,10 @@ export const ComprasUsdtView: React.FC = () => {
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                        {c.walletDestino || 'Tether TRC20'}
+                        {c.walletDestino || 'Sin registro'}
                       </span>
                     </td>
+                    <CreatedByCell name={c.createdByName} />
                   </tr>
                 ))
               )}

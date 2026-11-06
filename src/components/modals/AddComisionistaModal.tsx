@@ -32,7 +32,7 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
       return;
     }
     const pct = parseFloat(porcentaje);
-    if (isNaN(pct) || pct < 0) {
+    if (isNaN(pct) || pct < 0 || pct > 100) {
       setError('Por favor ingrese un porcentaje de comisión válido');
       return;
     }
@@ -48,7 +48,7 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
       });
 
       if (!ok) {
-        throw new Error('Error al registrar comisionista en Airtable');
+        throw new Error('No se pudo registrar el comisionista');
       }
 
       setComisionistaId('');

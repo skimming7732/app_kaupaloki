@@ -1,3 +1,4 @@
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
@@ -252,12 +253,13 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <th className="py-3 px-4 text-right">Monto (COP)</th>
                 <th className="py-3 px-4">Institución</th>
                 <th className="py-3 px-4">Referencia / Detalle</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredMovimientos.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     No hay movimientos de efectivo que coincidan con los filtros
                   </td>
                 </tr>
@@ -294,6 +296,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       </span>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{m.referencia || '—'}</td>
+                    <CreatedByCell name={m.createdByName} />
                   </tr>
                 ))
               )}

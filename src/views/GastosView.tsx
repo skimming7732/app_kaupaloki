@@ -1,3 +1,4 @@
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatUSD, formatDate } from '../utils/formatters';
@@ -185,12 +186,13 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                 <th className="py-3 px-4">Institución / Origen</th>
                 <th className="py-3 px-4">Comprobante</th>
                 <th className="py-3 px-4 text-right">Monto</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredGastos.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     No se encontraron gastos registrados
                   </td>
                 </tr>
@@ -226,6 +228,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                     <td className="py-3 px-4 text-right font-bold text-foreground">
                       {g.divisa === 'COP' ? formatCOP(g.monto) : formatUSD(g.monto)}
                     </td>
+                    <CreatedByCell name={g.createdByName} />
                   </tr>
                 ))
               )}

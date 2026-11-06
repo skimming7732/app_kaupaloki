@@ -24,13 +24,14 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
 
     try {
       const code = 'C-' + Math.floor(1000 + Math.random() * 9000);
-      await createRecord('Clientes', {
+      const result = await createRecord('Clientes', {
         'Nombre': nombre.trim(),
         'Código': code,
         'País': pais,
         'Estado': 'Activo',
         'Fecha de Registro': new Date().toISOString().split('T')[0]
       });
+      if (!result?.success) throw new Error('No se pudo guardar el cliente.');
       setNombre('');
       onClose();
     } catch (err: any) {

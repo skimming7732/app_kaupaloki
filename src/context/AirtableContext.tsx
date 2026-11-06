@@ -1,11 +1,25 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { ACTIVOS_LIQUIDOS, ACTIVOS_DIGITALES } from '../data/airtableData';
+import { useAuth } from './AuthContext';
 
 const EDGE_SYNC_URL = 'https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync';
 const PAT_STORAGE_KEY = 'kaupaloki_airtable_pat';
 
-export interface AirtableUser {
+export type CatalogTable = 'compras_usdt' | 'ventas_usdt' | 'activos_liquidos' | 'activos_digitales' | 'divisas';
+
+interface CreationAudit {
+  createdBy?: string | null;
+  createdByName?: string | null;
+  createdAtAudit?: string | null;
+}
+
+const creationAudit = (record: any): CreationAudit => ({
+  createdBy: record.created_by ?? record.createdBy,
+  createdByName: record.created_by_name ?? record.createdByName,
+  createdAtAudit: record.created_at_audit ?? record.createdAtAudit,
+});
+
+export interface AirtableUser extends CreationAudit {
   id: string;
   codigo: string;
   nombre: string;
@@ -41,11 +55,12 @@ export interface AirtableSnapshot {
   activosDigitales: any[];
   efectivo: any[];
   gastos?: any[];
+  comisionistas?: any[];
   usuarios: any[];
   resumenLiquidacion?: ResumenLiquidacion;
 }
 
-export interface GastoItem {
+export interface GastoItem extends CreationAudit {
   id: string;
   codigo: string;
   concepto: string;
@@ -55,11 +70,13 @@ export interface GastoItem {
   origenFondos: string;
   fecha: string;
   comprobanteUrl?: string;
+  comprobanteNombre?: string;
+  origenFondosId?: string;
   raw: any;
 }
 
 export interface NormalizedData {
-  clientes: Array<{
+  clientes: Array<CreationAudit & {
     id: string;
     codigo: string;
     nombre: string;
@@ -73,7 +90,7 @@ export interface NormalizedData {
     efectivoIds?: string[];
     raw: any;
   }>;
-  negocios: Array<{
+  negocios: Array<CreationAudit & {
     id: string;
     codigo: string;
     fecha: string;
@@ -89,7 +106,7 @@ export interface NormalizedData {
     estado: string;
     raw: any;
   }>;
-  dispersiones: Array<{
+  dispersiones: Array<CreationAudit & {
     id: string;
     codigo: string;
     fecha: string;
@@ -99,16 +116,18 @@ export interface NormalizedData {
     clienteNombre: string;
     monto: number;
     origenFondos: string;
+    origenFondosId?: string;
     referencia?: string;
     comprobanteUrl?: string;
     estado: string;
     raw: any;
   }>;
-  efectivo: Array<{
+  efectivo: Array<CreationAudit & {
     id: string;
     codigo: string;
     fecha: string;
     tipo: 'Ingreso' | 'Pago';
+    origenFondosId?: string;
     clienteId?: string;
     clienteRecordId?: string;
     clienteCodigo?: string;
@@ -119,10 +138,12 @@ export interface NormalizedData {
     raw: any;
   }>;
   gastos: GastoItem[];
-  divisas: Array<{
+  divisas: Array<CreationAudit & {
     id: string;
     codigo: string;
     nombre: string;
+    nombreDivisa?: string;
+    banderaUrl?: string;
     pais: string;
     totalRecibido: number;
     totalComprado: number;
@@ -130,7 +151,7 @@ export interface NormalizedData {
     estado?: string;
     raw: any;
   }>;
-  comprasUsdt: Array<{
+  comprasUsdt: Array<CreationAudit & {
     id: string;
     codigo: string;
     fecha: string;
@@ -140,9 +161,10 @@ export interface NormalizedData {
     tasa: number;
     costo: number;
     walletDestino?: string;
+    walletDestinoId?: string;
     raw: any;
   }>;
-  ventasUsdt: Array<{
+  ventasUsdt: Array<CreationAudit & {
     id: string;
     codigo: string;
     fecha: string;
@@ -152,9 +174,11 @@ export interface NormalizedData {
     totalCOP: number;
     destinoFondosNombre?: string;
     walletOrigen?: string;
+    walletOrigenId?: string;
+    destinoFondosId?: string;
     raw: any;
   }>;
-  comisionistas: Array<{
+  comisionistas: Array<CreationAudit & {
     id: string;
     codigo: string;
     comisionistaId?: string;
@@ -191,6 +215,7 @@ interface AirtableContextType {
   syncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   lastSyncTime: string;
   syncWithAirtable: (forceLive?: boolean) => Promise<void>;
+  createCatalogRecord: (table: CatalogTable, fields: Record<string, string | number>) => Promise<void>;
   createRecord: (table: string, fields: any) => Promise<any>;
   updateRecord: (table: string, id: string, fields: any) => Promise<any>;
   createNegocio: (payload: any) => Promise<boolean>;
@@ -214,49 +239,19 @@ const defaultSnapshot: AirtableSnapshot = {
   comprasUsdt: [],
   ventasUsdt: [],
   comisionistas: [],
-  activosLiquidos: ACTIVOS_LIQUIDOS,
-  activosDigitales: ACTIVOS_DIGITALES,
+  activosLiquidos: [],
+  activosDigitales: [],
   efectivo: [],
-  gastos: [
-    {
-      id: "rec8UqVD5UxZTjHrn",
-      codigo: "GASTO-1",
-      concepto: "SOCIEDAD",
-      categoria: "Liquidación",
-      divisa: "COP",
-      monto: 150000,
-      origenFondos: "Coinsenda 1 (Bancolombia)",
-      fecha: "2026-11-05",
-      comprobanteUrl: "https://v5.airtableusercontent.com/v3/u/59/59/1793944800000/NGBpi5DKNrB54Uyn1pBxAg/ZeF1IEXq0cW4_UpAOtg08K9rwaGmA_NONcMkFyDWcH2ug0zGR6Km88l_xyB0-D9LKca2YCGRr6J6r235ouAWn8r5fGgTFWz63FKgi0CbfT8esT0XrQvxC5x1_sNIzlfVP2LHjN5dcG63A1bITfI7tZ_wj8Fyhf2WIR5w6l3tBOF2mQ54XghFI0SDV6gaG011/s93J13Vxrq3vZaUus5mVFsgh7ut9t-jsThohuiTLP70",
-      comprobanteNombre: "WhatsApp Image 2026-11-04 at 5.14.17 PM.jpeg"
-    },
-    {
-      id: "recUn0XruxKU5wZla",
-      codigo: "GASTO-2",
-      concepto: "AML",
-      categoria: "Software",
-      divisa: "USDT",
-      monto: 17,
-      origenFondos: "Tether TRC20",
-      fecha: "2026-11-05"
-    },
-    {
-      id: "recUoTucGpxQLIXa4",
-      codigo: "GASTO-3",
-      concepto: "Sueldo Mari",
-      categoria: "Nómina y Salarios",
-      divisa: "COP",
-      monto: 1500000,
-      origenFondos: "Coinsenda 2 (Bancolombia)",
-      fecha: "2026-11-05"
-    }
-  ],
+  gastos: [],
   usuarios: [],
 };
 
 const AirtableContext = createContext<AirtableContextType>({} as AirtableContextType);
 
 export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const latestFetch = useRef(0);
   const [snapshot, setSnapshot] = useState<AirtableSnapshot>(() => {
     try {
       const saved = localStorage.getItem('kaupaloki_cached_snapshot');
@@ -272,14 +267,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const applySnapshot = useCallback((newSnap: AirtableSnapshot) => {
     if (!newSnap) return;
-    setSnapshot((prev) => {
-      const mergedGastos = (newSnap.gastos && newSnap.gastos.length > 0) ? newSnap.gastos : prev.gastos;
-      const merged = { ...newSnap, gastos: mergedGastos };
-      try {
-        localStorage.setItem('kaupaloki_cached_snapshot', JSON.stringify(merged));
-      } catch {}
-      return merged;
-    });
+    setSnapshot(newSnap);
+    try {
+      localStorage.setItem('kaupaloki_cached_snapshot', JSON.stringify(newSnap));
+    } catch {}
     const now = new Date();
     setLastSyncTime(
       now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -287,22 +278,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const fetchFromSupabase = useCallback(async () => {
+    const request = ++latestFetch.current;
     setSyncStatus('syncing');
     try {
-      const [
-        { data: clientesData },
-        { data: divisasData },
-        { data: negociosData },
-        { data: dispersionesData },
-        { data: comprasUsdtData },
-        { data: ventasUsdtData },
-        { data: activosLiquidosData },
-        { data: activosDigitalesData },
-        { data: efectivoData },
-        { data: gastosData },
-        { data: resumenData },
-        { data: profilesData },
-      ] = await Promise.all([
+      const results = await Promise.all([
         supabase.from('clientes').select('*').order('numero', { ascending: false }),
         supabase.from('divisas').select('*'),
         supabase.from('negocios').select('*').order('fecha', { ascending: false }),
@@ -315,12 +294,24 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         supabase.from('gastos').select('*').order('fecha', { ascending: false }),
         supabase.from('resumen_liquidacion').select('*').eq('id', 'current').maybeSingle(),
         supabase.from('profiles').select('*'),
+        supabase.from('comisionistas').select('*').order('fecha_creacion', { ascending: false }),
       ]);
+      if (request !== latestFetch.current) return;
+      for (const { error } of results) {
+        if (error && !['42501', 'PGRST205'].includes(error.code)) throw error;
+      }
+      const [
+        clientesData, divisasData, negociosData, dispersionesData, comprasUsdtData,
+        ventasUsdtData, activosLiquidosData, activosDigitalesData, efectivoData,
+        gastosData, resumenData, profilesData, comisionistasData,
+      ] = results.map((result) => result.data);
 
       const clientes = (clientesData || []).map((c: any) => ({
+        ...creationAudit(c),
         id: c.id,
         codigo: c.codigo,
         nombre: c.nombre,
+        pais: c.pais,
         numero: c.numero,
         ingresosCop: Number(c.ingresos_cop || 0),
         pagadoCop: Number(c.pagado_cop || 0),
@@ -331,6 +322,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }));
 
       const divisas = (divisasData || []).map((d: any) => ({
+        ...creationAudit(d),
         id: d.id,
         codigo: d.codigo,
         divisa: d.divisa,
@@ -343,6 +335,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }));
 
       const negocios = (negociosData || []).map((n: any) => ({
+        ...creationAudit(n),
         id: n.id,
         codigo: n.codigo,
         numero: n.numero,
@@ -363,6 +356,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }));
 
       const dispersiones = (dispersionesData || []).map((d: any) => ({
+        ...creationAudit(d),
         id: d.id,
         codigo: d.codigo,
         numero: d.numero,
@@ -373,6 +367,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         monto: Number(d.monto || d.monto_cop || 0),
         montoCop: Number(d.monto_cop || d.monto || 0),
         origenFondos: d.origen_fondos,
+        origenFondosId: d.origen_fondos_id,
         referencia: d.referencia,
         estado: d.estado,
         tieneComprobante: Boolean(d.tiene_comprobante),
@@ -380,6 +375,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }));
 
       const comprasUsdt = (comprasUsdtData || []).map((c: any) => ({
+        ...creationAudit(c),
         id: c.id,
         codigo: c.codigo,
         numero: c.numero,
@@ -390,9 +386,11 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         tasa: Number(c.tasa || 0),
         costo: Number(c.costo || 0),
         walletDestino: c.wallet_destino,
+        walletDestinoId: c.wallet_destino_id,
       }));
 
       const ventasUsdt = (ventasUsdtData || []).map((v: any) => ({
+        ...creationAudit(v),
         id: v.id,
         codigo: v.codigo,
         numero: v.numero,
@@ -402,10 +400,13 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         tasa: Number(v.tasa || 0),
         totalCop: Number(v.total_cop || 0),
         walletOrigen: v.wallet_origen,
+        walletOrigenId: v.wallet_origen_id,
+        destinoFondosId: v.destino_fondos_id,
         destinoFondosNombre: v.destino_fondos_nombre,
       }));
 
       const activosLiquidos = (activosLiquidosData || []).map((a: any) => ({
+        ...creationAudit(a),
         id: a.id,
         activo: a.activo,
         institucion: a.institucion,
@@ -415,13 +416,15 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         divisa: a.divisa,
         tarifas: a.tarifas,
         saldoCop: Number(a.saldo_cop || 0),
-        saldoReal: Number(a.saldo_real || a.saldo_cop || 0),
+        saldoReal: Number(a.saldo_real ?? a.saldo_cop ?? 0),
+        saldoInicial: Number(a.saldo_inicial ?? 0),
         ingresosCop: Number(a.ingresos_cop || 0),
         egresosCop: Number(a.egresos_cop || 0),
         movimientos: a.movimientos || [],
       }));
 
       const activosDigitales = (activosDigitalesData || []).map((d: any) => ({
+        ...creationAudit(d),
         id: d.id,
         activo: d.activo,
         idWallet: d.id_wallet,
@@ -430,7 +433,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         titular: d.titular,
         tarifas: d.tarifas,
         saldoUsdt: Number(d.saldo_usdt || 0),
-        saldoReal: Number(d.saldo_real || d.saldo_usdt || 0),
+        saldoReal: Number(d.saldo_real ?? d.saldo_usdt ?? 0),
+        saldoInicial: Number(d.saldo_inicial ?? 0),
         ingresosUsdt: Number(d.ingresos_usdt || 0),
         egresosUsdt: Number(d.egresos_usdt || 0),
         rateFinal: Number(d.rate_final || 3230),
@@ -439,6 +443,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }));
 
       const efectivo = (efectivoData || []).map((e: any) => ({
+        ...creationAudit(e),
         id: e.id,
         codigo: e.codigo,
         fecha: e.fecha,
@@ -448,10 +453,12 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         clienteNombre: e.cliente_nombre,
         monto: Number(e.monto || 0),
         origenFondos: e.origen_fondos,
+        origenFondosId: e.origen_fondos_id,
         referencia: e.referencia,
       }));
 
       const gastos = (gastosData || []).map((g: any) => ({
+        ...creationAudit(g),
         id: g.id,
         codigo: g.codigo,
         fecha: g.fecha,
@@ -460,9 +467,12 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         divisa: g.divisa,
         monto: Number(g.monto || 0),
         origenFondos: g.origen_fondos,
+        origenFondosId: g.origen_fondos_id,
+        comprobanteUrl: g.comprobante_url,
       }));
 
       const usuarios = (profilesData || []).map((p: any) => ({
+        ...creationAudit(p),
         id: p.id,
         codigo: p.operator_code || p.full_name || 'USR',
         nombre: p.full_name || p.email || 'Usuario',
@@ -471,6 +481,16 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         pais: p.country || 'Colombia',
         divisasAutorizadas: p.authorized_currencies || [],
         estado: p.is_active ? 'Activo' : 'Inactivo',
+      }));
+
+      const comisionistas = (comisionistasData || []).map((c: any) => ({
+        ...creationAudit(c),
+        id: c.id,
+        codigo: c.codigo,
+        comisionistaClienteId: c.cliente_id,
+        comisionaDeIds: c.referidos_ids,
+        porcentajeComision: Number(c.porcentaje_comision),
+        fechaCreacion: c.fecha_creacion,
       }));
 
       const resumenLiquidacion: ResumenLiquidacion | undefined = resumenData ? {
@@ -498,17 +518,20 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         efectivo,
         gastos,
         usuarios,
+        comisionistas,
         resumenLiquidacion,
       };
 
       applySnapshot(newSnapshot);
       setSyncStatus('synced');
-      setTimeout(() => setSyncStatus('idle'), 2000);
+      setTimeout(() => {
+        if (request === latestFetch.current) setSyncStatus('idle');
+      }, 2000);
     } catch (err) {
       console.error('Error fetching directly from Supabase:', err);
-      setSyncStatus('error');
+      if (request === latestFetch.current) setSyncStatus('error');
     } finally {
-      setLoading(false);
+      if (request === latestFetch.current) setLoading(false);
     }
   }, [applySnapshot]);
 
@@ -574,6 +597,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         dispersionesIds: Array.isArray(rawDispersionesIds) ? rawDispersionesIds : [rawDispersionesIds],
         negociosIds: Array.isArray(rawNegociosIds) ? rawNegociosIds : [rawNegociosIds],
         efectivoIds: Array.isArray(rawEfectivoIds) ? rawEfectivoIds : [rawEfectivoIds],
+        ...creationAudit(c),
         raw: c,
       };
     });
@@ -617,6 +641,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         tasaCambio: tasa,
         ingresoCOP: ingreso,
         estado: n.estado || 'Completado',
+        ...creationAudit(n),
         raw: n,
       };
     });
@@ -640,10 +665,12 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         clienteCodigo,
         clienteNombre,
         monto: Number(d.monto ?? d.montoCop ?? d.valorTotalDispersion ?? 0),
-        origenFondos: d.origenFondos || d.medioPagoNombre || 'Bancolombia',
+        origenFondos: d.origenFondos || d.medioPagoNombre || 'Sin especificar',
+        origenFondosId: d.origenFondosId,
         referencia: d.referencia || d.concepto || '',
         comprobanteUrl: d.comprobanteUrl || (d.comprobantes && d.comprobantes[0]?.url) || undefined,
         estado: d.estado || 'Exitosa',
+        ...creationAudit(d),
         raw: d,
       };
     });
@@ -671,16 +698,16 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         clienteCodigo,
         clienteNombre: clienteNombre || (isIngreso ? 'Ingreso de Caja' : 'Movimiento Interno'),
         monto,
-        origenFondos: e.origenFondosNombre || e.origenFondos || 'Efectivo Dosquebradas',
+        origenFondos: e.origenFondosNombre || e.origenFondos || 'Sin especificar',
+        origenFondosId: e.origenFondosId,
         referencia: e.referencia || '',
+        ...creationAudit(e),
         raw: e,
       };
     });
 
     // Gastos
-    const rawGastosList = (snapshot.gastos && snapshot.gastos.length > 0)
-      ? snapshot.gastos
-      : defaultSnapshot.gastos;
+    const rawGastosList = snapshot.gastos || [];
 
     const gastos: GastoItem[] = rawGastosList.map((g: any) => {
       const compArr = g['COMPROBANTE'] || g.comprobante || g.comprobantes;
@@ -694,10 +721,12 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         categoria: g.categoria || g['CATEGORÍA'] || 'Otros Gastos Operativos',
         divisa: (g.divisa || g['DIVISA'] || 'COP') as 'COP' | 'USDT',
         monto: Number(g.monto ?? g['MONTO'] ?? 0),
-        origenFondos: g.origenFondos || g['ORIGEN FONDOS'] || 'Efectivo Dosquebradas',
+        origenFondos: g.origenFondos || g['ORIGEN FONDOS'] || 'Sin especificar',
+        origenFondosId: g.origenFondosId,
         fecha: g.fecha || g['FECHA'] || g['FECHA GASTO'] || g['FECHA CREACIÓN'] || '',
         comprobanteUrl: compUrl,
         comprobanteNombre: compNombre,
+        ...creationAudit(g),
         raw: g,
       };
     });
@@ -711,11 +740,14 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         id: d.id || d.codigo,
         codigo: d.codigo || 'USD',
         nombre: d.nombre || d.nombreDivisa || d.divisa || d.codigo,
+        nombreDivisa: d.nombreDivisa,
+        banderaUrl: d.banderaUrl,
         pais: cleanPais,
         totalRecibido: Number(d.totalRecibido ?? d.ingresoEnDivisa ?? 0),
         totalComprado: Number(d.totalComprado ?? d.egresoEnDivisa ?? 0),
         totalPendiente: Number(d.totalPendiente ?? d.saldo ?? 0),
         estado: d.estado || 'Activo',
+        ...creationAudit(d),
         raw: d,
       };
     });
@@ -730,6 +762,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       return {
+        ...creationAudit(u),
         id: u.id || u.codigo,
         codigo: u.codigo || 'USR-000',
         nombre: u.nombre || u.nombreCompleto || 'Usuario',
@@ -751,7 +784,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       usdtComprado: Number(c.usdtComprado ?? c.totalRecibidoUsdt ?? 0),
       tasa: Number(c.tasa ?? c.tasaUsdt ?? 0),
       costo: Number(c.costo ?? 0),
-      walletDestino: c.walletDestino || 'Tether TRC20',
+      walletDestino: c.walletDestino,
+      walletDestinoId: c.walletDestinoId,
+      ...creationAudit(c),
       raw: c,
     }));
 
@@ -764,13 +799,16 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       usdtVendido: Number(v.usdtVendido ?? v.cantidadUsdt ?? 0),
       tasa: Number(v.tasa ?? v.tasaVentaCop ?? 0),
       totalCOP: Number(v.totalCop ?? v.totalCOP ?? 0),
-      destinoFondosNombre: v.destinoFondosNombre || v.cuentaDestinoNombre || 'Cuenta Destino',
-      walletOrigen: v.walletOrigen || 'CUY WALLET',
+      destinoFondosNombre: v.destinoFondosNombre || v.cuentaDestinoNombre,
+      walletOrigen: v.walletOrigen,
+      walletOrigenId: v.walletOrigenId,
+      destinoFondosId: v.destinoFondosId,
+      ...creationAudit(v),
       raw: v,
     }));
 
     // Comisionistas
-    const rawComisionistas = (snapshot as any).comisionistas || [];
+    const rawComisionistas = snapshot.comisionistas || [];
     const comisionistas = rawComisionistas.map((cm: any) => {
       const comId = Array.isArray(cm.comisionista) ? cm.comisionista[0] : (cm.comisionistaClienteId || cm.comisionista);
       const comNombre = clientMap.get(comId) || cm.comisionistaNombre || 'Comisionista';
@@ -787,113 +825,65 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         porcentajeComision: Number(cm.porcentajeComision ?? cm['% COMISIÓN'] ?? 0),
         comisionesCOP: Number(cm.comisiones || cm.comisionesCOP || 0),
         fechaCreacion: cm.fechaCreacion || cm.createdTime || '',
+        ...creationAudit(cm),
         raw: cm,
       };
     });
 
-    // Enrich Activos Liquidos with complete movements (Gastos and Efectivo)
-    const rawLiquidos = (snapshot.activosLiquidos && snapshot.activosLiquidos.length > 0) ? snapshot.activosLiquidos : ACTIVOS_LIQUIDOS;
-    const enrichedActivosLiquidos = rawLiquidos.map((a: any) => {
-      const existingMovs = Array.isArray(a.movimientos) ? [...a.movimientos] : [];
-      
-      // Inject Gastos COP linked to this account
-      gastos.forEach((g: any) => {
-        if (g.divisa !== 'COP') return;
-        const belongs = 
-          g.activoLiquidoId === a.id ||
-          g.origenFondosIds?.includes(a.id) ||
-          g.origenCuentaId === a.id ||
-          (g.origenFondos && (
-            g.origenFondos.toLowerCase().includes((a.institucion || '').toLowerCase()) ||
-            g.origenFondos.toLowerCase().includes((a.empresa || '').toLowerCase()) ||
-            g.origenFondos.toLowerCase().includes((a.activo || '').toLowerCase())
-          ));
-        if (belongs) {
-          const already = existingMovs.some((m: any) => m.origen === g.codigo || m.concepto?.includes(g.codigo));
-          if (!already) {
-            existingMovs.push({
-              fecha: g.fecha,
-              origen: g.codigo,
-              concepto: `Gasto: ${g.concepto} (${g.categoria || 'Operativo'})`,
-              monto: -Math.abs(g.monto),
-            });
-          }
+    // Combine stored movements and transactions linked to this specific account.
+    type LinkedMovement = CreationAudit & { fecha: string; origen: string; concepto: string; monto: number };
+    const mergeMovements = (account: any, linked: LinkedMovement[]) => {
+      const existing = Array.isArray(account.movimientos) ? [...account.movimientos] : [];
+      for (const movement of linked) {
+        const index = existing.findIndex((entry) => entry.origen === movement.origen || entry.concepto?.includes(movement.origen));
+        if (index < 0) existing.push(movement);
+        else if (movement.createdByName && !existing[index].createdByName) {
+          existing[index] = { ...existing[index], ...creationAudit(movement) };
         }
-      });
-
-      // Inject Efectivo movements linked to this account
-      efectivo.forEach((e: any) => {
-        const belongs = e.origenFondosId === a.id || (a.activo || '').toLowerCase().includes('efectivo');
-        if (belongs) {
-          const already = existingMovs.some((m: any) => m.origen === e.codigo);
-          if (!already) {
-            const isIngreso = e.tipo === 'INGRESO';
-            existingMovs.push({
-              fecha: e.fecha,
-              origen: e.codigo,
-              concepto: isIngreso
-                ? `Ingreso Efectivo: ${e.referencia || e.clienteNombre || 'Caja'}`
-                : `Pago Efectivo: ${e.referencia || e.clienteNombre || 'Entrega'}`,
-              monto: isIngreso ? Math.abs(e.montoCop) : -Math.abs(e.montoCop),
-            });
-          }
-        }
-      });
-
-      // Re-sort and recalculate running balances
-      existingMovs.sort((m1: any, m2: any) => (m1.fecha || '').localeCompare(m2.fecha || ''));
-      let running = 0;
-      const movimientosWithBalance = existingMovs.map((m: any) => {
-        running += Number(m.monto || 0);
-        return { ...m, balance: running };
+      }
+      existing.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+      let balance = Number(account.saldoInicial || 0);
+      return existing.map((entry) => {
+        balance += Number(entry.monto || 0);
+        return { ...entry, balance };
       }).reverse();
+    };
 
-      return {
-        ...a,
-        movimientos: movimientosWithBalance,
-      };
-    });
+    const movement = (
+      row: CreationAudit & { fecha: string; codigo: string }, concepto: string, monto: number
+    ): LinkedMovement => ({ ...creationAudit(row), fecha: row.fecha, origen: row.codigo, concepto, monto });
 
-    // Enrich Activos Digitales with complete movements (Gastos USDT)
-    const rawDigitales = (snapshot.activosDigitales && snapshot.activosDigitales.length > 0) ? snapshot.activosDigitales : ACTIVOS_DIGITALES;
-    const enrichedActivosDigitales = rawDigitales.map((d: any) => {
-      const existingMovs = Array.isArray(d.movimientos) ? [...d.movimientos] : [];
-      
-      gastos.forEach((g: any) => {
-        if (g.divisa !== 'USDT') return;
-        const belongs = 
-          g.activoDigitalId === d.id ||
-          g.origenFondosIds?.includes(d.id) ||
-          (g.origenFondos && (
-            g.origenFondos.toLowerCase().includes('usdt') ||
-            g.origenFondos.toLowerCase().includes((d.wallet || '').toLowerCase()) ||
-            g.origenFondos.toLowerCase().includes((d.activo || '').toLowerCase())
-          ));
-        if (belongs) {
-          const already = existingMovs.some((m: any) => m.origen === g.codigo || m.concepto?.includes(g.codigo));
-          if (!already) {
-            existingMovs.push({
-              fecha: g.fecha,
-              origen: g.codigo,
-              concepto: `Gasto USDT: ${g.concepto} (${g.categoria || 'Software'})`,
-              monto: -Math.abs(g.monto),
-            });
-          }
-        }
-      });
+    const matchesAccount = (row: { origenFondosId?: string; origenFondos: string }, account: any) => {
+      if (row.origenFondosId) return row.origenFondosId === account.id;
+      const label = row.origenFondos?.trim().toLowerCase();
+      return Boolean(label && label === account.activo?.trim().toLowerCase());
+    };
 
-      existingMovs.sort((m1: any, m2: any) => (m1.fecha || '').localeCompare(m2.fecha || ''));
-      let running = 0;
-      const movimientosWithBalance = existingMovs.map((m: any) => {
-        running += Number(m.monto || 0);
-        return { ...m, balance: running };
-      }).reverse();
+    const enrichedActivosLiquidos = (snapshot.activosLiquidos || []).map((account) => ({
+      ...account,
+      movimientos: mergeMovements(account, [
+        ...gastos.filter((g) => g.divisa === 'COP' && matchesAccount(g, account))
+          .map((g) => movement(g, 'Gasto: ' + g.concepto, -Math.abs(g.monto))),
+        ...efectivo.filter((e) => matchesAccount(e, account))
+          .map((e) => movement(e, e.tipo + ' de efectivo', e.tipo === 'Ingreso' ? e.monto : -e.monto)),
+        ...dispersiones.filter((d) => d.origenFondosId === account.id)
+          .map((d) => movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto)),
+        ...ventasUsdt.filter((v) => v.destinoFondosId === account.id)
+          .map((v) => movement(v, 'Venta USDT: ' + v.concepto, v.totalCOP)),
+      ]),
+    }));
 
-      return {
-        ...d,
-        movimientos: movimientosWithBalance,
-      };
-    });
+    const enrichedActivosDigitales = (snapshot.activosDigitales || []).map((account) => ({
+      ...account,
+      movimientos: mergeMovements(account, [
+        ...gastos.filter((g) => g.divisa === 'USDT' && matchesAccount(g, account))
+          .map((g) => movement(g, 'Gasto USDT: ' + g.concepto, -Math.abs(g.monto))),
+        ...comprasUsdt.filter((c) => c.walletDestinoId === account.id)
+          .map((c) => movement(c, 'Compra USDT en ' + c.divisaCodigo, c.usdtComprado)),
+        ...ventasUsdt.filter((v) => v.walletOrigenId === account.id)
+          .map((v) => movement(v, 'Venta USDT: ' + v.concepto, -v.usdtVendido)),
+      ]),
+    }));
 
     return {
       clientes,
@@ -1023,7 +1013,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         cliente_nombre: clientObj?.nombre || 'Cliente',
         monto: montoNum,
         monto_cop: montoNum,
-        origen_fondos: payload.origenFondos || payload['Origen Fondos'] || 'Bancolombia',
+        origen_fondos: payload.origenFondos || payload['Origen de Fondos'] || payload['Origen Fondos'] || 'Sin especificar',
+        origen_fondos_id: payload.origenFondosId || null,
         referencia: payload.referencia || payload['Referencia'] || '',
         estado: 'COMPLETADO',
         tiene_comprobante: Boolean(payload.comprobanteUrl),
@@ -1056,7 +1047,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         cliente_codigo: clientObj?.codigo || null,
         cliente_nombre: clientObj?.nombre || (tipoStr === 'Ingreso' ? 'Ingreso a Caja' : 'Movimiento Interno'),
         monto: montoNum,
-        origen_fondos: 'Efectivo Dosquebradas',
+        origen_fondos: payload.origenFondos || 'Efectivo Dosquebradas',
+        origen_fondos_id: payload.origenFondosId || null,
         referencia: payload.referencia || payload['Referencia'] || null,
       });
 
@@ -1083,6 +1075,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         divisa: payload.divisa || 'COP',
         monto: montoNum,
         origen_fondos: payload.origenFondos || 'Efectivo Dosquebradas',
+        origen_fondos_id: payload.origenFondosId || null,
+        comprobante_url: payload.comprobanteUrl || null,
       });
 
       if (error) throw error;
@@ -1104,6 +1098,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         id: newId,
         codigo: code,
         nombre: nombre.toUpperCase(),
+        pais: pais || null,
         numero: nextNum,
         ingresos_cop: 0,
         pagado_cop: 0,
@@ -1120,6 +1115,51 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('Error creating cliente in Supabase:', err);
       return { success: false };
     }
+  };
+
+  const createCatalogRecord: AirtableContextType['createCatalogRecord'] = async (table, fields) => {
+    const id = crypto.randomUUID();
+    let record: Record<string, string | number> = { ...fields, id };
+    const accountLabel = (accounts: any[], accountId: string | number) => {
+      const account = accounts.find((item) => item.id === accountId);
+      if (!account) throw new Error('La cuenta seleccionada ya no está disponible.');
+      return account.activo || account.institucion || account.wallet;
+    };
+
+    switch (table) {
+      case 'compras_usdt':
+        record = {
+          ...record, codigo: 'CMP-' + id.slice(0, 8).toUpperCase(), numero: Date.now() % 2147483647,
+          tasa: Number(fields.valor_comprado) / Number(fields.usdt_comprado),
+          costo: Number(fields.usdt_comprado) / Number(fields.valor_comprado),
+          wallet_destino: accountLabel(data.activosDigitales, fields.wallet_destino_id),
+        };
+        break;
+      case 'ventas_usdt':
+        record = {
+          ...record, codigo: 'VNT-' + id.slice(0, 8).toUpperCase(), numero: Date.now() % 2147483647,
+          total_cop: Number(fields.usdt_vendido) * Number(fields.tasa),
+          wallet_origen: accountLabel(data.activosDigitales, fields.wallet_origen_id),
+          destino_fondos_nombre: accountLabel(data.activosLiquidos, fields.destino_fondos_id),
+        };
+        break;
+      case 'activos_liquidos':
+        record = { ...record, divisa: 'COP', saldo_inicial: fields.saldo_cop, saldo_real: fields.saldo_cop, ingresos_cop: 0, egresos_cop: 0 };
+        break;
+      case 'activos_digitales':
+        record = { ...record, id_wallet: fields.wallet, saldo_inicial: fields.saldo_usdt, saldo_real: fields.saldo_usdt, ingresos_usdt: 0, egresos_usdt: 0 };
+        break;
+      case 'divisas':
+        record = { ...record, divisa: fields.codigo, total_recibido: 0, total_comprado: 0, total_pendiente: 0 };
+        break;
+    }
+
+    if (Object.values(record).some((value) => typeof value === 'number' && !Number.isFinite(value))) {
+      throw new Error('El resultado de la operación no es un número válido.');
+    }
+    const { error } = await supabase.from(table).insert(record);
+    if (error) throw error;
+    await fetchFromSupabase();
   };
 
   const createRecord = async (table: string, fields: any): Promise<any> => {
@@ -1171,9 +1211,11 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     fullName?: string
   ): Promise<{ success: boolean; error?: string }> => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Inicia sesión para enviar la invitación.');
       const res = await fetch(EDGE_SYNC_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
         body: JSON.stringify({
           action: 'send_user_invite',
           email,
@@ -1220,9 +1262,19 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchFromSupabase]);
+  }, [fetchFromSupabase, userId]);
 
-  const createComisionista = async (_payload: any): Promise<boolean> => {
+  const createComisionista: AirtableContextType['createComisionista'] = async (payload) => {
+    const id = crypto.randomUUID();
+    const { error } = await supabase.from('comisionistas').insert({
+      id,
+      codigo: 'COM-' + id.slice(0, 8).toUpperCase(),
+      cliente_id: payload.comisionistaId,
+      referidos_ids: payload.comisionaDeIds,
+      porcentaje_comision: payload.porcentajeComision,
+    });
+    if (error) return false;
+    await fetchFromSupabase();
     return true;
   };
 
@@ -1236,6 +1288,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         syncStatus,
         lastSyncTime,
         syncWithAirtable,
+        createCatalogRecord,
         createRecord,
         updateRecord,
         createNegocio,

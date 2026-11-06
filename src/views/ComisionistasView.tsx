@@ -1,3 +1,4 @@
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
@@ -117,12 +118,13 @@ export const ComisionistasView: React.FC = () => {
                 <th className="py-3 px-4 text-right">% Comisión</th>
                 <th className="py-3 px-4 text-right">Comisiones (COP)</th>
                 <th className="py-3 px-4">Fecha</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredComisionistas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center text-muted-foreground text-2xl">
                         <i className="ri-user-star-line" />
@@ -165,6 +167,7 @@ export const ComisionistasView: React.FC = () => {
                       {formatCOP(c.comisionesCOP)}
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(c.fechaCreacion)}</td>
+                    <CreatedByCell name={c.createdByName} />
                   </tr>
                 ))
               )}

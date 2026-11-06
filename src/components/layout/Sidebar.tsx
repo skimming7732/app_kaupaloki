@@ -15,42 +15,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
   const [isPinned, setIsPinned] = useState(false);
 
   const role = profile?.role || 'operador';
-  const isDispersor = role === 'dispersor';
-  const isOperador = role === 'operador';
+  const isAdmin = role === 'administrador' || role === 'super_admin';
+  const canDisperse = isAdmin || role === 'dispersor';
 
-  let navItems: { to: string; label: string; icon: string }[] = [];
-
-  if (isDispersor) {
-    navItems = [
-      { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
-      { to: '/dispersiones', label: 'Dispersiones', icon: 'ri-send-plane-2-line' },
-      { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
-    ];
-  } else if (isOperador) {
-    navItems = [
-      { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
-      { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
-      { to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' },
-    ];
-  } else {
-    // Admin / Super Admin (full suite)
-    navItems = [
-      { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
-      { to: '/dashboard', label: 'Panel de Control', icon: 'ri-dashboard-3-line' },
-      { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
-      { to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' },
-      { to: '/comisionistas', label: 'Comisionistas', icon: 'ri-user-star-line' },
-      { to: '/dispersiones', label: 'Dispersiones', icon: 'ri-send-plane-2-line' },
-      { to: '/compras-usdt', label: 'Compras USDT', icon: 'ri-shopping-cart-2-line' },
-      { to: '/ventas-usdt', label: 'Ventas USDT', icon: 'ri-funds-line' },
+  const primaryItems = [
+    { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
+    ...(isAdmin ? [{ to: '/dashboard', label: 'Panel de control', icon: 'ri-dashboard-3-line' }] : []),
+    { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
+    ...(isAdmin || role === 'operador' ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' }] : []),
+  ];
+  const sections = [
+    { label: undefined, items: primaryItems },
+    { label: 'Operaciones', items: [
+      ...(canDisperse ? [{ to: '/dispersiones', label: 'Dispersiones', icon: 'ri-send-plane-2-line' }] : []),
+      ...(isAdmin ? [
+        { to: '/compras-usdt', label: 'Compras USDT', icon: 'ri-shopping-cart-2-line' },
+        { to: '/ventas-usdt', label: 'Ventas USDT', icon: 'ri-funds-line' },
+        { to: '/comisionistas', label: 'Comisionistas', icon: 'ri-user-star-line' },
+      ] : []),
+    ] },
+    { label: 'Tesorería', items: isAdmin ? [
       { to: '/efectivo', label: 'Efectivo', icon: 'ri-money-dollar-circle-line' },
-      { to: '/activos-liquidos', label: 'Activos Líquidos', icon: 'ri-bank-line' },
-      { to: '/activos-digitales', label: 'Activos Digitales', icon: 'ri-coin-line' },
-      { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
+      { to: '/activos-liquidos', label: 'Activos líquidos', icon: 'ri-bank-line' },
+      { to: '/activos-digitales', label: 'Activos digitales', icon: 'ri-coin-line' },
       { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
-      { to: '/usuarios', label: 'Usuarios & Accesos', icon: 'ri-shield-user-line' },
-    ];
-  }
+    ] : [] },
+    { label: 'Administración', items: isAdmin ? [
+      { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
+      { to: '/usuarios', label: 'Usuarios y accesos', icon: 'ri-shield-user-line' },
+    ] : [] },
+  ].filter((section) => section.items.length > 0);
 
   // Active expanded state on desktop: expands on hover or if pinned
   const isExpanded = isHovered || isPinned;
@@ -65,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="hidden md:flex flex-col justify-between fixed top-0 left-0 h-screen z-40 overflow-x-hidden transition-all duration-200 ease-in-out border-r border-[var(--border-main)] bg-[var(--bg-sidebar)]"
+        className="hidden md:flex flex-col justify-between fixed top-0 left-0 h-screen z-40 overflow-x-hidden overflow-y-auto transition-all duration-200 ease-in-out border-r border-[var(--border-main)] bg-[var(--bg-sidebar)]"
         style={{
           width: isExpanded ? '260px' : '72px',
           boxShadow: isExpanded ? '8px 0 28px rgba(0, 0, 0, 0.18)' : 'none',
@@ -156,46 +150,53 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
               gap: '4px',
             }}
           >
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                title={!isExpanded ? item.label : undefined}
-                style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: isExpanded ? 'flex-start' : 'center',
-                  gap: isExpanded ? '12px' : '0',
-                  padding: isExpanded ? '10px 14px' : '10px 0',
-                  borderRadius: '12px',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 800 : 600,
-                  color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
-                  background: isActive ? 'var(--brand-primary)' : 'transparent',
-                  textDecoration: 'none',
-                  boxShadow: isActive ? '0 4px 14px rgba(67, 24, 255, 0.35)' : 'none',
-                  transition: 'background 0.15s ease, color 0.15s ease',
-                  whiteSpace: 'nowrap',
-                  width: '100%',
-                })}
-              >
-                <i
-                  className={`${item.icon}`}
-                  style={{
-                    fontSize: '18px',
-                    minWidth: '20px',
-                    textAlign: 'center',
-                    flexShrink: 0,
-                    fontWeight: 'normal',
-                    fontStyle: 'normal',
-                  }}
-                />
-                {isExpanded && (
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {item.label}
-                  </span>
+            {sections.map((section) => (
+              <div key={section.label || 'principal'} className={section.label ? 'mt-1 space-y-1 border-t border-border pt-2' : 'space-y-1'}>
+                {section.label && isExpanded && (
+                  <p className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{section.label}</p>
                 )}
-              </NavLink>
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    title={!isExpanded ? item.label : undefined}
+                    style={({ isActive }) => ({
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isExpanded ? 'flex-start' : 'center',
+                      gap: isExpanded ? '12px' : '0',
+                      padding: isExpanded ? '10px 14px' : '10px 0',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: isActive ? 800 : 600,
+                      color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
+                      background: isActive ? 'var(--brand-primary)' : 'transparent',
+                      textDecoration: 'none',
+                      boxShadow: isActive ? '0 4px 14px rgba(67, 24, 255, 0.35)' : 'none',
+                      transition: 'background 0.15s ease, color 0.15s ease',
+                      whiteSpace: 'nowrap',
+                      width: '100%',
+                    })}
+                  >
+                    <i
+                      className={`${item.icon}`}
+                      style={{
+                        fontSize: '18px',
+                        minWidth: '20px',
+                        textAlign: 'center',
+                        flexShrink: 0,
+                        fontWeight: 'normal',
+                        fontStyle: 'normal',
+                      }}
+                    />
+                    {isExpanded && (
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.label}
+                      </span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
             ))}
           </nav>
         </div>
@@ -315,22 +316,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
 
           {/* Mobile Nav Links */}
           <nav className="p-3 space-y-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={onMobileClose}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    isActive
-                      ? 'bg-[var(--brand-primary)] text-white shadow-md shadow-primary/30'
-                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                  }`
-                }
-              >
-                <i className={`${item.icon} text-lg`} />
-                <span>{item.label}</span>
-              </NavLink>
+            {sections.map((section) => (
+              <div key={section.label || 'principal'} className={section.label ? 'mt-1 space-y-1 border-t border-border pt-2' : 'space-y-1'}>
+                {section.label && (
+                  <p className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{section.label}</p>
+                )}
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onMobileClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        isActive
+                          ? 'bg-[var(--brand-primary)] text-white shadow-md shadow-primary/30'
+                          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                      }`
+                    }
+                  >
+                    <i className={`${item.icon} text-lg`} />
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
             ))}
           </nav>
         </div>

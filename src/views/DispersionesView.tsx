@@ -1,3 +1,4 @@
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
@@ -147,12 +148,13 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                 <th className="py-3 px-4">Referencia</th>
                 <th className="py-3 px-4 text-center">Comprobante</th>
                 <th className="py-3 px-4 text-center">Estado</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredDispersiones.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     No se encontraron dispersiones registradas
                   </td>
                 </tr>
@@ -188,6 +190,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                         {d.estado || 'Exitosa'}
                       </span>
                     </td>
+                    <CreatedByCell name={d.createdByName} />
                   </tr>
                 ))
               )}

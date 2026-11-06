@@ -1,3 +1,5 @@
+import { AddCatalogButton } from '../components/modals/AddCatalogButton';
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
@@ -22,13 +24,14 @@ export const ActivosDigitalesView: React.FC = () => {
 
   const handleExportCSV = (wallet: any) => {
     const movements = wallet.movimientos || [];
-    const headers = ['Fecha', 'Origen / Hash', 'Concepto', 'Monto USDT', 'Balance USDT'];
+    const headers = ['Fecha', 'Origen / Hash', 'Concepto', 'Monto USDT', 'Balance USDT', 'Creado por'];
     const rows = movements.map((m: any) => [
       formatDate(m.fecha),
       m.origen || '',
       m.concepto || '',
       m.monto || 0,
       m.balance || 0,
+      m.createdByName || 'Sin registro',
     ]);
 
     const csvContent =
@@ -75,6 +78,7 @@ export const ActivosDigitalesView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-end"><AddCatalogButton table="activos_digitales" /></div>
       {/* ============================================================== */}
       {/* VISTA DETALLE: EXTRACTO DE LA BILLETERA CRIPTO SELECCIONADA    */}
       {/* ============================================================== */}
@@ -241,12 +245,13 @@ export const ActivosDigitalesView: React.FC = () => {
                     <th className="py-3 px-4">Concepto</th>
                     <th className="py-3 px-4 text-right">Monto (USDT)</th>
                     <th className="py-3 px-4 text-right">Balance (USDT)</th>
+                    <CreatedByHeader />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {(!selectedWallet.movimientos || selectedWallet.movimientos.length === 0) ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="py-12 text-center text-muted-foreground">
                         No hay movimientos registrados para esta billetera
                       </td>
                     </tr>
@@ -276,6 +281,7 @@ export const ActivosDigitalesView: React.FC = () => {
                           <td className="py-3 px-4 text-right font-mono font-semibold text-foreground whitespace-nowrap">
                             {formatUSD(m.balance)}
                           </td>
+                          <CreatedByCell name={m.createdByName} />
                         </tr>
                       );
                     })
@@ -448,6 +454,7 @@ export const ActivosDigitalesView: React.FC = () => {
                     <th className="py-3 px-4 text-right">Saldo Real (USDT)</th>
                     <th className="py-3 px-4 text-right">Tasa / Rate</th>
                     <th className="py-3 px-4 text-center">Acción</th>
+                    <CreatedByHeader />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -502,6 +509,7 @@ export const ActivosDigitalesView: React.FC = () => {
                             <i className="ri-arrow-right-line" />
                           </button>
                         </td>
+                        <CreatedByCell name={w.createdByName} />
                       </tr>
                     );
                   })}

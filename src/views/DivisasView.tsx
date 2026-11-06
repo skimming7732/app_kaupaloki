@@ -1,3 +1,5 @@
+import { AddCatalogButton } from '../components/modals/AddCatalogButton';
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCurrency } from '../utils/formatters';
@@ -28,9 +30,10 @@ export const DivisasView: React.FC = () => {
             className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
           />
         </div>
-        <span className="text-xs text-muted-foreground font-medium">
-          {filteredDivisas.length} divisas configuradas
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs text-muted-foreground">{filteredDivisas.length} divisas configuradas</span>
+          <AddCatalogButton table="divisas" />
+        </div>
       </div>
 
       {/* De-compressed Clean Table */}
@@ -46,12 +49,13 @@ export const DivisasView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Total Comprado</th>
                 <th className="py-3 px-4 text-right">Total Pendiente</th>
                 <th className="py-3 px-4 text-center">Estado</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredDivisas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     No hay divisas que coincidan con la búsqueda
                   </td>
                 </tr>
@@ -79,6 +83,7 @@ export const DivisasView: React.FC = () => {
                         {d.estado || 'Activo'}
                       </span>
                     </td>
+                    <CreatedByCell name={d.createdByName} />
                   </tr>
                 ))
               )}

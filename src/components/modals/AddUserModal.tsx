@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
+import { supabase } from '../../lib/supabase';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -148,6 +149,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
     setError(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Inicia sesión para invitar usuarios.');
       const pat = localStorage.getItem('kaupaloki_airtable_pat') || '';
       const payload = {
         action: 'prepare_invited_user',
@@ -161,7 +164,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
 
       const res = await fetch(EDGE_SYNC_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
         body: JSON.stringify(payload),
       });
 

@@ -1,3 +1,5 @@
+import { AddCatalogButton } from '../components/modals/AddCatalogButton';
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,13 +28,14 @@ export const ActivosLiquidosView: React.FC = () => {
 
   const handleExportCSV = (activo: any) => {
     const movements = activo.movimientos || [];
-    const headers = ['Fecha', 'Origen', 'Concepto', 'Monto COP', 'Balance COP'];
+    const headers = ['Fecha', 'Origen', 'Concepto', 'Monto COP', 'Balance COP', 'Creado por'];
     const rows = movements.map((m: any) => [
       formatDate(m.fecha),
       m.origen || '',
       m.concepto || '',
       m.monto || 0,
       m.balance || 0,
+      m.createdByName || 'Sin registro',
     ]);
 
     const csvContent =
@@ -66,6 +69,7 @@ export const ActivosLiquidosView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-end"><AddCatalogButton table="activos_liquidos" /></div>
       {/* ============================================================== */}
       {/* VISTA DETALLE: EXTRACTO BANCARIO DE LA INSTITUCIÓN SELECCIONADA */}
       {/* ============================================================== */}
@@ -203,12 +207,13 @@ export const ActivosLiquidosView: React.FC = () => {
                     <th className="py-3 px-4">Concepto</th>
                     <th className="py-3 px-4 text-right">Monto</th>
                     <th className="py-3 px-4 text-right">Balance</th>
+                    <CreatedByHeader />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {(!selectedActivo.movimientos || selectedActivo.movimientos.length === 0) ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="py-12 text-center text-muted-foreground">
                         No hay movimientos registrados para esta institución
                       </td>
                     </tr>
@@ -238,6 +243,7 @@ export const ActivosLiquidosView: React.FC = () => {
                           <td className="py-3 px-4 text-right font-mono font-semibold text-foreground whitespace-nowrap">
                             {formatCOP(m.balance)}
                           </td>
+                          <CreatedByCell name={m.createdByName} />
                         </tr>
                       );
                     })
@@ -379,6 +385,7 @@ export const ActivosLiquidosView: React.FC = () => {
                     <th className="py-3 px-4 text-right">Egresos</th>
                     <th className="py-3 px-4 text-right">Saldo Disponible</th>
                     <th className="py-3 px-4 text-center">Acción</th>
+                    <CreatedByHeader />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -419,6 +426,7 @@ export const ActivosLiquidosView: React.FC = () => {
                           <i className="ri-arrow-right-line" />
                         </button>
                       </td>
+                      <CreatedByCell name={a.createdByName} />
                     </tr>
                   ))}
                 </tbody>

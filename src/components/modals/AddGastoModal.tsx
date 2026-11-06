@@ -1,211 +1,98 @@
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
+import { AccountSelect, accountLabel } from './AccountSelect';
+import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
 
 interface AddGastoModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const AddGastoModal: React.FC<AddGastoModalProps> = ({ isOpen, onClose }) => {
-  const { createGasto } = useAirtable();
-  const [concepto, setConcepto] = useState('');
-  const [categoria, setCategoria] = useState('Arrendamiento');
-  const [divisa, setDivisa] = useState<'COP' | 'USDT'>('COP');
-  const [monto, setMonto] = useState('');
-  const [origenFondos, setOrigenFondos] = useState('Efectivo Dosquebradas');
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
-  const [comprobanteUrl, setComprobanteUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const categories = [
+  'Arrendamiento', 'Nómina y Salarios', 'Combustible y Transporte', 'Servicios Públicos (Agua, Luz, Gas)',
+  'Logística y Envíos (Ligas, Encomiendas)', 'Mantenimiento y Operación', 'Gastos Financieros y Bancarios',
+  'Alimentación y Viáticos', 'Otros Gastos Operativos',
+];
 
-  const categoriasContables = [
-    'Arrendamiento',
-    'Nómina y Salarios',
-    'Combustible y Transporte',
-    'Servicios Públicos (Agua, Luz, Gas)',
-    'Logística y Envíos (Ligas, Encomiendas)',
-    'Mantenimiento y Operación',
-    'Gastos Financieros y Bancarios',
-    'Alimentación y Viáticos',
-    'Otros Gastos Operativos',
-  ];
+export const AddGastoModal = ({ isOpen, onClose }: AddGastoModalProps) =>
+  isOpen ? <GastoForm onClose={onClose} /> : null;
 
-  if (!isOpen) return null;
+const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
+  const { data, createGasto } = useAirtable();
+  const [divisa, setDivisa] = useState('COP');
+  const [accountId, setAccountId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const accounts = divisa === 'COP' ? data.activosLiquidos : data.activosDigitales;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsedMonto = parseFloat(monto) || 0;
-    if (!concepto.trim() || parsedMonto <= 0) {
-      setError('Por favor complete concepto y monto');
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy) return;
+    const fields = new FormData(event.currentTarget);
+    const monto = Number(fields.get('monto'));
+    const concepto = String(fields.get('concepto')).trim();
+    const account = accounts.find((item) => item.id === accountId);
+    if (!account || !concepto || !Number.isFinite(monto) || monto <= 0) {
+      setError('Completa el concepto, selecciona el origen e ingresa un monto mayor que cero.');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
+    setBusy(true);
+    setError('');
     try {
-      await createGasto({
-        concepto: concepto.trim(),
-        categoria,
-        divisa,
-        monto: parsedMonto,
-        origenFondos,
-        fecha,
-        comprobanteUrl: comprobanteUrl.trim() || undefined,
+      const success = await createGasto({
+        concepto, divisa, monto, origenFondos: accountLabel(account), origenFondosId: account.id,
+        categoria: fields.get('categoria'), fecha: fields.get('fecha'),
+        comprobanteUrl: String(fields.get('comprobanteUrl')).trim(),
       });
-      setConcepto('');
-      setMonto('');
-      setComprobanteUrl('');
+      if (!success) throw new Error();
       onClose();
-    } catch (err: any) {
-      setError(err?.message || 'Error al registrar el gasto');
+    } catch {
+      setError('No se pudo registrar el gasto. Revisa la conexión e inténtalo de nuevo.');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-5 relative">
-        <div className="flex items-center justify-between pb-3 border-b border-border mb-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 text-base">
-              <i className="ri-receipt-line" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Registrar Gasto Operativo</h3>
-              <p className="text-[11px] text-muted-foreground">Clasificación contable y comprobante</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted">
-            <i className="ri-close-line text-base" />
-          </button>
-        </div>
-
-        {error && (
-          <div className="p-2 mb-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
-            <i className="ri-error-warning-line text-xs" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Concepto del Gasto *</label>
-            <input
-              type="text"
-              required
-              value={concepto}
-              onChange={(e) => setConcepto(e.target.value)}
-              placeholder="Ej: Pago arriendo oficina Pereira / Compra ligas para fajos"
-              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Categoría Contable *</label>
-            <select
-              value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            >
-              {categoriasContables.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
+    <RecordDialog title="Registrar gasto" description="Clasifica el gasto y selecciona la cuenta o billetera de origen." icon="ri-receipt-line" busy={busy} error={error} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <fieldset disabled={busy} className="space-y-4">
+          <label className={recordLabelClass}>
+            <span>Concepto</span>
+            <input name="concepto" required className={recordFieldClass} />
+          </label>
+          <label className={recordLabelClass}>
+            <span>Categoría contable</span>
+            <select name="categoria" required className={recordFieldClass}>
+              <option value="">Seleccionar categoría</option>
+              {categories.map((category) => <option key={category}>{category}</option>)}
             </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Divisa</label>
-              <select
-                value={divisa}
-                onChange={(e) => setDivisa(e.target.value as 'COP' | 'USDT')}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-              >
-                <option value="COP">COP (Pesos Colombianos)</option>
-                <option value="USDT">USDT (Tether)</option>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={recordLabelClass}>
+              <span>Divisa</span>
+              <select value={divisa} onChange={(event) => { setDivisa(event.target.value); setAccountId(''); }} className={recordFieldClass}>
+                <option>COP</option><option>USDT</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Monto *</label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={monto}
-                onChange={(e) => setMonto(e.target.value)}
-                placeholder="Ej: 350000"
-                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none font-bold"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Institución / Origen Fondos</label>
-              <select
-                value={origenFondos}
-                onChange={(e) => setOrigenFondos(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-              >
-                <option value="Efectivo Dosquebradas">Efectivo Dosquebradas</option>
-                <option value="Bancolombia Principal">Bancolombia Principal</option>
-                <option value="Davivienda">Davivienda</option>
-                <option value="Binance Corporate">Binance Corporate</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Fecha</label>
-              <input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
-              Comprobante (Enlace o URL del Soporte)
             </label>
-            <div className="relative">
-              <input
-                type="url"
-                value={comprobanteUrl}
-                onChange={(e) => setComprobanteUrl(e.target.value)}
-                placeholder="https://... (enlace a imagen o PDF de soporte)"
-                className="w-full px-2.5 py-1.5 pl-8 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-              />
-              <i className="ri-link absolute left-2.5 top-2 text-muted-foreground text-xs" />
-            </div>
+            <label className={recordLabelClass}>
+              <span>Monto</span>
+              <input type="number" name="monto" step="any" min="0" required className={recordFieldClass} />
+            </label>
           </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !concepto || !monto}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 shadow-md shadow-rose-600/20 flex items-center gap-1.5"
-            >
-              {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>Registrar Gasto</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          <AccountSelect label={divisa === 'COP' ? 'Cuenta de origen' : 'Billetera de origen'} accounts={accounts} value={accountId} onChange={setAccountId} />
+          <label className={recordLabelClass}>
+            <span>Fecha</span>
+            <input type="date" name="fecha" required defaultValue={new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
+          </label>
+          <label className={recordLabelClass}>
+            <span>Enlace del comprobante (opcional)</span>
+            <input type="url" name="comprobanteUrl" pattern="https?://.+" placeholder="https://…" className={recordFieldClass} />
+          </label>
+        </fieldset>
+        <RecordActions busy={busy} label="Registrar gasto" onClose={onClose} />
+      </form>
+    </RecordDialog>
   );
 };

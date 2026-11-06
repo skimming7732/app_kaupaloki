@@ -114,6 +114,22 @@ Deno.serve(async (req: Request) => {
       } catch (_) {}
     }
 
+    let inviteActor: string | undefined;
+    if (["prepare_invited_user", "send_user_invite"].includes(body.action)) {
+      const jwt = req.headers.get("Authorization")?.match(/^Bearer (.+)$/i)?.[1];
+      const { data } = jwt ? await supabase.auth.getUser(jwt) : { data: { user: null } };
+      const actor = data.user;
+      const { data: profile } = actor
+        ? await supabase.from("profiles").select("role,is_active").eq("id", actor.id).maybeSingle()
+        : { data: null };
+      if (!actor || !profile || profile.is_active === false || !["administrador", "super_admin"].includes(profile.role)) {
+        return new Response(JSON.stringify({ ok: false, error: "No autorizado para invitar usuarios." }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      inviteActor = actor.id;
+    }
+
     const urlObj = new URL(req.url);
     let pat =
       body.pat ||
@@ -293,7 +309,8 @@ Deno.serve(async (req: Request) => {
         ? body.authorizedCurrencies.map((c: any) => String(c).trim().toUpperCase())
         : Object.keys(DIVISA_CODE_TO_ID);
 
-      let userId: string = crypto.randomUUID();
+      let userId = "";
+      let newlyCreated = false;
       try {
         const { data: usersList } = await supabase.auth.admin.listUsers();
         const existingAuthUser = usersList?.users?.find(
@@ -344,9 +361,18 @@ Deno.serve(async (req: Request) => {
               createdId = createdAuth.user.id;
             }
           }
-          if (createdId) userId = createdId;
+          if (createdId) {
+            userId = createdId;
+            newlyCreated = true;
+          }
         }
       } catch (_) {}
+
+      if (!userId) {
+        return new Response(JSON.stringify({ ok: false, error: "No se pudo crear el usuario en Supabase." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       let airtableRecordId = "";
       let operatorCode = "";
@@ -425,7 +451,7 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      await supabase.from("profiles").upsert({
+      const { error: profileError } = await supabase.from("profiles").upsert({
         id: userId,
         email: cleanEmail,
         full_name: fullName,
@@ -433,7 +459,9 @@ Deno.serve(async (req: Request) => {
         pais: pais,
         authorized_currencies: authorizedCurrencies,
         updated_at: new Date().toISOString(),
+        ...(newlyCreated ? { created_by: inviteActor } : {}),
       });
+      if (profileError) throw profileError;
 
       return new Response(
         JSON.stringify({
@@ -521,6 +549,15 @@ Deno.serve(async (req: Request) => {
             inviteError = invErr.message || (linkErr?.message ?? "Error enviando invitación");
           }
         } else {
+          if (invData.user?.id) {
+            const { error } = await supabase.from("profiles").upsert({
+              id: invData.user.id,
+              email: cleanEmail,
+              full_name: body.fullName || cleanEmail.split("@")[0],
+              created_by: inviteActor,
+            });
+            if (error) throw error;
+          }
           sent = true;
         }
       } catch (e: any) {

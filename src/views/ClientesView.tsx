@@ -1,3 +1,4 @@
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAirtable } from '../context/AirtableContext';
@@ -24,15 +25,6 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
       return match;
     });
   }, [data.clientes, search]);
-
-  const handleCopyLink = (c: any, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const slug = c.codigo.toLowerCase();
-    const url = `${window.location.origin}/cliente/${slug}?from=dashboard`;
-    navigator.clipboard.writeText(url);
-    setCopiedId(c.id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
 
   const getStatusBadge = (estado: string) => {
     const norm = (estado || 'PENDIENTE').toUpperCase();
@@ -93,12 +85,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                 <th className="py-3 px-4 text-right">Saldo Pendiente</th>
                 <th className="py-3 px-4 text-center">Estado</th>
                 <th className="py-3 px-4 text-center">Acciones</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     No se encontraron clientes
                   </td>
                 </tr>
@@ -155,6 +148,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                         </button>
                       </div>
                     </td>
+                    <CreatedByCell name={c.createdByName} />
                   </tr>
                 ))
               )}

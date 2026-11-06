@@ -1,3 +1,4 @@
+import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
@@ -190,12 +191,13 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                 <th className="py-3 px-4 text-right">Ingreso (COP)</th>
                 <th className="py-3 px-4 text-center">Estado</th>
                 <th className="py-3 px-4 text-center">Acciones</th>
+                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredNegocios.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No se encontraron operaciones de negocio
                   </td>
                 </tr>
@@ -234,6 +236,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                         <i className="ri-edit-line text-sm" />
                       </button>
                     </td>
+                    <CreatedByCell name={n.createdByName} />
                   </tr>
                 ))
               )}
