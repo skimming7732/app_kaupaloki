@@ -24,6 +24,18 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
+  // Resolve official Efectivo account from Activos Líquidos (e.g. EFECTIVO-CAJA)
+  const activoEfectivo = useMemo(() => {
+    return (
+      data.activosLiquidos.find(
+        (a) =>
+          a.tipo === 'EFECTIVO' ||
+          a.institucion === 'EFECTIVO' ||
+          (a.activo && a.activo.toUpperCase().includes('EFECTIVO'))
+      ) || null
+    );
+  }, [data.activosLiquidos]);
+
   const { totalIngresos, totalPagos, balanceEfectivo, filteredMovimientos } = useMemo(() => {
     let ingresos = 0;
     let pagos = 0;
@@ -55,13 +67,16 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       return matchSearch && matchTipo && matchCliente && matchFecha;
     });
 
+    // If official record in Activos Líquidos exists, use its synchronized balance; otherwise use calculated delta
+    const officialBalance = activoEfectivo ? (activoEfectivo.saldoCop ?? activoEfectivo.saldoReal) : (ingresos - pagos);
+
     return {
       totalIngresos: ingresos,
       totalPagos: pagos,
-      balanceEfectivo: ingresos - pagos,
+      balanceEfectivo: officialBalance,
       filteredMovimientos: filtered,
     };
-  }, [data.efectivo, search, filterTipo, selectedCliente, fechaDesde, fechaHasta]);
+  }, [data.efectivo, data.activosLiquidos, activoEfectivo, search, filterTipo, selectedCliente, fechaDesde, fechaHasta]);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -75,7 +90,9 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             </div>
           </div>
           <span className="text-xl font-bold text-foreground">{formatCOP(balanceEfectivo)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Efectivo Dosquebradas</span>
+          <span className="text-[11px] text-muted-foreground block mt-0.5">
+            {activoEfectivo ? `${activoEfectivo.activo} (${activoEfectivo.empresa || 'CAJA'})` : 'EFECTIVO-CAJA'}
+          </span>
         </div>
 
         <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
@@ -259,7 +276,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                        {m.origenFondos || 'Efectivo Dosquebradas'}
+                        {m.origenFondos || (activoEfectivo ? activoEfectivo.activo : 'EFECTIVO-CAJA')}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{m.referencia || '—'}</td>

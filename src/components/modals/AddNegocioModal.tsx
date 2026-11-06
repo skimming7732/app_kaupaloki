@@ -9,7 +9,7 @@ interface AddNegocioModalProps {
 }
 
 export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClose }) => {
-  const { data, createRecord } = useAirtable();
+  const { data, createRecord, createCliente } = useAirtable();
   const [clienteId, setClienteId] = useState('');
   const [divisaId, setDivisaId] = useState('');
   const [monto, setMonto] = useState('');
@@ -18,11 +18,37 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Quick inline client creation
+  const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPais, setNewClientPais] = useState('COLOMBIA');
+  const [clientLoading, setClientLoading] = useState(false);
+
   const parsedMonto = parseFloat(monto) || 0;
   const parsedTasa = parseFloat(tasa) || 0;
   const ingresoCOP = useMemo(() => parsedMonto * parsedTasa, [parsedMonto, parsedTasa]);
 
   if (!isOpen) return null;
+
+  const handleQuickCreateClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClientName.trim()) return;
+    setClientLoading(true);
+    setError(null);
+    try {
+      const res = await createCliente(newClientName.trim(), newClientPais.trim());
+      const createdId = res?.created?.id || res?.id;
+      if (createdId) {
+        setClienteId(createdId);
+      }
+      setNewClientName('');
+      setIsCreatingClient(false);
+    } catch (err: any) {
+      setError(err?.message || 'Error al crear cliente');
+    } finally {
+      setClientLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,45 +85,118 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-4 relative">
-        {/* Compact Header */}
-        <div className="flex items-center justify-between pb-2.5 border-b border-border mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs">
+      <div className="bg-card w-full max-w-lg md:max-w-xl rounded-3xl border border-border shadow-2xl p-6 relative">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
               <i className="ri-exchange-dollar-line" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-foreground">Nuevo Negocio</h3>
-              <p className="text-[10px] text-muted-foreground">Registro de operación cambiaria</p>
+              <h3 className="text-sm font-bold text-foreground">Nuevo Negocio</h3>
+              <p className="text-xs text-muted-foreground">Registro de operación cambiaria con cliente</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+            className="w-7 h-7 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted flex items-center justify-center transition-colors"
           >
-            <i className="ri-close-line text-sm" />
+            <i className="ri-close-line text-base" />
           </button>
         </div>
 
         {error && (
-          <div className="p-1.5 mb-2.5 rounded-lg bg-destructive/10 text-destructive text-[11px] border border-destructive/20 flex items-center gap-1.5">
-            <i className="ri-error-warning-line text-xs shrink-0" />
-            <span className="truncate">{error}</span>
+          <div className="p-2.5 mb-3 rounded-xl bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
+            <i className="ri-error-warning-line text-sm shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-2.5">
-          {/* Client Selector */}
+        {/* Quick Inline Client Creator Sub-Form */}
+        {isCreatingClient && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-muted/50 border border-primary/20 space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <i className="ri-user-add-line text-primary" />
+                Registrar Cliente Rápido
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsCreatingClient(false)}
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Nombre Completo *</label>
+                <input
+                  type="text"
+                  required
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  placeholder="Ej: MARÍA FERNANDA PÉREZ"
+                  className="w-full px-3 py-1.5 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">País</label>
+                <input
+                  type="text"
+                  value={newClientPais}
+                  onChange={(e) => setNewClientPais(e.target.value)}
+                  placeholder="COLOMBIA"
+                  className="w-full px-3 py-1.5 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsCreatingClient(false)}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleQuickCreateClient}
+                disabled={clientLoading || !newClientName.trim()}
+                className="px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-sm hover:opacity-95 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {clientLoading && <i className="ri-loader-4-line animate-spin" />}
+                <span>Guardar y Seleccionar</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3.5">
+          {/* Client Selector Row with + Button */}
           <div>
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
+            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
               Cliente *
             </label>
-            <ClientSearchSelect
-              value={clienteId}
-              onChange={(id) => setClienteId(id)}
-              placeholder="Buscar cliente por código o nombre..."
-              required
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <ClientSearchSelect
+                  value={clienteId}
+                  onChange={(id) => setClienteId(id)}
+                  placeholder="Buscar cliente por código o nombre..."
+                  required
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreatingClient(!isCreatingClient)}
+                title="Crear nuevo cliente"
+                className="h-[34px] px-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 flex items-center gap-1.5 text-xs font-bold transition-all shrink-0"
+              >
+                <i className={isCreatingClient ? "ri-close-line text-sm" : "ri-user-add-line text-sm"} />
+                <span className="hidden sm:inline">{isCreatingClient ? 'Ocultar' : '+ Cliente'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Divisa & Fecha Operación */}

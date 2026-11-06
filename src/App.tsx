@@ -23,6 +23,9 @@ import { TwoFactorView } from './views/TwoFactorView';
 import { LoginView } from './views/LoginView';
 import { OnboardingView } from './views/OnboardingView';
 import { ClientPublicView } from './views/ClientPublicView';
+import { ComprasUsdtView } from './views/ComprasUsdtView';
+import { VentasUsdtView } from './views/VentasUsdtView';
+import { ComisionistasView } from './views/ComisionistasView';
 
 // Modals
 import { AddNegocioModal } from './components/modals/AddNegocioModal';
@@ -149,11 +152,23 @@ export const App: React.FC = () => {
               )}
             />
             <Route
+              path="/comisionistas"
+              element={renderWithLayout(<ComisionistasView />, ['super_admin', 'administrador'])}
+            />
+            <Route
               path="/dispersiones"
               element={renderWithLayout(
                 <DispersionesView onOpenAddDispersion={() => setActiveModal('add-dispersion')} />,
                 ['super_admin', 'administrador', 'dispersor']
               )}
+            />
+            <Route
+              path="/compras-usdt"
+              element={renderWithLayout(<ComprasUsdtView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/ventas-usdt"
+              element={renderWithLayout(<VentasUsdtView />, ['super_admin', 'administrador'])}
             />
             <Route
               path="/efectivo"

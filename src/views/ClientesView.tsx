@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP } from '../utils/formatters';
 import { AddClienteModal } from '../components/modals/AddClienteModal';
+import { ShareClientModal } from '../components/modals/ShareClientModal';
 
 interface ClientesViewProps {
   onOpenAddCliente?: () => void;
@@ -11,7 +12,7 @@ interface ClientesViewProps {
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
   const { data } = useAirtable();
   const [search, setSearch] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sharingClient, setSharingClient] = useState<any | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -139,11 +140,11 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={(e) => handleCopyLink(c, e)}
-                          title="Copiar enlace del cliente"
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          onClick={() => setSharingClient(c)}
+                          title="Compartir enlace y mensaje de WhatsApp"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
                         >
-                          <i className={copiedId === c.id ? "ri-check-line text-emerald-500" : "ri-share-line"} />
+                          <i className="ri-share-forward-line text-sm" />
                         </button>
                         <button
                           onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=dashboard`)}
@@ -165,6 +166,12 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
       <AddClienteModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
+      />
+      {/* Share Client WhatsApp & Portal Modal */}
+      <ShareClientModal
+        isOpen={!!sharingClient}
+        onClose={() => setSharingClient(null)}
+        cliente={sharingClient}
       />
     </div>
   );

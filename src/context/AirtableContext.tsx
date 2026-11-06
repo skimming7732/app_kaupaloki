@@ -119,6 +119,42 @@ export interface NormalizedData {
     estado?: string;
     raw: any;
   }>;
+  comprasUsdt: Array<{
+    id: string;
+    codigo: string;
+    fecha: string;
+    divisaCodigo: string;
+    valorComprado: number;
+    usdtComprado: number;
+    tasa: number;
+    costo: number;
+    walletDestino?: string;
+    raw: any;
+  }>;
+  ventasUsdt: Array<{
+    id: string;
+    codigo: string;
+    fecha: string;
+    concepto: string;
+    usdtVendido: number;
+    tasa: number;
+    totalCOP: number;
+    destinoFondosNombre?: string;
+    walletOrigen?: string;
+    raw: any;
+  }>;
+  comisionistas: Array<{
+    id: string;
+    codigo: string;
+    comisionistaId?: string;
+    comisionistaNombre: string;
+    comisionaDeNombres: string[];
+    ingresosCOP: number;
+    porcentajeComision: number;
+    comisionesCOP: number;
+    fechaCreacion?: string;
+    raw: any;
+  }>;
   usuarios: AirtableUser[];
   activosLiquidos: any[];
   activosDigitales: any[];
@@ -154,6 +190,7 @@ interface AirtableContextType {
   deleteUser: (idOrEmail: string) => Promise<{ success: boolean; error?: string }>;
   sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
   updateUserPermissions: (payload: any) => Promise<boolean>;
+  createComisionista: (payload: any) => Promise<boolean>;
 }
 
 const defaultSnapshot: AirtableSnapshot = {
@@ -164,6 +201,7 @@ const defaultSnapshot: AirtableSnapshot = {
   divisas: [],
   comprasUsdt: [],
   ventasUsdt: [],
+  comisionistas: [],
   activosLiquidos: ACTIVOS_LIQUIDOS,
   activosDigitales: ACTIVOS_DIGITALES,
   efectivo: [],
@@ -510,6 +548,56 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     });
 
+    // Compras USDT
+    const comprasUsdt = (snapshot.comprasUsdt || []).map((c: any) => ({
+      id: c.id || c.codigo,
+      codigo: c.codigo || c.idTransaccion || c.idCompra || 'CMP-000',
+      fecha: c.fecha || c.fechaCompra || '',
+      divisaCodigo: c.divisaCodigo || c.divisaNombre || 'USD',
+      valorComprado: Number(c.valorComprado ?? c.montoDivisa ?? 0),
+      usdtComprado: Number(c.usdtComprado ?? c.totalRecibidoUsdt ?? 0),
+      tasa: Number(c.tasa ?? c.tasaUsdt ?? 0),
+      costo: Number(c.costo ?? 0),
+      walletDestino: c.walletDestino || 'Tether TRC20',
+      raw: c,
+    }));
+
+    // Ventas USDT
+    const ventasUsdt = (snapshot.ventasUsdt || []).map((v: any) => ({
+      id: v.id || v.codigo,
+      codigo: v.codigo || v.idTransaccion || v.idVenta || 'VNT-000',
+      fecha: v.fecha || '',
+      concepto: v.concepto || 'Venta USDT',
+      usdtVendido: Number(v.usdtVendido ?? v.cantidadUsdt ?? 0),
+      tasa: Number(v.tasa ?? v.tasaVentaCop ?? 0),
+      totalCOP: Number(v.totalCop ?? v.totalCOP ?? 0),
+      destinoFondosNombre: v.destinoFondosNombre || v.cuentaDestinoNombre || 'Cuenta Destino',
+      walletOrigen: v.walletOrigen || 'CUY WALLET',
+      raw: v,
+    }));
+
+    // Comisionistas
+    const rawComisionistas = (snapshot as any).comisionistas || [];
+    const comisionistas = rawComisionistas.map((cm: any) => {
+      const comId = Array.isArray(cm.comisionista) ? cm.comisionista[0] : (cm.comisionistaClienteId || cm.comisionista);
+      const comNombre = clientMap.get(comId) || cm.comisionistaNombre || 'Comisionista';
+      const refIds = Array.isArray(cm.comisionaDe) ? cm.comisionaDe : (cm.comisionaDeIds || []);
+      const refNombres = refIds.map((id: string) => clientMap.get(id) || id);
+
+      return {
+        id: cm.id || cm.codigo,
+        codigo: cm.codigo || cm.Name || 'COM-000',
+        comisionistaId: comId,
+        comisionistaNombre: comNombre,
+        comisionaDeNombres: refNombres,
+        ingresosCOP: Number(cm.ingresos || cm.ingresosCOP || 0),
+        porcentajeComision: Number(cm.porcentajeComision ?? cm['% COMISIÓN'] ?? 0),
+        comisionesCOP: Number(cm.comisiones || cm.comisionesCOP || 0),
+        fechaCreacion: cm.fechaCreacion || cm.createdTime || '',
+        raw: cm,
+      };
+    });
+
     return {
       clientes,
       negocios,
@@ -518,6 +606,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       gastos,
       divisas,
       usuarios,
+      comprasUsdt,
+      ventasUsdt,
+      comisionistas,
       activosLiquidos: (snapshot.activosLiquidos && snapshot.activosLiquidos.length > 0) ? snapshot.activosLiquidos : ACTIVOS_LIQUIDOS,
       activosDigitales: (snapshot.activosDigitales && snapshot.activosDigitales.length > 0) ? snapshot.activosDigitales : ACTIVOS_DIGITALES,
     };
@@ -777,6 +868,28 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [syncWithAirtable, applySnapshot]);
 
+  const createComisionista = async (payload: any): Promise<boolean> => {
+    const pat = getPat();
+    const res = await fetch(EDGE_SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create_record',
+        pat,
+        table: 'COMISIONISTA',
+        record: {
+          fields: {
+            'COMISIONISTA': payload.comisionistaId ? [payload.comisionistaId] : undefined,
+            'COMISIONA DE': Array.isArray(payload.comisionaDeIds) ? payload.comisionaDeIds : undefined,
+            '% COMISIÓN': Number(payload.porcentajeComision) || 0,
+          },
+        },
+      }),
+    });
+    await syncWithAirtable(true);
+    return res.ok;
+  };
+
   return (
     <AirtableContext.Provider
       value={{
@@ -795,6 +908,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         createMovimientoEfectivo,
         createGasto,
         createCliente,
+        createComisionista,
         deleteUser,
         sendUserInvite,
         updateUserPermissions,
