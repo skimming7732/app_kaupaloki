@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   let subtitle = propSubtitle;
 
   if (!title) {
-    switch (location.pathname) {
+    switch (location.pathname.split('/').slice(0, 2).join('/')) {
       case '/inicio':
         title = 'Inicio';
         subtitle = 'Plataforma operativa Kaupaloki';

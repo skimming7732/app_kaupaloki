@@ -167,6 +167,7 @@ export interface NormalizedData {
     costo: number;
     walletDestino?: string;
     walletDestinoId?: string;
+    origenFondosId?: string;
     raw: any;
   }>;
   ventasUsdt: Array<CreationAudit & {
@@ -297,8 +298,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         supabase.from('activos_digitales').select('*'),
         supabase.from('efectivo').select('*').order('fecha', { ascending: false }),
         supabase.from('gastos').select('*').order('fecha', { ascending: false }),
-        supabase.from('resumen_liquidacion').select('*').eq('id', 'current').maybeSingle(),
-        supabase.from('profiles').select('*'),
+        supabase.from('resumen_liquidacion').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.rpc('listar_perfiles_dashboard'),
         supabase.from('comisionistas').select('*').order('fecha_creacion', { ascending: false }),
       ]);
       if (request !== latestFetch.current) return;
@@ -392,6 +393,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         costo: Number(c.costo || 0),
         walletDestino: c.wallet_destino,
         walletDestinoId: c.wallet_destino_id,
+        origenFondosId: c.origen_fondos_id,
       }));
 
       const ventasUsdt = (ventasUsdtData || []).map((v: any) => ({
@@ -794,6 +796,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       costo: Number(c.costo ?? 0),
       walletDestino: c.walletDestino,
       walletDestinoId: c.walletDestinoId,
+      origenFondosId: c.origenFondosId,
       ...creationAudit(c),
       raw: c,
     }));
@@ -876,6 +879,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           .map((e) => movement(e, e.tipo + ' de efectivo', e.tipo === 'Ingreso' ? e.monto : -e.monto)),
         ...dispersiones.filter((d) => d.origenFondosId === account.id)
           .map((d) => movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto)),
+        ...comprasUsdt.filter((c) => c.origenFondosId === account.id)
+          .map((c) => movement(c, 'Compra USDT', -c.valorComprado)),
         ...ventasUsdt.filter((v) => v.destinoFondosId === account.id)
           .map((v) => movement(v, 'Venta USDT: ' + v.concepto, v.totalCOP)),
       ]),
@@ -886,6 +891,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       movimientos: mergeMovements(account, [
         ...gastos.filter((g) => g.divisa === 'USDT' && matchesAccount(g, account))
           .map((g) => movement(g, 'Gasto USDT: ' + g.concepto, -Math.abs(g.monto))),
+        ...comprasUsdt.filter((c) => c.origenFondosId === account.id)
+          .map((c) => movement(c, 'Compra USDT', -c.valorComprado)),
         ...comprasUsdt.filter((c) => c.walletDestinoId === account.id)
           .map((c) => movement(c, 'Compra USDT en ' + c.divisaCodigo, c.usdtComprado)),
         ...ventasUsdt.filter((v) => v.walletOrigenId === account.id)
@@ -1181,7 +1188,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     switch (table) {
       case 'compras_usdt':
         record = {
-          ...record, codigo: 'CMP-' + id.slice(0, 8).toUpperCase(), numero: Date.now() % 2147483647,
+          ...record, codigo: 'CMP-' + id.slice(0, 8).toUpperCase(),
           tasa: Number(fields.valor_comprado) / Number(fields.usdt_comprado),
           costo: Number(fields.usdt_comprado) / Number(fields.valor_comprado),
           wallet_destino: accountLabel(data.activosDigitales, fields.wallet_destino_id),
@@ -1189,7 +1196,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         break;
       case 'ventas_usdt':
         record = {
-          ...record, codigo: 'VNT-' + id.slice(0, 8).toUpperCase(), numero: Date.now() % 2147483647,
+          ...record, codigo: 'VNT-' + id.slice(0, 8).toUpperCase(),
           total_cop: Number(fields.usdt_vendido) * Number(fields.tasa),
           wallet_origen: accountLabel(data.activosDigitales, fields.wallet_origen_id),
           destino_fondos_nombre: accountLabel(data.activosLiquidos, fields.destino_fondos_id),
@@ -1209,8 +1216,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (Object.values(record).some((value) => typeof value === 'number' && !Number.isFinite(value))) {
       throw new Error('El resultado de la operación no es un número válido.');
     }
-    const optionalColumns = ['wallet_destino_id', 'wallet_origen_id', 'destino_fondos_id', 'saldo_inicial'];
+    const optionalColumns = ['saldo_inicial'];
     const { error } = await writeDashboardRecord(record, (fields) => supabase.from(table).insert(fields), { optionalColumns });
+    if (error?.code === 'P0001' && /^(El monto supera|Selecciona un origen|La cuenta de destino)/.test(error.message)) throw new Error(error.message);
     if (error) throw dashboardWriteError(error, 'No se pudo guardar el registro.');
     await fetchFromSupabase();
   };
@@ -1256,10 +1264,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const deleteUser = async (idOrEmail: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const user = data.usuarios.find((u) => u.id === idOrEmail || u.correo === idOrEmail);
-      const email = user ? user.correo : idOrEmail;
-
-      const { error } = await supabase.from('profiles').delete().eq('email', email).select('id').single();
-      if (error) throw dashboardWriteError(error, 'No se pudo eliminar el perfil.');
+      if (!user) throw new Error('El perfil ya no está disponible.');
+      const { data: deleted, error } = await supabase.rpc('eliminar_perfil_dashboard', { p_id: user.id });
+      if (error || !deleted) throw dashboardWriteError(error, 'No se pudo eliminar el perfil.');
       await fetchFromSupabase();
       return { success: true };
     } catch (err: any) {
@@ -1300,11 +1307,11 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (nombre !== undefined) updates.full_name = nombre;
       if (pais !== undefined) updates.pais = pais;
       if (rol !== undefined) updates.role = rol;
-      if (estado !== undefined) updates.status = estado.toUpperCase();
+      if (estado !== undefined) updates.status = estado.toLowerCase();
       if (divisasAutorizadas !== undefined) updates.authorized_currencies = divisasAutorizadas;
 
-      const { error } = await supabase.from('profiles').update(updates).eq('id', id).select('id').single();
-      if (error) throw error;
+      const { data: updated, error } = await supabase.rpc('actualizar_perfil_dashboard', { p_id: id, p_changes: updates });
+      if (error || !updated) throw dashboardWriteError(error, 'No se pudo actualizar el usuario.');
       await fetchFromSupabase();
       return true;
     } catch (error) {

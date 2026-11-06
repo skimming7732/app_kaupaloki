@@ -1,3 +1,6 @@
+import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
@@ -29,13 +32,7 @@ export const VentasUsdtView: React.FC = () => {
         (v.destinoFondosNombre && v.destinoFondosNombre.toLowerCase().includes(search.toLowerCase()));
       const matchDestino = !filterDestino || v.destinoFondosNombre === filterDestino;
 
-      let matchFecha = true;
-      if (fechaDesde && v.fecha) {
-        matchFecha = matchFecha && v.fecha >= fechaDesde;
-      }
-      if (fechaHasta && v.fecha) {
-        matchFecha = matchFecha && v.fecha <= fechaHasta;
-      }
+      const matchFecha = matchesDateRange(v.fecha, fechaDesde, fechaHasta);
 
       return matchSearch && matchDestino && matchFecha;
     });
@@ -121,38 +118,18 @@ export const VentasUsdtView: React.FC = () => {
 
           {/* Destino Filter */}
           <div>
-            <select
-              value={filterDestino}
-              onChange={(e) => setFilterDestino(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            >
+            <TableSelectFilter label="Destino" value={filterDestino} onChange={setFilterDestino} className="w-full">
               <option value="">Todas las cuentas destino</option>
               {destinosUnicos.map((dest) => (
                 <option key={dest} value={dest}>
                   {dest}
                 </option>
               ))}
-            </select>
+            </TableSelectFilter>
           </div>
 
           {/* Date Range */}
-          <div className="flex items-center gap-1.5">
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-              title="Fecha inicial"
-              className="w-1/2 px-2 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-            <span className="text-xs text-muted-foreground">-</span>
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-              title="Fecha final"
-              className="w-1/2 px-2 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
+          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
       </div>
 
@@ -181,7 +158,7 @@ export const VentasUsdtView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredVentas.map((v) => (
+                <PaginatedRows columns={9} rows={filteredVentas}>{(v) => (
                   <tr key={v.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{v.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(v.fecha)}</td>
@@ -205,7 +182,7 @@ export const VentasUsdtView: React.FC = () => {
                     </td>
                     <CreatedByCell name={v.createdByName} />
                   </tr>
-                ))
+                )}</PaginatedRows>
               )}
             </tbody>
           </table>

@@ -25,7 +25,6 @@ export const PerfilView: React.FC = () => {
 
   // --- TAB 2: DATOS PERSONALES STATE ---
   const [nombre, setNombre] = useState(profile?.nombre || profile?.full_name || '');
-  const [telefono, setTelefono] = useState(profile?.telefono || '');
   const [pais, setPais] = useState(profile?.pais || 'Colombia');
   const [currentPasswordForData, setCurrentPasswordForData] = useState('');
   const [showDataPassword, setShowDataPassword] = useState(false);
@@ -55,7 +54,6 @@ export const PerfilView: React.FC = () => {
     if (profile) {
       setNombre(profile.nombre || profile.full_name || '');
       setPais(profile.pais || 'Colombia');
-      if (profile.telefono) setTelefono(profile.telefono);
     }
   }, [profile]);
 
@@ -107,9 +105,7 @@ export const PerfilView: React.FC = () => {
         .from('profiles')
         .update({
           full_name: nombre.trim(),
-          nombre: nombre.trim(),
           pais: pais.trim(),
-          telefono: telefono.trim(),
         })
         .eq('id', user.id);
 
@@ -406,12 +402,6 @@ export const PerfilView: React.FC = () => {
                   <span className="font-bold text-foreground block">{profile?.pais || 'Colombia'}</span>
                 </div>
                 <div>
-                  <span className="text-[11px] text-muted-foreground block">Teléfono</span>
-                  <span className="font-bold text-foreground block">
-                    {profile?.telefono || 'No configurado'}
-                  </span>
-                </div>
-                <div>
                   <span className="text-[11px] text-muted-foreground block">Correo Operativo</span>
                   <span className="font-bold text-foreground block truncate">{email}</span>
                 </div>
@@ -572,18 +562,6 @@ export const PerfilView: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
-                  Teléfono de Contacto
-                </label>
-                <input
-                  type="tel"
-                  value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  placeholder="Ej. +57 300 123 4567"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                />
-              </div>
 
               <div>
                 <label className="block text-[11px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
@@ -824,7 +802,7 @@ export const PerfilView: React.FC = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={handleStart2faSetup}
+                  onClick={() => handleStart2faSetup()}
                   className="px-4 py-2 rounded-xl border border-border bg-card hover:bg-muted text-xs font-bold text-foreground flex items-center gap-2 transition-colors whitespace-nowrap"
                 >
                   <i className="ri-qr-code-line text-primary" />

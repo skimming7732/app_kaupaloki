@@ -42,7 +42,7 @@ const ProtectedRoute: React.FC<{
   const { profile } = useAuth();
   const role = profile?.role || 'operador';
 
-  if (allowedRoles && !allowedRoles.includes(role)) {
+  if (allowedRoles && (role === 'client' || !allowedRoles.includes(role))) {
     return <Navigate to="/inicio" replace />;
   }
   return <>{children}</>;
@@ -192,11 +192,11 @@ export const App: React.FC = () => {
               element={renderWithLayout(<ActivosLiquidosView />, ['super_admin', 'administrador'])}
             />
             <Route
-              path="/activos-liquidos"
+              path="/activos-liquidos/:assetId?"
               element={renderWithLayout(<ActivosLiquidosView />, ['super_admin', 'administrador'])}
             />
             <Route
-              path="/activos-digitales"
+              path="/activos-digitales/:assetId?"
               element={renderWithLayout(<ActivosDigitalesView />, ['super_admin', 'administrador'])}
             />
             <Route

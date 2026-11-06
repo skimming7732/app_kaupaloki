@@ -1,7 +1,7 @@
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import React, { useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ReceiptPreview } from '../components/common/ReceiptPreview';
 import { useAirtable, type NormalizedData } from '../context/AirtableContext';
 import { supabase } from '../lib/supabase';
 import { formatCOP, formatCurrency, formatDate } from '../utils/formatters';
@@ -288,7 +288,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                     </td>
                   </tr>
                 ) : (
-                  clientNegocios.map((n) => (
+                  <PaginatedRows columns={6} rows={clientNegocios}>{(n) => (
                     <tr key={n.id} className="hover:bg-muted/30">
                       <td className="py-3 px-4 font-mono font-medium">{n.codigo}</td>
                       <td className="py-3 px-4 text-muted-foreground">{formatDate(n.fecha)}</td>
@@ -307,7 +307,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                         {formatCOP(n.ingresoCOP)}
                       </td>
                     </tr>
-                  ))
+                  )}</PaginatedRows>
                 )}
               </tbody>
             </table>
@@ -328,18 +328,17 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4">Origen / Banco</th>
                   <th className="py-3 px-4">Referencia</th>
                   <th className="py-3 px-4 text-right">Monto Pagado (COP)</th>
-                  <th className="py-3 px-4 text-center">Comprobante</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {clientPagos.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-muted-foreground">
+                    <td colSpan={6} className="py-10 text-center text-muted-foreground">
                       No hay pagos ni dispersiones registradas
                     </td>
                   </tr>
                 ) : (
-                  clientPagos.map((p) => (
+                  <PaginatedRows columns={6} rows={clientPagos}>{(p) => (
                     <tr key={p.id} className="hover:bg-muted/30">
                       <td className="py-3 px-4 font-mono font-medium">{p.codigo}</td>
                       <td className="py-3 px-4 text-muted-foreground">{formatDate(p.fecha)}</td>
@@ -353,25 +352,8 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                       <td className="py-3 px-4 text-right font-bold text-emerald-500">
                         {formatCOP(p.monto)}
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        {p.comprobanteUrl?.startsWith('storage:') ? (
-                          <ReceiptPreview receipt={p.comprobanteUrl} compact />
-                        ) : p.comprobanteUrl ? (
-                          <a
-                            href={p.comprobanteUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-semibold text-[11px] transition-colors"
-                          >
-                            <i className="ri-file-text-line" />
-                            <span>Ver</span>
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground text-[11px]">—</span>
-                        )}
-                      </td>
                     </tr>
-                  ))
+                  )}</PaginatedRows>
                 )}
               </tbody>
             </table>
@@ -401,7 +383,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                     </td>
                   </tr>
                 ) : (
-                  clientIngresos.map((i) => (
+                  <PaginatedRows columns={5} rows={clientIngresos}>{(i) => (
                     <tr key={i.id} className="hover:bg-muted/30">
                       <td className="py-3 px-4 font-mono font-medium">{i.codigo}</td>
                       <td className="py-3 px-4 text-muted-foreground">{formatDate(i.fecha)}</td>
@@ -411,7 +393,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                         {formatCOP(i.monto)}
                       </td>
                     </tr>
-                  ))
+                  )}</PaginatedRows>
                 )}
               </tbody>
             </table>

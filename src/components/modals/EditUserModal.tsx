@@ -50,7 +50,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
         'Nombre': nombre.trim(),
         'Rol': rol,
         'País': pais,
-        'Divisas Autorizadas': divisas,
+        'Divisas Autorizadas': ['administrador', 'super_admin'].includes(rol) ? [] : divisas,
         'Estado': estado
       });
       finishSound(true);
@@ -149,7 +149,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Divisas Autorizadas</label>
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">Divisas autorizadas</p>
+            {['administrador', 'super_admin'].includes(rol) ? <p className="text-sm">Todas las divisas</p> : <>
+            <button type="button" onClick={() => setDivisas([])} className="mb-2 rounded-lg border border-border px-3 py-1.5 text-xs" aria-pressed={divisas.length === 0}>Todas</button>
             <div className="flex flex-wrap gap-2">
               {data.divisas.map((d) => {
                 const selected = divisas.includes(d.codigo);
@@ -169,6 +171,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
                 );
               })}
             </div>
+            </>}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">

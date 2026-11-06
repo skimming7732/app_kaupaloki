@@ -1,3 +1,4 @@
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
@@ -131,7 +132,7 @@ export const UsuariosView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((u) => {
+                <PaginatedRows columns={8} rows={filteredUsers}>{(u) => {
                   const isActivo = (u.estado || '').toLowerCase() === 'activo';
                   return (
                     <tr key={u.id} className="hover:bg-muted/30 transition-colors">
@@ -164,16 +165,14 @@ export const UsuariosView: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        {u.divisasAutorizadas && u.divisasAutorizadas.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {u.divisasAutorizadas.map((d) => (
-                              <span key={d} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px]">
-                                {d}
-                              </span>
-                            ))}
-                          </div>
+                        {['administrador', 'super_admin'].includes(u.rol) || !u.divisasAutorizadas?.length ||
+                          (data.divisas.length > 0 && data.divisas.every((d) => u.divisasAutorizadas?.includes(d.codigo))) ? (
+                          <span className="text-xs font-semibold text-primary">Todas</span>
                         ) : (
-                          <span className="text-muted-foreground text-[11px]">Todas</span>
+                          <span className="text-xs" title={u.divisasAutorizadas.join(', ')}>
+                            {u.divisasAutorizadas.slice(0, 4).join(' · ')}
+                            {u.divisasAutorizadas.length > 4 && ' +' + (u.divisasAutorizadas.length - 4)}
+                          </span>
                         )}
                       </td>
 
@@ -238,7 +237,7 @@ export const UsuariosView: React.FC = () => {
                       <CreatedByCell name={u.createdByName} />
                     </tr>
                   );
-                })
+                }}</PaginatedRows>
               )}
             </tbody>
           </table>

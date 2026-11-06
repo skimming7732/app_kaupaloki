@@ -1,3 +1,4 @@
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
@@ -137,7 +138,7 @@ export const ComisionistasView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredComisionistas.map((c) => (
+                <PaginatedRows columns={8} rows={filteredComisionistas}>{(c) => (
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{c.codigo}</td>
                     <td className="py-3 px-4 font-bold text-foreground">{c.comisionistaNombre}</td>
@@ -169,7 +170,7 @@ export const ComisionistasView: React.FC = () => {
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(c.fechaCreacion)}</td>
                     <CreatedByCell name={c.createdByName} />
                   </tr>
-                ))
+                )}</PaginatedRows>
               )}
             </tbody>
           </table>

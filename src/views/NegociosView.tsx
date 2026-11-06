@@ -1,3 +1,6 @@
+import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
@@ -54,13 +57,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
         n.clienteId === selectedCliente ||
         n.clienteNombre.toLowerCase().includes(selectedCliente.toLowerCase());
 
-      let matchFecha = true;
-      if (fechaDesde && n.fecha) {
-        matchFecha = matchFecha && n.fecha >= fechaDesde;
-      }
-      if (fechaHasta && n.fecha) {
-        matchFecha = matchFecha && n.fecha <= fechaHasta;
-      }
+      const matchFecha = matchesDateRange(n.fecha, fechaDesde, fechaHasta);
 
       return matchSearch && matchDivisa && matchCliente && matchFecha;
     });
@@ -101,59 +98,32 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
 
           {/* Divisa */}
           <div>
-            <select
-              value={selectedDivisa}
-              onChange={(e) => setSelectedDivisa(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            >
+            <TableSelectFilter label="Divisa" value={selectedDivisa} onChange={setSelectedDivisa} className="w-full">
               <option value="">Todas las divisas</option>
               {availableDivisas.map((d) => (
                 <option key={d.id} value={d.codigo}>
                   {d.codigo}
                 </option>
               ))}
-            </select>
+            </TableSelectFilter>
           </div>
 
           {/* Fecha Desde */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-muted-foreground font-medium">Desde:</span>
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-
-          {/* Fecha Hasta */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-muted-foreground font-medium">Hasta:</span>
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
+          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
 
         {/* Cliente quick selector */}
         <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-semibold">Cliente:</span>
-            <select
-              value={selectedCliente}
-              onChange={(e) => setSelectedCliente(e.target.value)}
-              className="px-2.5 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none max-w-xs"
-            >
+            <TableSelectFilter label="Cliente" value={selectedCliente} onChange={setSelectedCliente} className="w-full">
               <option value="">Todos los clientes</option>
               {data.clientes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.codigo} - {c.nombre}
                 </option>
               ))}
-            </select>
+            </TableSelectFilter>
           </div>
 
           <div className="flex items-center gap-3">
@@ -202,7 +172,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                   </td>
                 </tr>
               ) : (
-                filteredNegocios.map((n) => (
+                <PaginatedRows columns={10} rows={filteredNegocios}>{(n) => (
                   <tr key={n.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{n.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(n.fecha)}</td>
@@ -238,7 +208,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                     </td>
                     <CreatedByCell name={n.createdByName} />
                   </tr>
-                ))
+                )}</PaginatedRows>
               )}
             </tbody>
           </table>

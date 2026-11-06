@@ -1,8 +1,11 @@
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { fallbackBanderaUrl } from '../utils/formatters';
 import React, { useState } from 'react';
 import { useAirtable, type NormalizedData } from '../context/AirtableContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
+
+const amountFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 8 });
 
 type Divisa = NormalizedData['divisas'][number];
 
@@ -40,7 +43,7 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
         ].map(([label, amount]) => (
           <div key={label} className="rounded-xl border border-border bg-card p-4">
             <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="mt-1 text-lg font-semibold">{formatCurrency(Number(amount), codigo)}</dd>
+            <dd className="mt-1 text-lg font-semibold">{amountFormatter.format(Number(amount))}</dd>
           </div>
         ))}
       </dl>
@@ -52,14 +55,13 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
               {['Fecha', 'Operación', 'Referencia', 'Detalle', 'Entrada', 'Salida'].map((label) => (
                 <th key={label} scope="col" className="px-4 py-3">{label}</th>
               ))}
-              <CreatedByHeader />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {movimientos.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No hay movimientos registrados para esta divisa.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No hay movimientos registrados para esta divisa.</td></tr>
             )}
-            {movimientos.map((item) => (
+            {<PaginatedRows columns={6} rows={movimientos} getDate={(movement) => movement.fecha}>{(item) => (
               <tr key={item.tipo + '-' + item.id}>
                 <td className="whitespace-nowrap px-4 py-3">{formatDate(item.fecha)}</td>
                 <td className="whitespace-nowrap px-4 py-3">{item.tipo}</td>
@@ -67,9 +69,8 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
                 <td className="px-4 py-3">{item.detalle || '—'}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-emerald-600">{item.entrada ? formatCurrency(item.entrada, codigo) : '—'}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-rose-600">{item.salida ? formatCurrency(item.salida, codigo) : '—'}</td>
-                <CreatedByCell name={item.createdByName} />
               </tr>
-            ))}
+            )}</PaginatedRows>}
           </tbody>
         </table>
       </div>
@@ -126,18 +127,17 @@ export const DivisasView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Total Comprado</th>
                 <th className="py-3 px-4 text-right">Total Pendiente</th>
                 <th className="py-3 px-4 text-center">Estado</th>
-                <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredDivisas.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
                     No hay divisas que coincidan con la búsqueda
                   </td>
                 </tr>
               ) : (
-                filteredDivisas.map((d) => (
+                <PaginatedRows columns={7} rows={filteredDivisas}>{(d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4">
                       <button
@@ -146,28 +146,30 @@ export const DivisasView: React.FC = () => {
                         aria-label={'Ver extracto de ' + d.codigo}
                         className="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary hover:bg-primary/20"
                       >
+                        {(fallbackBanderaUrl[d.codigo] || d.banderaUrl) && (
+                          <img src={fallbackBanderaUrl[d.codigo] || d.banderaUrl} alt="" className="mr-1 inline-block h-[1em] w-[1.35em] rounded-sm object-cover align-[-0.1em]" onError={(event) => { event.currentTarget.hidden = true; }} />
+                        )}
                         {d.codigo} <i className="ri-arrow-right-s-line" aria-hidden="true" />
                       </button>
                     </td>
                     <td className="py-3 px-4 font-semibold text-foreground">{d.nombre}</td>
                     <td className="py-3 px-4 text-muted-foreground">{d.pais || 'Internacional'}</td>
                     <td className="py-3 px-4 text-right font-medium text-foreground">
-                      {formatCurrency(d.totalRecibido, d.codigo)}
+                      {amountFormatter.format(d.totalRecibido)}
                     </td>
                     <td className="py-3 px-4 text-right font-medium text-foreground">
-                      {formatCurrency(d.totalComprado, d.codigo)}
+                      {amountFormatter.format(d.totalComprado)}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-amber-500">
-                      {formatCurrency(d.totalPendiente, d.codigo)}
+                      {amountFormatter.format(d.totalPendiente)}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">
                         {d.estado || 'Activo'}
                       </span>
                     </td>
-                    <CreatedByCell name={d.createdByName} />
                   </tr>
-                ))
+                )}</PaginatedRows>
               )}
             </tbody>
           </table>

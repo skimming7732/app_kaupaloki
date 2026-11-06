@@ -76,7 +76,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
   const [email, setEmail] = useState('');
   const [pais, setPais] = useState('COL');
   const [rol, setRol] = useState<'operador' | 'dispersor' | 'administrador' | 'super_admin'>('operador');
-  const [divisasAutorizadas, setDivisasAutorizadas] = useState<string[]>(['USD', 'COP', 'USDT']);
+  const [divisasAutorizadas, setDivisasAutorizadas] = useState<string[]>([]);
+  const [allCurrencies, setAllCurrencies] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -90,7 +91,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
     setEmail('');
     setPais('COL');
     setRol('operador');
-    setDivisasAutorizadas(['USD', 'COP', 'USDT']);
+    setDivisasAutorizadas([]);
+    setAllCurrencies(false);
     setError(null);
     setSuccess(false);
     setLoading(false);
@@ -102,6 +104,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
   };
 
   const toggleDivisa = (code: string) => {
+    setAllCurrencies(false);
     if (divisasAutorizadas.includes(code)) {
       setDivisasAutorizadas(divisasAutorizadas.filter((c) => c !== code));
     } else {
@@ -112,10 +115,12 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
   const selectAllDivisas = () => {
     const all = data.divisas.map((d) => d.codigo);
     setDivisasAutorizadas(all);
+    setAllCurrencies(true);
   };
 
   const clearAllDivisas = () => {
     setDivisasAutorizadas([]);
+    setAllCurrencies(false);
   };
 
   const handleSubmitStep1 = (e: React.FormEvent) => {
@@ -127,22 +132,19 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
     setError(null);
 
     // If role is Operador, proceed to Step 2 for currencies
-    if (rol === 'operador') {
+    if (rol === 'operador' || rol === 'dispersor') {
       setStep(2);
     } else {
       // Direct submission for Dispersor, Admin, Super Admin
-      executeInviteUser(data.divisas.map((d) => d.codigo));
+      executeInviteUser([]);
     }
   };
 
   const handleSubmitStep2 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (divisasAutorizadas.length === 0) {
-      setError('Debes seleccionar al menos una divisa autorizada para el operador');
-      return;
-    }
     setError(null);
-    executeInviteUser(divisasAutorizadas);
+    if (!allCurrencies && divisasAutorizadas.length === 0) return;
+    executeInviteUser(allCurrencies ? [] : divisasAutorizadas);
   };
 
   const executeInviteUser = async (currenciesToAssign: string[]) => {
@@ -370,7 +372,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                     className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/25 flex items-center gap-2 transition-all"
                   >
                     {loading && <i className="ri-loader-4-line animate-spin" />}
-                    <span>{rol === 'operador' ? 'Continuar a Divisas (Paso 2) →' : 'Invitar Usuario →'}</span>
+                    <span>{(rol === 'operador' || rol === 'dispersor') ? 'Continuar a Divisas (Paso 2) →' : 'Invitar Usuario →'}</span>
                   </button>
                 </div>
               </form>
@@ -446,7 +448,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                   </button>
                   <button
                     type="submit"
-                    disabled={loading || divisasAutorizadas.length === 0}
+                    disabled={loading || (!allCurrencies && divisasAutorizadas.length === 0)}
                     className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/25 flex items-center gap-2 transition-all"
                   >
                     {loading && <i className="ri-loader-4-line animate-spin" />}

@@ -1,3 +1,6 @@
+import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { ReceiptPreview } from '../components/common/ReceiptPreview';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
@@ -43,13 +46,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
       const matchCategoria = !selectedCategoria || g.categoria === selectedCategoria;
       const matchDivisa = !selectedDivisa || g.divisa === selectedDivisa;
 
-      let matchFecha = true;
-      if (fechaDesde && g.fecha) {
-        matchFecha = matchFecha && g.fecha >= fechaDesde;
-      }
-      if (fechaHasta && g.fecha) {
-        matchFecha = matchFecha && g.fecha <= fechaHasta;
-      }
+      const matchFecha = matchesDateRange(g.fecha, fechaDesde, fechaHasta);
 
       return matchSearch && matchCategoria && matchDivisa && matchFecha;
     });
@@ -120,41 +117,18 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
 
           {/* Categoría */}
           <div>
-            <select
-              value={selectedCategoria}
-              onChange={(e) => setSelectedCategoria(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            >
+            <TableSelectFilter label="Categoría" value={selectedCategoria} onChange={setSelectedCategoria} className="w-full">
               <option value="">Todas las categorías</option>
               {categorias.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
-            </select>
+            </TableSelectFilter>
           </div>
 
           {/* Fecha Desde */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-muted-foreground font-medium">Desde:</span>
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-
-          {/* Fecha Hasta */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-muted-foreground font-medium">Hasta:</span>
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
+          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
 
         {(search || selectedCategoria || selectedDivisa || fechaDesde || fechaHasta) && (
@@ -200,7 +174,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                   </td>
                 </tr>
               ) : (
-                filteredGastos.map((g) => (
+                <PaginatedRows columns={8} rows={filteredGastos}>{(g) => (
                   <tr key={g.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{g.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(g.fecha)}</td>
@@ -225,7 +199,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                     </td>
                     <CreatedByCell name={g.createdByName} />
                   </tr>
-                ))
+                )}</PaginatedRows>
               )}
             </tbody>
           </table>

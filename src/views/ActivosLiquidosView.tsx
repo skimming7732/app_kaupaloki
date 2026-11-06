@@ -1,6 +1,7 @@
-import { AddCatalogButton } from '../components/modals/AddCatalogButton';
+import { useNavigate, useParams } from 'react-router-dom';
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
 import { formatCOP, formatDate } from '../utils/formatters';
@@ -9,7 +10,9 @@ export const ActivosLiquidosView: React.FC = () => {
   const { metrics, data } = useAirtable();
   const { theme } = useAuth();
   const isDark = theme === 'dark';
-  const [selectedActivoId, setSelectedActivoId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { assetId: selectedActivoId } = useParams();
+  const setSelectedActivoId = (id: string | null) => navigate(id ? '/activos-liquidos/' + encodeURIComponent(id) : '/activos-liquidos');
 
   const activos = data.activosLiquidos || [];
 
@@ -69,7 +72,6 @@ export const ActivosLiquidosView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-end"><AddCatalogButton table="activos_liquidos" /></div>
       {/* ============================================================== */}
       {/* VISTA DETALLE: EXTRACTO BANCARIO DE LA INSTITUCIÓN SELECCIONADA */}
       {/* ============================================================== */}
@@ -218,7 +220,7 @@ export const ActivosLiquidosView: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    selectedActivo.movimientos.map((m: any, idx: number) => {
+                    <PaginatedRows columns={6} rows={selectedActivo.movimientos} getDate={(movement) => movement.fecha}>{(m: any, idx: number) => {
                       const isPositive = (m.monto || 0) > 0;
                       return (
                         <tr key={idx} className="hover:bg-muted/30 transition-colors">
@@ -246,7 +248,7 @@ export const ActivosLiquidosView: React.FC = () => {
                           <CreatedByCell name={m.createdByName} />
                         </tr>
                       );
-                    })
+                    }}</PaginatedRows>
                   )}
                 </tbody>
               </table>
@@ -389,7 +391,7 @@ export const ActivosLiquidosView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {activos.map((a: any) => (
+                  {<PaginatedRows columns={8} rows={activos}>{(a: any) => (
                     <tr
                       key={a.id}
                       onClick={() => setSelectedActivoId(a.id)}
@@ -428,7 +430,7 @@ export const ActivosLiquidosView: React.FC = () => {
                       </td>
                       <CreatedByCell name={a.createdByName} />
                     </tr>
-                  ))}
+                  )}</PaginatedRows>}
                 </tbody>
               </table>
             </div>

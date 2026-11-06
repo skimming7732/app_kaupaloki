@@ -1,3 +1,6 @@
+import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
@@ -60,13 +63,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         m.clienteId === selectedCliente ||
         m.clienteNombre.toLowerCase().includes(selectedCliente.toLowerCase());
 
-      let matchFecha = true;
-      if (fechaDesde && m.fecha) {
-        matchFecha = matchFecha && m.fecha >= fechaDesde;
-      }
-      if (fechaHasta && m.fecha) {
-        matchFecha = matchFecha && m.fecha <= fechaHasta;
-      }
+      const matchFecha = matchesDateRange(m.fecha, fechaDesde, fechaHasta);
 
       return matchSearch && matchTipo && matchCliente && matchFecha;
     });
@@ -157,38 +154,15 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
           {/* Tipo */}
           <div>
-            <select
-              value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            >
+            <TableSelectFilter label="Tipo" value={filterTipo} onChange={setFilterTipo} className="w-full">
               <option value="">Todos los tipos</option>
               <option value="Ingreso">Ingreso a Caja</option>
               <option value="Pago">Pago a Cliente</option>
-            </select>
+            </TableSelectFilter>
           </div>
 
           {/* Fecha Desde */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-muted-foreground font-medium">Desde:</span>
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-
-          {/* Fecha Hasta */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-muted-foreground font-medium">Hasta:</span>
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
+          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
 
         {/* Cliente quick selector with Search & + Nuevo Cliente */}
@@ -264,7 +238,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredMovimientos.map((m) => (
+                <PaginatedRows columns={8} rows={filteredMovimientos}>{(m) => (
                   <tr key={m.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{m.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(m.fecha)}</td>
@@ -298,7 +272,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                     <td className="py-3 px-4 text-muted-foreground">{m.referencia || '—'}</td>
                     <CreatedByCell name={m.createdByName} />
                   </tr>
-                ))
+                )}</PaginatedRows>
               )}
             </tbody>
           </table>

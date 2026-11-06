@@ -194,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
                 key={section.label || 'principal'}
                 label={section.label}
                 icon={section.icon}
-                active={section.items.some((item) => item.to === pathname)}
+                active={section.items.some((item) => pathname === item.to || pathname.startsWith(item.to + '/'))}
                 expanded={isExpanded}
               >
                 {section.items.map((item) => (
@@ -363,7 +363,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
                 key={section.label || 'principal'}
                 label={section.label}
                 icon={section.icon}
-                active={section.items.some((item) => item.to === pathname)}
+                active={section.items.some((item) => pathname === item.to || pathname.startsWith(item.to + '/'))}
                 expanded={true}
               >
                 {section.items.map((item) => (

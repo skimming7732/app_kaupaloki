@@ -1,6 +1,8 @@
+import { useNavigate, useParams } from 'react-router-dom';
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
 import { formatUSD, formatDate } from '../utils/formatters';
@@ -9,7 +11,9 @@ export const ActivosDigitalesView: React.FC = () => {
   const { metrics, data } = useAirtable();
   const { theme } = useAuth();
   const isDark = theme === 'dark';
-  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { assetId: selectedWalletId } = useParams();
+  const setSelectedWalletId = (id: string | null) => navigate(id ? '/activos-digitales/' + encodeURIComponent(id) : '/activos-digitales');
 
   const wallets = data.activosDigitales || [];
 
@@ -78,7 +82,7 @@ export const ActivosDigitalesView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-end"><AddCatalogButton table="activos_digitales" /></div>
+      {!selectedWalletId && <div className="flex justify-end"><AddCatalogButton table="activos_digitales" /></div>}
       {/* ============================================================== */}
       {/* VISTA DETALLE: EXTRACTO DE LA BILLETERA CRIPTO SELECCIONADA    */}
       {/* ============================================================== */}
@@ -256,7 +260,7 @@ export const ActivosDigitalesView: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    selectedWallet.movimientos.map((m: any, idx: number) => {
+                    <PaginatedRows columns={6} rows={selectedWallet.movimientos} getDate={(movement) => movement.fecha}>{(m: any, idx: number) => {
                       const isPositive = (m.monto || 0) > 0;
                       return (
                         <tr key={idx} className="hover:bg-muted/30 transition-colors">
@@ -284,7 +288,7 @@ export const ActivosDigitalesView: React.FC = () => {
                           <CreatedByCell name={m.createdByName} />
                         </tr>
                       );
-                    })
+                    }}</PaginatedRows>
                   )}
                 </tbody>
               </table>
@@ -458,7 +462,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {wallets.map((w: any) => {
+                  {<PaginatedRows columns={8} rows={wallets}>{(w: any) => {
                     const saldoReal = w.saldoReal ?? w.saldoUsdt ?? 0;
                     return (
                       <tr
@@ -512,7 +516,7 @@ export const ActivosDigitalesView: React.FC = () => {
                         <CreatedByCell name={w.createdByName} />
                       </tr>
                     );
-                  })}
+                  }}</PaginatedRows>}
                 </tbody>
               </table>
             </div>

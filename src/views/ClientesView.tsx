@@ -1,3 +1,4 @@
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -96,7 +97,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                   </td>
                 </tr>
               ) : (
-                filteredClientes.map((c) => (
+                <PaginatedRows columns={8} rows={filteredClientes}>{(c) => (
                   <tr 
                     key={c.id} 
                     onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=dashboard`)}
@@ -150,7 +151,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                     </td>
                     <CreatedByCell name={c.createdByName} />
                   </tr>
-                ))
+                )}</PaginatedRows>
               )}
             </tbody>
           </table>

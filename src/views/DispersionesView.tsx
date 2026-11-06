@@ -1,8 +1,12 @@
+import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { ReceiptPreview } from '../components/common/ReceiptPreview';
+import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
+import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
-import { ReceiptModal } from '../components/modals/ReceiptModal';
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 
 interface DispersionesViewProps {
@@ -10,7 +14,7 @@ interface DispersionesViewProps {
 }
 
 export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDispersion }) => {
-  const { data } = useAirtable();
+  const { data, syncWithAirtable } = useAirtable();
 
   // Filters
   const [search, setSearch] = useState('');
@@ -19,7 +23,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
   const [fechaHasta, setFechaHasta] = useState('');
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedReceipt, setSelectedReceipt] = useState<{ url: string; title: string } | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<{ id: string; url?: string } | null>(null);
 
   const filteredDispersiones = useMemo(() => {
     return data.dispersiones.filter((d) => {
@@ -32,13 +36,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
         d.clienteId === selectedCliente ||
         d.clienteNombre.toLowerCase().includes(selectedCliente.toLowerCase());
 
-      let matchFecha = true;
-      if (fechaDesde && d.fecha) {
-        matchFecha = matchFecha && d.fecha >= fechaDesde;
-      }
-      if (fechaHasta && d.fecha) {
-        matchFecha = matchFecha && d.fecha <= fechaHasta;
-      }
+      const matchFecha = matchesDateRange(d.fecha, fechaDesde, fechaHasta);
 
       return matchSearch && matchCliente && matchFecha;
     });
@@ -79,41 +77,18 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
 
           {/* Cliente */}
           <div>
-            <select
-              value={selectedCliente}
-              onChange={(e) => setSelectedCliente(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            >
+            <TableSelectFilter label="Cliente" value={selectedCliente} onChange={setSelectedCliente} className="w-full">
               <option value="">Todos los clientes</option>
               {data.clientes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.codigo} - {c.nombre}
                 </option>
               ))}
-            </select>
+            </TableSelectFilter>
           </div>
 
           {/* Fecha Desde */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-muted-foreground font-medium">Desde:</span>
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-
-          {/* Fecha Hasta */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-muted-foreground font-medium">Hasta:</span>
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-              className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
+          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
 
         {(search || selectedCliente || fechaDesde || fechaHasta) && (
@@ -159,7 +134,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                   </td>
                 </tr>
               ) : (
-                filteredDispersiones.map((d) => (
+                <PaginatedRows columns={9} rows={filteredDispersiones}>{(d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{d.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(d.fecha)}</td>
@@ -174,17 +149,11 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                     </td>
                     <td className="py-3 px-4 font-mono text-muted-foreground">{d.referencia || '—'}</td>
                     <td className="py-3 px-4 text-center">
-                      {d.comprobanteUrl ? (
-                        <button
-                          onClick={() => setSelectedReceipt({ url: d.comprobanteUrl!, title: `Comprobante ${d.codigo}` })}
-                          className="w-7 h-7 rounded-lg overflow-hidden border border-border inline-flex items-center justify-center hover:opacity-80 transition-opacity"
-                        >
-                          <i className="ri-attachment-2" aria-hidden="true" />
-                          <span className="sr-only">Ver comprobante</span>
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground text-[11px]">—</span>
-                      )}
+                      {d.comprobanteUrl && <ReceiptPreview receipt={d.comprobanteUrl} compact />}
+                      <button type="button" className="mt-1 text-xs font-semibold text-primary hover:underline"
+                        onClick={() => setSelectedReceipt({ id: d.id, url: d.comprobanteUrl })}>
+                        {d.comprobanteUrl ? 'Editar comprobante' : 'Agregar comprobante'}
+                      </button>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">
@@ -193,7 +162,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                     </td>
                     <CreatedByCell name={d.createdByName} />
                   </tr>
-                ))
+                )}</PaginatedRows>
               )}
             </tbody>
           </table>
@@ -206,12 +175,8 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
         onClose={() => setIsAddOpen(false)}
       />
 
-      <ReceiptModal
-        isOpen={Boolean(selectedReceipt)}
-        imageUrl={selectedReceipt?.url || null}
-        title={selectedReceipt?.title}
-        onClose={() => setSelectedReceipt(null)}
-      />
+      {selectedReceipt && <AttachExpenseReceipt expenseId={selectedReceipt.id} dispersion currentReceipt={selectedReceipt.url}
+        onSaved={syncWithAirtable} onClose={() => setSelectedReceipt(null)} />}
     </div>
   );
 };

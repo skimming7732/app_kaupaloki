@@ -4,8 +4,8 @@ import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { receiptAccept, uploadReceipt } from '../../utils/receipts';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
 
-export const AttachExpenseReceipt = ({ expenseId, onClose, onSaved }: {
-  expenseId: string; onClose: () => void; onSaved: () => Promise<void>;
+export const AttachExpenseReceipt = ({ expenseId, onClose, onSaved, dispersion = false, currentReceipt }: {
+  expenseId: string; dispersion?: boolean; currentReceipt?: string; onClose: () => void; onSaved: () => Promise<void>;
 }) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -20,10 +20,12 @@ export const AttachExpenseReceipt = ({ expenseId, onClose, onSaved }: {
     const finish = prepareSuccessSound();
     try {
       const receipt = uploaded?.file.name === file.name && uploaded.file.lastModified === file.lastModified && uploaded.file.size === file.size
-        ? uploaded.receipt : await uploadReceipt(file, 'gastos');
+        ? uploaded.receipt : await uploadReceipt(file, dispersion ? 'dispersiones' : 'gastos');
       if (!receipt) throw new Error('Selecciona un comprobante.');
       setUploaded({ file, receipt });
-      const { data, error } = await supabase.rpc('adjuntar_comprobante_gasto', { p_id: expenseId, p_receipt: receipt });
+      const { data, error } = dispersion
+        ? await supabase.rpc('guardar_comprobante_dispersion', { p_id: expenseId, p_receipt: receipt, p_previous: currentReceipt ?? null })
+        : await supabase.rpc('adjuntar_comprobante_gasto', { p_id: expenseId, p_receipt: receipt });
       if (error || !data) throw new Error('No se pudo adjuntar el comprobante. Actualiza la lista si el gasto ya tiene uno.');
       finish(true);
       await onSaved();
@@ -36,7 +38,7 @@ export const AttachExpenseReceipt = ({ expenseId, onClose, onSaved }: {
     }
   };
   return (
-    <RecordDialog title="Adjuntar comprobante" description="Sube una imagen o un PDF de hasta 10 MB." icon="ri-attachment-2-line" onClose={onClose} busy={busy} error={error}>
+    <RecordDialog title={currentReceipt ? "Editar comprobante" : "Adjuntar comprobante"} description="Sube una imagen o un PDF de hasta 10 MB." icon="ri-attachment-2-line" onClose={onClose} busy={busy} error={error}>
       <form onSubmit={submit} className="space-y-4">
         <label className={recordLabelClass}>
           Archivo

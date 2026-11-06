@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (dbProfile) {
         let finalRole: any = dbProfile.role || 'operador';
-        if (isSuper) finalRole = 'super_admin';
+        if (isSuper || finalRole === 'super_admin') finalRole = 'super_admin';
         else if (finalRole === 'dispersador' || finalRole === 'dispersor') finalRole = 'dispersor';
         else if (finalRole === 'administrador' || finalRole === 'admin') finalRole = 'administrador';
         else if (finalRole === 'cliente' || finalRole === 'client') finalRole = 'client';

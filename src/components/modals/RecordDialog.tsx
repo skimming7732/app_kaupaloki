@@ -52,9 +52,9 @@ export const RecordDialog = ({ title, description, icon, busy, error, onClose, c
   );
 };
 
-export const RecordActions = ({ busy, label, onClose }: { busy: boolean; label: string; onClose: () => void }) => (
+export const RecordActions = ({ busy, label, onClose, submitDisabled }: { busy: boolean; label: string; onClose: () => void; submitDisabled?: boolean }) => (
   <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
     <button type="button" onClick={onClose} disabled={busy} className="min-h-11 rounded-xl px-4 text-sm font-medium text-muted-foreground hover:bg-muted">Cancelar</button>
-    <button type="submit" disabled={busy} className={recordButtonClass}>{busy ? 'Guardando…' : label}</button>
+    <button type="submit" disabled={busy || submitDisabled} className={recordButtonClass}>{busy ? 'Guardando…' : label}</button>
   </div>
 );

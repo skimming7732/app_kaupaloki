@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
     }
 
     let inviteActor: string | undefined;
-    if (["prepare_invited_user", "send_user_invite"].includes(body.action)) {
+    {
       const jwt = req.headers.get("Authorization")?.match(/^Bearer (.+)$/i)?.[1];
       const { data } = jwt ? await supabase.auth.getUser(jwt) : { data: { user: null } };
       const actor = data.user;
@@ -123,9 +123,24 @@ Deno.serve(async (req: Request) => {
         ? await supabase.from("profiles").select("role,status").eq("id", actor.id).maybeSingle()
         : { data: null };
       if (!actor || !profile || ["inactivo", "inactive", "invitado", "invited"].includes(String(profile.status || "").toLowerCase()) || !["administrador", "super_admin"].includes(profile.role)) {
-        return new Response(JSON.stringify({ ok: false, error: "No autorizado para invitar usuarios." }), {
+        return new Response(JSON.stringify({ ok: false, error: "Acción reservada al personal administrativo." }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+      if (profile.role !== "super_admin" && (["delete_user", "update_user_permissions"].includes(body.action)
+        || String(body.role || "").toLowerCase() === "super_admin")) {
+        return new Response(JSON.stringify({ ok: false, error: "Esta acción requiere un superadministrador." }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (profile.role !== "super_admin" && body.action === "prepare_invited_user" && body.email) {
+        const { data: target, error } = await supabase.from("profiles").select("role,is_super_admin")
+          .eq("email", String(body.email).trim().toLowerCase()).maybeSingle();
+        if (error || target?.role === "super_admin" || target?.is_super_admin) {
+          return new Response(JSON.stringify({ ok: false, error: "Este perfil requiere un superadministrador." }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
       inviteActor = actor.id;
     }
@@ -305,7 +320,7 @@ Deno.serve(async (req: Request) => {
       const fullName = String(body.fullName || cleanEmail.split("@")[0]).trim();
       const role = String(body.role || "operador").toLowerCase();
       const pais = String(body.pais || "COL").replace(/[^A-Za-z]/g, "").toUpperCase() || "COL";
-      const authorizedCurrencies = Array.isArray(body.authorizedCurrencies) && body.authorizedCurrencies.length > 0
+      const authorizedCurrencies = Array.isArray(body.authorizedCurrencies)
         ? body.authorizedCurrencies.map((c: any) => String(c).trim().toUpperCase())
         : Object.keys(DIVISA_CODE_TO_ID);
 
