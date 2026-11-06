@@ -39,8 +39,8 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
       if (!result?.success || !result.id) throw new Error();
       setClienteId(result.id);
       back();
-    } catch {
-      setError('No se pudo guardar el cliente. Inténtalo de nuevo.');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'No se pudo guardar el cliente.');
     } finally {
       setBusy(false);
     }
@@ -66,8 +66,8 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
       });
       if (!success) throw new Error();
       onClose();
-    } catch {
-      setError('No se pudo registrar el movimiento. Revisa la conexión e inténtalo de nuevo.');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'No se pudo registrar el movimiento.');
     } finally {
       setBusy(false);
     }

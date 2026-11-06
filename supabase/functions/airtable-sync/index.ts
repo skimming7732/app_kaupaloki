@@ -120,9 +120,9 @@ Deno.serve(async (req: Request) => {
       const { data } = jwt ? await supabase.auth.getUser(jwt) : { data: { user: null } };
       const actor = data.user;
       const { data: profile } = actor
-        ? await supabase.from("profiles").select("role,is_active").eq("id", actor.id).maybeSingle()
+        ? await supabase.from("profiles").select("role,status").eq("id", actor.id).maybeSingle()
         : { data: null };
-      if (!actor || !profile || profile.is_active === false || !["administrador", "super_admin"].includes(profile.role)) {
+      if (!actor || !profile || ["inactivo", "inactive", "invitado", "invited"].includes(String(profile.status || "").toLowerCase()) || !["administrador", "super_admin"].includes(profile.role)) {
         return new Response(JSON.stringify({ ok: false, error: "No autorizado para invitar usuarios." }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

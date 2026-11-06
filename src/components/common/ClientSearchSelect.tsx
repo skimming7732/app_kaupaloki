@@ -24,6 +24,7 @@ export const ClientSearchSelect: React.FC<ClientSearchSelectProps> = ({
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const preserveQuery = useRef(false);
 
   // Sync initial query with current selected value
   useEffect(() => {
@@ -32,6 +33,8 @@ export const ClientSearchSelect: React.FC<ClientSearchSelectProps> = ({
       if (found) {
         setQuery(found.codigo ? `${found.codigo} - ${found.nombre}` : found.nombre);
       }
+    } else if (preserveQuery.current) {
+      preserveQuery.current = false;
     } else {
       setQuery('');
     }
@@ -77,7 +80,8 @@ export const ClientSearchSelect: React.FC<ClientSearchSelectProps> = ({
           onChange={(e) => {
             setQuery(e.target.value);
             setIsOpen(true);
-            if (!e.target.value.trim()) {
+            if (value) {
+              preserveQuery.current = true;
               onChange('', '');
             }
           }}

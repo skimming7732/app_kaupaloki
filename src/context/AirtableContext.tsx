@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { dashboardWriteError, writeDashboardRecord } from '../utils/dashboardWrites';
+
+const createCode = (prefix: string, id: string) => prefix + '-' + id.replaceAll('-', '').slice(0, 12).toUpperCase();
+
+const negocioGeneratedFields = ['tasa', 'ingreso_cop', 'monto_cop', 'usdt_por_divisa', 'costo_usdt_comp'];
 
 const EDGE_SYNC_URL = 'https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync';
 const PAT_STORAGE_KEY = 'kaupaloki_airtable_pat';
@@ -478,9 +483,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         nombre: p.full_name || p.email || 'Usuario',
         correo: p.email || '',
         rol: p.role || 'operador',
-        pais: p.country || 'Colombia',
+        pais: p.pais || 'Colombia',
         divisasAutorizadas: p.authorized_currencies || [],
-        estado: p.is_active ? 'Activo' : 'Inactivo',
+        estado: ['invitado', 'invited'].includes(String(p.status).toLowerCase()) ? 'Invitado'
+          : ['inactivo', 'inactive'].includes(String(p.status).toLowerCase()) ? 'Inactivo' : 'Activo',
       }));
 
       const comisionistas = (comisionistasData || []).map((c: any) => ({
@@ -935,8 +941,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
-      const divisaCode = payload.divisaCodigo || payload['Divisa'] || (Array.isArray(payload.Divisa) ? payload.Divisa[0] : 'USD');
+      const divisaCode = payload.divisaCodigo || (Array.isArray(payload.Divisa) ? payload.Divisa[0] : payload.Divisa);
       const divisaObj = data.divisas.find((d) => d.id === divisaCode || d.codigo === divisaCode);
+      if (!clientObj || !divisaObj) throw new Error('Selecciona un cliente y una divisa válidos.');
 
       const montoDiv = Number(payload['Monto Divisa'] || payload.monto || payload.montoDivisa || 0);
       const tasaNum = Number(payload['Tasa Cambio'] || payload.tasa || payload.tasaCambio || 0);
@@ -944,10 +951,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       const insertData: any = {
         fecha: payload['Fecha'] || payload.fecha || new Date().toISOString().split('T')[0],
-        cliente_id: clientObj?.id || clientRaw,
-        cliente_codigo: clientObj?.codigo || clientRaw,
-        cliente_nombre: clientObj?.nombre || 'Cliente',
-        divisa_codigo: divisaObj?.codigo || divisaCode || 'USD',
+        cliente_id: clientObj.id,
+        cliente_codigo: clientObj.codigo,
+        cliente_nombre: clientObj.nombre,
+        divisa_codigo: divisaObj.codigo,
         monto_divisa: montoDiv,
         tasa: tasaNum,
         tasa_cliente_cop: tasaNum,
@@ -959,14 +966,19 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
       if (payload.codigo) insertData.codigo = payload.codigo;
 
-      const { error } = await supabase.from('negocios').insert(insertData);
+      const id = crypto.randomUUID();
+      const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('negocios').insert(fields), {
+        fallbackCode: createCode('NEG', id),
+        generatedColumns: negocioGeneratedFields,
+        optionalColumns: [],
+      });
 
       if (error) throw error;
       await fetchFromSupabase();
       return true;
     } catch (err) {
       console.error('Error creating negocio in Supabase:', err);
-      return false;
+      throw dashboardWriteError(err, 'No se pudo guardar el registro.');
     }
   };
 
@@ -974,6 +986,24 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const { id, ...fields } = payload;
       const updates: any = {};
+      const clientId = fields.clienteId || fields.Cliente?.[0];
+      const currencyId = fields.divisaId || fields.Divisa?.[0];
+      if (clientId) {
+        const client = data.clientes.find((item) => item.id === clientId);
+        if (!client) throw new Error('Selecciona un cliente válido.');
+        updates.cliente_id = client.id;
+        updates.cliente_codigo = client.codigo;
+        updates.cliente_nombre = client.nombre;
+      }
+      if (currencyId) {
+        const currency = data.divisas.find((item) => item.id === currencyId || item.codigo === currencyId);
+        if (!currency) throw new Error('Selecciona una divisa válida.');
+        updates.divisa_codigo = currency.codigo;
+      }
+      if (fields.fecha || fields.Fecha) updates.fecha = fields.fecha || fields.Fecha;
+      fields.tasaCambio ??= fields['Tasa Cambio'];
+      fields.montoDivisa ??= fields['Monto Divisa'];
+      fields.ingresoCOP ??= fields['Ingreso COP'];
       if (fields.tasaCambio !== undefined) {
         updates.tasa = Number(fields.tasaCambio);
         updates.tasa_cliente_cop = Number(fields.tasaCambio);
@@ -985,13 +1015,16 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       if (fields.estado !== undefined) updates.estado = fields.estado;
 
-      const { error } = await supabase.from('negocios').update(updates).eq('id', id);
+      const { error } = await writeDashboardRecord(updates,
+        (record) => supabase.from('negocios').update(record).eq('id', id).select('id').single(),
+        { generatedColumns: negocioGeneratedFields },
+      );
       if (error) throw error;
       await fetchFromSupabase();
       return true;
     } catch (err) {
       console.error('Error updating negocio in Supabase:', err);
-      return false;
+      throw dashboardWriteError(err, 'No se pudo actualizar el negocio.');
     }
   };
 
@@ -1009,6 +1042,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         monto: montoNum,
         monto_cop: montoNum,
         origen_fondos: payload.origenFondos || payload['Origen de Fondos'] || payload['Origen Fondos'] || 'COINSENDA-KAUPALOKI',
+        origen_fondos_id: payload.origenFondosId || null,
         referencia: payload.referencia || payload['Referencia'] || '',
         estado: 'COMPLETADO',
         tiene_comprobante: Boolean(payload.comprobanteUrl),
@@ -1016,14 +1050,19 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
       if (payload.codigo) insertData.codigo = payload.codigo;
 
-      const { error } = await supabase.from('dispersiones').insert(insertData);
+      const id = crypto.randomUUID();
+      const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('dispersiones').insert(fields), {
+        fallbackCode: createCode('DISP', id),
+        generatedColumns: ['monto_cop', 'tiene_comprobante'],
+        optionalColumns: ['origen_fondos_id'],
+      });
 
       if (error) throw error;
       await fetchFromSupabase();
       return true;
     } catch (err) {
       console.error('Error creating dispersion in Supabase:', err);
-      return false;
+      throw dashboardWriteError(err, 'No se pudo guardar el registro.');
     }
   };
 
@@ -1042,18 +1081,24 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         cliente_nombre: clientObj?.nombre || (tipoStr === 'INGRESO' ? 'Ingreso a Caja' : 'Movimiento Interno'),
         monto: montoNum,
         origen_fondos: payload.origenFondos || 'EFECTIVO-CAJA',
+        origen_fondos_id: payload.origenFondosId || null,
         referencia: payload.referencia || payload['Referencia'] || null,
       };
       if (payload.codigo) insertData.codigo = payload.codigo;
 
-      const { error } = await supabase.from('efectivo').insert(insertData);
+      const id = crypto.randomUUID();
+      const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('efectivo').insert(fields), {
+        fallbackCode: createCode('EFEC', id),
+        generatedColumns: [],
+        optionalColumns: ['origen_fondos_id'],
+      });
 
       if (error) throw error;
       await fetchFromSupabase();
       return true;
     } catch (err) {
       console.error('Error creating efectivo in Supabase:', err);
-      return false;
+      throw dashboardWriteError(err, 'No se pudo guardar el registro.');
     }
   };
 
@@ -1068,24 +1113,32 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         divisa: payload.divisa || 'COP',
         monto: montoNum,
         origen_fondos: payload.origenFondos || 'COINSENDA-KAUPALOKI',
+        origen_fondos_id: payload.origenFondosId || null,
         comprobante_url: payload.comprobanteUrl || null,
       };
       if (payload.codigo) insertData.codigo = payload.codigo;
 
-      const { error } = await supabase.from('gastos').insert(insertData);
+      const id = crypto.randomUUID();
+      const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('gastos').insert(fields), {
+        fallbackCode: createCode('GST', id),
+        generatedColumns: [],
+        optionalColumns: ['origen_fondos_id', ...(!payload.comprobanteUrl ? ['comprobante_url'] : [])],
+      });
 
       if (error) throw error;
       await fetchFromSupabase();
       return true;
     } catch (err) {
       console.error('Error creating gasto in Supabase:', err);
-      return false;
+      throw dashboardWriteError(err, 'No se pudo guardar el registro.');
     }
   };
 
   const createCliente = async (nombre: string, pais: string): Promise<any> => {
     try {
-      const { data: inserted, error } = await supabase.from('clientes').insert({
+      const id = crypto.randomUUID();
+      const { data: inserted, error } = await writeDashboardRecord({
+        id,
         nombre: nombre.toUpperCase(),
         pais: pais || 'COL',
         ingresos_cop: 0,
@@ -1094,14 +1147,17 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saldo_cop: 0,
         estado: 'PENDIENTE',
         fecha_creacion: new Date().toISOString(),
-      }).select().single();
+      }, (fields) => supabase.from('clientes').insert(fields).select('id').single(), {
+        fallbackCode: createCode('CLI', id),
+        optionalColumns: /^(COL|COLOMBIA)$/i.test(pais?.trim() || 'COL') ? ['pais'] : [],
+      });
 
       if (error) throw error;
       await fetchFromSupabase();
       return { success: true, id: inserted?.id };
     } catch (err) {
       console.error('Error creating cliente in Supabase:', err);
-      return { success: false };
+      throw dashboardWriteError(err, 'No se pudo guardar el cliente.');
     }
   };
 
@@ -1145,8 +1201,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (Object.values(record).some((value) => typeof value === 'number' && !Number.isFinite(value))) {
       throw new Error('El resultado de la operación no es un número válido.');
     }
-    const { error } = await supabase.from(table).insert(record);
-    if (error) throw error;
+    const optionalColumns = ['wallet_destino_id', 'wallet_origen_id', 'destino_fondos_id', 'saldo_inicial'];
+    const { error } = await writeDashboardRecord(record, (fields) => supabase.from(table).insert(fields), { optionalColumns });
+    if (error) throw dashboardWriteError(error, 'No se pudo guardar el registro.');
     await fetchFromSupabase();
   };
 
@@ -1172,7 +1229,14 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateRecord = async (table: string, id: string, fields: any): Promise<any> => {
     if (table === 'Usuarios') {
-      return updateUserPermissions({ id, ...fields });
+      return updateUserPermissions({
+        id,
+        nombre: fields.Nombre,
+        rol: fields.Rol,
+        pais: fields['País'],
+        divisasAutorizadas: fields['Divisas Autorizadas'],
+        estado: fields.Estado,
+      });
     }
     if (table === 'Negocios') {
       return updateNegocio({ id, ...fields });
@@ -1186,7 +1250,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const user = data.usuarios.find((u) => u.id === idOrEmail || u.correo === idOrEmail);
       const email = user ? user.correo : idOrEmail;
 
-      await supabase.from('profiles').delete().eq('email', email);
+      const { error } = await supabase.from('profiles').delete().eq('email', email).select('id').single();
+      if (error) throw dashboardWriteError(error, 'No se pudo eliminar el perfil.');
       await fetchFromSupabase();
       return { success: true };
     } catch (err: any) {
@@ -1222,17 +1287,20 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateUserPermissions = async (payload: any): Promise<boolean> => {
     try {
-      const { id, rol, estado, divisasAutorizadas } = payload;
+      const { id, nombre, pais, rol, estado, divisasAutorizadas } = payload;
       const updates: any = {};
+      if (nombre !== undefined) updates.full_name = nombre;
+      if (pais !== undefined) updates.pais = pais;
       if (rol !== undefined) updates.role = rol;
-      if (estado !== undefined) updates.is_active = estado === 'Activo';
+      if (estado !== undefined) updates.status = estado.toUpperCase();
       if (divisasAutorizadas !== undefined) updates.authorized_currencies = divisasAutorizadas;
 
-      const { error } = await supabase.from('profiles').update(updates).eq('id', id);
-      if (!error) await fetchFromSupabase();
-      return !error;
-    } catch {
-      return false;
+      const { error } = await supabase.from('profiles').update(updates).eq('id', id).select('id').single();
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (error) {
+      throw dashboardWriteError(error, 'No se pudo actualizar el usuario.');
     }
   };
 
@@ -1261,7 +1329,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       referidos_ids: payload.comisionaDeIds,
       porcentaje_comision: payload.porcentajeComision,
     });
-    if (error) return false;
+    if (error) throw dashboardWriteError(error, 'No se pudo registrar el comisionista.');
     await fetchFromSupabase();
     return true;
   };

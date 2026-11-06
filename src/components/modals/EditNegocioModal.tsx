@@ -42,8 +42,8 @@ export const EditNegocioModal: React.FC<EditNegocioModalProps> = ({ isOpen, nego
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clienteId || !divisaId || parsedMonto <= 0) {
-      setError('Por favor complete cliente, divisa y monto');
+    if (!clienteId || !divisaId || !fecha || parsedMonto <= 0 || parsedTasa <= 0 || !Number.isFinite(ingresoCOP)) {
+      setError('Selecciona un cliente, una divisa y una fecha. Ingresa un monto y una tasa mayores que cero.');
       return;
     }
 

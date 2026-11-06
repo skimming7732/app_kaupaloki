@@ -10,6 +10,7 @@ alter table public.ventas_usdt add column if not exists wallet_origen_id text;
 alter table public.ventas_usdt add column if not exists destino_fondos_id text;
 alter table public.activos_liquidos add column if not exists saldo_inicial numeric;
 alter table public.activos_digitales add column if not exists saldo_inicial numeric;
+alter table public.activos_digitales add column if not exists titular text;
 
 -- Catalog writes are exposed to the two administrative roles.
 do $$
@@ -18,7 +19,7 @@ declare
 begin
   foreach tabla in array array['compras_usdt', 'ventas_usdt', 'activos_liquidos', 'activos_digitales', 'divisas'] loop
     execute format('grant insert on public.%I to authenticated', tabla);
-    execute format('create policy altas_catalogo on public.%I for insert to authenticated with check (exists (select 1 from public.profiles where id = auth.uid() and role in (''administrador'', ''super_admin'') and is_active is distinct from false))', tabla);
+    execute format('create policy altas_catalogo on public.%I for insert to authenticated with check (exists (select 1 from public.profiles where id = auth.uid() and role in (''administrador'', ''super_admin'') and coalesce(lower(status::text), '''') not in (''inactivo'', ''inactive'', ''invitado'', ''invited'')))', tabla);
   end loop;
 end;
 $$;
@@ -34,7 +35,7 @@ as $$
   from public.activos_liquidos a
   where exists (
     select 1 from public.profiles p where p.id = auth.uid()
-    and p.role in ('administrador', 'super_admin', 'dispersor') and p.is_active is distinct from false
+    and p.role in ('administrador', 'super_admin', 'dispersor') and coalesce(lower(p.status::text), '') not in ('inactivo', 'inactive', 'invitado', 'invited')
   )
   order by a.activo;
 $$;
@@ -58,13 +59,13 @@ grant all on public.comisionistas to service_role;
 create policy comisionistas_read on public.comisionistas
   for select to authenticated using (exists (
     select 1 from public.profiles where id = auth.uid()
-    and role in ('administrador', 'super_admin') and is_active is distinct from false
+    and role in ('administrador', 'super_admin') and coalesce(lower(status::text), '') not in ('inactivo', 'inactive', 'invitado', 'invited')
   ));
 
 create policy comisionistas_insert on public.comisionistas
   for insert to authenticated with check (exists (
     select 1 from public.profiles where id = auth.uid()
-    and role in ('administrador', 'super_admin') and is_active is distinct from false
+    and role in ('administrador', 'super_admin') and coalesce(lower(status::text), '') not in ('inactivo', 'inactive', 'invitado', 'invited')
   ));
 
 create or replace function public.registrar_autor_creacion()

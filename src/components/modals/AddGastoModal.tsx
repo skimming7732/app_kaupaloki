@@ -47,8 +47,8 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
       });
       if (!success) throw new Error();
       onClose();
-    } catch {
-      setError('No se pudo registrar el gasto. Revisa la conexión e inténtalo de nuevo.');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'No se pudo registrar el gasto.');
     } finally {
       setBusy(false);
     }

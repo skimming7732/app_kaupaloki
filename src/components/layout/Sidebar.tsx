@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAirtable } from '../../context/AirtableContext';
 
@@ -8,11 +8,44 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
+const SidebarSection = ({ label, icon, active, expanded, children }: {
+  label?: string;
+  icon?: string;
+  active: boolean;
+  expanded: boolean;
+  children: React.ReactNode;
+}) => {
+  if (!label) return <div className="space-y-1">{children}</div>;
+
+  return (
+    <details className="group mt-1 border-t border-border pt-2">
+      <summary
+        title={label}
+        aria-label={label}
+        className={`flex cursor-pointer list-none items-center gap-3 rounded-xl py-2.5 text-sm font-semibold hover:bg-muted focus-visible:outline-primary [&::-webkit-details-marker]:hidden ${expanded ? 'px-3.5' : 'justify-center'} ${active ? 'text-primary' : 'text-muted-foreground'}`}
+      >
+        <i className={icon + ' text-lg'} aria-hidden="true" />
+        {expanded && (
+          <>
+            <span className="flex-1">{label}</span>
+            <i className="ri-arrow-down-s-line transition-transform group-open:rotate-180" aria-hidden="true" />
+          </>
+        )}
+      </summary>
+      <div className={expanded ? 'ml-3 space-y-1 border-l border-border pl-2' : 'space-y-1'}>
+        {children}
+      </div>
+    </details>
+  );
+};
+
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose }) => {
   const { profile } = useAuth();
+  const { pathname } = useLocation();
   const { syncStatus, lastSyncTime, syncWithAirtable } = useAirtable();
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const [hasKeyboardFocus, setHasKeyboardFocus] = useState(false);
 
   const role = profile?.role || 'operador';
   const isAdmin = role === 'administrador' || role === 'super_admin';
@@ -26,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
   ];
   const sections = [
     { label: undefined, items: primaryItems },
-    { label: 'Operaciones', items: [
+    { label: 'Operaciones', icon: 'ri-exchange-line', items: [
       ...(canDisperse ? [{ to: '/dispersiones', label: 'Dispersiones', icon: 'ri-send-plane-2-line' }] : []),
       ...(isAdmin ? [
         { to: '/compras-usdt', label: 'Compras USDT', icon: 'ri-shopping-cart-2-line' },
@@ -34,20 +67,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
         { to: '/comisionistas', label: 'Comisionistas', icon: 'ri-user-star-line' },
       ] : []),
     ] },
-    { label: 'Tesorería', items: isAdmin ? [
+    { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin ? [
       { to: '/efectivo', label: 'Efectivo', icon: 'ri-money-dollar-circle-line' },
       { to: '/activos-liquidos', label: 'Activos líquidos', icon: 'ri-bank-line' },
       { to: '/activos-digitales', label: 'Activos digitales', icon: 'ri-coin-line' },
       { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
     ] : [] },
-    { label: 'Administración', items: isAdmin ? [
+    { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin ? [
       { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
       { to: '/usuarios', label: 'Usuarios y accesos', icon: 'ri-shield-user-line' },
     ] : [] },
   ].filter((section) => section.items.length > 0);
 
   // Active expanded state on desktop: expands on hover or if pinned
-  const isExpanded = isHovered || isPinned;
+  const isExpanded = isHovered || isPinned || hasKeyboardFocus;
 
   return (
     <>
@@ -59,6 +92,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onFocus={(event) => {
+          if (event.target.matches(':focus-visible')) setHasKeyboardFocus(true);
+        }}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setHasKeyboardFocus(false);
+        }}
         className="hidden md:flex flex-col justify-between fixed top-0 left-0 h-screen z-40 overflow-x-hidden overflow-y-auto transition-all duration-200 ease-in-out border-r border-[var(--border-main)] bg-[var(--bg-sidebar)]"
         style={{
           width: isExpanded ? '260px' : '72px',
@@ -151,10 +190,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
             }}
           >
             {sections.map((section) => (
-              <div key={section.label || 'principal'} className={section.label ? 'mt-1 space-y-1 border-t border-border pt-2' : 'space-y-1'}>
-                {section.label && isExpanded && (
-                  <p className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{section.label}</p>
-                )}
+              <SidebarSection
+                key={section.label || 'principal'}
+                label={section.label}
+                icon={section.icon}
+                active={section.items.some((item) => item.to === pathname)}
+                expanded={isExpanded}
+              >
                 {section.items.map((item) => (
                   <NavLink
                     key={item.to}
@@ -196,7 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
                     )}
                   </NavLink>
                 ))}
-              </div>
+              </SidebarSection>
             ))}
           </nav>
         </div>
@@ -317,10 +359,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
           {/* Mobile Nav Links */}
           <nav className="p-3 space-y-1">
             {sections.map((section) => (
-              <div key={section.label || 'principal'} className={section.label ? 'mt-1 space-y-1 border-t border-border pt-2' : 'space-y-1'}>
-                {section.label && (
-                  <p className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{section.label}</p>
-                )}
+              <SidebarSection
+                key={section.label || 'principal'}
+                label={section.label}
+                icon={section.icon}
+                active={section.items.some((item) => item.to === pathname)}
+                expanded={true}
+              >
                 {section.items.map((item) => (
                   <NavLink
                     key={item.to}
@@ -338,7 +383,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
                     <span>{item.label}</span>
                   </NavLink>
                 ))}
-              </div>
+              </SidebarSection>
             ))}
           </nav>
         </div>

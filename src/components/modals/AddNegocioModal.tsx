@@ -203,7 +203,6 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
 
     try {
       const success = await createNegocio({
-        codigo: 'NEG-' + Math.floor(1000 + Math.random() * 9000),
         fecha,
         clienteId,
         divisaCodigo: selectedCurrency.codigo,

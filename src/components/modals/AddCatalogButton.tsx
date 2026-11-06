@@ -102,8 +102,8 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
     try {
       await createCatalogRecord(table, record);
       onClose();
-    } catch {
-      setError('No se pudo guardar el registro. Revisa la conexión e inténtalo de nuevo.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el registro.');
     } finally {
       setBusy(false);
     }

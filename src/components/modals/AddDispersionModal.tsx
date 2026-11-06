@@ -14,20 +14,23 @@ export const AddDispersionModal = ({ isOpen, onClose }: AddDispersionModalProps)
   isOpen ? <DispersionForm onClose={onClose} /> : null;
 
 const DispersionForm = ({ onClose }: Pick<AddDispersionModalProps, 'onClose'>) => {
-  const { createDispersion } = useAirtable();
+  const { data, createDispersion } = useAirtable();
   const clientInputId = useId();
   const [clienteId, setClienteId] = useState('');
   const [accountId, setAccountId] = useState('');
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [remoteAccounts, setRemoteAccounts] = useState<Account[]>([]);
+  const [useLegacyAccounts, setUseLegacyAccounts] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const accounts = useLegacyAccounts ? data.activosLiquidos as Account[] : remoteAccounts;
 
   useEffect(() => {
     let active = true;
     void supabase.rpc('cuentas_para_dispersion').then(({ data: accounts, error }) => {
       if (!active) return;
-      if (error) setError('No se pudieron cargar las cuentas de origen.');
-      else setAccounts(accounts || []);
+      if (error?.code === 'PGRST202') setUseLegacyAccounts(true);
+      else if (error) setError('No se pudieron cargar las cuentas de origen.');
+      else setRemoteAccounts(accounts || []);
     });
     return () => { active = false; };
   }, []);
@@ -57,8 +60,8 @@ const DispersionForm = ({ onClose }: Pick<AddDispersionModalProps, 'onClose'>) =
       });
       if (!success) throw new Error();
       onClose();
-    } catch {
-      setError('No se pudo registrar la dispersión. Revisa la conexión e inténtalo de nuevo.');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'No se pudo registrar la dispersión.');
     } finally {
       setBusy(false);
     }

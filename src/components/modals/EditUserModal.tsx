@@ -11,7 +11,7 @@ interface EditUserModalProps {
 export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose }) => {
   const { data, updateRecord } = useAirtable();
   const [nombre, setNombre] = useState('');
-  const [rol, setRol] = useState('Operador');
+  const [rol, setRol] = useState('operador');
   const [pais, setPais] = useState('Colombia');
   const [divisas, setDivisas] = useState<string[]>([]);
   const [estado, setEstado] = useState('Activo');
@@ -21,7 +21,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
   useEffect(() => {
     if (user) {
       setNombre(user.nombre || '');
-      setRol(user.rol || 'Operador');
+      setRol(user.rol || 'operador');
       setPais(user.pais || 'Colombia');
       setDivisas(user.divisasAutorizadas || []);
       setEstado(user.estado || 'Activo');
@@ -104,10 +104,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
                 onChange={(e) => setRol(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               >
-                <option value="Super Admin">Super Admin</option>
-                <option value="Admin">Admin</option>
-                <option value="Operador">Operador</option>
-                <option value="Dispersor">Dispersor</option>
+                <option value="super_admin">Super Admin</option>
+                <option value="administrador">Admin</option>
+                <option value="operador">Operador</option>
+                <option value="dispersor">Dispersor</option>
               </select>
             </div>
           </div>
