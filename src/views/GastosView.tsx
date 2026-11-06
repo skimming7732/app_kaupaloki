@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatUSD, formatDate } from '../utils/formatters';
+import { AddGastoModal } from '../components/modals/AddGastoModal';
 
 interface GastosViewProps {
   onOpenAddGasto?: () => void;
@@ -8,6 +9,7 @@ interface GastosViewProps {
 
 export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
   const { data } = useAirtable();
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -88,7 +90,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
             <span className="text-xs text-foreground block">Registrar egreso o costo</span>
           </div>
           <button
-            onClick={onOpenAddGasto}
+            onClick={onOpenAddGasto ? onOpenAddGasto : () => setIsAddOpen(true)}
             className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold text-xs shadow-md shadow-rose-600/20 hover:bg-rose-700 flex items-center gap-1.5 transition-all"
           >
             <i className="ri-add-line text-sm" />
@@ -213,6 +215,11 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
           </table>
         </div>
       </div>
+      {/* Add Gasto Modal */}
+      <AddGastoModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+      />
     </div>
   );
 };

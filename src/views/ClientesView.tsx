@@ -2,11 +2,17 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP } from '../utils/formatters';
+import { AddClienteModal } from '../components/modals/AddClienteModal';
 
-export const ClientesView: React.FC = () => {
+interface ClientesViewProps {
+  onOpenAddCliente?: () => void;
+}
+
+export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
   const { data } = useAirtable();
   const [search, setSearch] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const navigate = useNavigate();
 
   const filteredClientes = useMemo(() => {
@@ -40,6 +46,22 @@ export const ClientesView: React.FC = () => {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Top Header Row with Action Button (Like /efectivo) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <div>
+          <h2 className="text-base font-bold text-foreground">Gestión de Clientes</h2>
+          <p className="text-xs text-muted-foreground">Cuentas, estados de saldo y enlaces de consulta pública</p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenAddCliente ? onOpenAddCliente : () => setIsAddOpen(true)}
+          className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto"
+        >
+          <i className="ri-user-add-line text-sm" />
+          <span>Nuevo Cliente</span>
+        </button>
+      </div>
+
       {/* Search and count */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border">
         <div className="relative w-full sm:w-80">
@@ -139,6 +161,11 @@ export const ClientesView: React.FC = () => {
           </table>
         </div>
       </div>
+      {/* Add Cliente Modal */}
+      <AddClienteModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+      />
     </div>
   );
 };

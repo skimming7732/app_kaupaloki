@@ -166,7 +166,38 @@ const defaultSnapshot: AirtableSnapshot = {
   activosLiquidos: [],
   activosDigitales: [],
   efectivo: [],
-  gastos: [],
+  gastos: [
+    {
+      id: "rec8UqVD5UxZTjHrn",
+      codigo: "GASTO-1",
+      concepto: "SOCIEDAD",
+      categoria: "Liquidación",
+      divisa: "COP",
+      monto: 150000,
+      origenFondos: "Coinsenda 1 (Bancolombia)",
+      fecha: "2026-11-05"
+    },
+    {
+      id: "recUn0XruxKU5wZla",
+      codigo: "GASTO-2",
+      concepto: "AML",
+      categoria: "Software",
+      divisa: "USDT",
+      monto: 17,
+      origenFondos: "Tether TRC20",
+      fecha: "2026-11-05"
+    },
+    {
+      id: "recUoTucGpxQLIXa4",
+      codigo: "GASTO-3",
+      concepto: "Sueldo Mari",
+      categoria: "Nómina y Salarios",
+      divisa: "COP",
+      monto: 1500000,
+      origenFondos: "Coinsenda 2 (Bancolombia)",
+      fecha: "2026-11-05"
+    }
+  ],
   usuarios: [],
 };
 
@@ -188,10 +219,14 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const applySnapshot = useCallback((newSnap: AirtableSnapshot) => {
     if (!newSnap) return;
-    setSnapshot(newSnap);
-    try {
-      localStorage.setItem('kaupaloki_cached_snapshot', JSON.stringify(newSnap));
-    } catch {}
+    setSnapshot((prev) => {
+      const mergedGastos = (newSnap.gastos && newSnap.gastos.length > 0) ? newSnap.gastos : prev.gastos;
+      const merged = { ...newSnap, gastos: mergedGastos };
+      try {
+        localStorage.setItem('kaupaloki_cached_snapshot', JSON.stringify(merged));
+      } catch {}
+      return merged;
+    });
     const now = new Date();
     setLastSyncTime(
       now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -217,6 +252,31 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const result = await res.json();
         if (result.snapshot) {
+          // If edge function didn't include gastos yet, fetch directly from Airtable table
+          if ((!result.snapshot.gastos || result.snapshot.gastos.length === 0) && pat) {
+            try {
+              const gRes = await fetch('https://api.airtable.com/v0/appncUKgTkDojFj4B/tblNfTwl3rOXdUVbf', {
+                headers: { Authorization: `Bearer ${pat}` }
+              });
+              if (gRes.ok) {
+                const gData = await gRes.json();
+                result.snapshot.gastos = (gData.records || []).map((r: any, idx: number) => {
+                  const f = r.fields || {};
+                  return {
+                    id: r.id,
+                    codigo: String(f['GASTO'] || `GST-${String(idx + 1).padStart(3, '0')}`),
+                    concepto: String(f['CONCEPTO'] || 'Gasto Operativo'),
+                    categoria: String(f['CATEGORÍA'] || 'Otros Gastos Operativos'),
+                    divisa: String(f['DIVISA'] || 'COP'),
+                    monto: Number(f['MONTO'] || 0),
+                    origenFondos: String(f['ORIGEN FONDOS'] || 'Efectivo Dosquebradas'),
+                    fecha: String(f['FECHA'] || f['FECHA CREACIÓN'] || r.createdTime || '').slice(0, 10),
+                    createdTime: r.createdTime,
+                  };
+                });
+              }
+            } catch (_) {}
+          }
           applySnapshot(result.snapshot);
         }
         setSyncStatus('synced');

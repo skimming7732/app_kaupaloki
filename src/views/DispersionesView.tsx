@@ -2,8 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
 import { ReceiptModal } from '../components/modals/ReceiptModal';
+import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 
-export const DispersionesView: React.FC = () => {
+interface DispersionesViewProps {
+  onOpenAddDispersion?: () => void;
+}
+
+export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDispersion }) => {
   const { data } = useAirtable();
 
   // Filters
@@ -12,6 +17,7 @@ export const DispersionesView: React.FC = () => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<{ url: string; title: string } | null>(null);
 
   const filteredDispersiones = useMemo(() => {
@@ -39,6 +45,22 @@ export const DispersionesView: React.FC = () => {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Top Header Row with Action Button (Like /efectivo) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <div>
+          <h2 className="text-base font-bold text-foreground">Dispersiones Bancarias</h2>
+          <p className="text-xs text-muted-foreground">Transferencias, pagos procesados y comprobantes bancarios</p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenAddDispersion ? onOpenAddDispersion : () => setIsAddOpen(true)}
+          className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto"
+        >
+          <i className="ri-send-plane-line text-sm" />
+          <span>Nueva Dispersión</span>
+        </button>
+      </div>
+
       {/* Comprehensive Filter Bar */}
       <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
@@ -173,6 +195,12 @@ export const DispersionesView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Modals */}
+      <AddDispersionModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+      />
 
       <ReceiptModal
         isOpen={Boolean(selectedReceipt)}

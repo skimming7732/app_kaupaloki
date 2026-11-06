@@ -1,32 +1,42 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   title?: string;
   subtitle?: string;
-  primaryActionLabel?: string;
-  onPrimaryAction?: () => void;
   onExportCsv?: () => void;
-  onOpenModal?: (modalId: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   title: propTitle,
   subtitle: propSubtitle,
-  primaryActionLabel,
-  onPrimaryAction,
   onExportCsv,
-  onOpenModal,
 }) => {
-  const { profile, user, theme, toggleTheme } = useAuth();
+  const { profile, user, theme, toggleTheme, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   // Dynamic route metadata
   let title = propTitle;
   let subtitle = propSubtitle;
-  let actionLabel = primaryActionLabel;
-  let onAction = onPrimaryAction;
 
   if (!title) {
     switch (location.pathname) {
@@ -41,20 +51,14 @@ export const Header: React.FC<HeaderProps> = ({
       case '/negocios':
         title = 'Negocios';
         subtitle = 'Conversiones y operaciones cambiarias';
-        actionLabel = 'Registrar Negocio';
-        onAction = () => onOpenModal && onOpenModal('add-negocio');
         break;
       case '/clientes':
         title = 'Clientes';
         subtitle = 'Gestión y estado de cuentas de clientes';
-        actionLabel = 'Nuevo Cliente';
-        onAction = () => onOpenModal && onOpenModal('add-cliente');
         break;
       case '/dispersiones':
         title = 'Dispersiones';
         subtitle = 'Pagos bancarios y transferencias';
-        actionLabel = 'Nueva Dispersión';
-        onAction = () => onOpenModal && onOpenModal('add-dispersion');
         break;
       case '/efectivo':
         title = 'Efectivo';
@@ -63,8 +67,6 @@ export const Header: React.FC<HeaderProps> = ({
       case '/gastos':
         title = 'Gastos';
         subtitle = 'Control contable de egresos y costos operativos';
-        actionLabel = 'Registrar Gasto';
-        onAction = () => onOpenModal && onOpenModal('add-gasto');
         break;
       case '/activos':
       case '/activos-liquidos':
@@ -82,8 +84,6 @@ export const Header: React.FC<HeaderProps> = ({
       case '/usuarios':
         title = 'Usuarios & Accesos';
         subtitle = 'Control de roles, operadores y permisos';
-        actionLabel = 'Invitar Nuevo Usuario';
-        onAction = () => onOpenModal && onOpenModal('add-user');
         break;
       case '/perfil':
         title = 'Mi Perfil';
@@ -95,13 +95,16 @@ export const Header: React.FC<HeaderProps> = ({
     }
   }
 
-  const name =
+  const fullName =
     profile?.full_name ||
     profile?.nombre ||
     user?.user_metadata?.full_name ||
     user?.email?.split('@')[0] ||
     'Usuario';
-  const initial = name.charAt(0).toUpperCase();
+  const email = user?.email || profile?.email || '';
+  const initial = fullName.charAt(0).toUpperCase();
+  const operatorCode = profile?.operator_code || profile?.codigo || '';
+  const pais = profile?.pais || 'COL';
   const rolDisplay =
     profile?.rol ||
     (profile?.role === 'super_admin'
@@ -132,19 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Primary Action Button (Header right) */}
-        {actionLabel && onAction && (
-          <button
-            type="button"
-            onClick={onAction}
-            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center gap-1.5 transition-all"
-          >
-            <i className="ri-add-line text-sm" />
-            <span>{actionLabel}</span>
-          </button>
-        )}
-
-        {/* Theme Toggle */}
+        {/* Theme Toggle (Dark / Light) */}
         <button
           type="button"
           onClick={toggleTheme}
@@ -158,21 +149,89 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* Profile Pill */}
-        <Link
-          to="/perfil"
-          className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted/60 transition-colors shadow-sm"
-        >
-          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
-            {initial}
-          </div>
-          <div className="text-left hidden sm:block">
-            <span className="text-xs font-bold text-foreground block leading-tight">{name}</span>
-            <span className="text-[10px] text-muted-foreground uppercase font-semibold">
-              {rolDisplay}
-            </span>
-          </div>
-        </Link>
+        {/* Profile with Dropdown Submenu */}
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted/70 transition-all shadow-sm focus:outline-none"
+          >
+            <div className="w-7 h-7 rounded-full bg-primary/15 text-primary font-bold text-xs flex items-center justify-center border border-primary/20">
+              {initial}
+            </div>
+            <div className="text-left hidden sm:block">
+              <span className="text-xs font-bold text-foreground block leading-tight">{fullName}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                {rolDisplay}
+              </span>
+            </div>
+            <i className={`ri-arrow-down-s-line text-muted-foreground text-xs transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Submenu Dropdown */}
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-card border border-border shadow-2xl p-3 z-50 animate-fade-in">
+              {/* Profile Header Details */}
+              <div className="p-3 rounded-xl bg-muted/40 border border-border mb-2">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary font-black text-sm flex items-center justify-center border border-primary/20">
+                    {initial}
+                  </div>
+                  <div className="overflow-hidden">
+                    <span className="font-bold text-xs text-foreground block truncate">{fullName}</span>
+                    <span className="text-[11px] text-muted-foreground block truncate">{email}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[11px]">
+                  <span className="px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[10px]">
+                    {rolDisplay}
+                  </span>
+                  <span className="text-muted-foreground font-mono text-[10px]">
+                    {operatorCode || pais}
+                  </span>
+                </div>
+              </div>
+
+              {/* Menu Links */}
+              <div className="space-y-1">
+                <Link
+                  to="/perfil"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                >
+                  <i className="ri-user-settings-line text-sm text-primary" />
+                  <span>Mi Perfil</span>
+                </Link>
+
+                <Link
+                  to="/2fa"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                >
+                  <i className="ri-shield-keyhole-line text-sm text-emerald-500" />
+                  <span>Seguridad & 2FA</span>
+                </Link>
+              </div>
+
+              {/* Divider */}
+              <div className="my-2 border-t border-border" />
+
+              {/* Logout Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  logout();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <i className="ri-logout-box-r-line text-sm" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

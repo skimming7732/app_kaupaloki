@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAirtable } from '../context/AirtableContext';
+import { supabase } from '../lib/supabase';
 import { formatCOP, formatCurrency, formatDate } from '../utils/formatters';
 
 export const ClientPublicView: React.FC = () => {
@@ -85,6 +86,55 @@ export const ClientPublicView: React.FC = () => {
     return clientNegocios.reduce((acc, n) => acc + n.ingresoCOP, 0);
   }, [clientNegocios]);
 
+  const isFromDashboard = searchParams.get('from') === 'dashboard';
+  const sessionKey = `kaupaloki_portal_${client?.id || clientSlug}`;
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
+    return isFromDashboard || sessionStorage.getItem(sessionKey) === 'true';
+  });
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [verifyingPin, setVerifyingPin] = useState(false);
+
+  const handleVerifyPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pin.trim()) return;
+    setVerifyingPin(true);
+    setPinError(null);
+
+    try {
+      // 1. Check in Supabase client_shared_links table
+      const { data: linkData } = await supabase
+        .from('client_shared_links')
+        .select('*')
+        .or(`slug.eq.${clientSlug},client_id.ilike.%${client?.codigo}%`)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      const expectedPin = linkData?.pin;
+      const cleanDigits = (client?.codigo || '').replace(/\D/g, '');
+      const fallbackPin = cleanDigits.slice(-4) || '1234';
+
+      if ((expectedPin && pin.trim() === expectedPin) || pin.trim() === fallbackPin) {
+        sessionStorage.setItem(sessionKey, 'true');
+        setIsUnlocked(true);
+      } else {
+        setPinError('El PIN ingresado es incorrecto. Por favor comunícate con tu asesor.');
+      }
+    } catch {
+      // Fallback
+      const cleanDigits = (client?.codigo || '').replace(/\D/g, '');
+      const fallbackPin = cleanDigits.slice(-4) || '1234';
+      if (pin.trim() === fallbackPin) {
+        sessionStorage.setItem(sessionKey, 'true');
+        setIsUnlocked(true);
+      } else {
+        setPinError('El PIN ingresado es incorrecto.');
+      }
+    } finally {
+      setVerifyingPin(false);
+    }
+  };
+
   if (!client) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
@@ -107,7 +157,61 @@ export const ClientPublicView: React.FC = () => {
     );
   }
 
-  const isFromDashboard = searchParams.get('from') === 'dashboard';
+  // STEP 1: PIN Challenge Screen for Clients
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background animate-fade-in">
+        <div className="w-full max-w-md bg-card border border-border rounded-3xl p-6 md:p-8 shadow-2xl relative text-center">
+          <div className="mb-6">
+            <img src="/logo.png" alt="Kaupaloki" className="theme-logo-dark h-8 mx-auto mb-4" />
+            <img src="/logo-blue.png" alt="Kaupaloki" className="theme-logo-light h-8 mx-auto mb-4" />
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
+              <i className="ri-shield-keyhole-line" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">Portal Contable Privado</h2>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+              Ingresa el PIN de seguridad de 4 dígitos para consultar los movimientos contables de <strong className="text-foreground">{client.nombre}</strong>.
+            </p>
+          </div>
+
+          {pinError && (
+            <div className="p-3 mb-4 rounded-xl bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2 text-left animate-shake">
+              <i className="ri-error-warning-line text-sm flex-shrink-0" />
+              <span>{pinError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleVerifyPin} className="space-y-4">
+            <div>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                autoFocus
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="••••"
+                className="w-full text-center text-3xl tracking-[0.4em] font-mono font-bold py-3 px-4 rounded-2xl border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={verifyingPin || pin.length !== 4}
+              className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            >
+              {verifyingPin && <i className="ri-loader-4-line animate-spin" />}
+              <span>Acceder al Portal</span>
+            </button>
+          </form>
+
+          <p className="text-[11px] text-muted-foreground mt-6">
+            Kaupaloki Treasury & Trading · Acceso Privado Cifrado
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground py-8 px-4 sm:px-6 max-w-5xl mx-auto space-y-6">

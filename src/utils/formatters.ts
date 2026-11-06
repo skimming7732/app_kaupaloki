@@ -50,18 +50,23 @@ export function formatCurrency(amount: number | undefined | null, currencyCode: 
   }).format(n)}`;
 }
 
-export function formatDate(val: string | undefined | null): string {
+export function formatDate(val: string | number | Date | undefined | null): string {
   if (!val) return '-';
   try {
+    // If it's a string like "2026-11-05" without time, parse parts directly to avoid timezone shift
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      const [yyyy, mm, dd] = val.trim().split('-');
+      const yy = yyyy.slice(-2);
+      return `${dd}/${mm}/${yy}`;
+    }
     const d = new Date(val);
-    if (isNaN(d.getTime())) return val;
-    return d.toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    if (isNaN(d.getTime())) return String(val);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
   } catch {
-    return val;
+    return String(val);
   }
 }
 

@@ -128,12 +128,23 @@ export const App: React.FC = () => {
             />
             <Route
               path="/negocios"
-              element={renderWithLayout(<NegociosView />, ['super_admin', 'administrador', 'operador'])}
+              element={renderWithLayout(
+                <NegociosView onOpenAddNegocio={() => setActiveModal('add-negocio')} />,
+                ['super_admin', 'administrador', 'operador']
+              )}
             />
-            <Route path="/clientes" element={renderWithLayout(<ClientesView />)} />
+            <Route
+              path="/clientes"
+              element={renderWithLayout(
+                <ClientesView onOpenAddCliente={() => setActiveModal('add-cliente')} />
+              )}
+            />
             <Route
               path="/dispersiones"
-              element={renderWithLayout(<DispersionesView />, ['super_admin', 'administrador', 'dispersor'])}
+              element={renderWithLayout(
+                <DispersionesView onOpenAddDispersion={() => setActiveModal('add-dispersion')} />,
+                ['super_admin', 'administrador', 'dispersor']
+              )}
             />
             <Route
               path="/efectivo"

@@ -19,6 +19,7 @@ const TABLES = {
   ACTIVOS_DIGITALES: "tblHWI0ANH7RNYaQD",
   USUARIOS: "tbljfI9AsgpOsfzPb",
   EFECTIVO: "tblsuI9n7n7nL0weE",
+  GASTOS: "tblNfTwl3rOXdUVbf",
 };
 
 const DIVISA_CODE_TO_ID: Record<string, string> = {
@@ -762,6 +763,7 @@ Deno.serve(async (req: Request) => {
       rawActivosDig,
       rawUsuarios,
       rawEfectivo,
+      rawGastos,
     ] = await Promise.all([
       fetchAirtableTable(TABLES.CLIENTES, pat),
       fetchAirtableTable(TABLES.NEGOCIOS, pat),
@@ -773,6 +775,7 @@ Deno.serve(async (req: Request) => {
       fetchAirtableTable(TABLES.ACTIVOS_DIGITALES, pat),
       fetchAirtableTable(TABLES.USUARIOS, pat),
       fetchAirtableTable(TABLES.EFECTIVO, pat),
+      fetchAirtableTable(TABLES.GASTOS, pat),
     ]);
 
     const divisasById = new Map<string, any>();
@@ -1200,6 +1203,27 @@ Deno.serve(async (req: Request) => {
       };
     });
 
+    const gastos = rawGastos.map((r, idx) => {
+      const f = r.fields || {};
+      const origenIds = Array.isArray(f["ORIGEN FONDOS"]) ? f["ORIGEN FONDOS"] : (f["ORIGEN FONDOS"] ? [f["ORIGEN FONDOS"]] : []);
+      const origenNames = origenIds.map((id: string) => {
+        const act = activosLiqById.get(id);
+        return act ? act.activo : id;
+      });
+      return {
+        id: r.id,
+        codigo: String(f["GASTO"] || `GST-${String(idx + 1).padStart(3, "0")}`),
+        concepto: String(f["CONCEPTO"] || "Gasto Operativo"),
+        categoria: String(f["CATEGORÍA"] || "Otros Gastos Operativos"),
+        divisa: String(f["DIVISA"] || "COP"),
+        monto: Number(f["MONTO"] || 0),
+        origenFondos: origenNames.join(", ") || "Efectivo Dosquebradas",
+        origenFondosIds: origenIds,
+        fecha: String(f["FECHA"] || f["FECHA CREACIÓN"] || r.createdTime || "").slice(0, 10),
+        createdTime: r.createdTime,
+      };
+    });
+
     const totalNegocioCop = negocios.reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0);
     const totalVentasUsdtCop = ventasUsdt.reduce((acc: number, v: any) => acc + (v.totalCop || 0), 0);
     const totalLiquidezEsperadaCop = activosDigitales.reduce((acc: number, a: any) => acc + (a.liquidezEsperadaCop || 0), 0);
@@ -1230,6 +1254,7 @@ Deno.serve(async (req: Request) => {
       activosLiquidos,
       activosDigitales,
       efectivo,
+      gastos,
       usuarios,
       resumenLiquidacion,
     };

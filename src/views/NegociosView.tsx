@@ -3,12 +3,19 @@ import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
 import { formatCOP, formatCurrency, formatDate } from '../utils/formatters';
 import { EditNegocioModal } from '../components/modals/EditNegocioModal';
+import { AddNegocioModal } from '../components/modals/AddNegocioModal';
 
-export const NegociosView: React.FC = () => {
+interface NegociosViewProps {
+  onOpenAddNegocio?: () => void;
+}
+
+export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) => {
   const { data } = useAirtable();
   const { profile } = useAuth();
   const isOperador = profile?.role === 'operador';
   const authorizedCurrencies = profile?.authorized_currencies || [];
+
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   // Available divisas for dropdown (filtered if Operador)
   const availableDivisas = useMemo(() => {
@@ -60,6 +67,22 @@ export const NegociosView: React.FC = () => {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Top Header Row with Action Button (Like /efectivo) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <div>
+          <h2 className="text-base font-bold text-foreground">Operaciones Cambiarias</h2>
+          <p className="text-xs text-muted-foreground">Registro y control de conversiones en tiempo real</p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenAddNegocio ? onOpenAddNegocio : () => setIsAddOpen(true)}
+          className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto"
+        >
+          <i className="ri-add-line text-sm" />
+          <span>Registrar Negocio</span>
+        </button>
+      </div>
+
       {/* Comprehensive Filter Bar: Fecha Desde - Hasta, Cliente, Divisa, Búsqueda */}
       <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
@@ -219,7 +242,12 @@ export const NegociosView: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit Negocio Modal */}
+      {/* Modals */}
+      <AddNegocioModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+      />
+
       <EditNegocioModal
         isOpen={Boolean(editingNegocio)}
         negocio={editingNegocio}
