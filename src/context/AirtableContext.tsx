@@ -496,6 +496,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         comisionistaClienteId: c.cliente_id,
         comisionaDeIds: c.referidos_ids,
         porcentajeComision: Number(c.porcentaje_comision),
+        ingresosCOP: Number(c.ingresos_cop || 0),
+        comisionesCOP: Number(c.comisiones_cop || 0),
         fechaCreacion: c.fecha_creacion,
       }));
 
@@ -1325,13 +1327,11 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [fetchFromSupabase, userId]);
 
   const createComisionista: AirtableContextType['createComisionista'] = async (payload) => {
-    const id = crypto.randomUUID();
     const { error } = await supabase.from('comisionistas').insert({
-      id,
-      codigo: 'COM-' + id.slice(0, 8).toUpperCase(),
       cliente_id: payload.comisionistaId,
       referidos_ids: payload.comisionaDeIds,
       porcentaje_comision: payload.porcentajeComision,
+      created_by: userId,
     });
     if (error) throw dashboardWriteError(error, 'No se pudo registrar el comisionista.');
     await fetchFromSupabase();
