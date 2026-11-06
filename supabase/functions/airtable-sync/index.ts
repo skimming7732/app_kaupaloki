@@ -822,6 +822,9 @@ Deno.serve(async (req: Request) => {
       const estado = rawEstado || (pendienteCop > 1 ? "PENDIENTE" : (pendienteCop < -1 ? "DEBE" : "PAGADO"));
       const fechaCreacion = String(f["FECHA CREACIÓN"] || f["FECHA"] || new Date().toISOString());
       const numero = Number(f["#"] || idx + 1);
+      const dispersionesIds = Array.isArray(f["DISPERSIONES"]) ? f["DISPERSIONES"] : (f["DISPERSIONES"] ? [f["DISPERSIONES"]] : []);
+      const negociosIds = Array.isArray(f["NEGOCIOS"]) ? f["NEGOCIOS"] : (f["NEGOCIOS"] ? [f["NEGOCIOS"]] : []);
+      const efectivoIds = Array.isArray(f["EFECTIVO"]) ? f["EFECTIVO"] : (f["EFECTIVO"] ? [f["EFECTIVO"]] : []);
       return {
         id: r.id,
         codigo,
@@ -835,6 +838,9 @@ Deno.serve(async (req: Request) => {
         estado,
         fechaCreacion,
         numero,
+        dispersionesIds,
+        negociosIds,
+        efectivoIds,
       };
     });
 
@@ -865,6 +871,8 @@ Deno.serve(async (req: Request) => {
         idNegocio: codigo,
         fechaRegistro,
         fecha: fechaRegistro,
+        cliente: clienteRecordId,
+        clienteId: clienteRecordId,
         clienteCodigo,
         clienteNombre,
         clienteRecordId,
@@ -965,7 +973,7 @@ Deno.serve(async (req: Request) => {
       const clientObj = clientesById.get(clienteRecordId);
       // FIRST COLUMN IN AIRTABLE: {CLIENTE} (e.g. C0017-DR-N)
       const clienteCodigo = clientObj ? clientObj.codigo : String(clienteRecordId || "Cliente");
-      const clienteNombre = clienteCodigo;
+      const clienteNombre = clientObj ? clientObj.nombre : clienteCodigo;
 
       const montoCop = Number(f["MONTO (COP)"] ?? f["VALOR TOTAL DISPERSION"] ?? f["MONTO"] ?? 0);
       const rawEstado = String(f["ESTADO"] || "COMPLETADO").toUpperCase();
@@ -999,9 +1007,12 @@ Deno.serve(async (req: Request) => {
         id: r.id,
         codigo,
         idDispersion: codigo,
+        cliente: clienteRecordId,
+        clienteId: clienteRecordId,
         clienteCodigo,
         clienteNombre,
         clienteRecordId,
+        monto: montoCop,
         montoCop,
         valorTotalDispersion: montoCop,
         estado,

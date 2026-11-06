@@ -12,30 +12,92 @@ export const ClientPublicView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'negocios' | 'pagos' | 'ingresos'>('negocios');
 
-  // Resolve client by URL param slug (e.g. "c-c0027-daniel-ramirez" or "c0027") or query ref
-  const clientSlug = (id || searchParams.get('ref') || '').toLowerCase();
+  // Resolve client by URL param slug (e.g. "c0035-alonso-gomez" or "c0035" or record ID)
+  const clientSlug = (id || searchParams.get('ref') || '').toLowerCase().trim();
 
   const client = useMemo(() => {
     if (!clientSlug) return null;
     return data.clientes.find((c) => {
-      const cCode = c.codigo.toLowerCase();
-      const cName = c.nombre.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const slugMatch = `${cCode}-${cName}`.includes(clientSlug) || clientSlug.includes(cCode);
-      return slugMatch || c.id === clientSlug;
+      const cId = (c.id || '').toLowerCase().trim();
+      const cCode = (c.codigo || '').toLowerCase().trim();
+      const cName = (c.nombre || '').toLowerCase().trim();
+      const cSlugForm = `${cCode}-${cName.replace(/[^a-z0-9]/g, '-')}`;
+      const cCleanCode = cCode.replace(/[^a-z0-9]/g, '');
+      const slugClean = clientSlug.replace(/[^a-z0-9]/g, '');
+
+      return (
+        cId === clientSlug ||
+        cCode === clientSlug ||
+        cSlugForm === clientSlug ||
+        cSlugForm.includes(clientSlug) ||
+        clientSlug.includes(cCode) ||
+        (cCleanCode && (slugClean.includes(cCleanCode) || cCleanCode.includes(slugClean)))
+      );
     });
   }, [data.clientes, clientSlug]);
+
+  // Comprehensive matcher for items belonging to client
+  const isMatchForClient = (item: any, specificLinkedIds?: string[]) => {
+    if (!client) return false;
+
+    // 1. Direct Airtable linked ID array (from client's DISPERSIONES, NEGOCIOS, EFECTIVO fields)
+    if (specificLinkedIds && specificLinkedIds.includes(item.id)) return true;
+    if (client.dispersionesIds?.includes(item.id)) return true;
+    if (client.negociosIds?.includes(item.id)) return true;
+    if (client.efectivoIds?.includes(item.id)) return true;
+    if (client.raw?.fields?.DISPERSIONES?.includes(item.id)) return true;
+    if (client.raw?.fields?.NEGOCIOS?.includes(item.id)) return true;
+    if (client.raw?.fields?.EFECTIVO?.includes(item.id)) return true;
+    if (client.raw?.DISPERSIONES?.includes(item.id)) return true;
+    if (client.raw?.NEGOCIOS?.includes(item.id)) return true;
+    if (client.raw?.EFECTIVO?.includes(item.id)) return true;
+
+    // 2. Direct client ID / recordId match
+    const recClientId =
+      item.clienteId ||
+      item.clienteRecordId ||
+      item.raw?.clienteRecordId ||
+      (Array.isArray(item.raw?.cliente) ? item.raw.cliente[0] : item.raw?.cliente) ||
+      (Array.isArray(item.raw?.CLIENTE) ? item.raw.CLIENTE[0] : item.raw?.CLIENTE);
+
+    if (recClientId && (recClientId === client.id || recClientId === client.raw?.id)) return true;
+
+    // 3. Normalized string matching on client code and name
+    const cCode = (client.codigo || '').toLowerCase().trim();
+    const cName = (client.nombre || '').toLowerCase().trim();
+    const cCleanCode = cCode.replace(/[^a-z0-9]/g, '');
+
+    const itemCode = (item.clienteCodigo || item.raw?.clienteCodigo || '').toLowerCase().trim();
+    const itemName = (item.clienteNombre || item.raw?.clienteNombre || '').toLowerCase().trim();
+    const itemRawClient = (typeof item.raw?.cliente === 'string' ? item.raw.cliente : (typeof item.raw?.CLIENTE === 'string' ? item.raw.CLIENTE : '')).toLowerCase().trim();
+
+    if (itemCode && (itemCode === cCode || itemCode === cName)) return true;
+    if (itemName && (itemName === cName || itemName === cCode)) return true;
+    if (itemRawClient && (itemRawClient === cName || itemRawClient === cCode)) return true;
+
+    // 4. Substring inclusion
+    if (cName.length > 3 && (itemName.includes(cName) || itemCode.includes(cName) || cName.includes(itemName))) return true;
+    if (cCleanCode.length > 3) {
+      const iCodeClean = itemCode.replace(/[^a-z0-9]/g, '');
+      const iNameClean = itemName.replace(/[^a-z0-9]/g, '');
+      if (iCodeClean.includes(cCleanCode) || cCleanCode.includes(iCodeClean)) return true;
+      if (iNameClean.includes(cCleanCode) || cCleanCode.includes(iNameClean)) return true;
+    }
+
+    return false;
+  };
 
   // Filter client's records
   const clientNegocios = useMemo(() => {
     if (!client) return [];
-    return data.negocios.filter((n) => n.clienteId === client.id || n.clienteNombre === client.nombre);
+    return data.negocios.filter((n) => isMatchForClient(n, client.negociosIds));
   }, [data.negocios, client]);
 
   // Pagos = Dispersiones + Efectivo de tipo 'Pago'
   const clientPagos = useMemo(() => {
     if (!client) return [];
     const dispersiones = data.dispersiones
-      .filter((d) => d.clienteId === client.id || d.clienteNombre === client.nombre)
+      .filter((d) => isMatchForClient(d, client.dispersionesIds))
       .map((d) => ({
         id: d.id,
         codigo: d.codigo,
@@ -43,11 +105,12 @@ export const ClientPublicView: React.FC = () => {
         tipo: 'Dispersión Bancaria',
         origen: d.origenFondos || 'Bancolombia',
         monto: d.monto,
-        referencia: d.referencia
+        referencia: d.referencia,
+        comprobanteUrl: d.comprobanteUrl || (d.raw?.comprobantes && d.raw.comprobantes[0]?.url)
       }));
 
     const efectivoPagos = data.efectivo
-      .filter((e) => (e.clienteId === client.id || e.clienteNombre === client.nombre) && e.tipo === 'Pago')
+      .filter((e) => isMatchForClient(e, client.efectivoIds) && (e.tipo === 'Pago' || String(e.raw?.tipo).toUpperCase() === 'EGRESO' || String(e.raw?.tipo).toUpperCase() === 'PAGO'))
       .map((e) => ({
         id: e.id,
         codigo: e.codigo,
@@ -55,7 +118,8 @@ export const ClientPublicView: React.FC = () => {
         tipo: 'Pago en Efectivo',
         origen: e.origenFondos || 'Caja Efectivo',
         monto: e.monto,
-        referencia: e.referencia
+        referencia: e.referencia,
+        comprobanteUrl: undefined
       }));
 
     return [...dispersiones, ...efectivoPagos].sort(
@@ -67,7 +131,7 @@ export const ClientPublicView: React.FC = () => {
   const clientIngresos = useMemo(() => {
     if (!client) return [];
     return data.efectivo
-      .filter((e) => (e.clienteId === client.id || e.clienteNombre === client.nombre) && e.tipo === 'Ingreso')
+      .filter((e) => isMatchForClient(e, client.efectivoIds) && (e.tipo === 'Ingreso' || String(e.raw?.tipo).toUpperCase() === 'INGRESO'))
       .map((e) => ({
         id: e.id,
         codigo: e.codigo,
@@ -85,6 +149,10 @@ export const ClientPublicView: React.FC = () => {
   const totalNegociosMonto = useMemo(() => {
     return clientNegocios.reduce((acc, n) => acc + n.ingresoCOP, 0);
   }, [clientNegocios]);
+
+  const totalIngresosMonto = useMemo(() => {
+    return clientIngresos.reduce((acc, i) => acc + i.monto, 0);
+  }, [clientIngresos]);
 
   const isFromDashboard = searchParams.get('from') === 'dashboard';
   const sessionKey = `kaupaloki_portal_${client?.id || clientSlug}`;
@@ -266,7 +334,11 @@ export const ClientPublicView: React.FC = () => {
             <div className="text-right">
               <span className="text-xs text-muted-foreground block">Saldo Pendiente</span>
               <span className="text-2xl font-black text-foreground">
-                {formatCOP(totalNegociosMonto - totalPagosMonto)}
+                {formatCOP(
+                  client.saldoPendienteCOP !== undefined && client.saldoPendienteCOP !== null
+                    ? client.saldoPendienteCOP
+                    : (totalNegociosMonto + totalIngresosMonto - totalPagosMonto)
+                )}
               </span>
             </div>
             <div className="w-px h-10 bg-border hidden sm:block" />
@@ -279,16 +351,22 @@ export const ClientPublicView: React.FC = () => {
         {/* Quick summary stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-6">
           <div>
-            <span className="text-xs text-muted-foreground block">Total Negocios Acordados</span>
-            <span className="text-lg font-bold text-foreground">{formatCOP(totalNegociosMonto)}</span>
+            <span className="text-xs text-muted-foreground block">Total Negocios / Ingresos</span>
+            <span className="text-lg font-bold text-foreground">
+              {formatCOP(client.totalIngresosCOP || (totalNegociosMonto + totalIngresosMonto))}
+            </span>
           </div>
           <div>
             <span className="text-xs text-muted-foreground block">Total Pagado (Dispersado + Efectivo)</span>
-            <span className="text-lg font-bold text-emerald-500">{formatCOP(totalPagosMonto)}</span>
+            <span className="text-lg font-bold text-emerald-500">
+              {formatCOP(client.totalDispersadoCOP || totalPagosMonto)}
+            </span>
           </div>
           <div>
             <span className="text-xs text-muted-foreground block">Operaciones Realizadas</span>
-            <span className="text-lg font-bold text-foreground">{clientNegocios.length}</span>
+            <span className="text-lg font-bold text-foreground">
+              {clientNegocios.length + clientPagos.length + clientIngresos.length}
+            </span>
           </div>
         </div>
       </div>
@@ -395,12 +473,13 @@ export const ClientPublicView: React.FC = () => {
                   <th className="py-3 px-4">Origen / Banco</th>
                   <th className="py-3 px-4">Referencia</th>
                   <th className="py-3 px-4 text-right">Monto Pagado (COP)</th>
+                  <th className="py-3 px-4 text-center">Comprobante</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {clientPagos.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-10 text-center text-muted-foreground">
+                    <td colSpan={7} className="py-10 text-center text-muted-foreground">
                       No hay pagos ni dispersiones registradas
                     </td>
                   </tr>
@@ -418,6 +497,21 @@ export const ClientPublicView: React.FC = () => {
                       <td className="py-3 px-4 font-mono text-muted-foreground">{p.referencia || '—'}</td>
                       <td className="py-3 px-4 text-right font-bold text-emerald-500">
                         {formatCOP(p.monto)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {p.comprobanteUrl ? (
+                          <a
+                            href={p.comprobanteUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-semibold text-[11px] transition-colors"
+                          >
+                            <i className="ri-file-text-line" />
+                            <span>Ver</span>
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-[11px]">—</span>
+                        )}
                       </td>
                     </tr>
                   ))

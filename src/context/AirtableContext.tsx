@@ -66,6 +66,9 @@ export interface NormalizedData {
     totalDispersadoCOP: number;
     saldoPendienteCOP: number;
     estado: string;
+    dispersionesIds?: string[];
+    negociosIds?: string[];
+    efectivoIds?: string[];
     raw: any;
   }>;
   negocios: Array<{
@@ -73,6 +76,8 @@ export interface NormalizedData {
     codigo: string;
     fecha: string;
     clienteId?: string;
+    clienteRecordId?: string;
+    clienteCodigo?: string;
     clienteNombre: string;
     divisaId?: string;
     divisaCodigo: string;
@@ -87,6 +92,8 @@ export interface NormalizedData {
     codigo: string;
     fecha: string;
     clienteId?: string;
+    clienteRecordId?: string;
+    clienteCodigo?: string;
     clienteNombre: string;
     monto: number;
     origenFondos: string;
@@ -101,6 +108,8 @@ export interface NormalizedData {
     fecha: string;
     tipo: 'Ingreso' | 'Pago';
     clienteId?: string;
+    clienteRecordId?: string;
+    clienteCodigo?: string;
     clienteNombre: string;
     monto: number;
     origenFondos: string;
@@ -387,6 +396,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Display the full {CLIENTE} column text as requested
       const fullCode = c.codigo || c.idCliente || c.cliente || c['CLIENTE'] || c.nombre || 'C-000';
 
+      const rawDispersionesIds = c.dispersionesIds || c.fields?.['DISPERSIONES'] || c['DISPERSIONES'] || [];
+      const rawNegociosIds = c.negociosIds || c.fields?.['NEGOCIOS'] || c['NEGOCIOS'] || [];
+      const rawEfectivoIds = c.efectivoIds || c.fields?.['EFECTIVO'] || c['EFECTIVO'] || [];
+
       return {
         id: c.id || c.codigo,
         codigo: fullCode,
@@ -396,6 +409,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         totalDispersadoCOP: totalDispersado,
         saldoPendienteCOP: saldoPendiente,
         estado,
+        dispersionesIds: Array.isArray(rawDispersionesIds) ? rawDispersionesIds : [rawDispersionesIds],
+        negociosIds: Array.isArray(rawNegociosIds) ? rawNegociosIds : [rawNegociosIds],
+        efectivoIds: Array.isArray(rawEfectivoIds) ? rawEfectivoIds : [rawEfectivoIds],
         raw: c,
       };
     });
@@ -414,9 +430,12 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const ingreso = Number(n.ingresoCop ?? n.montoCop ?? (montoDiv * tasa));
 
       // Resolve client id and full label
-      const rawClient = Array.isArray(n.cliente) ? n.cliente[0] : (n.clienteId || n.cliente);
-      const clienteId = clientRecordIdMap.get(rawClient) || rawClient;
+      const rawClient = Array.isArray(n.cliente)
+        ? n.cliente[0]
+        : (n.clienteRecordId || n.clienteId || n.cliente);
+      const clienteId = clientRecordIdMap.get(rawClient) || rawClient || n.clienteRecordId || n.clienteId;
       const clienteNombre = clientMap.get(rawClient) || n.clienteNombre || n.clienteCodigo || 'Cliente';
+      const clienteCodigo = n.clienteCodigo || (rawClient ? clientMap.get(rawClient) : '') || '';
 
       // Resolve divisa
       const rawDivisa = Array.isArray(n.divisa) ? n.divisa[0] : (n.divisaId || n.divisaCodigo || n.divisa);
@@ -427,6 +446,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         codigo: n.codigo || n.idNegocio || 'NEG-000',
         fecha: n.fecha || n.fechaRegistro || '',
         clienteId,
+        clienteRecordId: n.clienteRecordId || clienteId,
+        clienteCodigo,
         clienteNombre,
         divisaId: rawDivisa,
         divisaCodigo,
@@ -441,15 +462,20 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Dispersiones
     const rawDispersiones = snapshot.dispersiones?.length ? snapshot.dispersiones : (snapshot.pagos || []);
     const dispersiones = rawDispersiones.map((d: any) => {
-      const rawClient = Array.isArray(d.cliente) ? d.cliente[0] : (d.clienteId || d.cliente);
-      const clienteId = clientRecordIdMap.get(rawClient) || rawClient;
+      const rawClient = Array.isArray(d.cliente)
+        ? d.cliente[0]
+        : (d.clienteRecordId || d.clienteId || d.cliente);
+      const clienteId = clientRecordIdMap.get(rawClient) || rawClient || d.clienteRecordId || d.clienteId;
       const clienteNombre = clientMap.get(rawClient) || d.clienteNombre || d.clienteCodigo || 'Cliente';
+      const clienteCodigo = d.clienteCodigo || (rawClient ? clientMap.get(rawClient) : '') || '';
 
       return {
         id: d.id || d.codigo,
         codigo: d.codigo || d.idDispersion || 'DISP-000',
         fecha: d.fecha || d.fechaCreacion || '',
         clienteId,
+        clienteRecordId: d.clienteRecordId || clienteId,
+        clienteCodigo,
         clienteNombre,
         monto: Number(d.monto ?? d.montoCop ?? d.valorTotalDispersion ?? 0),
         origenFondos: d.origenFondos || d.medioPagoNombre || 'Bancolombia',
@@ -462,9 +488,12 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Efectivo (resolve assigned client from CLIENTE column)
     const efectivo = (snapshot.efectivo || []).map((e: any, idx: number) => {
-      const rawClient = Array.isArray(e.cliente) ? e.cliente[0] : (e.clienteId || e.cliente);
-      const clienteId = clientRecordIdMap.get(rawClient) || rawClient;
+      const rawClient = Array.isArray(e.cliente)
+        ? e.cliente[0]
+        : (e.clienteRecordId || e.clienteId || e.cliente);
+      const clienteId = clientRecordIdMap.get(rawClient) || rawClient || e.clienteRecordId || e.clienteId;
       const clienteNombre = clientMap.get(rawClient) || (typeof e.cliente === 'string' && e.cliente.trim() ? e.cliente : (e.clienteNombre || ''));
+      const clienteCodigo = e.clienteCodigo || (rawClient ? clientMap.get(rawClient) : '') || '';
 
       const isIngreso = String(e.tipo || '').toUpperCase() === 'INGRESO';
       const monto = Number(e.montoCop ?? e.monto ?? e['MONTO (COP)'] ?? 0);
@@ -476,6 +505,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         fecha,
         tipo: (isIngreso ? 'Ingreso' : 'Pago') as 'Ingreso' | 'Pago',
         clienteId,
+        clienteRecordId: e.clienteRecordId || clienteId,
+        clienteCodigo,
         clienteNombre: clienteNombre || (isIngreso ? 'Ingreso de Caja' : 'Movimiento Interno'),
         monto,
         origenFondos: e.origenFondosNombre || e.origenFondos || 'Efectivo Dosquebradas',
