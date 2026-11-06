@@ -15,11 +15,60 @@ const labelClass = 'mb-1.5 block text-sm font-medium text-foreground';
 const secondaryClass = 'min-h-11 rounded-xl px-4 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50';
 const primaryClass = 'min-h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50';
 
+const normalizeSearch = (text: string) =>
+  text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+const currencyName = (currency: Divisa) =>
+  currency.nombreDivisa || DIVISAS.find((item) => item.codigo === currency.codigo)?.nombreDivisa || currency.divisa;
+
+const formatAmountInput = (value: string) => {
+  const [integer, decimal] = value.replace(/,/g, '').split('.');
+  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decimal === undefined ? grouped : `${grouped}.${decimal}`;
+};
+
+// Prepare audio during the submit gesture so it can play after the save completes.
+const prepareSuccessSound = () => {
+  if (!window.AudioContext) return () => {};
+
+  try {
+    const audio = new AudioContext();
+    void audio.resume().catch(() => {});
+    const close = () => { void audio.close().catch(() => {}); };
+
+    return (success: boolean) => {
+      if (!success || audio.state !== 'running') {
+        close();
+        return;
+      }
+
+      try {
+        const tone = audio.createOscillator();
+        const volume = audio.createGain();
+        const start = audio.currentTime;
+        tone.frequency.setValueAtTime(523.25, start);
+        tone.frequency.setValueAtTime(659.25, start + 0.09);
+        volume.gain.setValueAtTime(0, start);
+        volume.gain.linearRampToValueAtTime(0.045, start + 0.02);
+        volume.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
+        tone.connect(volume).connect(audio.destination);
+        tone.onended = close;
+        tone.start(start);
+        tone.stop(start + 0.26);
+      } catch {
+        close();
+      }
+    };
+  } catch {
+    return () => {};
+  }
+};
+
 const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showName?: boolean }) => {
   const catalogCurrency = DIVISAS.find((item) => item.codigo === currency.codigo);
   const flag = currency.fallbackBanderaUrl || catalogCurrency?.fallbackBanderaUrl ||
     fallbackBanderaUrl[currency.codigo] || currency.banderaUrl;
-  const name = currency.nombreDivisa || catalogCurrency?.nombreDivisa || currency.divisa;
+  const name = currencyName(currency);
 
   return (
     <>
@@ -35,7 +84,7 @@ const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showNa
           />
         )}
       </span>
-      <span className="font-semibold">{currency.codigo}</span>
+      <span className="min-w-14 shrink-0 whitespace-nowrap font-semibold">{currency.codigo}</span>
       {showName && name && name !== currency.codigo && (
         <span className="text-muted-foreground">{name}</span>
       )}
@@ -61,6 +110,7 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
   const [tasa, setTasa] = useState('');
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [currencyQuery, setCurrencyQuery] = useState('');
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPais, setNewClientPais] = useState('COLOMBIA');
@@ -85,11 +135,37 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
     ? data.divisas.filter((currency) => authorizedCurrencies.includes(currency.codigo))
     : data.divisas;
   const selectedCurrency = currencies.find((currency) => currency.id === divisaId);
-  const parsedMonto = Number(monto);
+  const query = normalizeSearch(currencyQuery.trim());
+  const matchingCurrencies = currencies.filter((currency) =>
+    normalizeSearch([currency.codigo, currencyName(currency), currency.pais].join(' ')).includes(query)
+  );
+  const parsedMonto = Number(monto.replace(/,/g, ''));
   const parsedTasa = Number(tasa);
   const ingresoCOP = parsedMonto * parsedTasa;
   const canSubmit = Boolean(clienteId && selectedCurrency && fecha &&
     parsedMonto > 0 && parsedTasa > 0 && Number.isFinite(ingresoCOP));
+
+  const selectCurrency = (currency: Divisa) => {
+    setDivisaId(currency.id);
+    setCurrencyOpen(false);
+    currencyTrigger.current?.focus();
+  };
+
+  const changeAmount = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const entered = input.value;
+    if (!/^[\d,]*(?:\.\d*)?$/.test(entered)) return;
+
+    const formatted = formatAmountInput(entered);
+    const digitsBeforeCaret = entered.slice(0, input.selectionStart ?? entered.length).replace(/,/g, '').length;
+    let caret = 0;
+    for (let remaining = digitsBeforeCaret; remaining > 0 && caret < formatted.length; caret++) {
+      if (formatted[caret] !== ',') remaining--;
+    }
+    input.value = formatted;
+    input.setSelectionRange(caret, caret);
+    setMonto(formatted);
+  };
 
   const backToBusiness = () => {
     restoreClientFocus.current = true;
@@ -102,13 +178,16 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
     if (saving || !newClientName.trim()) return;
     setSaving(true);
     setError('');
+    const finishSound = prepareSuccessSound();
 
     try {
       const result = await createCliente(newClientName.trim(), newClientPais.trim());
       if (!result?.success || !result.id) throw new Error('No se pudo crear el cliente. Inténtalo de nuevo.');
+      finishSound(true);
       setClienteId(result.id);
       backToBusiness();
     } catch (err) {
+      finishSound(false);
       setError(err instanceof Error ? err.message : 'No se pudo crear el cliente.');
     } finally {
       setSaving(false);
@@ -120,6 +199,7 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
     if (saving || !canSubmit || !selectedCurrency) return;
     setSaving(true);
     setError('');
+    const finishSound = prepareSuccessSound();
 
     try {
       const success = await createNegocio({
@@ -132,8 +212,10 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
         ingresoCOP,
       });
       if (!success) throw new Error('No se pudo registrar el negocio. Inténtalo de nuevo.');
+      finishSound(true);
       onClose();
     } catch (err) {
+      finishSound(false);
       setError(err instanceof Error ? err.message : 'No se pudo registrar el negocio.');
     } finally {
       setSaving(false);
@@ -250,7 +332,13 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
                 type="button"
                 aria-labelledby={id + '-currency-label ' + id + '-currency'}
                 aria-expanded={currencyOpen}
-                onClick={() => setCurrencyOpen(!currencyOpen)}
+                onMouseDown={(event) => {
+                  if (currencyOpen) event.preventDefault();
+                }}
+                onClick={() => {
+                  setCurrencyQuery('');
+                  setCurrencyOpen(!currencyOpen);
+                }}
                 className={fieldClass + ' flex items-center justify-between gap-2 text-left'}
               >
                 <span className="flex min-w-0 items-center gap-2">
@@ -259,23 +347,38 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
                 <i className="ri-arrow-down-s-line text-muted-foreground" aria-hidden="true" />
               </button>
               {currencyOpen && (
-                <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-lg">
-                  {currencies.length === 0 && <p className="p-2 text-sm text-muted-foreground">No hay divisas disponibles.</p>}
-                  {currencies.map((currency) => (
-                    <button
-                      type="button"
-                      key={currency.id}
-                      aria-pressed={currency.id === divisaId}
-                      onClick={() => {
-                        setDivisaId(currency.id);
-                        setCurrencyOpen(false);
-                        currencyTrigger.current?.focus();
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted aria-pressed:bg-primary/10"
-                    >
-                      <CurrencyLabel currency={currency} />
-                    </button>
-                  ))}
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-border bg-card p-1.5 shadow-lg sm:right-auto sm:w-80">
+                  <input
+                    autoFocus
+                    type="search"
+                    aria-label="Buscar divisa"
+                    placeholder="Buscar por código, nombre o país"
+                    value={currencyQuery}
+                    onChange={(event) => setCurrencyQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter') return;
+                      event.preventDefault();
+                      if (matchingCurrencies[0]) selectCurrency(matchingCurrencies[0]);
+                    }}
+                    className={fieldClass}
+                  />
+                  <div className="mt-1 max-h-44 overflow-y-auto">
+                    {matchingCurrencies.length === 0 && (
+                      <p className="p-2 text-sm text-muted-foreground">No se encontraron divisas.</p>
+                    )}
+                    {matchingCurrencies.map((currency) => (
+                      <button
+                        type="button"
+                        key={currency.id}
+                        aria-pressed={currency.id === divisaId}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => selectCurrency(currency)}
+                        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted aria-pressed:bg-primary/10"
+                      >
+                        <CurrencyLabel currency={currency} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -289,7 +392,7 @@ const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor={id + '-amount'} className={labelClass}>Monto en divisa</label>
-              <input id={id + '-amount'} type="number" step="any" required value={monto} onChange={(event) => setMonto(event.target.value)} placeholder="Ej. 5000" className={fieldClass} />
+              <input id={id + '-amount'} type="text" inputMode="decimal" required value={monto} onChange={changeAmount} placeholder="Ej. 5,000.50" className={fieldClass} />
             </div>
             <div>
               <label htmlFor={id + '-rate'} className={labelClass}>Tasa de cambio en COP</label>
