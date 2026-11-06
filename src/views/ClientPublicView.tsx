@@ -163,8 +163,18 @@ export const ClientPublicView: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center p-4 bg-background animate-fade-in">
         <div className="w-full max-w-md bg-card border border-border rounded-3xl p-6 md:p-8 shadow-2xl relative text-center">
           <div className="mb-6">
-            <img src="/logo.png" alt="Kaupaloki" className="theme-logo-dark h-8 mx-auto mb-4" />
-            <img src="/logo-blue.png" alt="Kaupaloki" className="theme-logo-light h-8 mx-auto mb-4" />
+            <img
+              src="/logo.png"
+              alt="Kaupaloki"
+              className="theme-logo-dark mx-auto mb-4"
+              style={{ height: '32px', maxHeight: '32px', width: 'auto', maxWidth: '160px', objectFit: 'contain' }}
+            />
+            <img
+              src="/logo-blue.png"
+              alt="Kaupaloki"
+              className="theme-logo-light mx-auto mb-4"
+              style={{ height: '32px', maxHeight: '32px', width: 'auto', maxWidth: '160px', objectFit: 'contain' }}
+            />
             <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
               <i className="ri-shield-keyhole-line" />
             </div>

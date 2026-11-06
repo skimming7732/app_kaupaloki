@@ -64,10 +64,20 @@ export const OnboardingView: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top Standalone Header */}
-      <header className="w-full flex items-center justify-between px-6 py-4 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-50">
+      <header className="w-full flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Kaupaloki" className="theme-logo-dark h-8 w-auto" />
-          <img src="/logo-blue.png" alt="Kaupaloki" className="theme-logo-light h-8 w-auto" />
+          <img
+            src="/logo.png"
+            alt="Kaupaloki"
+            className="theme-logo-dark"
+            style={{ height: '32px', maxHeight: '32px', width: 'auto', maxWidth: '160px', objectFit: 'contain' }}
+          />
+          <img
+            src="/logo-blue.png"
+            alt="Kaupaloki"
+            className="theme-logo-light"
+            style={{ height: '32px', maxHeight: '32px', width: 'auto', maxWidth: '160px', objectFit: 'contain' }}
+          />
         </div>
         <button
           type="button"

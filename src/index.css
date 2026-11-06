@@ -81,7 +81,28 @@ body {
   background: var(--text-secondary);
 }
 
-/* Theme logo toggle */
+/* Base resets to prevent horizontal overflow and image blowout on mobile */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+img, svg, video, canvas, audio, iframe, embed, object {
+  max-width: 100%;
+}
+
+/* Theme logo toggle and strict mobile dimensions */
+.theme-logo-dark,
+.theme-logo-light {
+  height: 32px !important;
+  max-height: 32px !important;
+  width: auto !important;
+  max-width: 160px !important;
+  object-fit: contain !important;
+  flex-shrink: 0 !important;
+}
+
 html.dark .theme-logo-dark {
   display: block !important;
 }

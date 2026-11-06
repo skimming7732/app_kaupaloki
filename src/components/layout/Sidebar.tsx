@@ -281,8 +281,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
           {/* Mobile Drawer Header */}
           <div className="h-16 px-5 border-b border-[var(--border-main)] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="Kaupaloki" className="theme-logo-dark h-7 w-auto" />
-              <img src="/logo-blue.png" alt="Kaupaloki" className="theme-logo-light h-7 w-auto" />
+              <img
+                src="/logo.png"
+                alt="Kaupaloki"
+                className="theme-logo-dark"
+                style={{ height: '28px', maxHeight: '28px', width: 'auto', maxWidth: '140px', objectFit: 'contain' }}
+              />
+              <img
+                src="/logo-blue.png"
+                alt="Kaupaloki"
+                className="theme-logo-light"
+                style={{ height: '28px', maxHeight: '28px', width: 'auto', maxWidth: '140px', objectFit: 'contain' }}
+              />
             </div>
             <button
               type="button"
