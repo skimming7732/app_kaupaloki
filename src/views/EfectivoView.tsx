@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
+import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
+import { AddGastoModal } from '../components/modals/AddGastoModal';
 
 interface EfectivoViewProps {
   onOpenAddMovimiento?: () => void;
@@ -12,6 +14,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   onOpenAddGasto,
 }) => {
   const { data } = useAirtable();
+  const [isAddMovOpen, setIsAddMovOpen] = useState(false);
+  const [isAddGastoOpen, setIsAddGastoOpen] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -99,14 +103,14 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         {/* Both Action Buttons on Header/Top Card */}
         <div className="p-3.5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-center gap-2">
           <button
-            onClick={onOpenAddMovimiento}
+            onClick={onOpenAddMovimiento ? onOpenAddMovimiento : () => setIsAddMovOpen(true)}
             className="w-full py-1.5 px-3 rounded-xl bg-emerald-600 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 hover:bg-emerald-700 flex items-center justify-center gap-1.5 transition-all"
           >
             <i className="ri-add-line text-sm" />
             <span>Registrar Movimiento</span>
           </button>
           <button
-            onClick={onOpenAddGasto}
+            onClick={onOpenAddGasto ? onOpenAddGasto : () => setIsAddGastoOpen(true)}
             className="w-full py-1.5 px-3 rounded-xl bg-rose-600 text-white font-semibold text-xs shadow-md shadow-rose-600/20 hover:bg-rose-700 flex items-center justify-center gap-1.5 transition-all"
           >
             <i className="ri-receipt-line text-sm" />
@@ -215,7 +219,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <th className="py-3 px-4">Tipo</th>
                 <th className="py-3 px-4">Cliente Asignado</th>
                 <th className="py-3 px-4 text-right">Monto (COP)</th>
-                <th className="py-3 px-4">Institución / Caja</th>
+                <th className="py-3 px-4">Institución</th>
                 <th className="py-3 px-4">Referencia / Detalle</th>
               </tr>
             </thead>
@@ -266,6 +270,16 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Fallback Modals */}
+      <AddEfectivoModal
+        isOpen={isAddMovOpen}
+        onClose={() => setIsAddMovOpen(false)}
+      />
+      <AddGastoModal
+        isOpen={isAddGastoOpen}
+        onClose={() => setIsAddGastoOpen(false)}
+      />
     </div>
   );
 };

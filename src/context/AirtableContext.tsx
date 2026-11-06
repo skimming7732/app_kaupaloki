@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { ACTIVOS_LIQUIDOS, ACTIVOS_DIGITALES } from '../data/airtableData';
 
 const EDGE_SYNC_URL = 'https://tjuqludeduydarwzhbor.supabase.co/functions/v1/airtable-sync';
 const PAT_STORAGE_KEY = 'kaupaloki_airtable_pat';
@@ -163,8 +164,8 @@ const defaultSnapshot: AirtableSnapshot = {
   divisas: [],
   comprasUsdt: [],
   ventasUsdt: [],
-  activosLiquidos: [],
-  activosDigitales: [],
+  activosLiquidos: ACTIVOS_LIQUIDOS,
+  activosDigitales: ACTIVOS_DIGITALES,
   efectivo: [],
   gastos: [
     {
@@ -500,17 +501,19 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       gastos,
       divisas,
       usuarios,
-      activosLiquidos: snapshot.activosLiquidos || [],
-      activosDigitales: snapshot.activosDigitales || [],
+      activosLiquidos: (snapshot.activosLiquidos && snapshot.activosLiquidos.length > 0) ? snapshot.activosLiquidos : ACTIVOS_LIQUIDOS,
+      activosDigitales: (snapshot.activosDigitales && snapshot.activosDigitales.length > 0) ? snapshot.activosDigitales : ACTIVOS_DIGITALES,
     };
   }, [snapshot]);
 
   const metrics: MetricsSummary = useMemo(() => {
     const res = snapshot.resumenLiquidacion;
     const totalGastosCOP = (data.gastos || []).reduce((acc, g) => acc + (g.divisa === 'COP' ? g.monto : g.monto * 4000), 0);
+    const totalLiqFallback = (data.activosLiquidos || []).reduce((acc: number, a: any) => acc + (a.saldoCop || 0), 0);
+    const totalDigFallback = (data.activosDigitales || []).reduce((acc: number, d: any) => acc + (d.saldoUsdt || 0), 0);
     return {
-      totalActivosLiquidos: res?.totalActivosLiquidosCop ?? 0,
-      totalActivosDigitales: res?.totalActivosDigitalesUsdt ?? 0,
+      totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
+      totalActivosDigitales: res?.totalActivosDigitalesUsdt ?? totalDigFallback,
       saldoPendienteClientes: res?.totalSaldoPendienteClientesCop ?? 0,
       gananciaEsperada: res?.gananciaEsperadaCop ?? 0,
       totalNegocioCOP: res?.totalNegocioCop ?? 0,

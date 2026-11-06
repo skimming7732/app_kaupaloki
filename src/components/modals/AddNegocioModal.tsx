@@ -27,7 +27,7 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clienteId || !divisaId || parsedMonto <= 0 || parsedTasa <= 0) {
-      setError('Por favor complete todos los campos');
+      setError('Por favor complete todos los campos obligatorios');
       return;
     }
 
@@ -59,51 +59,60 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-5 relative">
-        <div className="flex items-center justify-between pb-3 border-b border-border mb-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-base">
+      <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-4 relative">
+        {/* Compact Header */}
+        <div className="flex items-center justify-between pb-2.5 border-b border-border mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs">
               <i className="ri-exchange-dollar-line" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Nuevo Negocio</h3>
-              <p className="text-[11px] text-muted-foreground">Registro de operación cambiaria</p>
+              <h3 className="text-xs font-bold text-foreground">Nuevo Negocio</h3>
+              <p className="text-[10px] text-muted-foreground">Registro de operación cambiaria</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted">
-            <i className="ri-close-line text-base" />
+          <button
+            onClick={onClose}
+            className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+          >
+            <i className="ri-close-line text-sm" />
           </button>
         </div>
 
         {error && (
-          <div className="p-2 mb-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
-            <i className="ri-error-warning-line text-xs" />
-            <span>{error}</span>
+          <div className="p-1.5 mb-2.5 rounded-lg bg-destructive/10 text-destructive text-[11px] border border-destructive/20 flex items-center gap-1.5">
+            <i className="ri-error-warning-line text-xs shrink-0" />
+            <span className="truncate">{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Client Selector using Searchable Picker */}
+        <form onSubmit={handleSubmit} className="space-y-2.5">
+          {/* Client Selector */}
           <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Cliente *</label>
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
+              Cliente *
+            </label>
             <ClientSearchSelect
               value={clienteId}
               onChange={(id) => setClienteId(id)}
-              placeholder="Buscar por código o nombre..."
+              placeholder="Buscar cliente por código o nombre..."
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          {/* Divisa & Fecha Operación */}
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Divisa *</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
+                Divisa *
+              </label>
               <select
                 required
                 value={divisaId}
                 onChange={(e) => setDivisaId(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+                className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
               >
-                <option value="">Seleccionar divisa...</option>
+                <option value="">Seleccionar...</option>
                 {data.divisas.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.codigo} - {d.nombre}
@@ -113,19 +122,24 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Fecha Operación</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
+                Fecha Operación
+              </label>
               <input
                 type="date"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+                className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          {/* Monto & Tasa */}
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Monto en Divisa *</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
+                Monto en Divisa *
+              </label>
               <input
                 type="number"
                 step="any"
@@ -133,12 +147,14 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
                 value={monto}
                 onChange={(e) => setMonto(e.target.value)}
                 placeholder="Ej: 5000"
-                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+                className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Tasa de Cambio (COP) *</label>
+              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
+                Tasa Cambio (COP) *
+              </label>
               <input
                 type="number"
                 step="any"
@@ -146,30 +162,31 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
                 value={tasa}
                 onChange={(e) => setTasa(e.target.value)}
                 placeholder="Ej: 3950"
-                className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+                className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
               />
             </div>
           </div>
 
-          {/* Compact calculation display */}
-          <div className="px-3 py-2 rounded-xl bg-muted/50 border border-border flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground font-medium">Ingreso Estimado (COP):</span>
-            <span className="text-sm font-bold text-foreground">{formatCOP(ingresoCOP)}</span>
+          {/* Slim Calculation Pill */}
+          <div className="px-2.5 py-1.5 rounded-lg bg-muted/40 border border-border flex items-center justify-between text-xs">
+            <span className="text-[11px] text-muted-foreground font-medium">Ingreso Estimado:</span>
+            <span className="font-mono font-bold text-foreground">{formatCOP(ingresoCOP)}</span>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-3">
+          {/* Compact Actions */}
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted"
+              className="px-3 py-1 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={loading || !clienteId || !divisaId || parsedMonto <= 0}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/20 flex items-center gap-1.5"
+              disabled={loading || !clienteId || !divisaId || parsedMonto <= 0 || parsedTasa <= 0}
+              className="px-3.5 py-1 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-sm shadow-primary/20 flex items-center gap-1.5 transition-all"
             >
               {loading && <i className="ri-loader-4-line animate-spin" />}
               <span>Registrar Negocio</span>

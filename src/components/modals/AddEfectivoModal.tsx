@@ -13,9 +13,9 @@ export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onCl
   const [tipo, setTipo] = useState<'Ingreso' | 'Pago'>('Pago');
   // 2. Cliente (opcional)
   const [clienteId, setClienteId] = useState('');
-  // 3. Referencia
+  // 3. Referencia / PIN (opcional)
   const [referencia, setReferencia] = useState('');
-  // 4. Monto
+  // 4. Monto (COP)
   const [monto, setMonto] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,7 @@ export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onCl
     e.preventDefault();
     const parsedMonto = parseFloat(monto) || 0;
     if (parsedMonto <= 0) {
-      setError('Por favor ingrese un monto válido');
+      setError('Por favor ingrese un monto válido mayor a 0');
       return;
     }
 
@@ -51,7 +51,7 @@ export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onCl
       setClienteId('');
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Error al registrar efectivo');
+      setError(err?.message || 'Error al registrar el movimiento de efectivo');
     } finally {
       setLoading(false);
     }
@@ -59,33 +59,39 @@ export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onCl
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-5 relative">
-        <div className="flex items-center justify-between pb-3 border-b border-border mb-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-base">
+      <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-4 relative">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-2.5 border-b border-border mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xs">
               <i className="ri-money-dollar-circle-line" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Movimiento de Efectivo</h3>
-              <p className="text-[11px] text-muted-foreground">Efectivo Dosquebradas</p>
+              <h3 className="text-xs font-bold text-foreground">Registrar Movimiento</h3>
+              <p className="text-[10px] text-muted-foreground">Efectivo</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted">
-            <i className="ri-close-line text-base" />
+          <button
+            onClick={onClose}
+            className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+          >
+            <i className="ri-close-line text-sm" />
           </button>
         </div>
 
         {error && (
-          <div className="p-2 mb-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
-            <i className="ri-error-warning-line text-xs" />
-            <span>{error}</span>
+          <div className="p-1.5 mb-2.5 rounded-lg bg-destructive/10 text-destructive text-[11px] border border-destructive/20 flex items-center gap-1.5">
+            <i className="ri-error-warning-line text-xs shrink-0" />
+            <span className="truncate">{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {/* 1. Tipo */}
+        <form onSubmit={handleSubmit} className="space-y-2.5">
+          {/* 1. Tipo de Movimiento */}
           <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Tipo de Movimiento *</label>
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+              1. Tipo de Movimiento *
+            </label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -116,8 +122,10 @@ export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onCl
 
           {/* 2. Cliente (Opcional) */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[11px] font-semibold text-muted-foreground">Cliente</label>
+            <div className="flex items-center justify-between mb-0.5">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                2. Cliente
+              </label>
               <span className="text-[10px] text-muted-foreground italic">(Opcional)</span>
             </div>
             <ClientSearchSelect
@@ -127,21 +135,28 @@ export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onCl
             />
           </div>
 
-          {/* 3. Referencia */}
+          {/* 3. Referencia o PIN (Opcional) */}
           <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Referencia / Detalle</label>
+            <div className="flex items-center justify-between mb-0.5">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                3. Referencia / PIN
+              </label>
+              <span className="text-[10px] text-muted-foreground italic">(Opcional)</span>
+            </div>
             <input
               type="text"
               value={referencia}
               onChange={(e) => setReferencia(e.target.value)}
-              placeholder="Ej: Entrega de efectivo en oficina"
+              placeholder="Ej: PIN o entrega en oficina..."
               className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
 
-          {/* 4. Monto */}
+          {/* 4. Monto (COP) */}
           <div>
-            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Monto en Efectivo (COP) *</label>
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
+              4. Monto (COP) *
+            </label>
             <input
               type="number"
               step="any"
@@ -153,22 +168,23 @@ export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onCl
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-3">
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted"
+              className="px-3 py-1 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={loading || !monto}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+              disabled={loading || !monto || parseFloat(monto) <= 0}
+              className="px-3.5 py-1 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 shadow-sm shadow-emerald-600/20 flex items-center gap-1.5 transition-all"
             >
               {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>Registrar</span>
+              <span>Registrar Movimiento</span>
             </button>
           </div>
         </form>
