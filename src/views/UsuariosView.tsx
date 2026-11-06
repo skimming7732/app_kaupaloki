@@ -4,6 +4,7 @@ import type { AirtableUser } from '../context/AirtableContext';
 import { EditUserModal } from '../components/modals/EditUserModal';
 import { SendInviteModal } from '../components/modals/SendInviteModal';
 import { DeleteUserModal } from '../components/modals/DeleteUserModal';
+import { AddUserModal } from '../components/modals/AddUserModal';
 
 export const UsuariosView: React.FC = () => {
   const { data, updateRecord } = useAirtable();
@@ -13,6 +14,7 @@ export const UsuariosView: React.FC = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   // Modal states
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AirtableUser | null>(null);
   const [invitingUser, setInvitingUser] = useState<AirtableUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<AirtableUser | null>(null);
@@ -81,16 +83,26 @@ export const UsuariosView: React.FC = () => {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="relative w-full md:w-72">
-          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por usuario o correo..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-          />
+        {/* Search & Add Action */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative w-full md:w-64">
+            <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por usuario o correo..."
+              className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAddUserOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center gap-1.5 whitespace-nowrap transition-all"
+          >
+            <i className="ri-user-add-line text-sm" />
+            <span>Invitar Usuario</span>
+          </button>
         </div>
       </div>
 
@@ -231,6 +243,11 @@ export const UsuariosView: React.FC = () => {
       </div>
 
       {/* Modals */}
+      <AddUserModal
+        isOpen={isAddUserOpen}
+        onClose={() => setIsAddUserOpen(false)}
+      />
+
       <EditUserModal
         isOpen={Boolean(editingUser)}
         user={editingUser}

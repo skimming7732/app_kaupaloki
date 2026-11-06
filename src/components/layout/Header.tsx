@@ -82,6 +82,8 @@ export const Header: React.FC<HeaderProps> = ({
       case '/usuarios':
         title = 'Usuarios & Accesos';
         subtitle = 'Control de roles, operadores y permisos';
+        actionLabel = 'Invitar Nuevo Usuario';
+        onAction = () => onOpenModal && onOpenModal('add-user');
         break;
       case '/perfil':
         title = 'Mi Perfil';
@@ -93,8 +95,22 @@ export const Header: React.FC<HeaderProps> = ({
     }
   }
 
-  const name = profile?.nombre || user?.nombre || user?.email?.split('@')[0] || 'Operador';
+  const name =
+    profile?.full_name ||
+    profile?.nombre ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Usuario';
   const initial = name.charAt(0).toUpperCase();
+  const rolDisplay =
+    profile?.rol ||
+    (profile?.role === 'super_admin'
+      ? 'SUPER ADMIN'
+      : profile?.role === 'administrador'
+      ? 'ADMINISTRADOR'
+      : profile?.role === 'dispersor'
+      ? 'DISPERSOR'
+      : 'OPERADOR');
 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-30">
@@ -153,7 +169,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="text-left hidden sm:block">
             <span className="text-xs font-bold text-foreground block leading-tight">{name}</span>
             <span className="text-[10px] text-muted-foreground uppercase font-semibold">
-              {profile?.rol || 'Operador'}
+              {rolDisplay}
             </span>
           </div>
         </Link>

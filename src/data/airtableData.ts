@@ -1134,13 +1134,13 @@ export const ADMINS: Admin[] = [
   },
   {
     id: "recnkRCzxvh8vH9Eu",
-    codigo: "UAD002-FRANZ-COL",
+    codigo: "UOP008-FRANZ-COL",
     nombre: "FRANZ RUEDA",
     email: "franzruedab@gmail.com",
     pais: "COL",
-    rol: "ADMINISTRADOR",
+    rol: "OPERADOR",
     status: "ACTIVO",
-    authorized_currencies: ["USD", "USDT", "COP", "BRL", "PEN", "CLP", "ARS", "HNL", "VES"],
+    authorized_currencies: ["MXN"],
     numero: 2
   },
   {

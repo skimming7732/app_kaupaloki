@@ -5,9 +5,12 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
+  nombre?: string;
   role: 'super_admin' | 'administrador' | 'operador' | 'dispersor' | 'client';
+  rol?: string;
   pais: string;
   operator_code?: string;
+  codigo?: string;
   authorized_currencies: string[];
   two_factor_enabled?: boolean;
   two_factor_secret?: string;
@@ -34,7 +37,14 @@ const SUPER_ADMIN_EMAIL = 'desarrollor@jeroallsolutions.com';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('kaupaloki_user_profile');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [is2faVerified, setIs2faVerified] = useState<boolean>(() => {
     return sessionStorage.getItem('kaupaloki_2fa_verified') === 'true';
@@ -77,21 +87,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else if (finalRole === 'cliente' || finalRole === 'client') finalRole = 'client';
         else finalRole = 'operador';
 
-        setProfile({
+        const readableRole =
+          finalRole === 'super_admin'
+            ? 'SUPER ADMIN'
+            : finalRole === 'administrador'
+            ? 'ADMINISTRADOR'
+            : finalRole === 'dispersor'
+            ? 'DISPERSOR'
+            : finalRole === 'client'
+            ? 'CLIENTE'
+            : 'OPERADOR';
+
+        const normalizedProfile: UserProfile = {
           ...dbProfile,
+          full_name: dbProfile.full_name || cleanEmail.split('@')[0],
+          nombre: dbProfile.full_name || cleanEmail.split('@')[0],
           role: finalRole,
+          rol: readableRole,
+          codigo: dbProfile.operator_code || '',
           authorized_currencies: Array.isArray(dbProfile.authorized_currencies) ? dbProfile.authorized_currencies : [],
-        });
+        };
+
+        setProfile(normalizedProfile);
+        try {
+          localStorage.setItem('kaupaloki_user_profile', JSON.stringify(normalizedProfile));
+        } catch (_) {}
       } else {
-        setProfile({
+        const fallbackRole = isSuper ? 'super_admin' : 'operador';
+        const fallbackProfile: UserProfile = {
           id: authUser.id,
           email: cleanEmail,
           full_name: cleanEmail.split('@')[0],
-          role: isSuper ? 'super_admin' : 'operador',
+          nombre: cleanEmail.split('@')[0],
+          role: fallbackRole,
+          rol: isSuper ? 'SUPER ADMIN' : 'OPERADOR',
           pais: 'COL',
           authorized_currencies: ['USD', 'USDT', 'COP'],
           two_factor_enabled: false,
-        });
+        };
+        setProfile(fallbackProfile);
+        try {
+          localStorage.setItem('kaupaloki_user_profile', JSON.stringify(fallbackProfile));
+        } catch (_) {}
       }
     } catch (err) {
       console.warn('Error fetching profile:', err);
@@ -117,6 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     sessionStorage.removeItem('kaupaloki_2fa_verified');
+    localStorage.removeItem('kaupaloki_user_profile');
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);

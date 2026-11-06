@@ -14,22 +14,38 @@ export const Sidebar: React.FC<SidebarProps> = () => {
   const role = profile?.role || 'operador';
   const isAdmin = role === 'administrador' || role === 'super_admin';
   const isDispersor = role === 'dispersor';
+  const isOperador = role === 'operador';
 
-  const navItems = [
-    { to: '/inicio', label: 'Inicio', icon: '🏠', roles: ['all'] },
-    ...(isAdmin ? [{ to: '/dashboard', label: 'Panel de Control', icon: '📊', roles: ['admin'] }] : []),
-    { to: '/clientes', label: 'Clientes', icon: '👥', roles: ['all'] },
-    ...(!isDispersor ? [{ to: '/negocios', label: 'Negocios', icon: '💼', roles: ['admin', 'operador'] }] : []),
-    ...(isAdmin || isDispersor ? [{ to: '/dispersiones', label: 'Dispersiones', icon: '💸', roles: ['admin', 'dispersor'] }] : []),
-    ...(isAdmin ? [{ to: '/efectivo', label: 'Efectivo', icon: '💵', roles: ['admin'] }] : []),
-    ...(isAdmin ? [{ to: '/compras', label: 'Compras USDT', icon: '📥', roles: ['admin'] }] : []),
-    ...(isAdmin ? [{ to: '/ventas', label: 'Ventas USDT', icon: '📤', roles: ['admin'] }] : []),
-    ...(isAdmin ? [{ to: '/activos-liquidos', label: 'Activos Líquidos', icon: '🏦', roles: ['admin'] }] : []),
-    ...(isAdmin ? [{ to: '/activos-digitales', label: 'Activos Digitales', icon: '🪙', roles: ['admin'] }] : []),
-    ...(isAdmin ? [{ to: '/divisas', label: 'Divisas', icon: '🌐', roles: ['admin'] }] : []),
-    ...(isAdmin ? [{ to: '/gastos', label: 'Gastos', icon: '🧾', roles: ['admin'] }] : []),
-    ...(isAdmin ? [{ to: '/usuarios', label: 'Usuarios & Accesos', icon: '🛡️', roles: ['admin'] }] : []),
-  ];
+  let navItems: { to: string; label: string; icon: string }[] = [];
+
+  if (isDispersor) {
+    navItems = [
+      { to: '/inicio', label: 'Inicio', icon: '🏠' },
+      { to: '/dispersiones', label: 'Dispersiones', icon: '💸' },
+      { to: '/clientes', label: 'Clientes', icon: '👥' },
+    ];
+  } else if (isOperador) {
+    navItems = [
+      { to: '/inicio', label: 'Inicio', icon: '🏠' },
+      { to: '/clientes', label: 'Clientes', icon: '👥' },
+      { to: '/negocios', label: 'Negocios', icon: '💼' },
+    ];
+  } else {
+    // Admin / Super Admin (full suite)
+    navItems = [
+      { to: '/inicio', label: 'Inicio', icon: '🏠' },
+      { to: '/dashboard', label: 'Panel de Control', icon: '📊' },
+      { to: '/clientes', label: 'Clientes', icon: '👥' },
+      { to: '/negocios', label: 'Negocios', icon: '💼' },
+      { to: '/dispersiones', label: 'Dispersiones', icon: '💸' },
+      { to: '/efectivo', label: 'Efectivo', icon: '💵' },
+      { to: '/activos-liquidos', label: 'Activos Líquidos', icon: '🏦' },
+      { to: '/activos-digitales', label: 'Activos Digitales', icon: '🪙' },
+      { to: '/divisas', label: 'Divisas', icon: '🌐' },
+      { to: '/gastos', label: 'Gastos', icon: '🧾' },
+      { to: '/usuarios', label: 'Usuarios & Accesos', icon: '🛡️' },
+    ];
+  }
 
   return (
     <aside style={{

@@ -1,10 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
+import { useAuth } from '../context/AuthContext';
 import { formatCOP, formatCurrency, formatDate } from '../utils/formatters';
 import { EditNegocioModal } from '../components/modals/EditNegocioModal';
 
 export const NegociosView: React.FC = () => {
   const { data } = useAirtable();
+  const { profile } = useAuth();
+  const isOperador = profile?.role === 'operador';
+  const authorizedCurrencies = profile?.authorized_currencies || [];
+
+  // Available divisas for dropdown (filtered if Operador)
+  const availableDivisas = useMemo(() => {
+    if (isOperador && authorizedCurrencies.length > 0) {
+      return data.divisas.filter((d) => authorizedCurrencies.includes(d.codigo));
+    }
+    return data.divisas;
+  }, [data.divisas, isOperador, authorizedCurrencies]);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -18,6 +30,13 @@ export const NegociosView: React.FC = () => {
 
   const filteredNegocios = useMemo(() => {
     return data.negocios.filter((n) => {
+      // Currency restriction for Operador
+      if (isOperador && authorizedCurrencies.length > 0) {
+        if (!authorizedCurrencies.includes(n.divisaCodigo)) {
+          return false;
+        }
+      }
+
       const matchSearch =
         n.codigo.toLowerCase().includes(search.toLowerCase()) ||
         n.clienteNombre.toLowerCase().includes(search.toLowerCase());
@@ -37,7 +56,7 @@ export const NegociosView: React.FC = () => {
 
       return matchSearch && matchDivisa && matchCliente && matchFecha;
     });
-  }, [data.negocios, search, selectedDivisa, selectedCliente, fechaDesde, fechaHasta]);
+  }, [data.negocios, search, selectedDivisa, selectedCliente, fechaDesde, fechaHasta, isOperador, authorizedCurrencies]);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -64,7 +83,7 @@ export const NegociosView: React.FC = () => {
               className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
             >
               <option value="">Todas las divisas</option>
-              {data.divisas.map((d) => (
+              {availableDivisas.map((d) => (
                 <option key={d.id} value={d.codigo}>
                   {d.codigo}
                 </option>

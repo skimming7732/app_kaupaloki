@@ -29,13 +29,27 @@ import { AddClienteModal } from './components/modals/AddClienteModal';
 import { AddDispersionModal } from './components/modals/AddDispersionModal';
 import { AddEfectivoModal } from './components/modals/AddEfectivoModal';
 import { AddGastoModal } from './components/modals/AddGastoModal';
+import { AddUserModal } from './components/modals/AddUserModal';
+
+const ProtectedRoute: React.FC<{
+  children: React.ReactNode;
+  allowedRoles?: ('super_admin' | 'administrador' | 'operador' | 'dispersor')[];
+}> = ({ children, allowedRoles }) => {
+  const { profile } = useAuth();
+  const role = profile?.role || 'operador';
+
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to="/inicio" replace />;
+  }
+  return <>{children}</>;
+};
 
 const AppLayout: React.FC<{
   children: React.ReactNode;
   activeModal: string | null;
   setActiveModal: (m: string | null) => void;
 }> = ({ children, activeModal, setActiveModal }) => {
-  const { user, is2FAVerified, loading } = useAuth();
+  const { user, is2faVerified, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -56,7 +70,7 @@ const AppLayout: React.FC<{
     return <Navigate to="/login" replace />;
   }
 
-  if (!is2FAVerified && location.pathname !== '/2fa') {
+  if (!is2faVerified && location.pathname !== '/2fa') {
     return <Navigate to="/2fa" replace />;
   }
 
@@ -76,6 +90,7 @@ const AppLayout: React.FC<{
       <AddDispersionModal isOpen={activeModal === 'add-dispersion'} onClose={() => setActiveModal(null)} />
       <AddEfectivoModal isOpen={activeModal === 'add-efectivo'} onClose={() => setActiveModal(null)} />
       <AddGastoModal isOpen={activeModal === 'add-gasto'} onClose={() => setActiveModal(null)} />
+      <AddUserModal isOpen={activeModal === 'add-user'} onClose={() => setActiveModal(null)} />
     </div>
   );
 };
@@ -83,9 +98,12 @@ const AppLayout: React.FC<{
 export const App: React.FC = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
-  const renderWithLayout = (component: React.ReactNode) => (
+  const renderWithLayout = (
+    component: React.ReactNode,
+    allowedRoles?: ('super_admin' | 'administrador' | 'operador' | 'dispersor')[]
+  ) => (
     <AppLayout activeModal={activeModal} setActiveModal={setActiveModal}>
-      {component}
+      <ProtectedRoute allowedRoles={allowedRoles}>{component}</ProtectedRoute>
     </AppLayout>
   );
 
@@ -104,30 +122,56 @@ export const App: React.FC = () => {
             {/* Authenticated Dashboard App Layout routes */}
             <Route path="/" element={renderWithLayout(<InicioView />)} />
             <Route path="/inicio" element={renderWithLayout(<InicioView />)} />
-            <Route path="/dashboard" element={renderWithLayout(<DashboardView />)} />
-            <Route path="/negocios" element={renderWithLayout(<NegociosView />)} />
+            <Route
+              path="/dashboard"
+              element={renderWithLayout(<DashboardView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/negocios"
+              element={renderWithLayout(<NegociosView />, ['super_admin', 'administrador', 'operador'])}
+            />
             <Route path="/clientes" element={renderWithLayout(<ClientesView />)} />
-            <Route path="/dispersiones" element={renderWithLayout(<DispersionesView />)} />
+            <Route
+              path="/dispersiones"
+              element={renderWithLayout(<DispersionesView />, ['super_admin', 'administrador', 'dispersor'])}
+            />
             <Route
               path="/efectivo"
               element={renderWithLayout(
                 <EfectivoView
                   onOpenAddMovimiento={() => setActiveModal('add-efectivo')}
                   onOpenAddGasto={() => setActiveModal('add-gasto')}
-                />
+                />,
+                ['super_admin', 'administrador']
               )}
             />
             <Route
               path="/gastos"
               element={renderWithLayout(
-                <GastosView onOpenAddGasto={() => setActiveModal('add-gasto')} />
+                <GastosView onOpenAddGasto={() => setActiveModal('add-gasto')} />,
+                ['super_admin', 'administrador']
               )}
             />
-            <Route path="/activos" element={renderWithLayout(<ActivosLiquidosView />)} />
-            <Route path="/activos-liquidos" element={renderWithLayout(<ActivosLiquidosView />)} />
-            <Route path="/activos-digitales" element={renderWithLayout(<ActivosDigitalesView />)} />
-            <Route path="/divisas" element={renderWithLayout(<DivisasView />)} />
-            <Route path="/usuarios" element={renderWithLayout(<UsuariosView />)} />
+            <Route
+              path="/activos"
+              element={renderWithLayout(<ActivosLiquidosView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/activos-liquidos"
+              element={renderWithLayout(<ActivosLiquidosView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/activos-digitales"
+              element={renderWithLayout(<ActivosDigitalesView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/divisas"
+              element={renderWithLayout(<DivisasView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/usuarios"
+              element={renderWithLayout(<UsuariosView />, ['super_admin', 'administrador'])}
+            />
             <Route path="/perfil" element={renderWithLayout(<PerfilView />)} />
 
             {/* Fallback */}
