@@ -1,3 +1,4 @@
+import { receiptAccept, uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
@@ -45,7 +46,7 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
       const success = await createGasto({
         concepto, divisa, monto, origenFondos: accountLabel(account), origenFondosId: account.id,
         categoria: fields.get('categoria'), fecha: fields.get('fecha'),
-        comprobanteUrl: String(fields.get('comprobanteUrl')).trim(),
+        comprobanteUrl: await uploadReceipt(fields.get('comprobante'), 'gastos'),
       });
       if (!success) throw new Error();
       finishSound(true);
@@ -91,8 +92,8 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
             <input type="date" name="fecha" required defaultValue={new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
           </label>
           <label className={recordLabelClass}>
-            <span>Enlace del comprobante (opcional)</span>
-            <input type="url" name="comprobanteUrl" pattern="https?://.+" placeholder="https://…" className={recordFieldClass} />
+            <span>Subir comprobante (opcional)</span>
+            <input type="file" name="comprobante" accept={receiptAccept} className={recordFieldClass} />
           </label>
         </fieldset>
         <RecordActions busy={busy} label="Registrar gasto" onClose={onClose} />

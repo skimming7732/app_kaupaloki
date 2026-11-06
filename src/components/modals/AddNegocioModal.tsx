@@ -1,3 +1,4 @@
+import { formatAmountField, formatAmountInput } from '../../utils/amountInput';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
@@ -24,12 +25,6 @@ const normalizeSearch = (text: string) =>
 
 const currencyName = (currency: Divisa) =>
   currency.nombreDivisa || DIVISAS.find((item) => item.codigo === currency.codigo)?.nombreDivisa || currency.divisa;
-
-const formatAmountInput = (value: string) => {
-  const [integer, decimal] = value.replace(/,/g, '').split('.');
-  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return decimal === undefined ? grouped : `${grouped}.${decimal}`;
-};
 
 const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showName?: boolean }) => {
   const catalogCurrency = DIVISAS.find((item) => item.codigo === currency.codigo);
@@ -126,22 +121,6 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
     setDivisaCode(currency.codigo);
     setCurrencyOpen(false);
     currencyTrigger.current?.focus();
-  };
-
-  const changeAmount = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const entered = input.value;
-    if (!/^[\d,]*(?:\.\d*)?$/.test(entered)) return;
-
-    const formatted = formatAmountInput(entered);
-    const digitsBeforeCaret = entered.slice(0, input.selectionStart ?? entered.length).replace(/,/g, '').length;
-    let caret = 0;
-    for (let remaining = digitsBeforeCaret; remaining > 0 && caret < formatted.length; caret++) {
-      if (formatted[caret] !== ',') remaining--;
-    }
-    input.value = formatted;
-    input.setSelectionRange(caret, caret);
-    setMonto(formatted);
   };
 
   const backToBusiness = () => {
@@ -391,7 +370,7 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor={id + '-amount'} className={labelClass}>Monto en divisa</label>
-              <input id={id + '-amount'} type="text" inputMode="decimal" required value={monto} onChange={changeAmount} placeholder="Ej. 5,000.50" className={fieldClass} />
+              <input id={id + '-amount'} type="text" inputMode="decimal" required value={monto} onChange={(event) => { const amount = formatAmountField(event.currentTarget); if (amount !== undefined) setMonto(amount); }} placeholder="Ej. 5,000.50" className={fieldClass} />
             </div>
             <div>
               <label htmlFor={id + '-rate'} className={labelClass}>Tasa de cambio en COP</label>

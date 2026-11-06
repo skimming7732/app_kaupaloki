@@ -1,3 +1,4 @@
+import { formatAmountField } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useId, useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
@@ -54,7 +55,12 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
     event.preventDefault();
     if (busy) return;
     const fields = new FormData(event.currentTarget);
-    const montoCop = Number(fields.get('monto'));
+    const montoCop = Number(String(fields.get('monto')).replace(/,/g, ''));
+    const referencia = String(fields.get('referencia')).trim();
+    if (!referencia) {
+      setError('Ingresa una referencia o PIN.');
+      return;
+    }
     const account = data.activosLiquidos.find((item) => item.id === accountId);
     if (!account || (tipo === 'Pago' && !clienteId) || !Number.isFinite(montoCop) || montoCop <= 0) {
       setError('Selecciona una cuenta, completa el cliente si es un pago e ingresa un monto mayor que cero.');
@@ -67,7 +73,7 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
     try {
       const success = await createMovimientoEfectivo({
         tipo, montoCop, clienteId, origenFondosId: account.id, origenFondos: accountLabel(account),
-        fecha: fields.get('fecha'), referencia: String(fields.get('referencia')).trim(),
+        fecha: fields.get('fecha'), referencia,
       });
       if (!success) throw new Error();
       finishSound(true);
@@ -105,13 +111,25 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
       <form hidden={addingClient} onSubmit={submit} className="space-y-4">
         <fieldset disabled={busy || addingClient} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className={recordLabelClass}>
-              <span>Tipo de movimiento</span>
-              <select value={tipo} onChange={(event) => setTipo(event.target.value as 'Ingreso' | 'Pago')} className={recordFieldClass}>
-                <option value="Pago">Pago a cliente</option>
-                <option value="Ingreso">Ingreso a caja</option>
-              </select>
-            </label>
+            <fieldset className="space-y-1.5 sm:col-span-2">
+              <legend className="text-sm font-medium">Tipo de movimiento</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { value: 'Pago', label: 'Pago a cliente', detail: 'Salida', icon: 'ri-arrow-up-circle-line' },
+                  { value: 'Ingreso', label: 'Ingreso a caja', detail: 'Entrada', icon: 'ri-arrow-down-circle-line' },
+                ] as const).map((option) => (
+                  <label key={option.value} className="cursor-pointer">
+                    <input type="radio" name="tipo" value={option.value} checked={tipo === option.value}
+                      onChange={() => setTipo(option.value)} className="peer sr-only" />
+                    <span className="flex h-full flex-col gap-1 rounded-xl border border-input p-3 text-sm peer-checked:border-primary peer-checked:bg-primary/10 peer-focus-visible:ring-2 peer-focus-visible:ring-primary">
+                      <i className={option.icon + ' text-lg'} aria-hidden="true" />
+                      <strong>{option.label}</strong>
+                      <span className="text-xs text-muted-foreground">{option.detail}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <label className={recordLabelClass}>
               <span>Fecha</span>
               <input name="fecha" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
@@ -135,11 +153,11 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
           <AccountSelect label="Cuenta de caja" accounts={data.activosLiquidos} value={accountId} onChange={setAccountId} />
           <label className={recordLabelClass}>
             <span>Monto (COP)</span>
-            <input name="monto" type="number" step="any" min="0" required className={recordFieldClass} />
+            <input name="monto" type="text" inputMode="decimal" pattern="[0-9,]+([.][0-9]*)?|[.][0-9]+" required placeholder="1,250.00" onChange={(event) => { const input = event.currentTarget; if (formatAmountField(input) === undefined) input.value = input.value.replace(/[^0-9,.]/g, ''); }} className={recordFieldClass} />
           </label>
           <label className={recordLabelClass}>
-            <span>Referencia o PIN (opcional)</span>
-            <input name="referencia" className={recordFieldClass} />
+            <span>Referencia o PIN</span>
+            <input name="referencia" required className={recordFieldClass} />
           </label>
         </fieldset>
         <RecordActions busy={busy} label={tipo === 'Pago' ? 'Registrar pago' : 'Registrar ingreso'} onClose={onClose} />

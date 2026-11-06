@@ -1,3 +1,5 @@
+import { ReceiptPreview } from '../components/common/ReceiptPreview';
+import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
@@ -9,7 +11,8 @@ interface GastosViewProps {
 }
 
 export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
-  const { data } = useAirtable();
+  const { data, syncWithAirtable } = useAirtable();
+  const [attachingTo, setAttachingTo] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   // Filters
@@ -210,19 +213,11 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                     <td className="py-3 px-4 text-muted-foreground">{g.origenFondos}</td>
                     <td className="py-3 px-4">
                       {g.comprobanteUrl ? (
-                        <a
-                          href={g.comprobanteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 font-bold text-[11px] transition-colors shadow-sm"
-                          title={g.comprobanteNombre || "Ver comprobante adjunto"}
-                        >
-                          <i className="ri-attachment-2 text-xs" />
-                          <span>Ver</span>
-                          <i className="ri-external-link-line text-[10px]" />
-                        </a>
+                        <ReceiptPreview receipt={g.comprobanteUrl} compact />
                       ) : (
-                        <span className="text-[11px] text-muted-foreground/60 italic">Sin adjunto</span>
+                        <button type="button" onClick={() => setAttachingTo(g.id)} className="text-xs font-semibold text-primary hover:underline">
+                          Agregar comprobante
+                        </button>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-foreground">
@@ -237,6 +232,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         </div>
       </div>
       {/* Add Gasto Modal */}
+      {attachingTo && <AttachExpenseReceipt expenseId={attachingTo} onClose={() => setAttachingTo(null)} onSaved={syncWithAirtable} />}
       <AddGastoModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}

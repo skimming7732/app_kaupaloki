@@ -1,232 +1,86 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { useAirtable } from '../context/AirtableContext';
+import { useAuth } from '../context/AuthContext';
+import { ReceiptPreview } from '../components/common/ReceiptPreview';
+import { useAirtable, type NormalizedData } from '../context/AirtableContext';
 import { supabase } from '../lib/supabase';
 import { formatCOP, formatCurrency, formatDate } from '../utils/formatters';
 
-export const ClientPublicView: React.FC = () => {
+type PortalData = {
+  client: Pick<NormalizedData['clientes'][number], 'codigo' | 'nombre' | 'pais' | 'saldoPendienteCOP' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'estado'>;
+  negocios: NormalizedData['negocios'];
+  dispersiones: NormalizedData['dispersiones'];
+  efectivo: NormalizedData['efectivo'];
+};
+
+export const ClientPublicView = () => {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [params] = useSearchParams();
+  return <ClientPortal key={id || params.get('ref') || ''} token={id || params.get('ref') || ''} preview={params.get('from') === 'dashboard'} />;
+};
+
+const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) => {
   const navigate = useNavigate();
   const { data } = useAirtable();
-
+  const { user, profile, is2faVerified } = useAuth();
   const [activeTab, setActiveTab] = useState<'negocios' | 'pagos' | 'ingresos'>('negocios');
-
-  // Resolve client by URL param slug (e.g. "c0035-alonso-gomez" or "c0035" or record ID)
-  const clientSlug = (id || searchParams.get('ref') || '').toLowerCase().trim();
-
-  const client = useMemo(() => {
-    if (!clientSlug) return null;
-    return data.clientes.find((c) => {
-      const cId = (c.id || '').toLowerCase().trim();
-      const cCode = (c.codigo || '').toLowerCase().trim();
-      const cName = (c.nombre || '').toLowerCase().trim();
-      const cSlugForm = `${cCode}-${cName.replace(/[^a-z0-9]/g, '-')}`;
-      const cCleanCode = cCode.replace(/[^a-z0-9]/g, '');
-      const slugClean = clientSlug.replace(/[^a-z0-9]/g, '');
-
-      return (
-        cId === clientSlug ||
-        cCode === clientSlug ||
-        cSlugForm === clientSlug ||
-        cSlugForm.includes(clientSlug) ||
-        clientSlug.includes(cCode) ||
-        (cCleanCode && (slugClean.includes(cCleanCode) || cCleanCode.includes(slugClean)))
-      );
-    });
-  }, [data.clientes, clientSlug]);
-
-  // Comprehensive matcher for items belonging to client
-  const isMatchForClient = (item: any, specificLinkedIds?: string[]) => {
-    if (!client) return false;
-
-    // 1. Direct Airtable linked ID array (from client's DISPERSIONES, NEGOCIOS, EFECTIVO fields)
-    if (specificLinkedIds && specificLinkedIds.includes(item.id)) return true;
-    if (client.dispersionesIds?.includes(item.id)) return true;
-    if (client.negociosIds?.includes(item.id)) return true;
-    if (client.efectivoIds?.includes(item.id)) return true;
-    if (client.raw?.fields?.DISPERSIONES?.includes(item.id)) return true;
-    if (client.raw?.fields?.NEGOCIOS?.includes(item.id)) return true;
-    if (client.raw?.fields?.EFECTIVO?.includes(item.id)) return true;
-    if (client.raw?.DISPERSIONES?.includes(item.id)) return true;
-    if (client.raw?.NEGOCIOS?.includes(item.id)) return true;
-    if (client.raw?.EFECTIVO?.includes(item.id)) return true;
-
-    // 2. Direct client ID / recordId match
-    const recClientId =
-      item.clienteId ||
-      item.clienteRecordId ||
-      item.raw?.clienteRecordId ||
-      (Array.isArray(item.raw?.cliente) ? item.raw.cliente[0] : item.raw?.cliente) ||
-      (Array.isArray(item.raw?.CLIENTE) ? item.raw.CLIENTE[0] : item.raw?.CLIENTE);
-
-    if (recClientId && (recClientId === client.id || recClientId === client.raw?.id)) return true;
-
-    // 3. Normalized string matching on client code and name
-    const cCode = (client.codigo || '').toLowerCase().trim();
-    const cName = (client.nombre || '').toLowerCase().trim();
-    const cCleanCode = cCode.replace(/[^a-z0-9]/g, '');
-
-    const itemCode = (item.clienteCodigo || item.raw?.clienteCodigo || '').toLowerCase().trim();
-    const itemName = (item.clienteNombre || item.raw?.clienteNombre || '').toLowerCase().trim();
-    const itemRawClient = (typeof item.raw?.cliente === 'string' ? item.raw.cliente : (typeof item.raw?.CLIENTE === 'string' ? item.raw.CLIENTE : '')).toLowerCase().trim();
-
-    if (itemCode && (itemCode === cCode || itemCode === cName)) return true;
-    if (itemName && (itemName === cName || itemName === cCode)) return true;
-    if (itemRawClient && (itemRawClient === cName || itemRawClient === cCode)) return true;
-
-    // 4. Substring inclusion
-    if (cName.length > 3 && (itemName.includes(cName) || itemCode.includes(cName) || cName.includes(itemName))) return true;
-    if (cCleanCode.length > 3) {
-      const iCodeClean = itemCode.replace(/[^a-z0-9]/g, '');
-      const iNameClean = itemName.replace(/[^a-z0-9]/g, '');
-      if (iCodeClean.includes(cCleanCode) || cCleanCode.includes(iCodeClean)) return true;
-      if (iNameClean.includes(cCleanCode) || cCleanCode.includes(iNameClean)) return true;
-    }
-
-    return false;
-  };
-
-  // Filter client's records
-  const clientNegocios = useMemo(() => {
-    if (!client) return [];
-    return data.negocios.filter((n) => isMatchForClient(n, client.negociosIds));
-  }, [data.negocios, client]);
-
-  // Pagos = Dispersiones + Efectivo de tipo 'Pago'
-  const clientPagos = useMemo(() => {
-    if (!client) return [];
-    const dispersiones = data.dispersiones
-      .filter((d) => isMatchForClient(d, client.dispersionesIds))
-      .map((d) => ({
-        id: d.id,
-        codigo: d.codigo,
-        fecha: d.fecha,
-        tipo: 'Dispersión Bancaria',
-        origen: d.origenFondos || 'Bancolombia',
-        monto: d.monto,
-        referencia: d.referencia,
-        comprobanteUrl: d.comprobanteUrl || (d.raw?.comprobantes && d.raw.comprobantes[0]?.url)
-      }));
-
-    const efectivoPagos = data.efectivo
-      .filter((e) => isMatchForClient(e, client.efectivoIds) && (e.tipo === 'Pago' || String(e.raw?.tipo).toUpperCase() === 'EGRESO' || String(e.raw?.tipo).toUpperCase() === 'PAGO'))
-      .map((e) => ({
-        id: e.id,
-        codigo: e.codigo,
-        fecha: e.fecha,
-        tipo: 'Pago en Efectivo',
-        origen: e.origenFondos || 'Caja Efectivo',
-        monto: e.monto,
-        referencia: e.referencia,
-        comprobanteUrl: undefined
-      }));
-
-    return [...dispersiones, ...efectivoPagos].sort(
-      (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-    );
-  }, [data.dispersiones, data.efectivo, client]);
-
-  // Ingresos = Efectivo de tipo 'Ingreso' + Comisiones
-  const clientIngresos = useMemo(() => {
-    if (!client) return [];
-    return data.efectivo
-      .filter((e) => isMatchForClient(e, client.efectivoIds) && (e.tipo === 'Ingreso' || String(e.raw?.tipo).toUpperCase() === 'INGRESO'))
-      .map((e) => ({
-        id: e.id,
-        codigo: e.codigo,
-        fecha: e.fecha,
-        concepto: e.referencia || 'Ingreso en Efectivo',
-        origen: e.origenFondos || 'Caja',
-        monto: e.monto
-      }));
-  }, [data.efectivo, client]);
-
-  const totalPagosMonto = useMemo(() => {
-    return clientPagos.reduce((acc, p) => acc + p.monto, 0);
-  }, [clientPagos]);
-
-  const totalNegociosMonto = useMemo(() => {
-    return clientNegocios.reduce((acc, n) => acc + n.ingresoCOP, 0);
-  }, [clientNegocios]);
-
-  const totalIngresosMonto = useMemo(() => {
-    return clientIngresos.reduce((acc, i) => acc + i.monto, 0);
-  }, [clientIngresos]);
-
-  const isFromDashboard = searchParams.get('from') === 'dashboard';
-  const sessionKey = `kaupaloki_portal_${client?.id || clientSlug}`;
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
-    return isFromDashboard || sessionStorage.getItem(sessionKey) === 'true';
-  });
+  const [portal, setPortal] = useState<PortalData | null>(null);
   const [pin, setPin] = useState('');
-  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinError, setPinError] = useState('');
   const [verifyingPin, setVerifyingPin] = useState(false);
 
-  const handleVerifyPin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pin.trim()) return;
+  const isFromDashboard = preview && !!user && !!is2faVerified &&
+    ['administrador', 'super_admin', 'operador', 'dispersor'].includes(profile?.role || '');
+  const internalClient = isFromDashboard
+    ? data.clientes.find((client) => client.id === token || client.codigo.toLowerCase() === token.toLowerCase())
+    : undefined;
+  const matches = (item: { clienteId?: string; clienteCodigo?: string }) =>
+    !!internalClient && (item.clienteId ? item.clienteId === internalClient.id : item.clienteCodigo === internalClient.codigo);
+  const client = internalClient || portal?.client;
+  const clientNegocios = internalClient ? data.negocios.filter(matches) : portal?.negocios || [];
+  const dispersiones = internalClient ? data.dispersiones.filter(matches) : portal?.dispersiones || [];
+  const efectivo = internalClient ? data.efectivo.filter(matches) : portal?.efectivo || [];
+  const clientPagos = [
+    ...dispersiones.map((item) => ({
+      ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos,
+    })),
+    ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({
+      ...item, tipo: 'Pago en efectivo', origen: item.origenFondos, comprobanteUrl: undefined,
+    })),
+  ].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const clientIngresos = efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
+    ...item, concepto: item.referencia || 'Ingreso en efectivo', origen: item.origenFondos,
+  }));
+  const totalPagosMonto = clientPagos.reduce((sum, item) => sum + item.monto, 0);
+  const totalNegociosMonto = clientNegocios.reduce((sum, item) => sum + item.ingresoCOP, 0);
+  const totalIngresosMonto = clientIngresos.reduce((sum, item) => sum + item.monto, 0);
+
+  const handleVerifyPin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (verifyingPin || !/^\d{4}$/.test(pin)) return;
     setVerifyingPin(true);
-    setPinError(null);
-
+    setPinError('');
     try {
-      // 1. Check in Supabase client_shared_links table
-      const { data: linkData } = await supabase
-        .from('client_shared_links')
-        .select('*')
-        .or(`slug.eq.${clientSlug},client_id.ilike.%${client?.codigo}%`)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      const expectedPin = linkData?.pin;
-      const cleanDigits = (client?.codigo || '').replace(/\D/g, '');
-      const fallbackPin = cleanDigits.slice(-4) || '1234';
-
-      if ((expectedPin && pin.trim() === expectedPin) || pin.trim() === fallbackPin) {
-        sessionStorage.setItem(sessionKey, 'true');
-        setIsUnlocked(true);
-      } else {
-        setPinError('El PIN ingresado es incorrecto. Por favor comunícate con tu asesor.');
+      if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(token)) {
+        setPinError('Pide a tu asesor un enlace de acceso vigente.');
+        return;
       }
+      const { data: result, error } = await supabase.rpc('abrir_portal_cliente', { p_token: token, p_pin: pin });
+      if (error) throw error;
+      if (!result) {
+        setPinError('El PIN o el enlace no es válido, o el acceso está temporalmente bloqueado.');
+        return;
+      }
+      setPortal(result as PortalData);
+      setPin('');
     } catch {
-      // Fallback
-      const cleanDigits = (client?.codigo || '').replace(/\D/g, '');
-      const fallbackPin = cleanDigits.slice(-4) || '1234';
-      if (pin.trim() === fallbackPin) {
-        sessionStorage.setItem(sessionKey, 'true');
-        setIsUnlocked(true);
-      } else {
-        setPinError('El PIN ingresado es incorrecto.');
-      }
+      setPinError('No se pudo verificar el PIN. Inténtalo de nuevo.');
     } finally {
       setVerifyingPin(false);
     }
   };
 
   if (!client) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-        <div className="text-center max-w-sm">
-          <div className="w-12 h-12 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-3 text-xl">
-            <i className="ri-user-unfollow-line" />
-          </div>
-          <h2 className="text-lg font-bold text-foreground">Cliente No Encontrado</h2>
-          <p className="text-xs text-muted-foreground mt-1 mb-4">
-            El enlace de cliente no corresponde a un registro activo.
-          </p>
-          <button
-            onClick={() => navigate('/clientes')}
-            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold"
-          >
-            Volver a Clientes
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // STEP 1: PIN Challenge Screen for Clients
-  if (!isUnlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background animate-fade-in">
         <div className="w-full max-w-md bg-card border border-border rounded-3xl p-6 md:p-8 shadow-2xl relative text-center">
@@ -248,7 +102,7 @@ export const ClientPublicView: React.FC = () => {
             </div>
             <h2 className="text-xl font-bold text-foreground">Portal Contable Privado</h2>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Ingresa el PIN de seguridad de 4 dígitos para consultar los movimientos contables de <strong className="text-foreground">{client.nombre}</strong>.
+              Ingresa el PIN de seguridad de 4 dígitos para consultar tu estado de cuenta.
             </p>
           </div>
 
@@ -264,6 +118,7 @@ export const ClientPublicView: React.FC = () => {
               <input
                 type="password"
                 inputMode="numeric"
+                aria-label="PIN de cuatro dígitos"
                 maxLength={4}
                 autoFocus
                 value={pin}
@@ -499,7 +354,9 @@ export const ClientPublicView: React.FC = () => {
                         {formatCOP(p.monto)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        {p.comprobanteUrl ? (
+                        {p.comprobanteUrl?.startsWith('storage:') ? (
+                          <ReceiptPreview receipt={p.comprobanteUrl} compact />
+                        ) : p.comprobanteUrl ? (
                           <a
                             href={p.comprobanteUrl}
                             target="_blank"

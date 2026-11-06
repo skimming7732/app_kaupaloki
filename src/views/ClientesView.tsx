@@ -162,11 +162,9 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
         onClose={() => setIsAddOpen(false)}
       />
       {/* Share Client WhatsApp & Portal Modal */}
-      <ShareClientModal
-        isOpen={!!sharingClient}
-        onClose={() => setSharingClient(null)}
-        cliente={sharingClient}
-      />
+      {sharingClient && (
+        <ShareClientModal isOpen onClose={() => setSharingClient(null)} cliente={sharingClient} />
+      )}
     </div>
   );
 };

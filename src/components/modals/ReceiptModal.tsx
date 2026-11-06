@@ -1,4 +1,5 @@
 import React from 'react';
+import { ReceiptPreview } from '../common/ReceiptPreview';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -22,15 +23,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, imageUrl, ti
         <div className="w-full flex items-center justify-between pb-3 border-b border-border mb-3">
           <span className="text-sm font-semibold text-foreground">{title || 'Comprobante de Pago'}</span>
           <div className="flex items-center gap-2">
-            <a
-              href={imageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
-              title="Abrir en pestaña nueva"
-            >
-              <i className="ri-external-link-line" />
-            </a>
             <button
               onClick={onClose}
               className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
@@ -41,11 +33,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, imageUrl, ti
         </div>
 
         <div className="overflow-auto max-h-[75vh] flex items-center justify-center rounded-xl bg-black/20 p-2">
-          <img
-            src={imageUrl}
-            alt="Comprobante"
-            className="max-w-full max-h-[70vh] object-contain rounded-lg"
-          />
+          <ReceiptPreview receipt={imageUrl} />
         </div>
       </div>
     </div>

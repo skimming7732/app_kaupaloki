@@ -179,7 +179,8 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                           onClick={() => setSelectedReceipt({ url: d.comprobanteUrl!, title: `Comprobante ${d.codigo}` })}
                           className="w-7 h-7 rounded-lg overflow-hidden border border-border inline-flex items-center justify-center hover:opacity-80 transition-opacity"
                         >
-                          <img src={d.comprobanteUrl} alt="Comprobante" className="w-full h-full object-cover" />
+                          <i className="ri-attachment-2" aria-hidden="true" />
+                          <span className="sr-only">Ver comprobante</span>
                         </button>
                       ) : (
                         <span className="text-muted-foreground text-[11px]">—</span>

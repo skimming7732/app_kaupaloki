@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../../lib/supabase';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 
 interface ShareClientModalProps {
@@ -16,16 +17,34 @@ export const ShareClientModal: React.FC<ShareClientModalProps> = ({ isOpen, onCl
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [copyError, setCopyError] = useState('');
+  const [generated, setGenerated] = useState<{ clientId: string; token: string; pin: string } | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   if (!isOpen || !cliente) return null;
 
-  const clientCode = cliente.codigo || 'C-000';
-  const publicUrl = `${window.location.origin}/cliente/${clientCode.toLowerCase()}?from=dashboard`;
-
-  const defaultMessage = `Hola *${cliente.nombre}*, puedes consultar tu estado de cuenta y movimientos cambiarios en tu portal privado Kaupaloki aquí:
+  const link = generated?.clientId === cliente.id ? generated : null;
+  const publicUrl = link ? `${window.location.origin}/cliente/${link.token}` : '';
+  const defaultMessage = `Hola *${cliente.nombre}*, consulta tu estado de cuenta en Kaupaloki:
 ${publicUrl}
 
-Tu código de acceso es: *${clientCode}*`;
+Tu PIN de 4 dígitos es *${link?.pin || ''}*. El enlace vence en 30 días.`;
+
+  const generateLink = async () => {
+    setGenerating(true);
+    setCopyError('');
+    const finishSound = prepareSuccessSound();
+    try {
+      const { data, error } = await supabase.rpc('crear_enlace_cliente', { p_client_id: cliente.id });
+      if (error || !data?.token || !data?.pin) throw error;
+      setGenerated({ clientId: cliente.id, token: data.token, pin: data.pin });
+      finishSound(true);
+    } catch {
+      setCopyError('No se pudo generar el enlace seguro.');
+    } finally {
+      finishSound(false);
+      setGenerating(false);
+    }
+  };
 
   const copy = async (text: string, setCopied: (value: boolean) => void) => {
     setCopyError('');
@@ -71,85 +90,91 @@ Tu código de acceso es: *${clientCode}*`;
 
         <div className="space-y-4">
           {copyError && <p role="alert" className="text-sm text-destructive">{copyError}</p>}
-          {/* Client Code Highlight */}
-          <div className="p-3 rounded-2xl bg-muted/40 border border-border flex items-center justify-between">
+          {!link ? (
+            <button type="button" disabled={generating} onClick={generateLink} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+              {generating ? 'Generando…' : 'Generar enlace y PIN'}
+            </button>
+          ) : <>
+            {/* Client Code Highlight */}
+            <div className="p-3 rounded-2xl bg-muted/40 border border-border flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  Código de Acceso (PIN)
+                </span>
+                <span className="text-base font-black font-mono text-foreground mt-0.5 block">
+                  {link.pin}
+                </span>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                {cliente.pais || 'COL'}
+              </span>
+            </div>
+
+            {/* Enlace Público */}
             <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                Código de Acceso (PIN)
-              </span>
-              <span className="text-base font-black font-mono text-foreground mt-0.5 block">
-                {clientCode}
-              </span>
-            </div>
-            <span className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
-              {cliente.pais || 'COL'}
-            </span>
-          </div>
-
-          {/* Enlace Público */}
-          <div>
-            <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-              Enlace de Consulta
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                readOnly
-                value={publicUrl}
-                className="w-full px-3 py-2 rounded-xl border border-input bg-background font-mono text-xs text-muted-foreground outline-none select-all"
-              />
-              <button
-                type="button"
-            onClick={() => void copy(publicUrl, setCopiedLink)}
-                className="px-3 py-2 rounded-xl border border-border hover:bg-muted text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
-              >
-                <i className={copiedLink ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
-                <span>{copiedLink ? 'Copiado' : 'Copiar'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Mensaje Predeterminado para WhatsApp */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Mensaje Predeterminado (WhatsApp)
+              <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                Enlace de Consulta
               </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={publicUrl}
+                  className="w-full px-3 py-2 rounded-xl border border-input bg-background font-mono text-xs text-muted-foreground outline-none select-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => void copy(publicUrl, setCopiedLink)}
+                  className="px-3 py-2 rounded-xl border border-border hover:bg-muted text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
+                >
+                  <i className={copiedLink ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
+                  <span>{copiedLink ? 'Copiado' : 'Copiar'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Mensaje Predeterminado para WhatsApp */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Mensaje Predeterminado (WhatsApp)
+                </label>
+                <button
+                  type="button"
+              onClick={() => void copy(defaultMessage, setCopiedMessage)}
+                  className="text-[11px] text-primary hover:underline font-semibold flex items-center gap-1"
+                >
+                  <i className={copiedMessage ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
+                  <span>{copiedMessage ? 'Copiado' : 'Copiar texto'}</span>
+                </button>
+              </div>
+              <textarea
+                readOnly
+                rows={4}
+                value={defaultMessage}
+                className="w-full p-3 rounded-xl border border-input bg-background text-xs text-foreground leading-relaxed outline-none select-all resize-none"
+              />
+            </div>
+
+            {/* WhatsApp Direct Action Button */}
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
-            onClick={() => void copy(defaultMessage, setCopiedMessage)}
-                className="text-[11px] text-primary hover:underline font-semibold flex items-center gap-1"
+                onClick={handleOpenWhatsApp}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all"
               >
-                <i className={copiedMessage ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
-                <span>{copiedMessage ? 'Copiado' : 'Copiar texto'}</span>
+                <i className="ri-whatsapp-line text-base" />
+                <span>Enviar por WhatsApp</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="py-2.5 px-4 rounded-xl border border-border hover:bg-muted text-muted-foreground text-xs font-semibold transition-colors"
+              >
+                Cerrar
               </button>
             </div>
-            <textarea
-              readOnly
-              rows={4}
-              value={defaultMessage}
-              className="w-full p-3 rounded-xl border border-input bg-background text-xs text-foreground leading-relaxed outline-none select-all resize-none"
-            />
-          </div>
-
-          {/* WhatsApp Direct Action Button */}
-          <div className="pt-2 flex flex-col sm:flex-row gap-2">
-            <button
-              type="button"
-              onClick={handleOpenWhatsApp}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all"
-            >
-              <i className="ri-whatsapp-line text-base" />
-              <span>Enviar por WhatsApp</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="py-2.5 px-4 rounded-xl border border-border hover:bg-muted text-muted-foreground text-xs font-semibold transition-colors"
-            >
-              Cerrar
-            </button>
-          </div>
+          </>}
         </div>
       </div>
     </div>

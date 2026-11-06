@@ -1,3 +1,4 @@
+import { receiptAccept, uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useEffect, useId, useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
@@ -58,7 +59,7 @@ const DispersionForm = ({ onClose }: Pick<AddDispersionModalProps, 'onClose'>) =
         origenFondos: accountLabel(account),
         fecha: fields.get('fecha'),
         referencia: String(fields.get('referencia')).trim(),
-        comprobanteUrl: String(fields.get('comprobanteUrl')).trim(),
+        comprobanteUrl: await uploadReceipt(fields.get('comprobante'), 'dispersiones'),
       });
       if (!success) throw new Error();
       finishSound(true);
@@ -95,8 +96,8 @@ const DispersionForm = ({ onClose }: Pick<AddDispersionModalProps, 'onClose'>) =
             <input name="referencia" className={recordFieldClass} />
           </label>
           <label className={recordLabelClass}>
-            <span>Enlace del comprobante (opcional)</span>
-            <input type="url" name="comprobanteUrl" pattern="https?://.+" placeholder="https://…" className={recordFieldClass} />
+            <span>Subir comprobante (opcional)</span>
+            <input type="file" name="comprobante" accept={receiptAccept} className={recordFieldClass} />
           </label>
         </fieldset>
         <RecordActions busy={busy} label="Registrar dispersión" onClose={onClose} />

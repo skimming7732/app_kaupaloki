@@ -1,5 +1,6 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
+import { accountOptionLabel } from './AccountSelect';
 import { useAirtable, type CatalogTable } from '../../context/AirtableContext';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 
@@ -15,8 +16,8 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const liquidAccounts = data.activosLiquidos.map((a) => ({ value: a.id, label: [a.activo || a.institucion, a.cuenta].filter(Boolean).join(' · ') }));
-  const wallets = data.activosDigitales.map((w) => ({ value: w.id, label: [w.activo || w.wallet, w.red].filter(Boolean).join(' · ') }));
+  const liquidAccounts = data.activosLiquidos.map((a) => ({ value: a.id, label: accountOptionLabel(a) }));
+  const wallets = data.activosDigitales.map((w) => ({ value: w.id, label: accountOptionLabel(w) }));
   const currencies = data.divisas.map((d) => ({ value: d.codigo, label: d.codigo + ' · ' + d.nombre }));
 
   const forms: Record<CatalogTable, Form> = {

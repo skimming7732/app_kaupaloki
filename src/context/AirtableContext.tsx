@@ -1078,6 +1078,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
       const montoNum = Number(payload.montoCop ?? payload.monto ?? payload['Monto'] ?? 0);
       const tipoStr = String(payload.tipo || payload['Tipo'] || 'PAGO').toUpperCase();
+      const referencia = String(payload.referencia ?? payload['Referencia'] ?? '').trim();
+      if (!referencia) throw new Error('Ingresa una referencia o PIN.');
 
       const insertData: any = {
         fecha: payload.fecha || payload['Fecha'] || new Date().toISOString().split('T')[0],
@@ -1088,7 +1090,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         monto: montoNum,
         origen_fondos: payload.origenFondos || 'EFECTIVO-CAJA',
         origen_fondos_id: payload.origenFondosId || null,
-        referencia: payload.referencia || payload['Referencia'] || null,
+        referencia,
       };
       if (payload.codigo) insertData.codigo = payload.codigo;
 
@@ -1311,6 +1313,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
+    if (!userId) return;
     fetchFromSupabase();
 
     // Supabase Realtime Subscription to public schema tables
