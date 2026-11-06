@@ -81,8 +81,19 @@ export const LoginView: React.FC = () => {
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-card border border-border rounded-3xl p-6 md:p-8 shadow-xl">
           <div className="text-center mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-3 text-xl font-black shadow-lg shadow-primary/25">
-              K
+            <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center">
+              <img
+                src="/iso-type-white.png"
+                alt="Kaupaloki"
+                className="theme-logo-dark"
+                style={{ height: '48px', width: '48px', objectFit: 'contain' }}
+              />
+              <img
+                src="/iso-type-blue.png"
+                alt="Kaupaloki"
+                className="theme-logo-light"
+                style={{ height: '48px', width: '48px', objectFit: 'contain' }}
+              />
             </div>
             <h2 className="text-xl font-bold text-foreground">Iniciar Sesión</h2>
             <p className="text-xs text-muted-foreground mt-1">Plataforma Cambiaria Kaupaloki</p>

@@ -100,18 +100,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
                 style={{
                   width: '40px',
                   height: '40px',
-                  borderRadius: '12px',
-                  background: 'var(--brand-primary)',
-                  color: '#FFFFFF',
-                  fontWeight: 900,
-                  fontSize: '18px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(67, 24, 255, 0.35)',
                 }}
               >
-                K
+                <img
+                  src="/iso-type-white.png"
+                  alt="Kaupaloki"
+                  className="theme-logo-dark"
+                  style={{ height: '36px', width: '36px', objectFit: 'contain' }}
+                />
+                <img
+                  src="/iso-type-blue.png"
+                  alt="Kaupaloki"
+                  className="theme-logo-light"
+                  style={{ height: '36px', width: '36px', objectFit: 'contain' }}
+                />
               </div>
             )}
 
@@ -178,6 +183,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
                     minWidth: '20px',
                     textAlign: 'center',
                     flexShrink: 0,
+                    fontWeight: 'normal',
+                    fontStyle: 'normal',
                   }}
                 />
                 {isExpanded && (
