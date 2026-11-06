@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
-import { formatCOP } from '../../utils/formatters';
+import { useAuth } from '../../context/AuthContext';
+import { DIVISAS, type Divisa } from '../../data/airtableData';
+import { fallbackBanderaUrl, formatCOP } from '../../utils/formatters';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 
 interface AddNegocioModalProps {
@@ -8,291 +10,308 @@ interface AddNegocioModalProps {
   onClose: () => void;
 }
 
-export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClose }) => {
-  const { data, createRecord, createCliente } = useAirtable();
+const fieldClass = 'w-full min-h-11 rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
+const labelClass = 'mb-1.5 block text-sm font-medium text-foreground';
+const secondaryClass = 'min-h-11 rounded-xl px-4 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50';
+const primaryClass = 'min-h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50';
+
+const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showName?: boolean }) => {
+  const catalogCurrency = DIVISAS.find((item) => item.codigo === currency.codigo);
+  const flag = currency.fallbackBanderaUrl || catalogCurrency?.fallbackBanderaUrl ||
+    fallbackBanderaUrl[currency.codigo] || currency.banderaUrl;
+  const name = currency.nombreDivisa || catalogCurrency?.nombreDivisa || currency.divisa;
+
+  return (
+    <>
+      <span className="relative flex h-5 w-7 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-muted-foreground">
+        <i className="ri-money-dollar-circle-line" aria-hidden="true" />
+        {flag && (
+          <img
+            key={flag}
+            src={flag}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(event) => { event.currentTarget.hidden = true; }}
+          />
+        )}
+      </span>
+      <span className="font-semibold">{currency.codigo}</span>
+      {showName && name && name !== currency.codigo && (
+        <span className="text-muted-foreground">{name}</span>
+      )}
+    </>
+  );
+};
+
+export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClose }) =>
+  isOpen ? <NegocioDialog onClose={onClose} /> : null;
+
+const NegocioDialog = ({ onClose }: Pick<AddNegocioModalProps, 'onClose'>) => {
+  const { data, createNegocio, createCliente } = useAirtable();
+  const { profile } = useAuth();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const currencyTrigger = useRef<HTMLButtonElement>(null);
+  const clientField = useRef<HTMLDivElement>(null);
+  const restoreClientFocus = useRef(false);
+  const id = useId();
+
   const [clienteId, setClienteId] = useState('');
   const [divisaId, setDivisaId] = useState('');
   const [monto, setMonto] = useState('');
   const [tasa, setTasa] = useState('');
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Quick inline client creation
+  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPais, setNewClientPais] = useState('COLOMBIA');
-  const [clientLoading, setClientLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const parsedMonto = parseFloat(monto) || 0;
-  const parsedTasa = parseFloat(tasa) || 0;
-  const ingresoCOP = useMemo(() => parsedMonto * parsedTasa, [parsedMonto, parsedTasa]);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isCreatingClient && restoreClientFocus.current) {
+      restoreClientFocus.current = false;
+      clientField.current?.querySelector('input')?.focus();
+    }
+  }, [isCreatingClient]);
 
-  const handleQuickCreateClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newClientName.trim()) return;
-    setClientLoading(true);
-    setError(null);
+  const authorizedCurrencies = profile?.authorized_currencies;
+  const currencies = profile?.role === 'operador' && authorizedCurrencies?.length
+    ? data.divisas.filter((currency) => authorizedCurrencies.includes(currency.codigo))
+    : data.divisas;
+  const selectedCurrency = currencies.find((currency) => currency.id === divisaId);
+  const parsedMonto = Number(monto);
+  const parsedTasa = Number(tasa);
+  const ingresoCOP = parsedMonto * parsedTasa;
+  const canSubmit = Boolean(clienteId && selectedCurrency && fecha &&
+    parsedMonto > 0 && parsedTasa > 0 && Number.isFinite(ingresoCOP));
+
+  const backToBusiness = () => {
+    restoreClientFocus.current = true;
+    setIsCreatingClient(false);
+    setError('');
+  };
+
+  const handleCreateClient = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (saving || !newClientName.trim()) return;
+    setSaving(true);
+    setError('');
+
     try {
-      const res = await createCliente(newClientName.trim(), newClientPais.trim());
-      const createdId = res?.created?.id || res?.id;
-      if (createdId) {
-        setClienteId(createdId);
-      }
-      setNewClientName('');
-      setIsCreatingClient(false);
-    } catch (err: any) {
-      setError(err?.message || 'Error al crear cliente');
+      const result = await createCliente(newClientName.trim(), newClientPais.trim());
+      if (!result?.success || !result.id) throw new Error('No se pudo crear el cliente. Inténtalo de nuevo.');
+      setClienteId(result.id);
+      backToBusiness();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo crear el cliente.');
     } finally {
-      setClientLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clienteId || !divisaId || parsedMonto <= 0 || parsedTasa <= 0) {
-      setError('Por favor complete todos los campos obligatorios');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (saving || !canSubmit || !selectedCurrency) return;
+    setSaving(true);
+    setError('');
 
     try {
-      const code = 'NEG-' + Math.floor(1000 + Math.random() * 9000);
-      await createRecord('Negocios', {
-        'Código': code,
-        'Fecha': fecha,
-        'Cliente': [clienteId],
-        'Divisa': [divisaId],
-        'Monto Divisa': parsedMonto,
-        'Tasa Cambio': parsedTasa,
-        'Ingreso COP': ingresoCOP,
-        'Estado': 'Completado',
+      const success = await createNegocio({
+        codigo: 'NEG-' + Math.floor(1000 + Math.random() * 9000),
+        fecha,
+        clienteId,
+        divisaCodigo: selectedCurrency.codigo,
+        montoDivisa: parsedMonto,
+        tasaCambio: parsedTasa,
+        ingresoCOP,
       });
-      setMonto('');
-      setTasa('');
-      setClienteId('');
+      if (!success) throw new Error('No se pudo registrar el negocio. Inténtalo de nuevo.');
       onClose();
-    } catch (err: any) {
-      setError(err?.message || 'Error al registrar el negocio');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo registrar el negocio.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-lg md:max-w-xl rounded-3xl border border-border shadow-2xl p-6 relative">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
-              <i className="ri-exchange-dollar-line" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Nuevo Negocio</h3>
-              <p className="text-xs text-muted-foreground">Registro de operación cambiaria con cliente</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted flex items-center justify-center transition-colors"
-          >
-            <i className="ri-close-line text-base" />
-          </button>
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={id + '-title'}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (saving) return;
+        if (isCreatingClient) backToBusiness();
+        else onClose();
+      }}
+      className="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+    >
+      <header className="flex items-start gap-3 border-b border-border px-4 py-4 sm:px-6">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl text-primary">
+          <i className={isCreatingClient ? 'ri-user-add-line' : 'ri-exchange-dollar-line'} aria-hidden="true" />
         </div>
+        <div className="flex-1">
+          <h2 id={id + '-title'} className="text-lg font-bold">
+            {isCreatingClient ? 'Agregar cliente' : 'Registrar negocio'}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {isCreatingClient ? 'El cliente quedará seleccionado para esta operación.' : 'Registra una operación de cambio y consulta el ingreso en COP.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={isCreatingClient ? backToBusiness : onClose}
+          disabled={saving}
+          aria-label={isCreatingClient ? 'Volver al negocio' : 'Cerrar'}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <i className="ri-close-line" aria-hidden="true" />
+        </button>
+      </header>
 
-        {error && (
-          <div className="p-2.5 mb-3 rounded-xl bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
-            <i className="ri-error-warning-line text-sm shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+      {error && (
+        <p role="alert" className="mx-4 mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive sm:mx-6">
+          {error}
+        </p>
+      )}
 
-        {/* Quick Inline Client Creator Sub-Form */}
-        {isCreatingClient && (
-          <div className="mb-4 p-3.5 rounded-2xl bg-muted/50 border border-primary/20 space-y-3 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <i className="ri-user-add-line text-primary" />
-                Registrar Cliente Rápido
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsCreatingClient(false)}
-                className="text-[11px] text-muted-foreground hover:text-foreground"
-              >
-                Cerrar
-              </button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">Nombre Completo *</label>
-                <input
-                  type="text"
-                  required
-                  value={newClientName}
-                  onChange={(e) => setNewClientName(e.target.value)}
-                  placeholder="Ej: MARÍA FERNANDA PÉREZ"
-                  className="w-full px-3 py-1.5 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1">País</label>
-                <input
-                  type="text"
-                  value={newClientPais}
-                  onChange={(e) => setNewClientPais(e.target.value)}
-                  placeholder="COLOMBIA"
-                  className="w-full px-3 py-1.5 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsCreatingClient(false)}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleQuickCreateClient}
-                disabled={clientLoading || !newClientName.trim()}
-                className="px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-sm hover:opacity-95 disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {clientLoading && <i className="ri-loader-4-line animate-spin" />}
-                <span>Guardar y Seleccionar</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          {/* Client Selector Row with + Button */}
+      {isCreatingClient ? (
+        <form onSubmit={handleCreateClient} className="space-y-4 p-4 sm:p-6">
           <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-              Cliente *
-            </label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <ClientSearchSelect
-                  value={clienteId}
-                  onChange={(id) => setClienteId(id)}
-                  placeholder="Buscar cliente por código o nombre..."
-                  required
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCreatingClient(!isCreatingClient)}
-                title="Crear nuevo cliente"
-                className="h-[34px] px-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 flex items-center gap-1.5 text-xs font-bold transition-all shrink-0"
-              >
-                <i className={isCreatingClient ? "ri-close-line text-sm" : "ri-user-add-line text-sm"} />
-                <span className="hidden sm:inline">{isCreatingClient ? 'Ocultar' : '+ Cliente'}</span>
-              </button>
-            </div>
+            <label htmlFor={id + '-name'} className={labelClass}>Nombre completo o empresa</label>
+            <input
+              id={id + '-name'}
+              autoFocus
+              required
+              value={newClientName}
+              onChange={(event) => setNewClientName(event.target.value)}
+              className={fieldClass}
+            />
           </div>
-
-          {/* Divisa & Fecha Operación */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
-                Divisa *
-              </label>
-              <select
-                required
-                value={divisaId}
-                onChange={(e) => setDivisaId(e.target.value)}
-                className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-              >
-                <option value="">Seleccionar...</option>
-                {data.divisas.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.codigo} - {d.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
-                Fecha Operación
-              </label>
-              <input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-              />
-            </div>
+          <div>
+            <label htmlFor={id + '-country'} className={labelClass}>País</label>
+            <input
+              id={id + '-country'}
+              value={newClientPais}
+              onChange={(event) => setNewClientPais(event.target.value)}
+              className={fieldClass}
+            />
           </div>
-
-          {/* Monto & Tasa */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
-                Monto en Divisa *
-              </label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={monto}
-                onChange={(e) => setMonto(e.target.value)}
-                placeholder="Ej: 5000"
-                className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">
-                Tasa Cambio (COP) *
-              </label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={tasa}
-                onChange={(e) => setTasa(e.target.value)}
-                placeholder="Ej: 3950"
-                className="w-full px-2 py-1 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Slim Calculation Pill */}
-          <div className="px-2.5 py-1.5 rounded-lg bg-muted/40 border border-border flex items-center justify-between text-xs">
-            <span className="text-[11px] text-muted-foreground font-medium">Ingreso Estimado:</span>
-            <span className="font-mono font-bold text-foreground">{formatCOP(ingresoCOP)}</span>
-          </div>
-
-          {/* Compact Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-3 py-1 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !clienteId || !divisaId || parsedMonto <= 0 || parsedTasa <= 0}
-              className="px-3.5 py-1 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-sm shadow-primary/20 flex items-center gap-1.5 transition-all"
-            >
-              {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>Registrar Negocio</span>
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+            <button type="button" onClick={backToBusiness} disabled={saving} className={secondaryClass}>Volver</button>
+            <button type="submit" disabled={saving || !newClientName.trim()} className={primaryClass}>
+              {saving ? 'Guardando…' : 'Guardar y seleccionar'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6">
+          <div ref={clientField}>
+            <label htmlFor={id + '-client'} className={labelClass}>Cliente</label>
+            <ClientSearchSelect
+              id={id + '-client'}
+              value={clienteId}
+              onChange={setClienteId}
+              onAddNewClient={(query) => {
+                setNewClientName(clienteId ? '' : (query || '').trim());
+                setNewClientPais('COLOMBIA');
+                setIsCreatingClient(true);
+                setError('');
+              }}
+              inputClassName="min-h-11"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div
+              className="relative"
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setCurrencyOpen(false);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && currencyOpen) {
+                  event.preventDefault();
+                  setCurrencyOpen(false);
+                  currencyTrigger.current?.focus();
+                }
+              }}
+            >
+              <span id={id + '-currency-label'} className={labelClass}>Divisa</span>
+              <button
+                id={id + '-currency'}
+                ref={currencyTrigger}
+                type="button"
+                aria-labelledby={id + '-currency-label ' + id + '-currency'}
+                aria-expanded={currencyOpen}
+                onClick={() => setCurrencyOpen(!currencyOpen)}
+                className={fieldClass + ' flex items-center justify-between gap-2 text-left'}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  {selectedCurrency ? <CurrencyLabel currency={selectedCurrency} showName={false} /> : 'Seleccionar divisa'}
+                </span>
+                <i className="ri-arrow-down-s-line text-muted-foreground" aria-hidden="true" />
+              </button>
+              {currencyOpen && (
+                <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-lg">
+                  {currencies.length === 0 && <p className="p-2 text-sm text-muted-foreground">No hay divisas disponibles.</p>}
+                  {currencies.map((currency) => (
+                    <button
+                      type="button"
+                      key={currency.id}
+                      aria-pressed={currency.id === divisaId}
+                      onClick={() => {
+                        setDivisaId(currency.id);
+                        setCurrencyOpen(false);
+                        currencyTrigger.current?.focus();
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted aria-pressed:bg-primary/10"
+                    >
+                      <CurrencyLabel currency={currency} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor={id + '-date'} className={labelClass}>Fecha de operación</label>
+              <input id={id + '-date'} type="date" required value={fecha} onChange={(event) => setFecha(event.target.value)} className={fieldClass} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor={id + '-amount'} className={labelClass}>Monto en divisa</label>
+              <input id={id + '-amount'} type="number" step="any" required value={monto} onChange={(event) => setMonto(event.target.value)} placeholder="Ej. 5000" className={fieldClass} />
+            </div>
+            <div>
+              <label htmlFor={id + '-rate'} className={labelClass}>Tasa de cambio en COP</label>
+              <input id={id + '-rate'} type="number" step="any" required value={tasa} onChange={(event) => setTasa(event.target.value)} placeholder="Ej. 3950" className={fieldClass} />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+            <span className="text-sm font-medium">Ingreso estimado en COP</span>
+            <output htmlFor={id + '-amount ' + id + '-rate'} className="font-mono text-lg font-bold tabular-nums text-primary">
+              {formatCOP(ingresoCOP)}
+            </output>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+            <button type="button" onClick={onClose} disabled={saving} className={secondaryClass}>Cancelar</button>
+            <button type="submit" disabled={saving || !canSubmit} className={primaryClass}>
+              {saving ? 'Registrando…' : 'Registrar negocio'}
+            </button>
+          </div>
+        </form>
+      )}
+    </dialog>
   );
 };

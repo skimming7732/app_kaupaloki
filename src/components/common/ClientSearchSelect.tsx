@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
 
 interface ClientSearchSelectProps {
+  id?: string;
   value: string; // client id or code
   onChange: (clientId: string, clientLabel: string) => void;
   placeholder?: string;
@@ -11,6 +12,7 @@ interface ClientSearchSelectProps {
 }
 
 export const ClientSearchSelect: React.FC<ClientSearchSelectProps> = ({
+  id,
   value,
   onChange,
   placeholder = 'Buscar cliente por nombre o código...',
@@ -60,10 +62,18 @@ export const ClientSearchSelect: React.FC<ClientSearchSelectProps> = ({
       <div className="relative">
         <i className="ri-user-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
         <input
+          id={id}
           type="text"
           required={required && !value}
           value={query}
           onFocus={() => setIsOpen(true)}
+          onClick={() => setIsOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && isOpen) {
+              event.preventDefault();
+              setIsOpen(false);
+            }
+          }}
           onChange={(e) => {
             setQuery(e.target.value);
             setIsOpen(true);
