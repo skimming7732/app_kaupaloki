@@ -21,10 +21,12 @@ export const TwoFactorView: React.FC = () => {
 
   // Standard TOTP Verification & Setup states
   const [secret, setSecret] = useState('');
+  const [totpUri, setTotpUri] = useState('');
   const [qrUrl, setQrUrl] = useState('');
   const [code, setCode] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copiedCodes, setCopiedCodes] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
 
   // Recovery states
   const [recoveryPassword, setRecoveryPassword] = useState('');
@@ -65,14 +67,31 @@ export const TwoFactorView: React.FC = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  const initSetup = () => {
-    const newSecret = generateTotpSecret();
-    setSecret(newSecret);
+  const initSetup = (forceNew = false) => {
+    // Persist pending secret in sessionStorage so switching tabs on mobile does NOT change the secret
+    let activeSecret = !forceNew ? sessionStorage.getItem('kpl_pending_2fa_secret') : null;
+    let activeCodesStr = !forceNew ? sessionStorage.getItem('kpl_pending_backup_codes') : null;
+    let activeCodes: string[] | null = null;
+    try {
+      if (activeCodesStr) activeCodes = JSON.parse(activeCodesStr);
+    } catch {}
+
+    if (!activeSecret) {
+      activeSecret = generateTotpSecret();
+      sessionStorage.setItem('kpl_pending_2fa_secret', activeSecret);
+    }
+    if (!activeCodes || !Array.isArray(activeCodes) || activeCodes.length === 0) {
+      activeCodes = generateBackupCodes();
+      sessionStorage.setItem('kpl_pending_backup_codes', JSON.stringify(activeCodes));
+    }
+
+    setSecret(activeSecret);
     const email = user?.email || profile?.email || 'operador@kaupaloki.co';
-    const uri = generateTotpUri(newSecret, email);
+    const uri = generateTotpUri(activeSecret, email);
+    setTotpUri(uri);
     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(uri)}`;
     setQrUrl(qr);
-    setBackupCodes(generateBackupCodes());
+    setBackupCodes(activeCodes);
     setCode('');
     setMode('setup_step1');
   };
@@ -133,6 +152,10 @@ export const TwoFactorView: React.FC = () => {
         .eq('id', user?.id);
 
       if (updateError) throw updateError;
+
+      // Clean up pending storage once successfully saved
+      sessionStorage.removeItem('kpl_pending_2fa_secret');
+      sessionStorage.removeItem('kpl_pending_backup_codes');
 
       if (refreshProfile) {
         await refreshProfile();
@@ -303,6 +326,10 @@ export const TwoFactorView: React.FC = () => {
         .eq('id', user.id);
 
       if (updateError) throw updateError;
+
+      // Clean up pending storage once successfully saved
+      sessionStorage.removeItem('kpl_pending_2fa_secret');
+      sessionStorage.removeItem('kpl_pending_backup_codes');
 
       if (refreshProfile) {
         await refreshProfile();
@@ -650,7 +677,7 @@ export const TwoFactorView: React.FC = () => {
         )}
 
         {/* ============================================================== */}
-        {/* 5. MODO: CONFIGURACIÓN PASO 1 - ESCANEAR QR                   */}
+        {/* 5. MODO: CONFIGURACIÓN PASO 1 - ESCANEAR QR / VINCULAR APP    */}
         {/* ============================================================== */}
         {mode === 'setup_step1' && (
           <form onSubmit={handleVerifyStep1} className="space-y-4">
@@ -662,9 +689,56 @@ export const TwoFactorView: React.FC = () => {
                   <i className="ri-loader-4-line animate-spin text-2xl text-primary" />
                 </div>
               )}
-              <div className="mt-3 text-center">
-                <span className="text-[11px] text-muted-foreground block">Clave secreta manual:</span>
-                <span className="text-xs font-mono font-bold text-foreground select-all">{secret}</span>
+
+              {/* Botón táctil para teléfonos: Abre Google Authenticator / Authy directamente */}
+              {totpUri && (
+                <div className="w-full mt-3">
+                  <a
+                    href={totpUri}
+                    className="w-full py-2.5 px-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-primary/25 hover:opacity-95 transition-all text-center"
+                  >
+                    <i className="ri-smartphone-line text-sm" />
+                    <span>Vincular con 1 toque en tu App (Google Auth / Authy)</span>
+                  </a>
+                </div>
+              )}
+
+              {/* Clave Manual con Botón de Copiado */}
+              <div className="mt-3.5 w-full">
+                <div className="flex items-center justify-between mb-1 text-[11px] text-muted-foreground font-semibold">
+                  <span>O copia la clave manual:</span>
+                  <button
+                    type="button"
+                    onClick={() => initSetup(true)}
+                    className="text-[10px] text-primary hover:underline font-bold"
+                    title="Generar un nuevo código si tuviste problemas"
+                  >
+                    Regenerar QR
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 w-full">
+                  <input
+                    type="text"
+                    readOnly
+                    value={secret}
+                    className="flex-1 font-mono text-xs font-bold bg-background text-foreground px-3 py-2 rounded-xl border border-border select-all outline-none text-center"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(secret);
+                      setCopiedSecret(true);
+                      setTimeout(() => setCopiedSecret(false), 2500);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 font-bold text-xs text-primary flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <i className={copiedSecret ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
+                    <span>{copiedSecret ? '¡Copiado!' : 'Copiar'}</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed text-center">
+                  💡 En tu app: Toca <strong>(+)</strong> → <strong>Ingresar clave manual</strong> → Nombre: <strong>Kaupaloki</strong> y pega la clave.
+                </p>
               </div>
             </div>
 

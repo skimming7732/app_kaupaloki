@@ -197,14 +197,32 @@ export const PerfilView: React.FC = () => {
   };
 
   // --- INICIAR CONFIGURACIÓN DE 2FA ---
-  const handleStart2faSetup = () => {
-    const secret = generateTotpSecret();
-    setNew2faSecret(secret);
+  const [profileTotpUri, setProfileTotpUri] = useState('');
+
+  const handleStart2faSetup = (forceNew = false) => {
+    let activeSecret = !forceNew ? sessionStorage.getItem('kpl_pending_2fa_secret') : null;
+    let activeCodesStr = !forceNew ? sessionStorage.getItem('kpl_pending_backup_codes') : null;
+    let activeCodes: string[] | null = null;
+    try {
+      if (activeCodesStr) activeCodes = JSON.parse(activeCodesStr);
+    } catch {}
+
+    if (!activeSecret) {
+      activeSecret = generateTotpSecret();
+      sessionStorage.setItem('kpl_pending_2fa_secret', activeSecret);
+    }
+    if (!activeCodes || !Array.isArray(activeCodes) || activeCodes.length === 0) {
+      activeCodes = generateBackupCodes();
+      sessionStorage.setItem('kpl_pending_backup_codes', JSON.stringify(activeCodes));
+    }
+
+    setNew2faSecret(activeSecret);
     const email = user?.email || profile?.email || 'operador@kaupaloki.co';
-    const uri = generateTotpUri(secret, email);
+    const uri = generateTotpUri(activeSecret, email);
+    setProfileTotpUri(uri);
     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(uri)}`;
     setQrUrl(qr);
-    setBackupCodes(generateBackupCodes());
+    setBackupCodes(activeCodes);
     setOtpCode('');
     setMfaMessage(null);
     setShow2faSetup(true);
@@ -241,6 +259,9 @@ export const PerfilView: React.FC = () => {
         .eq('id', user.id);
 
       if (saveError) throw saveError;
+
+      sessionStorage.removeItem('kpl_pending_2fa_secret');
+      sessionStorage.removeItem('kpl_pending_backup_codes');
 
       await refreshProfile();
       setShow2faSetup(false);
@@ -837,12 +858,36 @@ export const PerfilView: React.FC = () => {
                       alt="Código QR 2FA"
                       className="w-44 h-44 rounded-lg border border-border p-1 bg-white"
                     />
-                    <div className="mt-3 text-center">
-                      <span className="text-[10px] text-muted-foreground block mb-1">
-                        ¿No puedes escanear? Copia la clave secreta:
-                      </span>
-                      <div className="flex items-center gap-1.5 justify-center">
-                        <code className="text-[11px] font-mono font-bold bg-muted px-2 py-1 rounded border border-border">
+
+                    {/* Botón táctil para teléfonos: Abre Google Authenticator / Authy con 1 toque */}
+                    {profileTotpUri && (
+                      <div className="w-full mt-3">
+                        <a
+                          href={profileTotpUri}
+                          className="w-full py-2 px-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 hover:opacity-95 transition-all text-center"
+                        >
+                          <i className="ri-smartphone-line text-sm" />
+                          <span>Vincular con 1 toque en tu App</span>
+                        </a>
+                      </div>
+                    )}
+
+                    <div className="mt-3 text-center w-full">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-muted-foreground font-semibold">
+                          Clave manual:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleStart2faSetup(true)}
+                          className="text-[10px] text-primary hover:underline font-bold"
+                          title="Generar un nuevo código si tuviste problemas"
+                        >
+                          Regenerar QR
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 justify-center w-full">
+                        <code className="text-[11px] font-mono font-bold bg-muted px-2.5 py-1.5 rounded-lg border border-border flex-1 truncate">
                           {new2faSecret}
                         </code>
                         <button
@@ -852,9 +897,10 @@ export const PerfilView: React.FC = () => {
                             setCopiedSecret(true);
                             setTimeout(() => setCopiedSecret(false), 2000);
                           }}
-                          className="px-2 py-1 rounded bg-card hover:bg-muted border border-border text-[10px] font-bold text-primary"
+                          className="px-2.5 py-1.5 rounded-lg bg-card hover:bg-muted border border-border text-[11px] font-bold text-primary flex items-center gap-1"
                         >
-                          {copiedSecret ? '¡Copiado!' : 'Copiar'}
+                          <i className={copiedSecret ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
+                          <span>{copiedSecret ? '¡Copiado!' : 'Copiar'}</span>
                         </button>
                       </div>
                     </div>
