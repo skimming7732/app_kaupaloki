@@ -423,20 +423,24 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
 
     // Efectivo (resolve assigned client from CLIENTE column)
-    const efectivo = (snapshot.efectivo || []).map((e: any) => {
+    const efectivo = (snapshot.efectivo || []).map((e: any, idx: number) => {
       const rawClient = Array.isArray(e.cliente) ? e.cliente[0] : (e.clienteId || e.cliente);
       const clienteId = clientRecordIdMap.get(rawClient) || rawClient;
       const clienteNombre = clientMap.get(rawClient) || (typeof e.cliente === 'string' && e.cliente.trim() ? e.cliente : (e.clienteNombre || ''));
 
+      const isIngreso = String(e.tipo || '').toUpperCase() === 'INGRESO';
+      const monto = Number(e.montoCop ?? e.monto ?? e['MONTO (COP)'] ?? 0);
+      const fecha = e.fecha || e['FECHA MOVIMIENTO'] || (e.createdTime ? String(e.createdTime).slice(0, 10) : '');
+
       return {
-        id: e.id || e.codigo,
-        codigo: e.codigo || 'EFEC-000',
-        fecha: e.fecha || '',
-        tipo: (e.tipo === 'Ingreso' ? 'Ingreso' : 'Pago') as 'Ingreso' | 'Pago',
+        id: e.id || e.codigo || `efec-${idx}`,
+        codigo: e.codigo || `EF-${idx + 1}`,
+        fecha,
+        tipo: (isIngreso ? 'Ingreso' : 'Pago') as 'Ingreso' | 'Pago',
         clienteId,
-        clienteNombre: clienteNombre || (e.tipo === 'Ingreso' ? 'Ingreso de Caja' : 'Movimiento Interno'),
-        monto: Number(e.monto ?? 0),
-        origenFondos: e.origenFondos || 'Efectivo Dosquebradas',
+        clienteNombre: clienteNombre || (isIngreso ? 'Ingreso de Caja' : 'Movimiento Interno'),
+        monto,
+        origenFondos: e.origenFondosNombre || e.origenFondos || 'Efectivo Dosquebradas',
         referencia: e.referencia || '',
         raw: e,
       };
@@ -578,10 +582,22 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const createMovimientoEfectivo = async (payload: any): Promise<boolean> => {
     const pat = getPat();
+    const cleanPayload = {
+      action: 'create_movimiento_efectivo',
+      pat,
+      codigo: payload.codigo || payload['Código'] || payload.EFECTIVO || ('EFEC-' + Math.floor(1000 + Math.random() * 9000)),
+      tipo: String(payload.tipo || payload['Tipo'] || payload.TIPO || 'INGRESO').toUpperCase(),
+      montoCop: Number(payload.montoCop ?? payload.monto ?? payload['Monto'] ?? payload['MONTO (COP)'] ?? 0),
+      clienteId: payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente) || undefined,
+      origenFondosId: payload.origenFondosId && payload.origenFondosId !== 'recdOSGJZMR2xqUFq' ? payload.origenFondosId : undefined,
+      referencia: payload.referencia || payload['Referencia'] || undefined,
+      fecha: payload.fecha || payload['Fecha'] || payload['FECHA MOVIMIENTO'] || new Date().toISOString().split('T')[0],
+    };
+
     const res = await fetch(EDGE_SYNC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create_movimiento_efectivo', pat, ...payload }),
+      body: JSON.stringify(cleanPayload),
     });
     const result = await res.json().catch(() => ({}));
     if (result.snapshot) applySnapshot(result.snapshot);

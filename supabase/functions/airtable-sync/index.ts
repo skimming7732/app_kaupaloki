@@ -243,10 +243,20 @@ Deno.serve(async (req: Request) => {
 
     // 0-D. ACTION: create_movimiento_efectivo
     if (body.action === "create_movimiento_efectivo") {
-      const { codigo, tipo, montoCop, clienteId, origenFondosId, referencia } = body;
+      const codigo = body.codigo || body.Código || body.EFECTIVO;
+      const tipo = String(body.tipo || body.Tipo || body.TIPO || "INGRESO").toUpperCase();
+      const montoCop = Number(body.montoCop ?? body.monto ?? body.Monto ?? body["MONTO (COP)"] ?? 0);
+      const clienteId = body.clienteId || (Array.isArray(body.Cliente) ? body.Cliente[0] : body.Cliente);
+      const origenFondosId = body.origenFondosId && body.origenFondosId !== "recdOSGJZMR2xqUFq"
+        ? (Array.isArray(body.origenFondosId) ? body.origenFondosId[0] : body.origenFondosId)
+        : undefined;
+      const referencia = body.referencia || body.Referencia;
+      const fecha = body.fecha || body.Fecha || body["FECHA MOVIMIENTO"] || new Date().toISOString().split("T")[0];
+
       const fields: any = {
-        "TIPO": (String(tipo || "INGRESO").toUpperCase() === "PAGO") ? "PAGO" : "INGRESO",
-        "MONTO (COP)": Number(montoCop) || 0,
+        "TIPO": (tipo === "PAGO") ? "PAGO" : "INGRESO",
+        "MONTO (COP)": montoCop,
+        "FECHA MOVIMIENTO": fecha,
       };
       if (codigo) fields["EFECTIVO"] = String(codigo).trim();
       if (clienteId) fields["CLIENTE"] = [clienteId];
@@ -1180,18 +1190,23 @@ Deno.serve(async (req: Request) => {
       };
     });
 
-    const efectivo = rawEfectivo.map((r) => {
+    const efectivo = rawEfectivo.map((r, idx) => {
       const f = r.fields || {};
       const clienteLink = Array.isArray(f["CLIENTE"]) ? f["CLIENTE"][0] : undefined;
       const clienteInfo = clienteLink ? clientesById.get(clienteLink) : undefined;
       const origenLink = Array.isArray(f["ORIGEN FONDOS"]) ? f["ORIGEN FONDOS"][0] : undefined;
       const origenInfo = origenLink ? activosLiqById.get(origenLink) : undefined;
+      const monto = Number(f["MONTO (COP)"]) || 0;
+      const fecha = String(f["FECHA MOVIMIENTO"] || f["FECHA CREACIÓN"] || r.createdTime || "").slice(0, 10);
+      const tipo = String(f["TIPO"] || "INGRESO").toUpperCase();
 
       return {
         id: r.id,
-        codigo: String(f["EFECTIVO"] || "").trim(),
-        tipo: String(f["TIPO"] || "INGRESO").toUpperCase(),
-        montoCop: Number(f["MONTO (COP)"]) || 0,
+        codigo: String(f["EFECTIVO"] || `EF-${f["#"] || (idx + 1)}`).trim(),
+        tipo,
+        monto,
+        montoCop: monto,
+        fecha,
         clienteId: clienteLink,
         clienteCodigo: clienteInfo ? clienteInfo.codigo : undefined,
         clienteNombre: clienteInfo ? clienteInfo.nombre : undefined,

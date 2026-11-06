@@ -8,7 +8,7 @@ interface AddEfectivoModalProps {
 }
 
 export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onClose }) => {
-  const { createRecord } = useAirtable();
+  const { createMovimientoEfectivo } = useAirtable();
   // 1. Tipo
   const [tipo, setTipo] = useState<'Ingreso' | 'Pago'>('Pago');
   // 2. Cliente (opcional)
@@ -37,15 +37,17 @@ export const AddEfectivoModal: React.FC<AddEfectivoModalProps> = ({ isOpen, onCl
     try {
       const code = 'EFEC-' + Math.floor(1000 + Math.random() * 9000);
       const today = new Date().toISOString().split('T')[0];
-      await createRecord('Efectivo', {
-        'Código': code,
-        'Fecha': today,
-        'Tipo': tipo,
-        'Cliente': clienteId ? [clienteId] : undefined,
-        'Referencia': referencia.trim() || undefined,
-        'Monto': parsedMonto,
-        'Origen de Fondos': 'Efectivo Dosquebradas', // Caja fija por defecto
+      const ok = await createMovimientoEfectivo({
+        codigo: code,
+        fecha: today,
+        tipo: tipo,
+        clienteId: clienteId || undefined,
+        referencia: referencia.trim() || undefined,
+        montoCop: parsedMonto,
       });
+      if (!ok) {
+        throw new Error('No se pudo guardar el movimiento en Airtable. Verifica la conexión.');
+      }
       setMonto('');
       setReferencia('');
       setClienteId('');
