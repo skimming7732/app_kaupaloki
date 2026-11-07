@@ -34,7 +34,7 @@ const ROLES_OPTIONS: {
   {
     id: 'operador',
     title: 'Operador',
-    badge: '2 Pasos',
+    badge: 'Requiere Divisas',
     desc: 'Inicio, Negocios y Clientes con divisas asignadas.',
     icon: 'ri-briefcase-4-line',
     colorClass: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
@@ -68,8 +68,8 @@ const ROLES_OPTIONS: {
 export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
   const { data, syncWithAirtable } = useAirtable();
 
-  // Step state: 1 (basic info) or 2 (authorized currencies for Operador)
-  const [step, setStep] = useState<1 | 2>(1);
+  // Wizard steps: 1 = Datos, 2 = Roles, 3 = Divisas (si rol es operador)
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Form states
   const [nombre, setNombre] = useState('');
@@ -84,6 +84,9 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const requiresCurrencies = rol === 'operador';
+  const totalSteps = requiresCurrencies ? 3 : 2;
 
   const handleReset = () => {
     setStep(1);
@@ -130,20 +133,26 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
       return;
     }
     setError(null);
-
-    // If role is Operador, proceed to Step 2 for currencies
-    if (rol === 'operador' || rol === 'dispersor') {
-      setStep(2);
-    } else {
-      // Direct submission for Dispersor, Admin, Super Admin
-      executeInviteUser([]);
-    }
+    setStep(2);
   };
 
   const handleSubmitStep2 = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!allCurrencies && divisasAutorizadas.length === 0) return;
+    if (requiresCurrencies) {
+      setStep(3);
+    } else {
+      executeInviteUser([]);
+    }
+  };
+
+  const handleSubmitStep3 = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!allCurrencies && divisasAutorizadas.length === 0) {
+      setError('Por favor selecciona al menos una divisa');
+      return;
+    }
     executeInviteUser(allCurrencies ? [] : divisasAutorizadas);
   };
 
@@ -202,52 +211,52 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-foreground">Invitar Nuevo Usuario</h3>
-                {rol === 'operador' && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-                    Paso {step} de 2
-                  </span>
-                )}
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                  Paso {step} de {totalSteps}
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {step === 1
-                  ? 'Configura la identidad, país y rol del nuevo colaborador'
-                  : 'Asigna las divisas autorizadas que podrá operar'}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {step === 1 && 'Ingresa los datos personales del usuario a invitar'}
+                {step === 2 && 'Define el rol de acceso y privilegios en el sistema'}
+                {step === 3 && 'Selecciona las divisas autorizadas para este operador'}
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            disabled={loading}
-            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+            className="w-8 h-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors"
           >
             <i className="ri-close-line text-lg" />
           </button>
         </div>
 
-        {/* Success message */}
+        {/* Error Alert */}
+        {error && (
+          <div className="p-3 mb-4 rounded-xl bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
+            <i className="ri-error-warning-line text-base shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Success Screen */}
         {success ? (
-          <div className="py-8 text-center text-emerald-500 animate-fade-in">
-            <i className="ri-checkbox-circle-line text-5xl mb-3 block" />
-            <h4 className="font-bold text-base text-foreground">¡Usuario Invitado Exitosamente!</h4>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Se ha creado el registro con estado <strong className="text-amber-500 font-semibold">Invitado</strong> y se ha enviado el correo con las credenciales de acceso.
+          <div className="py-8 text-center space-y-3 animate-fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center text-2xl font-bold">
+              <i className="ri-checkbox-circle-line" />
+            </div>
+            <h4 className="text-base font-bold text-foreground">¡Invitación Registrada con Éxito!</h4>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              El usuario <strong className="text-foreground">{email}</strong> fue configurado con rol{' '}
+              <strong className="text-foreground uppercase">{rol}</strong>. Podrá acceder inmediatamente tras completar su onboarding.
             </p>
           </div>
         ) : (
           <>
-            {/* Error message */}
-            {error && (
-              <div className="p-3 mb-4 rounded-xl bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
-                <i className="ri-error-warning-line text-sm" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* STEP 1: Basic Information & Role */}
+            {/* STEP 1: Basic Info */}
             {step === 1 && (
-              <form onSubmit={handleSubmitStep1} className="space-y-4">
+              <form onSubmit={handleSubmitStep1} className="space-y-4 animate-fade-in">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
                     Nombre Completo *
                   </label>
                   <input
@@ -255,13 +264,13 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                     required
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    placeholder="Ej. Juan Pérez"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    placeholder="Ej. Carlos Mendoza"
+                    className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
                     Correo Electrónico *
                   </label>
                   <input
@@ -269,19 +278,19 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="usuario@empresa.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    placeholder="carlos@empresa.com"
+                    className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
                     País de Operación
                   </label>
                   <select
                     value={pais}
                     onChange={(e) => setPais(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all cursor-pointer"
                   >
                     {PAISES_DISPONIBLES.map((p) => (
                       <option key={p.code} value={p.code}>
@@ -291,80 +300,74 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                   </select>
                 </div>
 
-                {/* 4 Cajitas para Selección de Rol */}
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider">
-                      Selecciona el Rol *
-                    </label>
-                    <span className="text-[11px] text-muted-foreground font-semibold">
-                      {rol === 'operador' && 'Requiere autorizar divisas'}
-                      {rol === 'dispersor' && 'Pagos y transferencias'}
-                      {rol === 'administrador' && 'Acceso a todo el sistema'}
-                      {rol === 'super_admin' && 'Control global'}
-                    </span>
-                  </div>
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border mt-6">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/25 flex items-center gap-2 transition-all"
+                  >
+                    <span>Continuar a Roles (Paso 2)</span>
+                    <i className="ri-arrow-right-line" />
+                  </button>
+                </div>
+              </form>
+            )}
 
+            {/* STEP 2: Role Selection */}
+            {step === 2 && (
+              <form onSubmit={handleSubmitStep2} className="space-y-4 animate-fade-in">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                    Selecciona el Rol para {nombre || email}
+                  </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {ROLES_OPTIONS.map((r) => {
-                      const isSelected = rol === r.id;
+                    {ROLES_OPTIONS.map((opt) => {
+                      const isSelected = rol === opt.id;
                       return (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => setRol(r.id)}
-                          className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between relative cursor-pointer ${
+                        <div
+                          key={opt.id}
+                          onClick={() => setRol(opt.id)}
+                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-left relative flex flex-col justify-between ${
                             isSelected
-                              ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary'
-                              : 'border-border bg-card hover:bg-muted/50 hover:border-border/80'
+                              ? 'bg-primary/5 border-primary ring-2 ring-primary/20 shadow-sm'
+                              : 'bg-card border-border hover:bg-muted/50'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <div
-                              className={`w-8 h-8 rounded-xl flex items-center justify-center text-base transition-colors ${
-                                isSelected ? 'bg-primary text-white shadow-sm' : r.colorClass
-                              }`}
-                            >
-                              <i className={r.icon} />
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold border ${opt.colorClass}`}>
+                                <i className={opt.icon} />
+                              </div>
+                              <span className="text-xs font-bold text-foreground">{opt.title}</span>
                             </div>
-                            {isSelected ? (
-                              <i className="ri-checkbox-circle-fill text-primary text-lg" />
-                            ) : (
-                              <div className="w-4 h-4 rounded-full border border-muted-foreground/40" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className={`text-xs font-bold ${
-                                  isSelected ? 'text-primary' : 'text-foreground'
-                                }`}
-                              >
-                                {r.title}
-                              </span>
-                              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded font-extrabold bg-muted text-muted-foreground border border-border">
-                                {r.badge}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-muted-foreground leading-tight mt-1 block">
-                              {r.desc}
+                            <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-muted text-muted-foreground border border-border">
+                              {opt.badge}
                             </span>
                           </div>
-                        </button>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed">{opt.desc}</p>
+                        </div>
                       );
                     })}
                   </div>
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">
+                <div className="flex items-center justify-between pt-4 border-t border-border mt-6">
                   <button
                     type="button"
-                    onClick={handleClose}
+                    onClick={() => setStep(1)}
                     disabled={loading}
-                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors"
+                    className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
                   >
-                    Cancelar
+                    <i className="ri-arrow-left-line" />
+                    <span>Volver al Paso 1</span>
                   </button>
                   <button
                     type="submit"
@@ -372,15 +375,17 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                     className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/25 flex items-center gap-2 transition-all"
                   >
                     {loading && <i className="ri-loader-4-line animate-spin" />}
-                    <span>{(rol === 'operador' || rol === 'dispersor') ? 'Continuar a Divisas (Paso 2) →' : 'Invitar Usuario →'}</span>
+                    <span>
+                      {requiresCurrencies ? 'Continuar a Divisas (Paso 3) →' : 'Finalizar e Invitar Usuario →'}
+                    </span>
                   </button>
                 </div>
               </form>
             )}
 
-            {/* STEP 2: Authorized Currencies (Operador only) */}
-            {step === 2 && (
-              <form onSubmit={handleSubmitStep2} className="space-y-4 animate-fade-in">
+            {/* STEP 3: Authorized Currencies (Operador only) */}
+            {step === 3 && (
+              <form onSubmit={handleSubmitStep3} className="space-y-4 animate-fade-in">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
@@ -439,12 +444,12 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                 <div className="flex items-center justify-between pt-4 border-t border-border mt-6">
                   <button
                     type="button"
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(2)}
                     disabled={loading}
                     className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
                   >
                     <i className="ri-arrow-left-line" />
-                    <span>Volver al Paso 1</span>
+                    <span>Volver a Roles</span>
                   </button>
                   <button
                     type="submit"

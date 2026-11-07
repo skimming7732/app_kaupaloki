@@ -23,13 +23,29 @@ export const UsuariosView: React.FC = () => {
 
   const roles = ['Todos', 'Super Admin', 'Admin', 'Operador', 'Dispersor'];
 
+  const normalizeRole = (r: string) => {
+    const s = (r || '').toLowerCase().trim();
+    if (s === 'super admin' || s === 'super_admin') return 'super_admin';
+    if (s === 'admin' || s === 'administrador') return 'administrador';
+    if (s === 'operador' || s === 'operator') return 'operador';
+    if (s === 'dispersor' || s === 'dispersador') return 'dispersor';
+    return s;
+  };
+
+  const roleLabelMap: Record<string, string> = {
+    super_admin: 'Super Admin',
+    administrador: 'Admin',
+    operador: 'Operador',
+    dispersor: 'Dispersor',
+  };
+
   const filteredUsers = useMemo(() => {
     return data.usuarios.filter((u) => {
       const matchSearch =
         u.nombre.toLowerCase().includes(search.toLowerCase()) ||
         u.correo.toLowerCase().includes(search.toLowerCase()) ||
         u.codigo.toLowerCase().includes(search.toLowerCase());
-      const matchRole = selectedRole === 'Todos' || u.rol === selectedRole;
+      const matchRole = selectedRole === 'Todos' || normalizeRole(u.rol) === normalizeRole(selectedRole);
       return matchSearch && matchRole;
     });
   }, [data.usuarios, search, selectedRole]);
@@ -52,12 +68,12 @@ export const UsuariosView: React.FC = () => {
   };
 
   const getRoleIcon = (rol: string) => {
-    switch (rol) {
-      case 'Super Admin':
+    switch (normalizeRole(rol)) {
+      case 'super_admin':
         return <i className="ri-vip-crown-line text-amber-500" />;
-      case 'Admin':
+      case 'administrador':
         return <i className="ri-shield-user-line text-blue-500" />;
-      case 'Dispersor':
+      case 'dispersor':
         return <i className="ri-send-plane-line text-purple-500" />;
       default:
         return <i className="ri-user-star-line text-emerald-500" />;
@@ -160,7 +176,7 @@ export const UsuariosView: React.FC = () => {
 
                       <td className="py-3.5 px-4">
                         <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-foreground border border-border">
-                          {u.rol}
+                          {roleLabelMap[normalizeRole(u.rol)] || u.rol}
                         </span>
                       </td>
 
