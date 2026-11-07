@@ -1,3 +1,4 @@
+import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { ReceiptPreview } from '../components/common/ReceiptPreview';
@@ -63,8 +64,8 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
       </div>
 
       {/* Comprehensive Filter Bar */}
-      <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+      <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
+        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {/* Search */}
           <div className="relative lg:col-span-2">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
@@ -73,7 +74,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por código, cliente o referencia..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+              className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
 
@@ -93,9 +94,9 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
 
-        {(search || selectedCliente || fechaDesde || fechaHasta) && (
-          <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
-            <span>{filteredDispersiones.length} dispersiones encontradas</span>
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
+          <span>{filteredDispersiones.length} de {data.dispersiones.length} registros</span>
+          {(search || selectedCliente || fechaDesde || fechaHasta) && (
             <button
               onClick={() => {
                 setSearch('');
@@ -103,13 +104,18 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                 setFechaDesde('');
                 setFechaHasta('');
               }}
-              className="text-primary hover:underline font-semibold text-xs"
+              type="button" className="text-primary hover:underline font-semibold text-xs"
             >
               Limpiar filtros
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      <KpiStrip metrics={[
+        { label: 'Total dispersiones', value: filteredDispersiones.length },
+        { label: 'Total dispersado', value: formatCOP(sumRows(filteredDispersiones, (d) => d.monto)) },
+      ]} />
 
       {/* Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">

@@ -1,3 +1,4 @@
+import { recordButtonClass } from '../components/modals/RecordDialog';
 import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
@@ -57,15 +58,16 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex justify-end">
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-muted-foreground uppercase block mb-1">Nuevo Gasto</span>
-            <span className="text-xs text-foreground block">Registrar egreso o costo</span>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+        <div>
+          <h2 className="text-base font-bold">Gastos</h2>
+          <p className="text-xs text-muted-foreground">Registro de egresos y comprobantes</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={onOpenAddGasto ? onOpenAddGasto : () => setIsAddOpen(true)}
-            className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold text-xs shadow-md shadow-rose-600/20 hover:bg-rose-700 flex items-center gap-1.5 transition-all"
+            type="button"
+            className={recordButtonClass}
           >
             <i className="ri-add-line text-sm" />
             <span>Registrar Gasto</span>
@@ -74,8 +76,8 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
       </div>
 
       {/* Advanced Filter Bar: Rango de fechas, Categoría, Divisa, Búsqueda */}
-      <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+      <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
+        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-6">
           {/* Search */}
           <div className="relative lg:col-span-2">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
@@ -84,7 +86,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por concepto o código..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+              className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
 
@@ -100,13 +102,18 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
             </TableSelectFilter>
           </div>
 
+          <TableSelectFilter label="Divisa" value={selectedDivisa} onChange={setSelectedDivisa} className="w-full">
+            <option value="">Todas las divisas</option>
+            {[...new Set(data.gastos.map((g) => g.divisa))].filter(Boolean).sort().map((code) =>
+              <option key={code} value={code}>{code}</option>)}
+          </TableSelectFilter>
           {/* Fecha Desde */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
 
-        {(search || selectedCategoria || selectedDivisa || fechaDesde || fechaHasta) && (
-          <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
-            <span>{filteredGastos.length} gastos encontrados</span>
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
+          <span>{filteredGastos.length} de {data.gastos.length} registros</span>
+          {(search || selectedCategoria || selectedDivisa || fechaDesde || fechaHasta) && (
             <button
               onClick={() => {
                 setSearch('');
@@ -115,12 +122,12 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                 setFechaDesde('');
                 setFechaHasta('');
               }}
-              className="text-primary hover:underline font-semibold"
+              type="button" className="text-primary hover:underline font-semibold"
             >
               Limpiar filtros
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <KpiStrip metrics={([

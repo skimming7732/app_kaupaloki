@@ -63,11 +63,15 @@ export const InicioView = () => {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 py-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5">
+      <div className="relative isolate flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/15 via-card to-card p-5 shadow-sm sm:p-8">
         <div>
-          <h1 className="text-2xl font-bold">Bienvenido, {profile?.full_name || user?.email?.split('@')[0] || 'Kaupaloki'}</h1>
+          <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <i className="ri-shield-check-line" aria-hidden="true" /> Plataforma Operativa Kaupaloki
+          </span>
+          <h1 className="text-2xl font-bold sm:text-3xl">Bienvenido, {profile?.full_name || user?.email?.split('@')[0] || 'Kaupaloki'}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Tu panel de operaciones y clientes.</p>
         </div>
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -right-12 -z-10 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="flex flex-wrap gap-2">
           {canSeeNegocios && <Link to="/negocios" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Ver negocios</Link>}
           <Link to="/clientes" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold">Ver clientes</Link>

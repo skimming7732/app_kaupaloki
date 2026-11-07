@@ -221,7 +221,7 @@ interface AirtableContextType {
   syncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   lastSyncTime: string;
   syncWithAirtable: (forceLive?: boolean) => Promise<void>;
-  createCatalogRecord: (table: CatalogTable, fields: Record<string, string | number>) => Promise<void>;
+  createCatalogRecord: (table: CatalogTable, fields: Record<string, string | number>, editId?: string) => Promise<void>;
   createRecord: (table: string, fields: any) => Promise<any>;
   updateRecord: (table: string, id: string, fields: any) => Promise<any>;
   createNegocio: (payload: any) => Promise<boolean>;
@@ -1178,9 +1178,9 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const createCatalogRecord: AirtableContextType['createCatalogRecord'] = async (table, fields) => {
-    const id = crypto.randomUUID();
-    let record: Record<string, string | number> = { ...fields, id };
+  const createCatalogRecord: AirtableContextType['createCatalogRecord'] = async (table, fields, editId) => {
+    const id = editId || crypto.randomUUID();
+    let record: Record<string, string | number> = editId ? { ...fields } : { ...fields, id };
     const accountLabel = (accounts: any[], accountId: string | number) => {
       const account = accounts.find((item) => item.id === accountId);
       if (!account) throw new Error('La cuenta seleccionada ya no está disponible.');
@@ -1189,6 +1189,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     switch (table) {
       case 'compras_usdt':
+        if (editId) {
+          if (fields.wallet_destino_id) record.wallet_destino = accountLabel(data.activosDigitales, fields.wallet_destino_id);
+          break;
+        }
         record = {
           ...record, codigo: 'CMP-' + id.slice(0, 8).toUpperCase(),
           tasa: Number(fields.valor_comprado) / Number(fields.usdt_comprado),
@@ -1197,6 +1201,11 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
         break;
       case 'ventas_usdt':
+        if (editId) {
+          if (fields.wallet_origen_id) record.wallet_origen = accountLabel(data.activosDigitales, fields.wallet_origen_id);
+          if (fields.destino_fondos_id) record.destino_fondos_nombre = accountLabel(data.activosLiquidos, fields.destino_fondos_id);
+          break;
+        }
         record = {
           ...record, codigo: 'VNT-' + id.slice(0, 8).toUpperCase(),
           total_cop: Number(fields.usdt_vendido) * Number(fields.tasa),
@@ -1219,8 +1228,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       throw new Error('El resultado de la operación no es un número válido.');
     }
     const optionalColumns = ['saldo_inicial'];
-    const { error } = await writeDashboardRecord(record, (fields) => supabase.from(table).insert(fields), { optionalColumns });
-    if (error?.code === 'P0001' && /^(El monto supera|Selecciona un origen|La cuenta de destino)/.test(error.message)) throw new Error(error.message);
+    const { error } = editId
+      ? await supabase.from(table).update(record).eq('id', editId).select('id').single()
+      : await writeDashboardRecord(record, (fields) => supabase.from(table).insert(fields), { optionalColumns });
+    if (error?.code === 'P0001' && /^(El monto supera|Selecciona un origen|La cuenta de destino|El ajuste supera|Ingresa montos|Las cuentas de un registro)/.test(error.message)) throw new Error(error.message);
     if (error) throw dashboardWriteError(error, 'No se pudo guardar el registro.');
     await fetchFromSupabase();
   };

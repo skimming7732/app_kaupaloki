@@ -12,7 +12,9 @@ type Form = { title: string; description: string; icon: string; fields: Field[] 
 const dateField: Field = { name: 'fecha', label: 'Fecha de operación', type: 'date' };
 const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
 
-export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
+type CatalogEdit = { id: string; fields: Record<string, string | number>; historical: boolean };
+
+export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: CatalogEdit }) => {
   const { data, createCatalogRecord } = useAirtable();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,9 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
       ...data.activosDigitales.filter(() => sourceCurrency === 'USDT')]
     : data.activosDigitales;
   const source = sources.find((item) => item.id === sourceId);
-  const balance = Number(source?.saldoReal ?? source?.saldoCop ?? source?.saldoUsdt ?? 0);
+  const previousDebit = source && edit?.fields[sourceField] === sourceId &&
+    (!isPurchase || edit.fields.divisa_codigo === currency) ? Number(edit.fields[amountField]) : 0;
+  const balance = Number(source?.saldoReal ?? source?.saldoCop ?? source?.saldoUsdt ?? 0) + previousDebit;
   const exceedsBalance = !!source && Number(amount) > balance;
   const liquidAccounts = data.activosLiquidos.filter((a) => (a.divisa || 'COP') === 'COP').map((a) => ({ value: a.id, label: accountOptionLabel(a) }));
   const wallets = data.activosDigitales.map((w) => ({ value: w.id, label: accountOptionLabel(w) }));
@@ -81,13 +85,24 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
     },
   };
 
-  const form = forms[table];
+  const initial = edit?.fields || {};
+  const base = forms[table];
+  const form = edit ? {
+    ...base,
+    title: isPurchase ? 'Editar compra USDT' : 'Editar venta USDT',
+    description: edit.historical
+      ? 'Registro histórico sin cuentas vinculadas. Cambiar sus datos no modifica los saldos.'
+      : 'Al guardar, los saldos se ajustan según el cambio.',
+    fields: edit.historical ? base.fields.filter(({ name }) =>
+      !['origen_fondos_id', 'wallet_destino_id', 'wallet_origen_id', 'destino_fondos_id'].includes(name)) : base.fields,
+  } : base;
+  const showBalance = (isPurchase || isSale) && !edit?.historical;
   const onClose = () => setOpen(false);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy) return;
-    if ((isPurchase || isSale) && (!source || exceedsBalance)) {
+    if (showBalance && (!source || exceedsBalance)) {
       setError('Selecciona un origen con saldo suficiente.');
       return;
     }
@@ -124,7 +139,7 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
     setError('');
     const finishSound = prepareSuccessSound();
     try {
-      await createCatalogRecord(table, record);
+      await createCatalogRecord(table, record, edit?.id);
       finishSound(true);
       onClose();
     } catch (err) {
@@ -137,8 +152,9 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
 
   return (
     <>
-      <button type="button" className={recordButtonClass} onClick={() => { setError(''); setSourceId(''); setAmount(''); setCurrency(''); setOpen(true); }}>
-        <i className="ri-add-line" aria-hidden="true" />{form.title}
+      <button type="button" className={edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass}
+        onClick={() => { setError(''); setSourceId(String(initial[sourceField] ?? '')); setAmount(String(initial[amountField] ?? '')); setCurrency(String(initial.divisa_codigo ?? '')); setOpen(true); }}>
+        <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
       </button>
       {open && (
         <RecordDialog {...form} busy={busy} error={error} onClose={onClose}>
@@ -150,6 +166,7 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
                   {field.options ? (
                     <select name={field.name} required className={recordFieldClass}
                       value={(isPurchase || isSale) && field.name === sourceField ? sourceId : field.name === 'divisa_codigo' ? currency : undefined}
+                      defaultValue={field.name !== sourceField && field.name !== 'divisa_codigo' ? initial[field.name] : undefined}
                       onChange={(event) => {
                         if (field.name === sourceField) setSourceId(event.target.value);
                         if (field.name === 'divisa_codigo') {
@@ -158,11 +175,13 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
                         }
                       }}>
                       <option value="">{field.options.length ? 'Seleccionar' : 'Sin opciones configuradas'}</option>
+                      {initial[field.name] && !field.options.some((option) => option.value === initial[field.name]) && field.name === 'divisa_codigo' &&
+                        <option value={initial[field.name]}>{initial[field.name]}</option>}
                       {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   ) : (
                     <>
-                    {(isPurchase || isSale) && field.name === amountField && (
+                    {showBalance && field.name === amountField && (
                       <span className="flex items-center justify-between gap-2 text-xs">
                         <span>{source ? 'Disponible ' + formatCurrency(balance, sourceCurrency) : 'Selecciona un origen para ver el saldo'}</span>
                         <button type="button" disabled={!source || balance <= 0} onClick={() => setAmount(String(balance))}
@@ -178,7 +197,7 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
                       required={!field.optional}
                       min={field.type === 'number' ? 0 : undefined}
                       step={field.type === 'number' ? 'any' : undefined}
-                      defaultValue={field.type === 'date' ? today() : undefined}
+                      defaultValue={field.name === amountField ? undefined : initial[field.name] ?? (field.type === 'date' ? today() : undefined)}
                       className={recordFieldClass}
                     />
                     {field.name === amountField && exceedsBalance && <span role="alert" className="text-xs text-destructive">El monto supera el saldo disponible.</span>}
@@ -187,7 +206,7 @@ export const AddCatalogButton = ({ table }: { table: CatalogTable }) => {
                 </label>
               ))}
             </fieldset>
-            <RecordActions submitDisabled={exceedsBalance} busy={busy} label="Guardar registro" onClose={onClose} />
+            <RecordActions submitDisabled={exceedsBalance} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} />
           </form>
         </RecordDialog>
       )}

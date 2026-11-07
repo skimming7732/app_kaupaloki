@@ -51,24 +51,21 @@ export const VentasUsdtView: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <AddCatalogButton table="ventas_usdt" />
-          <span className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs border border-primary/20">
-            {filteredVentas.length} de {data.ventasUsdt.length} Registros
-          </span>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
+        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {/* Search */}
-          <div className="relative sm:col-span-2">
+          <div className="relative lg:col-span-2">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por código de venta o concepto..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+              className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
 
@@ -87,6 +84,7 @@ export const VentasUsdtView: React.FC = () => {
           {/* Date Range */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
+        <p className="border-t border-border pt-2 text-xs text-muted-foreground" aria-live="polite">{filteredVentas.length} de {data.ventasUsdt.length} registros</p>
       </div>
 
       <KpiStrip metrics={([
@@ -110,17 +108,18 @@ export const VentasUsdtView: React.FC = () => {
                 <th className="py-3 px-4">Destino Fondos</th>
                 <th className="py-3 px-4">Origen</th>
                 <CreatedByHeader />
+                <th className="py-3 px-4">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredVentas.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No hay registros de ventas USDT coincidentes con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filteredVentas}>{(v) => (
+                <PaginatedRows columns={10} rows={filteredVentas}>{(v) => (
                   <tr key={v.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{v.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(v.fecha)}</td>
@@ -143,6 +142,7 @@ export const VentasUsdtView: React.FC = () => {
                       {v.walletOrigen || 'Sin registro'}
                     </td>
                     <CreatedByCell name={v.createdByName} />
+                    <td className="px-4"><AddCatalogButton table="ventas_usdt" edit={{ id: v.id, historical: !v.walletOrigenId || !v.destinoFondosId, fields: { fecha: v.fecha?.slice(0, 10) || '', concepto: v.concepto, usdt_vendido: v.usdtVendido, tasa: v.tasa, wallet_origen_id: v.walletOrigenId || '', destino_fondos_id: v.destinoFondosId || '' } }} /></td>
                   </tr>
                 )}</PaginatedRows>
               )}

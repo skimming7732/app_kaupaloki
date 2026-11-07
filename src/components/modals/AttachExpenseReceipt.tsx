@@ -34,7 +34,12 @@ export const AttachExpenseReceipt = ({ expenseId, onClose, onSaved, dispersion =
           throw new Error('El comprobante cambió mientras editabas. Cierra esta ventana y vuelve a abrir el registro.');
         }
         if (error.code === '42501') throw new Error('Tu perfil no tiene permiso para adjuntar este comprobante.');
-        throw new Error('El archivo se subió, pero no se pudo vincular al registro. Puedes volver a intentar.');
+        if (error.code === 'P0002' || error.code === '22P02') throw new Error('El registro ya no está disponible. Actualiza la tabla.');
+        if (error.code === '22023') {
+          setUploaded(undefined);
+          throw new Error('No se pudo verificar el archivo subido. Selecciona el comprobante y vuelve a guardarlo.');
+        }
+        throw new Error('No se pudo vincular el comprobante. Vuelve a pulsar Guardar para reintentar sin subir el archivo de nuevo. Código: ' + (error.code || 'sin código') + '.');
       }
       finish(true);
       await onSaved();

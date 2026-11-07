@@ -41,6 +41,16 @@ export const ComprasUsdtView: React.FC = () => {
     };
   }, [data.comprasUsdt, search, filterDivisa, fechaDesde, fechaHasta]);
 
+  const rates = new Map<string, { total: number; count: number }>();
+  for (const c of filteredCompras) {
+    if (!Number.isFinite(c.tasa) || c.tasa <= 0) continue;
+    const rate = rates.get(c.divisaCodigo) || { total: 0, count: 0 };
+    rates.set(c.divisaCodigo, { total: rate.total + c.tasa, count: rate.count + 1 });
+  }
+  const averageRate = [...rates].map(([currency, rate]) =>
+    (rate.total / rate.count).toLocaleString('es-CO', { maximumFractionDigits: 6 }) + ' ' + currency + '/USDT'
+  );
+
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Top Header Card */}
@@ -51,24 +61,21 @@ export const ComprasUsdtView: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <AddCatalogButton table="compras_usdt" />
-          <span className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs border border-primary/20">
-            {filteredCompras.length} de {totalOperaciones} Registros
-          </span>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
+        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {/* Search */}
-          <div className="relative sm:col-span-2">
+          <div className="relative lg:col-span-2">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por código de compra o divisa..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+              className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
 
@@ -87,12 +94,14 @@ export const ComprasUsdtView: React.FC = () => {
           {/* Date range shortcut */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
+        <p className="border-t border-border pt-2 text-xs text-muted-foreground" aria-live="polite">{filteredCompras.length} de {totalOperaciones} registros</p>
       </div>
 
       <KpiStrip metrics={([
         ['Compras', filteredCompras.length],
-        ['USDT comprados', formatCurrency(sumRows(filteredCompras, (c) => c.usdtComprado), 'USDT')],
-        ['Total entregado', totalsByCurrency(filteredCompras, (c) => c.divisaCodigo, (c) => c.valorComprado)],
+        ['Valor comprado', totalsByCurrency(filteredCompras, (c) => c.divisaCodigo, (c) => c.valorComprado)],
+        ['Tasa promedio', averageRate.length ? <ul className="space-y-1">{averageRate.map((rate) => <li key={rate}>{rate}</li>)}</ul> : '-'],
+        ['USDT comprado', formatCurrency(sumRows(filteredCompras, (c) => c.usdtComprado), 'USDT')],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Compras Table */}
@@ -110,17 +119,18 @@ export const ComprasUsdtView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Costo</th>
                 <th className="py-3 px-4">Destino</th>
                 <CreatedByHeader />
+                <th className="py-3 px-4">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredCompras.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No hay registros de compras USDT coincidentes con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filteredCompras}>{(c) => (
+                <PaginatedRows columns={10} rows={filteredCompras}>{(c) => (
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{c.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(c.fecha)}</td>
@@ -147,6 +157,7 @@ export const ComprasUsdtView: React.FC = () => {
                       </span>
                     </td>
                     <CreatedByCell name={c.createdByName} />
+                    <td className="px-4"><AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: !c.origenFondosId || !c.walletDestinoId, fields: { fecha: c.fecha?.slice(0, 10) || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, usdt_comprado: c.usdtComprado, origen_fondos_id: c.origenFondosId || '', wallet_destino_id: c.walletDestinoId || '' } }} /></td>
                   </tr>
                 )}</PaginatedRows>
               )}
