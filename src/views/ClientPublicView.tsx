@@ -164,9 +164,9 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       </div>
 
       <KpiStrip label="Resumen de cuenta" metrics={[
-        { label: 'Saldo pendiente', value: formatCOP(client.saldoPendienteCOP ?? totalNegociosMonto + totalIngresosMonto - totalPagosMonto), icon: 'ri-wallet-3-line', featured: true },
-        { label: 'Total ingresos', value: formatCOP(client.totalIngresosCOP ?? totalNegociosMonto + totalIngresosMonto), icon: 'ri-arrow-down-circle-line' },
-        { label: 'Total pagado', value: formatCOP(client.totalDispersadoCOP ?? totalPagosMonto), icon: 'ri-send-plane-line' },
+        { label: 'Saldo pendiente', value: formatCOP(totalNegociosMonto + totalIngresosMonto > 0 || totalPagosMonto > 0 ? (totalNegociosMonto + totalIngresosMonto - totalPagosMonto) : (client.saldoPendienteCOP || 0)), icon: 'ri-wallet-3-line', featured: true },
+        { label: 'Total ingresos', value: formatCOP(totalNegociosMonto + totalIngresosMonto > 0 ? (totalNegociosMonto + totalIngresosMonto) : (client.totalIngresosCOP || 0)), icon: 'ri-arrow-down-circle-line' },
+        { label: 'Total pagado', value: formatCOP(totalPagosMonto > 0 ? totalPagosMonto : (client.totalDispersadoCOP || 0)), icon: 'ri-send-plane-line' },
         { label: 'Operaciones', value: clientNegocios.length + clientPagos.length + clientIngresos.length, icon: 'ri-list-check' },
       ]} />
 

@@ -579,7 +579,15 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
 
     const clientes = (snapshot.clientes || []).map((c: any) => {
-      const totalIngresos = Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0);
+      const cId = c.id;
+      const cCode = c.codigo;
+      const dynamicIngresos = (snapshot.negocios || [])
+        .filter((n: any) => (n.clienteId && n.clienteId === cId) || (n.cliente_id && n.cliente_id === cId) || (n.clienteCodigo && n.clienteCodigo === cCode))
+        .reduce((sum: number, n: any) => sum + Number(n.ingresoCop ?? n.ingreso_cop ?? (Number(n.montoDivisa ?? n.monto_divisa ?? 0) * Number(n.tasaCambio ?? n.tasa ?? 0))), 0);
+      const dynamicDispersado = (snapshot.dispersiones || [])
+        .filter((d: any) => ((d.clienteId && d.clienteId === cId) || (d.cliente_id && d.cliente_id === cId) || (d.clienteCodigo && d.clienteCodigo === cCode)) && String(d.estado || '').toUpperCase() !== 'RECHAZADO')
+        .reduce((sum: number, d: any) => sum + Number(d.montoCop ?? d.monto_cop ?? d.monto ?? 0), 0);
+      const totalIngresos = Math.max(Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0), dynamicIngresos);
       const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
       const saldoPendiente = Number(c.pendienteCop ?? c.pendientePorPagarCop ?? c.saldoCop ?? (totalIngresos - totalDispersado));
       
