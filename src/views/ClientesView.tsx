@@ -4,8 +4,9 @@ import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCe
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAirtable } from '../context/AirtableContext';
-import { formatCOP } from '../utils/formatters';
+import { formatCOP, formatNumber } from '../utils/formatters';
 import { AddClienteModal } from '../components/modals/AddClienteModal';
+import { EditClienteModal } from '../components/modals/EditClienteModal';
 import { ShareClientModal } from '../components/modals/ShareClientModal';
 
 interface ClientesViewProps {
@@ -16,6 +17,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
   const { data } = useAirtable();
   const [search, setSearch] = useState('');
   const [sharingClient, setSharingClient] = useState<any | null>(null);
+  const [editingClient, setEditingClient] = useState<any | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -29,19 +31,38 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
   }, [data.clientes, search]);
 
   const getStatusBadge = (estado: string) => {
-    const norm = (estado || 'PENDIENTE').toUpperCase();
+    const norm = (estado || 'SIN ACTIVIDAD').toUpperCase();
+    if (norm.includes('ACTIVIDAD') || norm.includes('INACTIVO')) {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border/60">
+          SIN ACTIVIDAD
+        </span>
+      );
+    }
     if (norm.includes('PAGADO')) {
-      return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">PAGADO</span>;
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">
+          PAGADO
+        </span>
+      );
     }
     if (norm.includes('DEBE')) {
-      return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500">DEBE</span>;
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500">
+          DEBE
+        </span>
+      );
     }
-    return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500">PENDIENTE</span>;
+    return (
+      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500">
+        PENDIENTE
+      </span>
+    );
   };
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Top Header Row with Action Button (Like /efectivo) */}
+      {/* Top Header Row with Action Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
         <div>
           <h2 className="text-base font-bold text-foreground">Gestión de Clientes</h2>
@@ -76,8 +97,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
 
       <KpiStrip metrics={([
         ['Clientes', filteredClientes.length],
-        ['Ingresos COP', formatCOP(sumRows(filteredClientes, (c) => c.totalIngresosCOP))],
-        ['Dispersado COP', formatCOP(sumRows(filteredClientes, (c) => c.totalDispersadoCOP))],
+        ['Total Negocios', formatNumber(sumRows(filteredClientes, (c) => c.totalNegocios ?? 0))],
+        ['Total Pagado', formatCOP(sumRows(filteredClientes, (c) => c.totalDispersadoCOP))],
         ['Pendiente COP', formatCOP(sumRows(filteredClientes, (c) => c.saldoPendienteCOP))],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
@@ -89,8 +110,9 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
               <tr>
                 <th className="py-3 px-4">Cliente</th>
                 <th className="py-3 px-4">País</th>
-                <th className="py-3 px-4 text-right">Total Negocios</th>
-                <th className="py-3 px-4 text-right">Total Dispersado</th>
+                <th className="py-3 px-4 text-center">Nº Negocios</th>
+                <th className="py-3 px-4 text-right">Total Ingresos</th>
+                <th className="py-3 px-4 text-right">Total Pagado</th>
                 <th className="py-3 px-4 text-right">Saldo Pendiente</th>
                 <th className="py-3 px-4 text-center">Estado</th>
                 <th className="py-3 px-4 text-center">Acciones</th>
@@ -100,12 +122,12 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
             <tbody className="divide-y divide-border">
               {filteredClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     No se encontraron clientes
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={8} rows={filteredClientes}>{(c) => (
+                <PaginatedRows columns={9} rows={filteredClientes}>{(c) => (
                   <tr 
                     key={c.id} 
                     onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=dashboard`)}
@@ -123,6 +145,12 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
 
                     <td className="py-3 px-4 text-muted-foreground">{c.pais || 'Colombia'}</td>
                     
+                    <td className="py-3 px-4 text-center font-mono font-semibold">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-primary/10 text-primary">
+                        {formatNumber(c.totalNegocios ?? 0)}
+                      </span>
+                    </td>
+
                     <td className="py-3 px-4 text-right font-medium text-foreground">
                       {formatCOP(c.totalIngresosCOP)}
                     </td>
@@ -142,6 +170,15 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
+                          type="button"
+                          onClick={() => setEditingClient(c)}
+                          title="Editar cliente"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          <i className="ri-edit-line text-sm" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setSharingClient(c)}
                           title="Compartir enlace y mensaje de WhatsApp"
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
@@ -149,6 +186,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                           <i className="ri-share-forward-line text-sm" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=dashboard`)}
                           title="Ver estado de cuenta"
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -165,11 +203,22 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
           </table>
         </div>
       </div>
+
       {/* Add Cliente Modal */}
       <AddClienteModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
       />
+
+      {/* Edit Cliente Modal */}
+      {editingClient && (
+        <EditClienteModal
+          isOpen={Boolean(editingClient)}
+          cliente={editingClient}
+          onClose={() => setEditingClient(null)}
+        />
+      )}
+
       {/* Share Client WhatsApp & Portal Modal */}
       {sharingClient && (
         <ShareClientModal isOpen onClose={() => setSharingClient(null)} cliente={sharingClient} />

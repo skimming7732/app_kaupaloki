@@ -4,7 +4,7 @@ import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
 import { useAuth } from '../../context/AuthContext';
 import { DIVISAS, type Divisa } from '../../data/airtableData';
-import { fallbackBanderaUrl, formatCOP } from '../../utils/formatters';
+import { fallbackBanderaUrl, formatCOP, formatNumber } from '../../utils/formatters';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 
 export type EditableNegocio = NormalizedData['negocios'][number];
@@ -75,7 +75,9 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
   const [divisaCode, setDivisaCode] = useState(negocio?.divisaCodigo || '');
   const [monto, setMonto] = useState(() => negocio ? formatAmountInput(String(negocio.montoDivisa)) : '');
   const [tasa, setTasa] = useState(negocio ? formatAmountInput(String(negocio.tasaCambio)) : '');
-  const [fecha, setFecha] = useState(() => negocio ? negocio.fecha.slice(0, 10) : new Date().toISOString().slice(0, 10));
+  const getBogotaToday = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
+  const [fecha, setFecha] = useState(() => negocio ? negocio.fecha.slice(0, 10) : getBogotaToday());
+  const [showClientModal, setShowClientModal] = useState(false);
   const [authorId, setAuthorId] = useState('');
   const [authorSearch, setAuthorSearch] = useState('');
   const [currencyOpen, setCurrencyOpen] = useState(false);
@@ -104,6 +106,7 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
     ? data.divisas.filter((currency) => authorizedCurrencies.includes(currency.codigo))
     : data.divisas;
   const selectedCurrency = currencies.find((currency) => currency.codigo === divisaCode);
+  const selectedClient = data.clientes.find((client) => client.id === clienteId || client.codigo === clienteId);
   const authorName = negocio?.createdByName?.trim() ||
     (negocio?.createdBy && (data.usuarios.find((user) => user.id === negocio.createdBy)?.nombre || negocio.createdBy));
   const canAssignAuthor = Boolean(negocio && !authorName &&

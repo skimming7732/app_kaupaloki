@@ -1,6 +1,7 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface AddClienteModalProps {
   isOpen: boolean;
@@ -8,9 +9,10 @@ interface AddClienteModalProps {
 }
 
 export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClose }) => {
-  const { createRecord } = useAirtable();
+  const { createCliente } = useAirtable();
+  const { profile, user } = useAuth();
   const [nombre, setNombre] = useState('');
-  const [pais, setPais] = useState('Colombia');
+  const [pais, setPais] = useState('COLOMBIA');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,22 +27,16 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
 
     const finishSound = prepareSuccessSound();
     try {
-      const code = 'C-' + Math.floor(1000 + Math.random() * 9000);
-      const result = await createRecord('Clientes', {
-        'Nombre': nombre.trim(),
-        'Código': code,
-        'País': pais,
-        'Estado': 'Activo',
-        'Fecha de Registro': new Date().toISOString().split('T')[0]
-      });
+      const currentUserId = profile?.id || user?.id;
+      const result = await createCliente(nombre.trim(), pais, currentUserId);
       if (!result?.success) throw new Error('No se pudo guardar el cliente.');
       setNombre('');
       finishSound(true);
       onClose();
     } catch (err: any) {
+      finishSound(false);
       setError(err?.message || 'Error al crear cliente');
     } finally {
-      finishSound(false);
       setLoading(false);
     }
   };
@@ -58,7 +54,11 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
               <p className="text-xs text-muted-foreground">Registrar un nuevo cliente en Kaupaloki</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
+          >
             <i className="ri-close-line text-lg" />
           </button>
         </div>
@@ -90,14 +90,14 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
               onChange={(e) => setPais(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             >
-              <option value="Colombia">Colombia (COL)</option>
-              <option value="Venezuela">Venezuela (VEN)</option>
-              <option value="Panamá">Panamá (PAN)</option>
-              <option value="Estados Unidos">Estados Unidos (USA)</option>
-              <option value="Chile">Chile (CHL)</option>
-              <option value="Perú">Perú (PER)</option>
-              <option value="España">España (ESP)</option>
-              <option value="México">México (MEX)</option>
+              <option value="COLOMBIA">Colombia (COL)</option>
+              <option value="VENEZUELA">Venezuela (VEN)</option>
+              <option value="PANAMA">Panamá (PAN)</option>
+              <option value="ESTADOS UNIDOS">Estados Unidos (USA)</option>
+              <option value="CHILE">Chile (CHL)</option>
+              <option value="PERU">Perú (PER)</option>
+              <option value="ESPANA">España (ESP)</option>
+              <option value="MEXICO">México (MEX)</option>
             </select>
           </div>
 

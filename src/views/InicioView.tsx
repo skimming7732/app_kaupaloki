@@ -66,28 +66,30 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
   const activePoint = points[activeIdx] || points[points.length - 1];
 
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm transition-all" aria-labelledby="growth-heading">
+    <section className="h-full rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm transition-all flex flex-col justify-between" aria-labelledby="growth-heading">
       {/* Top Header Card Info */}
-      <div className="flex items-center justify-between pb-3">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/60 text-xs font-semibold text-foreground border border-border/50">
-          <i className="ri-calendar-line text-muted-foreground text-xs" />
-          <span>Últimas 8 semanas</span>
-        </span>
-        <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
-          <i className="ri-bar-chart-2-fill" />
-        </div>
-      </div>
-
-      {/* Main Metric */}
-      <div className="mt-2 mb-4">
-        <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
-          {formatNumber(total)}
-        </div>
-        <div className="flex items-center gap-2.5 mt-1">
-          <span className="text-xs font-medium text-muted-foreground">Registro de negocios autorizados</span>
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500">
-            <i className="ri-checkbox-circle-fill text-xs" /> En curso
+      <div>
+        <div className="flex items-center justify-between pb-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/60 text-xs font-semibold text-foreground border border-border/50">
+            <i className="ri-calendar-line text-muted-foreground text-xs" />
+            <span>Últimas 8 semanas</span>
           </span>
+          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+            <i className="ri-bar-chart-2-fill" />
+          </div>
+        </div>
+
+        {/* Main Metric */}
+        <div className="mt-2 mb-4">
+          <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
+            {formatNumber(total)}
+          </div>
+          <div className="flex items-center gap-2.5 mt-1">
+            <span className="text-xs font-medium text-muted-foreground">Registro de negocios autorizados</span>
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500">
+              <i className="ri-checkbox-circle-fill text-xs" /> En curso
+            </span>
+          </div>
         </div>
       </div>
 
@@ -105,11 +107,11 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
               <stop offset="100%" stopColor="#818cf8" />
             </linearGradient>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.28" />
+              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.22" />
               <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
             </linearGradient>
             <filter id="badgeShadow" x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#4f46e5" floodOpacity="0.3" />
+              <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#4f46e5" floodOpacity="0.25" />
             </filter>
           </defs>
 
@@ -121,7 +123,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
             d={linePath}
             fill="none"
             stroke="url(#lineGrad)"
-            strokeWidth="3.5"
+            strokeWidth="3.2"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -141,19 +143,27 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
             </g>
           ))}
 
-          {/* Active Highlight Node with Glow and Tooltip Badge */}
+          {/* Active Highlight Node matching user design */}
           {activePoint && (
             <g className="transition-all duration-200">
-              {/* Outer halo */}
-              <circle cx={activePoint.x} cy={activePoint.y} r="10" fill="#6366f1" opacity="0.25" />
-              {/* Inner dot */}
-              <circle cx={activePoint.x} cy={activePoint.y} r="5" fill="#ffffff" stroke="#4f46e5" strokeWidth="3" />
+              {/* Outer soft halo */}
+              <circle cx={activePoint.x} cy={activePoint.y} r="9" fill="#6366f1" opacity="0.2" />
+              {/* Inner hollow dot with vibrant purple border */}
+              <circle cx={activePoint.x} cy={activePoint.y} r="4.5" fill="#ffffff" stroke="#6366f1" strokeWidth="2.5" />
 
-              {/* Tooltip Pill directly above point */}
-              <g transform={`translate(${activePoint.x}, ${activePoint.y - 34})`} filter="url(#badgeShadow)">
-                <rect x="-40" y="-12" width="80" height="24" rx="7" fill="#4f46e5" />
-                <polygon points="-5,12 5,12 0,16" fill="#4f46e5" />
-                <text x="0" y="3.5" textAnchor="middle" fill="#ffffff" fontSize="10.5" fontWeight="700" fontFamily="monospace">
+              {/* Tooltip Pill directly above point with light clean font */}
+              <g transform={`translate(${activePoint.x}, ${activePoint.y - 32})`} filter="url(#badgeShadow)">
+                <rect x="-38" y="-11" width="76" height="22" rx="6" fill="#6366f1" />
+                <polygon points="-4,11 4,11 0,15" fill="#6366f1" />
+                <text
+                  x="0"
+                  y="3.5"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="11"
+                  fontWeight="500"
+                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                >
                   {counts[activeIdx]} {counts[activeIdx] === 1 ? 'negocio' : 'negocios'}
                 </text>
               </g>
@@ -162,7 +172,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
         </svg>
 
         {/* Horizontal Dates Axis */}
-        <div className="flex justify-between items-center px-1 sm:px-4 pt-1.5 border-t border-border/50">
+        <div className="flex justify-between items-center px-1 sm:px-4 pt-2 border-t border-border/50">
           {counts.map((_, i) => (
             <button
               key={i}
@@ -195,6 +205,7 @@ export const InicioView = () => {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 py-4">
+      {/* Top Banner */}
       <div className="relative isolate flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/15 via-card to-card p-5 shadow-sm sm:p-8">
         <div>
           <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
@@ -205,32 +216,96 @@ export const InicioView = () => {
         </div>
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-20 -right-12 -z-10 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="flex flex-wrap gap-2">
-          {canSeeNegocios && <Link to="/negocios" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Ver negocios</Link>}
-          <Link to="/clientes" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold">Ver clientes</Link>
+          {canSeeNegocios && <Link to="/negocios" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm">Ver negocios</Link>}
+          <Link to="/clientes" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted transition-colors">Ver clientes</Link>
         </div>
       </div>
 
-      {canSeeNegocios && <GrowthChart negocios={negocios} />}
+      {/* 75% Chart / 25% Stacked KPIs Layout */}
+      {canSeeNegocios ? (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
+          {/* Chart takes 75% of width */}
+          <div className="lg:col-span-3">
+            <GrowthChart negocios={negocios} />
+          </div>
 
-      <KpiStrip label="Indicadores de inicio" metrics={[
-        ...(canSeeNegocios ? [{ label: 'Negocios registrados', value: negocios.length, icon: 'ri-exchange-dollar-line' }] : []),
-        { label: 'Clientes registrados', value: data.clientes.length, icon: 'ri-team-line' },
-        { label: 'Divisas autorizadas', value: divisas.length, icon: 'ri-global-line' },
-      ]} />
+          {/* KPIs stacked vertically taking 25% of width */}
+          <div className="lg:col-span-1 flex flex-col justify-between gap-3">
+            <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Negocios registrados</span>
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm">
+                  <i className="ri-exchange-dollar-line" />
+                </div>
+              </div>
+              <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
+                {formatNumber(negocios.length)}
+              </div>
+              <span className="text-[11px] text-muted-foreground mt-0.5">Operaciones autorizadas</span>
+            </div>
 
+            <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Clientes registrados</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-sm">
+                  <i className="ri-team-line" />
+                </div>
+              </div>
+              <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
+                {formatNumber(data.clientes.length)}
+              </div>
+              <span className="text-[11px] text-muted-foreground mt-0.5">Cartera global</span>
+            </div>
+
+            <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Divisas autorizadas</span>
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-sm">
+                  <i className="ri-global-line" />
+                </div>
+              </div>
+              <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
+                {formatNumber(divisas.length)}
+              </div>
+              <span className="text-[11px] text-muted-foreground mt-0.5">Mercados activos</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <KpiStrip label="Indicadores de inicio" metrics={[
+          { label: 'Clientes registrados', value: data.clientes.length, icon: 'ri-team-line' },
+          { label: 'Divisas autorizadas', value: divisas.length, icon: 'ri-global-line' },
+        ]} />
+      )}
+
+      {/* Authorized Currencies */}
       <section className="rounded-2xl border border-border bg-card p-4 sm:p-6" aria-labelledby="currency-heading">
         <h2 id="currency-heading" className="mb-3 text-sm font-bold">Mis divisas autorizadas</h2>
-        {divisas.length ? <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {divisas.map((currency) => {
-            const flag = fallbackBanderaUrl[currency.codigo] || currency.banderaUrl;
-            return <li key={currency.id} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
-              {flag ? <img src={flag} alt="" className="h-3.5 w-5 rounded-sm object-cover"
-                onError={(event) => { event.currentTarget.hidden = true; }} /> : <i className="ri-global-line text-muted-foreground" aria-hidden="true" />}
-              <span className="shrink-0 font-mono text-xs font-semibold">{currency.codigo}</span>
-              <span className="truncate text-xs text-muted-foreground" title={currency.nombre}>{currency.nombre}</span>
-            </li>;
-          })}
-        </ul> : <p className="text-xs text-muted-foreground">No hay divisas disponibles para tu perfil.</p>}
+        {divisas.length ? (
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {divisas.map((currency) => {
+              const flag = fallbackBanderaUrl[currency.codigo] || currency.banderaUrl;
+              return (
+                <li key={currency.id} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
+                  {flag ? (
+                    <img
+                      src={flag}
+                      alt=""
+                      className="h-3.5 w-5 rounded-sm object-cover"
+                      onError={(event) => { event.currentTarget.hidden = true; }}
+                    />
+                  ) : (
+                    <i className="ri-global-line text-muted-foreground" aria-hidden="true" />
+                  )}
+                  <span className="shrink-0 font-mono text-xs font-semibold">{currency.codigo}</span>
+                  <span className="truncate text-xs text-muted-foreground" title={currency.nombre}>{currency.nombre}</span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground">No hay divisas disponibles para tu perfil.</p>
+        )}
       </section>
     </div>
   );

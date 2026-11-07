@@ -186,7 +186,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right font-semibold text-foreground">
-                      {formatCurrency(n.montoDivisa, n.divisaCodigo)}
+                      {formatNumber(n.montoDivisa, 2)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-muted-foreground">
                       ${formatRate(n.tasaCambio)}
