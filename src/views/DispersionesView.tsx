@@ -2,7 +2,7 @@ import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
-import { uploadReceipt } from '../utils/receipts';
+import { uploadReceipt, receiptAccept } from '../utils/receipts';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { supabase } from '../lib/supabase';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
@@ -32,6 +32,53 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<{ id: string; url?: string } | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Direct file upload without popup
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploadTarget, setUploadTarget] = useState<{ id: string; currentUrl?: string; append?: boolean } | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  const triggerDirectUpload = (id: string, currentUrl?: string, append = false) => {
+    setUploadTarget({ id, currentUrl, append });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFilePicked = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !uploadTarget) return;
+
+    setUploadingId(uploadTarget.id);
+    const finishSound = prepareSuccessSound();
+
+    try {
+      const newUrl = await uploadReceipt(file, 'dispersiones');
+      if (!newUrl) throw new Error('No se pudo subir el archivo.');
+
+      const finalUrl = uploadTarget.append && uploadTarget.currentUrl
+        ? `${uploadTarget.currentUrl},${newUrl}`
+        : newUrl;
+
+      const { error } = await supabase.from('dispersiones').update({
+        comprobante_url: finalUrl,
+        tiene_comprobante: Boolean(finalUrl),
+      }).eq('id', uploadTarget.id);
+
+      if (error) throw error;
+
+      await syncData();
+      finishSound(true);
+    } catch (err: any) {
+      console.error('Error al subir comprobante de dispersión:', err);
+      finishSound(false);
+      alert('Error al subir comprobante: ' + (err?.message || 'Inténtalo de nuevo.'));
+    } finally {
+      setUploadingId(null);
+      setUploadTarget(null);
+    }
+  };
 
   const filteredDispersiones = useMemo(() => {
     return data.dispersiones.filter((d) => {
@@ -287,6 +334,16 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
           onClose={() => setSelectedReceipt(null)}
         />
       )}
+
+      {/* Hidden file input for direct receipt uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={receiptAccept}
+        onChange={handleFilePicked}
+        className="hidden"
+        aria-hidden="true"
+      />
 
       {/* 9:16 Popup Lightbox with Copy, Download & Next/Previous Navigation */}
       {lightboxIndex !== null && (

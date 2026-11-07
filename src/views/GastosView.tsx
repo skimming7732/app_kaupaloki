@@ -6,7 +6,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
 import { getCategoryIcon } from '../components/common/CategorySearchSelect';
-import { uploadReceipt } from '../utils/receipts';
+import { uploadReceipt, receiptAccept } from '../utils/receipts';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { supabase } from '../lib/supabase';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
@@ -74,6 +74,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
     } catch (err) {
       console.error('Error al subir comprobante:', err);
       finishSound(false);
+      alert('Error al subir comprobante de gasto: ' + (err?.message || 'Inténtalo de nuevo.'));
     } finally {
       setUploadingId(null);
       setUploadTarget(null);
@@ -335,6 +336,16 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
           </table>
         </div>
       </div>
+      {/* Hidden file input for direct receipt uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={receiptAccept}
+        onChange={handleFilePicked}
+        className="hidden"
+        aria-hidden="true"
+      />
+
       {/* Add Gasto Modal */}
       {attachingTo && <AttachExpenseReceipt expenseId={attachingTo.id} currentReceipt={attachingTo.url} onClose={() => setAttachingTo(null)} onSaved={syncData} />}
       {editing && <AddGastoModal isOpen record={editing} onClose={() => setEditing(null)} />}
