@@ -1,6 +1,7 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
+import { useAuth } from '../../context/AuthContext';
 import { formatNumber } from '../../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
@@ -15,7 +16,9 @@ export const AddComisionistaModal = ({ isOpen, onClose, record }: AddComisionist
   isOpen ? <ComisionistaForm key={record?.id ?? 'new'} onClose={onClose} record={record} /> : null;
 
 const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, 'isOpen'>) => {
-  const { data, saveComisionista } = useAirtable();
+  const { data, saveComisionista, deleteComisionista } = useAirtable();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [comisionistaId, setComisionistaId] = useState(record?.comisionistaId || '');
   const [selectedReferidos, setSelectedReferidos] = useState<string[]>(record?.comisionaDeIds ?? []);
   const [porcentaje, setPorcentaje] = useState(record ? formatNumber(record.porcentajeComision * 100, 0, 10) : '1');
@@ -27,6 +30,22 @@ const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, '
       setSelectedReferidos(selectedReferidos.filter((r) => r !== id));
     } else {
       setSelectedReferidos([...selectedReferidos, id]);
+    }
+  };
+
+    const handleDelete = async () => {
+    if (!record) return;
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este comisionista?')) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const ok = await deleteComisionista(record.id);
+      if (ok) onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Error al eliminar comisionista');
+      setLoading(false);
     }
   };
 
@@ -167,23 +186,38 @@ const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, '
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !comisionistaId}
-              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-md shadow-primary/20 hover:opacity-95 disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>{record ? 'Guardar cambios' : 'Registrar comisionista'}</span>
-            </button>
+          <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+            <div>
+              {record && isAdmin && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                >
+                  <i className="ri-delete-bin-line" />
+                  <span>Eliminar comisionista</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !comisionistaId}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-md shadow-primary/20 hover:opacity-95 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {loading && <i className="ri-loader-4-line animate-spin" />}
+                <span>{record ? 'Guardar cambios' : 'Registrar comisionista'}</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>

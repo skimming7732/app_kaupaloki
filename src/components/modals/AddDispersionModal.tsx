@@ -4,6 +4,8 @@ import { uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useEffect, useId, useState } from 'react';
 import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
+import { useAuth } from '../../context/AuthContext';
+import { formatCOP } from '../../utils/formatters';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 import { supabase } from '../../lib/supabase';
 import { AccountSelect, accountLabel, type Account } from './AccountSelect';
@@ -19,7 +21,9 @@ export const AddDispersionModal = ({ isOpen, onClose, record }: AddDispersionMod
   isOpen ? <DispersionForm key={record?.id} onClose={onClose} record={record} /> : null;
 
 const DispersionForm = ({ onClose, record }: Pick<AddDispersionModalProps, 'onClose' | 'record'>) => {
-  const { data, createDispersion, updateDispersion } = useAirtable();
+  const { data, createDispersion, updateDispersion, deleteDispersion } = useAirtable();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const clientInputId = useId();
   const [clienteId, setClienteId] = useState(record?.clienteId || '');
   const [accountId, setAccountId] = useState(record?.origenFondosId || '');
@@ -39,6 +43,22 @@ const DispersionForm = ({ onClose, record }: Pick<AddDispersionModalProps, 'onCl
     });
     return () => { active = false; };
   }, []);
+
+    const handleDelete = async () => {
+    if (!record) return;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar esta dispersión por ${formatCOP(record.monto)}?`)) {
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const ok = await deleteDispersion(record.id);
+      if (ok) onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Error al eliminar la dispersión.');
+      setBusy(false);
+    }
+  };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -101,7 +121,7 @@ const DispersionForm = ({ onClose, record }: Pick<AddDispersionModalProps, 'onCl
           </label>
           {!record && <ReceiptInput />}
         </fieldset>
-        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar dispersión"} onClose={onClose} />
+        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar dispersión"} onClose={onClose} onDelete={record && isAdmin ? handleDelete : undefined} deleteLabel="Eliminar dispersión" />
       </form>
     </RecordDialog>
   );

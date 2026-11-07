@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { formatCurrency } from '../../utils/formatters';
 import { accountOptionLabel, type Account } from './AccountSelect';
 import { useAirtable, type CatalogTable } from '../../context/AirtableContext';
+import { useAuth } from '../../context/AuthContext';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 
 type Option = { value: string; label: string };
@@ -16,7 +17,9 @@ const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota
 type CatalogEdit = { id: string; fields: Record<string, string | number>; historical: boolean };
 
 export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: CatalogEdit }) => {
-  const { data, createCatalogRecord } = useAirtable();
+  const { data, createCatalogRecord, deleteCatalogRecord } = useAirtable();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -99,6 +102,23 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   } : base;
   const showBalance = (isPurchase || isSale) && !edit?.historical;
   const onClose = () => setOpen(false);
+
+    const handleDelete = async () => {
+    if (!edit) return;
+    const itemLabel = isPurchase ? 'esta compra de USDT' : isSale ? 'esta venta de USDT' : 'este registro';
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar ${itemLabel}?`)) {
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const ok = await deleteCatalogRecord(table, edit.id);
+      if (ok) onClose();
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el registro.');
+      setBusy(false);
+    }
+  };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -210,7 +230,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
                 </label>
               ))}
             </fieldset>
-            <RecordActions submitDisabled={exceedsBalance} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} />
+            <RecordActions submitDisabled={exceedsBalance} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && isAdmin ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
           </form>
         </RecordDialog>
       )}

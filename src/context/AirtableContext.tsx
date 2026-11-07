@@ -229,6 +229,11 @@ interface AirtableContextType {
   createNegocio: (payload: any) => Promise<boolean>;
   updateNegocio: (payload: any) => Promise<boolean>;
   deleteNegocio: (id: string) => Promise<boolean>;
+  deleteCliente: (id: string) => Promise<boolean>;
+  deleteDispersion: (id: string) => Promise<boolean>;
+  deleteGasto: (id: string) => Promise<boolean>;
+  deleteComisionista: (id: string) => Promise<boolean>;
+  deleteCatalogRecord: (table: CatalogTable, id: string) => Promise<boolean>;
   updateRateUsdt: (rate: number) => Promise<boolean>;
   createDispersion: (payload: any) => Promise<boolean>;
   updateDispersion: (payload: any) => Promise<boolean>;
@@ -1020,7 +1025,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-    const deleteNegocio = async (id: string): Promise<boolean> => {
+  const deleteNegocio = async (id: string): Promise<boolean> => {
     try {
       const { error } = await supabase.from('negocios').delete().eq('id', id);
       if (error) throw error;
@@ -1029,6 +1034,67 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (err) {
       console.error('Error deleting negocio in Supabase:', err);
       throw dashboardWriteError(err, 'No se pudo eliminar el negocio.');
+    }
+  };
+
+  const deleteCliente = async (id: string): Promise<boolean> => {
+    try {
+      await supabase.from('client_shared_links').delete().eq('client_id', id);
+      const { error } = await supabase.from('clientes').delete().eq('id', id);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error('Error deleting cliente in Supabase:', err);
+      throw dashboardWriteError(err, 'No se pudo eliminar el cliente.');
+    }
+  };
+
+  const deleteDispersion = async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('dispersiones').delete().eq('id', id);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error('Error deleting dispersion in Supabase:', err);
+      throw dashboardWriteError(err, 'No se pudo eliminar la dispersión.');
+    }
+  };
+
+  const deleteGasto = async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('gastos').delete().eq('id', id);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error('Error deleting gasto in Supabase:', err);
+      throw dashboardWriteError(err, 'No se pudo eliminar el gasto.');
+    }
+  };
+
+  const deleteComisionista = async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('comisionistas').delete().eq('id', id);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error('Error deleting comisionista in Supabase:', err);
+      throw dashboardWriteError(err, 'No se pudo eliminar el comisionista.');
+    }
+  };
+
+  const deleteCatalogRecord = async (table: CatalogTable, id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error(`Error deleting from ${table} in Supabase:`, err);
+      throw dashboardWriteError(err, 'No se pudo eliminar el registro.');
     }
   };
 
@@ -1509,6 +1575,14 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         createMovimientoEfectivo,
         createGasto,
         createCliente,
+        updateCliente,
+        deleteNegocio,
+        deleteCliente,
+        deleteDispersion,
+        deleteGasto,
+        deleteComisionista,
+        deleteCatalogRecord,
+        updateRateUsdt,
         saveComisionista,
         deleteUser,
         sendUserInvite,

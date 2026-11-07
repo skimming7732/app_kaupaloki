@@ -1,6 +1,7 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState, useEffect } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
+import { useAuth } from '../../context/AuthContext';
 import type { AirtableUser } from '../../context/AirtableContext';
 
 interface EditUserModalProps {
@@ -10,7 +11,9 @@ interface EditUserModalProps {
 }
 
 export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose }) => {
-  const { data, updateRecord } = useAirtable();
+  const { data, updateRecord, deleteUser } = useAirtable();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [nombre, setNombre] = useState('');
   const [rol, setRol] = useState('operador');
   const [pais, setPais] = useState('Colombia');
@@ -36,6 +39,27 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
       setDivisas(divisas.filter(d => d !== divisaCode));
     } else {
       setDivisas([...divisas, divisaCode]);
+    }
+  };
+
+    const handleDelete = async () => {
+    if (!user) return;
+    if (user.id === profile?.id) {
+      setError('No puedes eliminar tu propia cuenta.');
+      return;
+    }
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar al usuario "${user.nombre}" (${user.correo})?`)) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await deleteUser(user.id);
+      if (res.success) onClose();
+      else setError(res.error || 'Error al eliminar usuario.');
+    } catch (err: any) {
+      setError(err?.message || 'Error al eliminar usuario.');
+      setLoading(false);
     }
   };
 
@@ -174,23 +198,38 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
             </>}
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/25 flex items-center gap-2"
-            >
-              {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>Guardar Cambios</span>
-            </button>
+          <div className="flex items-center justify-between gap-3 pt-4 border-t border-border mt-6">
+            <div>
+              {isAdmin && user.id !== profile?.id && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                >
+                  <i className="ri-delete-bin-line" />
+                  <span>Eliminar usuario</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/25 flex items-center gap-2"
+              >
+                {loading && <i className="ri-loader-4-line animate-spin" />}
+                <span>Guardar Cambios</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>

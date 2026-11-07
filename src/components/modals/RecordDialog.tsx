@@ -52,9 +52,44 @@ export const RecordDialog = ({ title, description, icon, busy, error, onClose, c
   );
 };
 
-export const RecordActions = ({ busy, label, onClose, submitDisabled }: { busy: boolean; label: string; onClose: () => void; submitDisabled?: boolean }) => (
-  <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
-    <button type="button" onClick={onClose} disabled={busy} className="min-h-11 rounded-xl px-4 text-sm font-medium text-muted-foreground hover:bg-muted">Cancelar</button>
-    <button type="submit" disabled={busy || submitDisabled} className={recordButtonClass}>{busy ? 'Guardando…' : label}</button>
+export const RecordActions = ({
+  busy,
+  label,
+  onClose,
+  submitDisabled,
+  onDelete,
+  deleteLabel = 'Eliminar',
+  isDeleting = false,
+}: {
+  busy: boolean;
+  label: string;
+  onClose: () => void;
+  submitDisabled?: boolean;
+  onDelete?: () => void;
+  deleteLabel?: string;
+  isDeleting?: boolean;
+}) => (
+  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+    <div>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={busy || isDeleting}
+          className="min-h-11 rounded-xl px-4 text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+        >
+          {isDeleting ? <i className="ri-loader-4-line animate-spin" /> : <i className="ri-delete-bin-line" />}
+          <span>{deleteLabel}</span>
+        </button>
+      )}
+    </div>
+    <div className="flex items-center gap-2">
+      <button type="button" onClick={onClose} disabled={busy || isDeleting} className="min-h-11 rounded-xl px-4 text-sm font-medium text-muted-foreground hover:bg-muted">
+        Cancelar
+      </button>
+      <button type="submit" disabled={busy || isDeleting || submitDisabled} className={recordButtonClass}>
+        {busy ? 'Guardando…' : label}
+      </button>
+    </div>
   </div>
 );

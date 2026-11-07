@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
+import { useAuth } from '../../context/AuthContext';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 
 interface EditClienteModalProps {
@@ -9,7 +10,9 @@ interface EditClienteModalProps {
 }
 
 export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isOpen, onClose }) => {
-  const { data, updateCliente } = useAirtable();
+  const { data, updateCliente, deleteCliente } = useAirtable();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [nombre, setNombre] = useState(() => cliente?.nombre || '');
   const [pais, setPais] = useState(() => cliente?.pais || 'COLOMBIA');
   const [authorId, setAuthorId] = useState(() => cliente?.createdBy || '');
@@ -18,6 +21,22 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen || !cliente) return null;
+
+    const handleDelete = async () => {
+    if (!cliente) return;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar al cliente "${cliente.nombre}" (${cliente.codigo})? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const ok = await deleteCliente(cliente.id);
+      if (ok) onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Error al eliminar el cliente.');
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,23 +166,38 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !nombre.trim()}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/25 flex items-center gap-2"
-            >
-              {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>Guardar Cambios</span>
-            </button>
+          <div className="flex items-center justify-between gap-3 pt-4 border-t border-border mt-6">
+            <div>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                >
+                  <i className="ri-delete-bin-line" />
+                  <span>Eliminar cliente</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !nombre.trim()}
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md shadow-primary/25 flex items-center gap-2"
+              >
+                {loading && <i className="ri-loader-4-line animate-spin" />}
+                <span>Guardar Cambios</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>

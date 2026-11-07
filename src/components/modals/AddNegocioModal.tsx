@@ -415,11 +415,26 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
             </output>
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
-            <button type="button" onClick={onClose} disabled={saving} className={secondaryClass}>Cancelar</button>
-            <button type="submit" disabled={saving || !canSubmit} className={primaryClass}>
-              {saving ? 'Guardando…' : negocio ? 'Guardar cambios' : 'Registrar negocio'}
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+            <div>
+              {negocio && isAdmin && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={saving}
+                  className="min-h-11 rounded-xl px-4 text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                >
+                  <i className="ri-delete-bin-line" />
+                  <span>Eliminar negocio</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={onClose} disabled={saving} className={secondaryClass}>Cancelar</button>
+              <button type="submit" disabled={saving || !canSubmit} className={primaryClass}>
+                {saving ? 'Guardando…' : negocio ? 'Guardar cambios' : 'Registrar negocio'}
+              </button>
+            </div>
           </div>
         </form>
       )}

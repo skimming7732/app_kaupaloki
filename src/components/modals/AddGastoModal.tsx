@@ -4,6 +4,7 @@ import { uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useAirtable, type GastoItem } from '../../context/AirtableContext';
+import { useAuth } from '../../context/AuthContext';
 import { AccountSelect, accountLabel } from './AccountSelect';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
 
@@ -23,12 +24,30 @@ export const AddGastoModal = ({ isOpen, onClose, record }: AddGastoModalProps) =
   isOpen ? <GastoForm key={record?.id} onClose={onClose} record={record} /> : null;
 
 const GastoForm = ({ onClose, record }: Pick<AddGastoModalProps, 'onClose' | 'record'>) => {
-  const { data, createGasto, updateGasto } = useAirtable();
+  const { data, createGasto, updateGasto, deleteGasto } = useAirtable();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [divisa, setDivisa] = useState<string>(record?.divisa || 'COP');
   const [accountId, setAccountId] = useState(record?.origenFondosId || '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const accounts = divisa === 'COP' ? data.activosLiquidos : data.activosDigitales;
+
+    const handleDelete = async () => {
+    if (!record) return;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el gasto "${record.concepto}"?`)) {
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const ok = await deleteGasto(record.id);
+      if (ok) onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Error al eliminar el gasto.');
+      setBusy(false);
+    }
+  };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -97,7 +116,7 @@ const GastoForm = ({ onClose, record }: Pick<AddGastoModalProps, 'onClose' | 're
           </label>
           {!record && <ReceiptInput />}
         </fieldset>
-        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar gasto"} onClose={onClose} />
+        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar gasto"} onClose={onClose} onDelete={record && isAdmin ? handleDelete : undefined} deleteLabel="Eliminar gasto" />
       </form>
     </RecordDialog>
   );
