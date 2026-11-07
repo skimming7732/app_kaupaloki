@@ -588,19 +588,24 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const dynamicDispersado = (snapshot.dispersiones || [])
         .filter((d: any) => ((d.clienteId && d.clienteId === cId) || (d.cliente_id && d.cliente_id === cId) || (d.clienteCodigo && d.clienteCodigo === cCode)) && String(d.estado || '').toUpperCase() !== 'RECHAZADO')
         .reduce((sum: number, d: any) => sum + Number(d.montoCop ?? d.monto_cop ?? d.monto ?? 0), 0);
+      const dynamicNegociosCount = (snapshot.negocios || [])
+        .filter((n: any) => (n.clienteId && n.clienteId === cId) || (n.cliente_id && n.cliente_id === cId) || (n.clienteCodigo && n.clienteCodigo === cCode))
+        .length;
+      const totalNegocios = Math.max(Number(c.totalNegocios || c.total_negocios || 0), dynamicNegociosCount);
       const totalIngresos = Math.max(Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0), dynamicIngresos);
       const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
       const saldoPendiente = Number(c.pendienteCop ?? c.pendientePorPagarCop ?? c.saldoCop ?? (totalIngresos - totalDispersado));
       
-      let estado = c.estado || 'PENDIENTE';
+      let estado = c.estado || 'SIN ACTIVIDAD';
       if (typeof estado === 'string') {
         const up = estado.toUpperCase();
-        if (up.includes('PAGADO')) estado = 'PAGADO';
+        if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = 'SIN ACTIVIDAD';
+        else if (up.includes('PAGADO')) estado = 'PAGADO';
         else if (up.includes('DEBE')) estado = 'DEBE';
+        else if (totalIngresos === 0 && totalDispersado === 0) estado = 'SIN ACTIVIDAD';
         else estado = 'PENDIENTE';
       }
 
-      // Display the full {CLIENTE} column text as requested
       const fullCode = c.codigo || c.idCliente || c.cliente || c['CLIENTE'] || c.nombre || 'C-000';
 
       const rawDispersionesIds = c.dispersionesIds || c.fields?.['DISPERSIONES'] || c['DISPERSIONES'] || [];
