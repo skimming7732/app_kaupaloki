@@ -2,6 +2,9 @@ import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
+import { uploadReceipt } from '../utils/receipts';
+import { prepareSuccessSound } from '../utils/confirmationSound';
+import { supabase } from '../lib/supabase';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -49,15 +52,21 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
 
   // Dispersiones with receipts for the lightbox gallery
   const receiptsList: LightboxItem[] = useMemo(() => {
-    return filteredDispersiones
-      .filter((d) => Boolean(d.comprobanteUrl))
-      .map((d) => ({
-        id: d.id,
-        codigo: d.codigo,
-        clienteNombre: d.clienteNombre,
-        monto: d.monto,
-        comprobanteUrl: d.comprobanteUrl || '',
-      }));
+    const list: LightboxItem[] = [];
+    filteredDispersiones.forEach((d) => {
+      if (!d.comprobanteUrl) return;
+      const urls = d.comprobanteUrl.split(',').map((u) => u.trim()).filter(Boolean);
+      urls.forEach((url, i) => {
+        list.push({
+          id: `${d.id}-${i}`,
+          codigo: urls.length > 1 ? `${d.codigo} (#${i + 1})` : d.codigo,
+          clienteNombre: d.clienteNombre,
+          monto: d.monto,
+          comprobanteUrl: url,
+        });
+      });
+    });
+    return list;
   }, [filteredDispersiones]);
 
   return (
@@ -174,38 +183,62 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                     </td>
                     <td className="py-2.5 px-4 font-mono text-muted-foreground whitespace-nowrap">{d.referencia || '—'}</td>
 
-                    {/* Uniform 9:16 Receipt Cell */}
+                    {/* Uniform 9:16 Receipt Cell with direct file upload and '+' button */}
                     <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                      {d.comprobanteUrl ? (
+                      {uploadingId === d.id ? (
+                        <div className="flex items-center justify-center gap-1 h-10 text-[11px] text-primary font-medium">
+                          <i className="ri-loader-4-line animate-spin text-sm" />
+                          <span>Subiendo…</span>
+                        </div>
+                      ) : d.comprobanteUrl ? (
                         <div className="flex items-center justify-center gap-1.5 h-10">
+                          {/* Thumbnails (split by comma if multiple) */}
+                          <div className="flex items-center gap-1 max-w-[120px] overflow-x-auto">
+                            {d.comprobanteUrl.split(',').map((u) => u.trim()).filter(Boolean).map((singleUrl, rIdx) => (
+                              <button
+                                key={rIdx}
+                                type="button"
+                                onClick={() => {
+                                  const idx = receiptsList.findIndex((item) => item.comprobanteUrl === singleUrl);
+                                  if (idx !== -1) setLightboxIndex(idx);
+                                }}
+                                title="Ver comprobante en formato 9:16"
+                                className="group relative h-10 w-6 shrink-0 overflow-hidden rounded-md border border-border/80 shadow-xs hover:ring-2 hover:ring-primary transition-all bg-muted"
+                                style={{ aspectRatio: '9/16' }}
+                              >
+                                <ReceiptThumbnail receipt={singleUrl} />
+                                <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] transition-opacity">
+                                  <i className="ri-zoom-in-line" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Direct Edit / Replace icon (opens file picker directly) */}
                           <button
                             type="button"
-                            onClick={() => {
-                              const idx = receiptsList.findIndex((item) => item.id === d.id);
-                              if (idx !== -1) setLightboxIndex(idx);
-                            }}
-                            title="Ver comprobante en formato 9:16"
-                            className="group relative h-10 w-6 shrink-0 overflow-hidden rounded-md border border-border/80 shadow-xs hover:ring-2 hover:ring-primary transition-all bg-muted"
-                            style={{ aspectRatio: '9/16' }}
-                          >
-                            <ReceiptThumbnail receipt={d.comprobanteUrl} />
-                            <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] transition-opacity">
-                              <i className="ri-zoom-in-line" />
-                            </div>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedReceipt({ id: d.id, url: d.comprobanteUrl })}
-                            title="Editar comprobante"
+                            onClick={() => triggerDirectUpload(d.id, undefined, false)}
+                            title="Reemplazar comprobante (directo a archivos)"
                             className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           >
                             <i className="ri-pencil-line text-xs" />
+                          </button>
+
+                          {/* Direct '+' icon to append another receipt */}
+                          <button
+                            type="button"
+                            onClick={() => triggerDirectUpload(d.id, d.comprobanteUrl, true)}
+                            title="Añadir otro comprobante (directo a archivos)"
+                            className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <i className="ri-add-line text-xs font-bold" />
                           </button>
                         </div>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setSelectedReceipt({ id: d.id, url: undefined })}
+                          onClick={() => triggerDirectUpload(d.id, undefined, false)}
+                          title="Subir comprobante (directo a archivos)"
                           className="h-10 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-muted"
                         >
                           <i className="ri-upload-cloud-line text-xs" />

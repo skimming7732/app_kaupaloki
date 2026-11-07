@@ -101,7 +101,7 @@ const AppLayout: React.FC<{
       <AddClienteModal isOpen={activeModal === 'add-cliente'} onClose={() => setActiveModal(null)} />
       <AddDispersionModal isOpen={activeModal === 'add-dispersion'} onClose={() => setActiveModal(null)} />
       <AddEfectivoModal isOpen={activeModal === 'add-efectivo'} onClose={() => setActiveModal(null)} />
-      <AddGastoModal isOpen={activeModal === 'add-gasto'} onClose={() => setActiveModal(null)} />
+      <AddGastoModal isOpen={activeModal === 'add-gasto' || activeModal === 'add-gasto-efectivo'} isCashContext={activeModal === 'add-gasto-efectivo'} onClose={() => setActiveModal(null)} />
       <AddUserModal isOpen={activeModal === 'add-user'} onClose={() => setActiveModal(null)} />
     </div>
   );
@@ -176,7 +176,7 @@ export const App: React.FC = () => {
               element={renderWithLayout(
                 <EfectivoView
                   onOpenAddMovimiento={() => setActiveModal('add-efectivo')}
-                  onOpenAddGasto={() => setActiveModal('add-gasto')}
+                  onOpenAddGasto={() => setActiveModal('add-gasto-efectivo')}
                 />,
                 ['super_admin', 'administrador']
               )}

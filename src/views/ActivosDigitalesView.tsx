@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { PaginatedRows } from '../components/common/PaginatedRows';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useMemo } from 'react';
@@ -17,10 +18,34 @@ export const ActivosDigitalesView: React.FC = () => {
 
   const wallets = data.activosDigitales || [];
 
+  // Statement (Extracto) mode and filters state
+  const [balanceMode, setBalanceMode] = React.useState<'contable' | 'real'>('contable');
+  const [movSearch, setMovSearch] = React.useState('');
+  const [fechaDesde, setFechaDesde] = React.useState('');
+  const [fechaHasta, setFechaHasta] = React.useState('');
+  const [tipoFilter, setTipoFilter] = React.useState<'todos' | 'entradas' | 'salidas'>('todos');
+
   const selectedWallet = useMemo(() => {
     if (!selectedWalletId) return null;
     return wallets.find((w: any) => w.id === selectedWalletId) || null;
   }, [wallets, selectedWalletId]);
+
+  // Filtered movements for statement with filters BEFORE table
+  const filteredMovimientos = useMemo(() => {
+    const movs = selectedWallet?.movimientos || [];
+    return movs.filter((m: any) => {
+      const matchSearch = !movSearch ||
+        (m.concepto && m.concepto.toLowerCase().includes(movSearch.toLowerCase())) ||
+        (m.origen && m.origen.toLowerCase().includes(movSearch.toLowerCase())) ||
+        (m.createdByName && m.createdByName.toLowerCase().includes(movSearch.toLowerCase()));
+      const matchFecha = matchesDateRange(m.fecha, fechaDesde, fechaHasta);
+      const matchTipo =
+        tipoFilter === 'todos' ||
+        (tipoFilter === 'entradas' && (m.monto || 0) > 0) ||
+        (tipoFilter === 'salidas' && (m.monto || 0) < 0);
+      return matchSearch && matchFecha && matchTipo;
+    });
+  }, [selectedWallet?.movimientos, movSearch, fechaDesde, fechaHasta, tipoFilter]);
 
   const totalSaldoRealUsdt = useMemo(() => {
     return wallets.reduce((acc: number, w: any) => acc + (w.saldoReal ?? w.saldoUsdt ?? 0), 0);
@@ -143,39 +168,95 @@ export const ActivosDigitalesView: React.FC = () => {
           >
             <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
 
-            {/* Balances Row: Saldo Contable, Saldo Real, Saldo Total */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 border-b border-white/10 relative z-10">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-1 flex items-center gap-1.5">
-                  <i className="ri-coin-line text-emerald-400" />
+            {/* Mode Switch: Contable vs Real Blockchain */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-white/10 relative z-10">
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-black/25 backdrop-blur-md border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setBalanceMode('contable')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    balanceMode === 'contable'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  <i className="ri-booklet-line text-sm" />
                   <span>Saldo Contable</span>
-                </div>
-                <div className="text-3xl font-extrabold font-mono tracking-tight text-white">
-                  {formatUSD(selectedWallet.saldoUsdt || 0)}
-                </div>
-                <span className="text-xs text-emerald-200/70 block mt-1">Registrado en contabilidad interna</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBalanceMode('real')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    balanceMode === 'real'
+                      ? 'bg-cyan-400 text-slate-950 shadow-sm'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  <i className="ri-shield-check-line text-sm" />
+                  <span>Saldo Real (TronLink / Tronscan)</span>
+                </button>
               </div>
 
+              {/* Reference compare badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-xs">
+                {balanceMode === 'contable' ? (
+                  <>
+                    <span className="text-slate-300">Saldo Real On-Chain:</span>
+                    <strong className="font-mono text-cyan-300">{formatUSD(selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0)}</strong>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-slate-300">Saldo Contable Interno:</span>
+                    <strong className="font-mono text-white">{formatUSD(selectedWallet.saldoUsdt || 0)}</strong>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Balances Row dynamically reacting to mode */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-white/10 relative z-10">
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-300 mb-1 flex items-center gap-1.5">
-                  <i className="ri-shield-check-line text-cyan-400" />
-                  <span>Saldo Real (En Cadena)</span>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-1 flex items-center gap-1.5">
+                  <i className={balanceMode === 'contable' ? "ri-coin-line text-emerald-400" : "ri-shield-check-line text-cyan-400"} />
+                  <span>{balanceMode === 'contable' ? 'Saldo Contable USDT' : 'Saldo Real Blockchain (TRON)'}</span>
                 </div>
-                <div className="text-3xl font-extrabold font-mono tracking-tight text-cyan-300">
-                  {formatUSD(selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0)}
+                <div className={`text-3xl sm:text-4xl font-extrabold font-mono tracking-tight ${balanceMode === 'contable' ? 'text-white' : 'text-cyan-300'}`}>
+                  {formatUSD(balanceMode === 'contable' ? (selectedWallet.saldoUsdt || 0) : (selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0))}
                 </div>
-                <span className="text-xs text-cyan-200/70 block mt-1">Confirmado en Tronscan</span>
+                <span className="text-xs text-emerald-200/70 block mt-1">
+                  {balanceMode === 'contable' ? 'Registrado en contabilidad interna Kaupaloki' : 'Confirmado en red TRON (TRC20) Tronscan'}
+                </span>
               </div>
 
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1 flex items-center gap-1.5">
-                  <i className="ri-wallet-line text-slate-300" />
-                  <span>Total USDT</span>
+                  <i className="ri-scales-line text-amber-300" />
+                  <span>{balanceMode === 'contable' ? 'Referencia Saldo Real' : 'Referencia Saldo Contable'}</span>
                 </div>
-                <div className="text-3xl font-extrabold font-mono tracking-tight text-slate-200">
-                  {formatUSD(selectedWallet.saldoUsdt || 0)}
+                <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-slate-200">
+                  {formatUSD(balanceMode === 'contable' ? (selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0) : (selectedWallet.saldoUsdt || 0))}
                 </div>
-                <span className="text-xs text-slate-300/70 block mt-1">Unidades USDT disponibles</span>
+                <span className="text-xs text-slate-300/80 block mt-1 flex items-center gap-1.5">
+                  <i className="ri-checkbox-circle-fill text-emerald-400" />
+                  <span>
+                    {Math.abs((selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0) - (selectedWallet.saldoUsdt || 0)) === 0
+                      ? 'Sin descuadre (Diferencia: $0.00 USDT)'
+                      : `Diferencia: ${formatUSD((selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0) - (selectedWallet.saldoUsdt || 0))}`}
+                  </span>
+                </span>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-300 mb-1 flex items-center gap-1.5">
+                  <i className="ri-wallet-3-line text-cyan-400" />
+                  <span>Liquidez en COP (Tasa Tesorería)</span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-cyan-200">
+                  {formatCOP((balanceMode === 'contable' ? (selectedWallet.saldoUsdt || 0) : (selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0)) * (selectedWallet.rateFinal || 3950))}
+                </div>
+                <span className="text-xs text-cyan-200/70 block mt-1 font-mono">
+                  Tasa: ${selectedWallet.rateFinal || 3950} COP / USDT
+                </span>
               </div>
             </div>
 
@@ -236,8 +317,55 @@ export const ActivosDigitalesView: React.FC = () => {
                 </h3>
               </div>
               <span className="text-xs font-mono text-muted-foreground">
-                {formatNumber((selectedWallet.movimientos || []).length)} registros
+                {formatNumber(filteredMovimientos.length)} de {formatNumber((selectedWallet.movimientos || []).length)} registros
               </span>
+            </div>
+
+            {/* Filter Toolbar placed strictly BEFORE the table */}
+            <div className="p-3.5 bg-muted/20 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2.5 flex-1">
+                {/* Search */}
+                <div className="relative w-full sm:w-64">
+                  <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+                  <input
+                    type="text"
+                    value={movSearch}
+                    onChange={(e) => setMovSearch(e.target.value)}
+                    placeholder="Buscar por concepto o hash..."
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+                  />
+                </div>
+
+                {/* Date range filter */}
+                <div className="flex items-center gap-2">
+                  <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+                </div>
+              </div>
+
+              {/* Type filter tabs */}
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-muted border border-border text-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setTipoFilter('todos')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-colors ${tipoFilter === 'todos' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoFilter('entradas')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-colors ${tipoFilter === 'entradas' ? 'bg-card text-emerald-500 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Ingresos (+)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoFilter('salidas')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-colors ${tipoFilter === 'salidas' ? 'bg-card text-rose-500 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Egresos (-)
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -253,14 +381,14 @@ export const ActivosDigitalesView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {(!selectedWallet.movimientos || selectedWallet.movimientos.length === 0) ? (
+                  {filteredMovimientos.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                        No hay movimientos registrados para esta billetera
+                        No hay movimientos que coincidan con los filtros aplicados
                       </td>
                     </tr>
                   ) : (
-                    <PaginatedRows columns={6} rows={selectedWallet.movimientos} getDate={(movement) => movement.fecha}>{(m: any, idx: number) => {
+                    <PaginatedRows columns={6} rows={filteredMovimientos}>{(m: any, idx: number) => {
                       const isPositive = (m.monto || 0) > 0;
                       return (
                         <tr key={idx} className="hover:bg-muted/30 transition-colors">

@@ -213,6 +213,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       <AddGastoModal
         isOpen={isAddGastoOpen}
         onClose={() => setIsAddGastoOpen(false)}
+        isCashContext={true}
       />
     </div>
   );

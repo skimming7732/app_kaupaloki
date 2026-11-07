@@ -3,7 +3,12 @@ import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import { ReceiptPreview } from '../components/common/ReceiptPreview';
+import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
+import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
+import { getCategoryIcon } from '../components/common/CategorySearchSelect';
+import { uploadReceipt } from '../utils/receipts';
+import { prepareSuccessSound } from '../utils/confirmationSound';
+import { supabase } from '../lib/supabase';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
@@ -19,8 +24,61 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
   const { data, syncWithAirtable } = useAirtable();
   const [attachingTo, setAttachingTo] = useState<{ id: string; url?: string } | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
-
   const [editing, setEditing] = useState<GastoItem | null>(null);
+
+  // 9:16 Lightbox Modal State
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Direct file upload without popup
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploadTarget, setUploadTarget] = useState<{ id: string; currentUrl?: string; append?: boolean } | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  const triggerDirectUpload = (id: string, currentUrl?: string, append = false) => {
+    setUploadTarget({ id, currentUrl, append });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFilePicked = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !uploadTarget) return;
+
+    setUploadingId(uploadTarget.id);
+    const finishSound = prepareSuccessSound();
+
+    try {
+      const newUrl = await uploadReceipt(file, 'gastos');
+      if (!newUrl) throw new Error('No se pudo subir el archivo.');
+
+      const finalUrl = uploadTarget.append && uploadTarget.currentUrl
+        ? `${uploadTarget.currentUrl},${newUrl}`
+        : newUrl;
+
+      const { error } = await supabase.from('gastos').update({
+        comprobante_url: finalUrl,
+      }).eq('id', uploadTarget.id);
+
+      if (error) {
+        // Fallback to RPC if direct write fails
+        await supabase.rpc('adjuntar_comprobante_gasto', {
+          p_expense_id: uploadTarget.id,
+          p_receipt: finalUrl,
+        });
+      }
+
+      await syncWithAirtable();
+      finishSound(true);
+    } catch (err) {
+      console.error('Error al subir comprobante:', err);
+      finishSound(false);
+    } finally {
+      setUploadingId(null);
+      setUploadTarget(null);
+    }
+  };
 
   // Filters
   const [search, setSearch] = useState('');
@@ -55,6 +113,25 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
       return matchSearch && matchCategoria && matchDivisa && matchFecha;
     });
   }, [data.gastos, search, selectedCategoria, selectedDivisa, fechaDesde, fechaHasta]);
+
+  // Lightbox list for Gastos
+  const receiptsList: LightboxItem[] = useMemo(() => {
+    const list: LightboxItem[] = [];
+    filteredGastos.forEach((g) => {
+      if (!g.comprobanteUrl) return;
+      const urls = g.comprobanteUrl.split(',').map((u) => u.trim()).filter(Boolean);
+      urls.forEach((url, i) => {
+        list.push({
+          id: `${g.id}-${i}`,
+          codigo: urls.length > 1 ? `${g.codigo} (#${i + 1})` : g.codigo,
+          clienteNombre: g.concepto,
+          monto: g.monto,
+          comprobanteUrl: url,
+        });
+      });
+    });
+    return list;
+  }, [filteredGastos]);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -161,30 +238,96 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                 </tr>
               ) : (
                 <PaginatedRows columns={9} rows={filteredGastos}>{(g) => (
-                  <tr key={g.id} className="hover:bg-muted/30 transition-colors [&>td]:py-4">
-                    <td className="py-3 px-4 font-mono font-medium text-foreground">{g.codigo}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{formatDate(g.fecha)}</td>
-                    <td className="py-3 px-4 font-semibold text-foreground">{g.concepto}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-muted text-foreground border border-border">
-                        {g.categoria}
+                  <tr key={g.id} className="hover:bg-muted/30 transition-colors h-14">
+                    <td className="py-2.5 px-4 font-mono font-medium text-foreground whitespace-nowrap">{g.codigo}</td>
+                    <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">{formatDate(g.fecha)}</td>
+                    <td className="py-2.5 px-4 font-semibold text-foreground max-w-[220px] truncate" title={g.concepto}>{g.concepto}</td>
+                    <td className="py-2.5 px-4 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-muted text-foreground border border-border">
+                        <i className={`${getCategoryIcon(g.categoria)} text-primary text-xs`} />
+                        <span>{g.categoria}</span>
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{g.origenFondos}</td>
-                    <td className="py-3 px-4">
-                      {g.comprobanteUrl ? (
-                        <div className="space-y-1"><ReceiptPreview receipt={g.comprobanteUrl} compact /><button type="button" onClick={() => setAttachingTo({ id: g.id, url: g.comprobanteUrl })} className="text-xs font-semibold text-primary hover:underline">Editar comprobante</button></div>
+                    <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">{g.origenFondos}</td>
+
+                    {/* Uniform 9:16 Receipt Cell with direct file upload and '+' button */}
+                    <td className="py-2.5 px-4 text-center whitespace-nowrap">
+                      {uploadingId === g.id ? (
+                        <div className="flex items-center justify-center gap-1 h-10 text-[11px] text-primary font-medium">
+                          <i className="ri-loader-4-line animate-spin text-sm" />
+                          <span>Subiendo…</span>
+                        </div>
+                      ) : g.comprobanteUrl ? (
+                        <div className="flex items-center justify-center gap-1.5 h-10">
+                          {/* Thumbnails (split by comma if multiple) */}
+                          <div className="flex items-center gap-1 max-w-[120px] overflow-x-auto">
+                            {g.comprobanteUrl.split(',').map((u) => u.trim()).filter(Boolean).map((singleUrl, rIdx) => (
+                              <button
+                                key={rIdx}
+                                type="button"
+                                onClick={() => {
+                                  const idx = receiptsList.findIndex((item) => item.comprobanteUrl === singleUrl);
+                                  if (idx !== -1) setLightboxIndex(idx);
+                                }}
+                                title="Ver comprobante en formato 9:16"
+                                className="group relative h-10 w-6 shrink-0 overflow-hidden rounded-md border border-border/80 shadow-xs hover:ring-2 hover:ring-primary transition-all bg-muted"
+                                style={{ aspectRatio: '9/16' }}
+                              >
+                                <ReceiptThumbnail receipt={singleUrl} />
+                                <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] transition-opacity">
+                                  <i className="ri-zoom-in-line" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Direct Edit / Replace icon (opens file picker directly) */}
+                          <button
+                            type="button"
+                            onClick={() => triggerDirectUpload(g.id, undefined, false)}
+                            title="Reemplazar comprobante (directo a archivos)"
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          >
+                            <i className="ri-pencil-line text-xs" />
+                          </button>
+
+                          {/* Direct '+' icon to append another receipt */}
+                          <button
+                            type="button"
+                            onClick={() => triggerDirectUpload(g.id, g.comprobanteUrl, true)}
+                            title="Añadir otro comprobante (directo a archivos)"
+                            className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <i className="ri-add-line text-xs font-bold" />
+                          </button>
+                        </div>
                       ) : (
-                        <button type="button" onClick={() => setAttachingTo({ id: g.id })} className="text-xs font-semibold text-primary hover:underline">
-                          Agregar comprobante
+                        <button
+                          type="button"
+                          onClick={() => triggerDirectUpload(g.id, undefined, false)}
+                          title="Subir comprobante (directo a archivos)"
+                          className="h-10 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-muted"
+                        >
+                          <i className="ri-upload-cloud-line text-xs" />
+                          <span>Subir</span>
                         </button>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right font-bold text-foreground">
+
+                    <td className="py-2.5 px-4 text-right font-bold text-foreground whitespace-nowrap">
                       {g.divisa === 'COP' ? formatCOP(g.monto) : formatUSD(g.monto)}
                     </td>
                     <CreatedByCell name={g.createdByName} />
-                    <td className="px-4"><button type="button" onClick={() => setEditing(g)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold"><i className="ri-edit-line" aria-hidden="true" />Editar</button></td>
+                    <td className="py-2.5 px-4 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(g)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
+                      >
+                        <i className="ri-edit-line" aria-hidden="true" />
+                        <span>Editar</span>
+                      </button>
+                    </td>
                   </tr>
                 )}</PaginatedRows>
               )}

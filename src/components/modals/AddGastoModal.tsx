@@ -6,12 +6,15 @@ import React, { useState } from 'react';
 import { useAirtable, type GastoItem } from '../../context/AirtableContext';
 import { useAuth } from '../../context/AuthContext';
 import { AccountSelect, accountLabel } from './AccountSelect';
+import { CategorySearchSelect } from '../common/CategorySearchSelect';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
 
 interface AddGastoModalProps {
   isOpen: boolean;
   record?: GastoItem;
   onClose: () => void;
+  isCashContext?: boolean;
+  defaultOrigenFondos?: string;
 }
 
 const categories = [
@@ -20,15 +23,29 @@ const categories = [
   'Alimentación y Viáticos', 'Otros Gastos Operativos',
 ];
 
-export const AddGastoModal = ({ isOpen, onClose, record }: AddGastoModalProps) =>
-  isOpen ? <GastoForm key={record?.id} onClose={onClose} record={record} /> : null;
+export const AddGastoModal = ({ isOpen, onClose, record, isCashContext, defaultOrigenFondos }: AddGastoModalProps) =>
+  isOpen ? <GastoForm key={record?.id ?? (isCashContext ? 'cash' : 'normal')} onClose={onClose} record={record} isCashContext={isCashContext} defaultOrigenFondos={defaultOrigenFondos} /> : null;
 
-const GastoForm = ({ onClose, record }: Pick<AddGastoModalProps, 'onClose' | 'record'>) => {
+const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit<AddGastoModalProps, 'isOpen'>) => {
   const { data, createGasto, updateGasto, deleteGasto } = useAirtable();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
-  const [divisa, setDivisa] = useState<string>(record?.divisa || 'COP');
-  const [accountId, setAccountId] = useState(record?.origenFondosId || '');
+
+  // Find cash account in activosLiquidos
+  const cashAccount = React.useMemo(() => {
+    return (data.activosLiquidos || []).find((a: any) =>
+      (a.activo && a.activo.toLowerCase().includes('efectivo')) ||
+      (a.institucion && a.institucion.toLowerCase().includes('caja'))
+    ) || data.activosLiquidos[0];
+  }, [data.activosLiquidos]);
+
+  const [divisa, setDivisa] = useState<string>(isCashContext ? 'COP' : (record?.divisa || 'COP'));
+  const [categoria, setCategoria] = useState<string>(record?.categoria || '');
+  const [accountId, setAccountId] = useState<string>(() => {
+    if (record?.origenFondosId) return record.origenFondosId;
+    if (isCashContext && cashAccount) return cashAccount.id;
+    return '';
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const accounts = divisa === 'COP' ? data.activosLiquidos : data.activosDigitales;
@@ -68,7 +85,7 @@ const GastoForm = ({ onClose, record }: Pick<AddGastoModalProps, 'onClose' | 're
       const success = await (record ? updateGasto : createGasto)({
         id: record?.id,
         concepto, divisa, monto, origenFondos: accountLabel(account), origenFondosId: account.id,
-        categoria: fields.get('categoria'), fecha: fields.get('fecha'),
+        categoria: categoria || String(fields.get('categoria') || ''), fecha: fields.get('fecha'),
         comprobanteUrl: record ? undefined : await uploadReceipt(fields.get('comprobante'), 'gastos'),
       });
       if (!success) throw new Error();
@@ -90,26 +107,44 @@ const GastoForm = ({ onClose, record }: Pick<AddGastoModalProps, 'onClose' | 're
             <span>Concepto</span>
             <input name="concepto" defaultValue={record?.concepto} required className={recordFieldClass} />
           </label>
-          <label className={recordLabelClass}>
-            <span>Categoría contable</span>
-            <select name="categoria" defaultValue={record?.categoria || ''} required className={recordFieldClass}>
-              <option value="">Seleccionar categoría</option>
-              {[...new Set([...categories, ...(record?.categoria ? [record.categoria] : [])])].map((category) => <option key={category}>{category}</option>)}
-            </select>
-          </label>
+          <div className="space-y-1.5">
+            <label className={recordLabelClass}>Categoría contable</label>
+            <CategorySearchSelect value={categoria} onChange={setCategoria} required />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className={recordLabelClass}>
-              <span>Divisa</span>
-              <select value={divisa} onChange={(event) => { setDivisa(event.target.value); setAccountId(''); }} className={recordFieldClass}>
-                <option>COP</option><option>USDT</option>
-              </select>
-            </label>
+            {!isCashContext ? (
+              <label className={recordLabelClass}>
+                <span>Divisa</span>
+                <select value={divisa} onChange={(event) => { setDivisa(event.target.value); setAccountId(''); }} className={recordFieldClass}>
+                  <option>COP</option><option>USDT</option>
+                </select>
+              </label>
+            ) : (
+              <div className="space-y-1.5">
+                <span className={recordLabelClass}>Divisa</span>
+                <div className="min-h-11 rounded-xl border border-input bg-muted/40 px-3.5 py-2 text-sm text-foreground flex items-center font-bold font-mono">
+                  COP (Pesos Colombianos)
+                </div>
+              </div>
+            )}
             <label className={recordLabelClass}>
               <span>Monto</span>
               <input type="text" inputMode="decimal" name="monto" defaultValue={record ? formatAmountInput(String(record.monto)) : undefined} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
             </label>
           </div>
-          <AccountSelect label={divisa === 'COP' ? 'Cuenta de origen' : 'Billetera de origen'} accounts={accounts} value={accountId || accounts.find((item) => accountLabel(item) === record?.origenFondos)?.id || ''} onChange={setAccountId} />
+          {!isCashContext ? (
+            <AccountSelect label={divisa === 'COP' ? 'Cuenta de origen' : 'Billetera de origen'} accounts={accounts} value={accountId || accounts.find((item) => accountLabel(item) === record?.origenFondos)?.id || ''} onChange={setAccountId} />
+          ) : (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 flex items-center justify-between text-xs">
+              <span className="font-semibold text-foreground flex items-center gap-2">
+                <i className="ri-safe-2-line text-emerald-500 text-base" />
+                <span>Origen de fondos: <strong>Efectivo (Caja)</strong></span>
+              </span>
+              <span className="font-mono text-muted-foreground text-[11px] px-2 py-0.5 rounded bg-muted border border-border">
+                {cashAccount ? accountLabel(cashAccount) : 'EFECTIVO-CAJA'}
+              </span>
+            </div>
+          )}
           <label className={recordLabelClass}>
             <span>Fecha</span>
             <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || new Date().toISOString().slice(0, 10)} className={recordFieldClass} />

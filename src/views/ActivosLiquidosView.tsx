@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { PaginatedRows } from '../components/common/PaginatedRows';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
@@ -16,10 +17,34 @@ export const ActivosLiquidosView: React.FC = () => {
 
   const activos = data.activosLiquidos || [];
 
+  // Statement (Extracto) mode and filters state
+  const [balanceMode, setBalanceMode] = React.useState<'contable' | 'real'>('contable');
+  const [movSearch, setMovSearch] = React.useState('');
+  const [fechaDesde, setFechaDesde] = React.useState('');
+  const [fechaHasta, setFechaHasta] = React.useState('');
+  const [tipoFilter, setTipoFilter] = React.useState<'todos' | 'entradas' | 'salidas'>('todos');
+
   const selectedActivo = useMemo(() => {
     if (!selectedActivoId) return null;
     return activos.find((a: any) => a.id === selectedActivoId) || null;
   }, [activos, selectedActivoId]);
+
+  // Filtered movements for statement with filters BEFORE table
+  const filteredMovimientos = useMemo(() => {
+    const movs = selectedActivo?.movimientos || [];
+    return movs.filter((m: any) => {
+      const matchSearch = !movSearch ||
+        (m.concepto && m.concepto.toLowerCase().includes(movSearch.toLowerCase())) ||
+        (m.origen && m.origen.toLowerCase().includes(movSearch.toLowerCase())) ||
+        (m.createdByName && m.createdByName.toLowerCase().includes(movSearch.toLowerCase()));
+      const matchFecha = matchesDateRange(m.fecha, fechaDesde, fechaHasta);
+      const matchTipo =
+        tipoFilter === 'todos' ||
+        (tipoFilter === 'entradas' && (m.monto || 0) > 0) ||
+        (tipoFilter === 'salidas' && (m.monto || 0) < 0);
+      return matchSearch && matchFecha && matchTipo;
+    });
+  }, [selectedActivo?.movimientos, movSearch, fechaDesde, fechaHasta, tipoFilter]);
 
   const totalIngresos = useMemo(() => {
     return activos.reduce((acc: number, a: any) => acc + (a.ingresosCop || 0), 0);
@@ -121,28 +146,84 @@ export const ActivosLiquidosView: React.FC = () => {
           >
             <div className="absolute right-[-40px] top-[-40px] w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
 
-            {/* Balances Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-white/10 relative z-10">
+            {/* Mode Switch: Contable vs Real */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-white/10 relative z-10">
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-black/25 backdrop-blur-md border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setBalanceMode('contable')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    balanceMode === 'contable'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  <i className="ri-booklet-line text-sm" />
+                  <span>Saldo Contable</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBalanceMode('real')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    balanceMode === 'real'
+                      ? 'bg-emerald-400 text-slate-950 shadow-sm'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  <i className="ri-bank-line text-sm" />
+                  <span>Saldo Real (Banco / API)</span>
+                </button>
+              </div>
+
+              {/* Real-time sync badge / discrepancy watch */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-xs">
+                {balanceMode === 'contable' ? (
+                  <>
+                    <span className="text-slate-300">Saldo Real Banco:</span>
+                    <strong className="font-mono text-emerald-300">{formatCOP(selectedActivo.saldoReal ?? selectedActivo.saldoCop)}</strong>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-slate-300">Saldo Contable Interno:</span>
+                    <strong className="font-mono text-white">{formatCOP(selectedActivo.saldoCop)}</strong>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Balances Row dynamically reacting to mode */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6 border-b border-white/10 relative z-10">
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">
-                  <i className="ri-wallet-3-line text-emerald-400" />
-                  <span>Saldo Disponible</span>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1 flex items-center gap-1.5">
+                  <i className={balanceMode === 'contable' ? "ri-wallet-3-line text-blue-400" : "ri-bank-line text-emerald-400"} />
+                  <span>{balanceMode === 'contable' ? 'Saldo Contable Disponible' : 'Saldo Real Verificado en Banco / API'}</span>
                 </div>
-                <div className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tight text-white">
-                  {formatCOP(selectedActivo.saldoCop)}
+                <div className={`text-3xl sm:text-4xl font-extrabold font-mono tracking-tight ${balanceMode === 'contable' ? 'text-white' : 'text-emerald-300'}`}>
+                  {formatCOP(balanceMode === 'contable' ? selectedActivo.saldoCop : (selectedActivo.saldoReal ?? selectedActivo.saldoCop))}
                 </div>
-                <span className="text-xs text-slate-400 block mt-1">Fondos operativos inmediatamente disponibles</span>
+                <span className="text-xs text-slate-300/80 block mt-1">
+                  {balanceMode === 'contable'
+                    ? 'Libro mayor de tesorería y operaciones registradas'
+                    : 'Fondos en custodia bancaria institucional reportados'}
+                </span>
               </div>
 
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">
-                  <i className="ri-funds-box-line text-blue-400" />
-                  <span>Saldo Total Consolidado</span>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1 flex items-center gap-1.5">
+                  <i className="ri-scales-line text-amber-300" />
+                  <span>{balanceMode === 'contable' ? 'Referencia Saldo Real' : 'Referencia Saldo Contable'}</span>
                 </div>
-                <div className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tight text-slate-200">
-                  {formatCOP(selectedActivo.saldoCop)}
+                <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-slate-200">
+                  {formatCOP(balanceMode === 'contable' ? (selectedActivo.saldoReal ?? selectedActivo.saldoCop) : selectedActivo.saldoCop)}
                 </div>
-                <span className="text-xs text-slate-400 block mt-1">Balance contable auditado en moneda local</span>
+                <span className="text-xs text-slate-300/70 block mt-1 flex items-center gap-1.5">
+                  <i className="ri-checkbox-circle-fill text-emerald-400" />
+                  <span>
+                    {Math.abs((selectedActivo.saldoReal ?? selectedActivo.saldoCop) - selectedActivo.saldoCop) === 0
+                      ? 'Sin descuadres (Diferencia: $0 COP)'
+                      : `Diferencia: ${formatCOP((selectedActivo.saldoReal ?? selectedActivo.saldoCop) - selectedActivo.saldoCop)}`}
+                  </span>
+                </span>
               </div>
             </div>
 
@@ -196,8 +277,55 @@ export const ActivosLiquidosView: React.FC = () => {
                 </h3>
               </div>
               <span className="text-xs font-mono text-muted-foreground">
-                {formatNumber((selectedActivo.movimientos || []).length)} registros
+                {formatNumber(filteredMovimientos.length)} de {formatNumber((selectedActivo.movimientos || []).length)} registros
               </span>
+            </div>
+
+            {/* Filter Toolbar placed strictly BEFORE the table */}
+            <div className="p-3.5 bg-muted/20 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2.5 flex-1">
+                {/* Search */}
+                <div className="relative w-full sm:w-64">
+                  <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+                  <input
+                    type="text"
+                    value={movSearch}
+                    onChange={(e) => setMovSearch(e.target.value)}
+                    placeholder="Buscar por concepto o referencia..."
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+                  />
+                </div>
+
+                {/* Date range filter */}
+                <div className="flex items-center gap-2">
+                  <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+                </div>
+              </div>
+
+              {/* Type filter tabs */}
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-muted border border-border text-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setTipoFilter('todos')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-colors ${tipoFilter === 'todos' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoFilter('entradas')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-colors ${tipoFilter === 'entradas' ? 'bg-card text-emerald-500 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Ingresos (+)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoFilter('salidas')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-colors ${tipoFilter === 'salidas' ? 'bg-card text-rose-500 shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Egresos (-)
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -213,14 +341,14 @@ export const ActivosLiquidosView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {(!selectedActivo.movimientos || selectedActivo.movimientos.length === 0) ? (
+                  {filteredMovimientos.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                        No hay movimientos registrados para esta institución
+                        No hay movimientos que coincidan con los filtros aplicados
                       </td>
                     </tr>
                   ) : (
-                    <PaginatedRows columns={6} rows={selectedActivo.movimientos} getDate={(movement) => movement.fecha}>{(m: any, idx: number) => {
+                    <PaginatedRows columns={6} rows={filteredMovimientos}>{(m: any, idx: number) => {
                       const isPositive = (m.monto || 0) > 0;
                       return (
                         <tr key={idx} className="hover:bg-muted/30 transition-colors">
