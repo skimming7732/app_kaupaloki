@@ -1,4 +1,4 @@
-import { formatAmountField } from '../../utils/amountInput';
+import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useId, useState } from 'react';
 import { useAirtable } from '../../context/AirtableContext';
@@ -55,7 +55,7 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
     event.preventDefault();
     if (busy) return;
     const fields = new FormData(event.currentTarget);
-    const montoCop = Number(String(fields.get('monto')).replace(/,/g, ''));
+    const montoCop = parseAmountInput(String(fields.get('monto') ?? ''));
     const referencia = String(fields.get('referencia')).trim();
     if (!referencia) {
       setError('Ingresa una referencia o PIN.');

@@ -4,7 +4,7 @@ import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCe
 import React, { useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
-import { formatCOP, formatDate } from '../utils/formatters';
+import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 
 export const ActivosLiquidosView: React.FC = () => {
   const { metrics, data } = useAirtable();
@@ -196,7 +196,7 @@ export const ActivosLiquidosView: React.FC = () => {
                 </h3>
               </div>
               <span className="text-xs font-mono text-muted-foreground">
-                {(selectedActivo.movimientos || []).length} registros
+                {formatNumber((selectedActivo.movimientos || []).length)} registros
               </span>
             </div>
 

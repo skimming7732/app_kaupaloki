@@ -7,7 +7,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable, type NormalizedData } from '../context/AirtableContext';
-import { formatCOP, formatDate } from '../utils/formatters';
+import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 
 interface DispersionesViewProps {
@@ -95,7 +95,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
-          <span>{filteredDispersiones.length} de {data.dispersiones.length} registros</span>
+          <span>{formatNumber(filteredDispersiones.length)} de {formatNumber(data.dispersiones.length)} registros</span>
           {(search || selectedCliente || fechaDesde || fechaHasta) && (
             <button
               onClick={() => {

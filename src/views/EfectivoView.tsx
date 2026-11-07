@@ -6,7 +6,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
-import { formatCOP, formatDate } from '../utils/formatters';
+import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
 
@@ -114,7 +114,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
-          <span>{filteredMovimientos.length} de {data.efectivo.length} registros</span>
+          <span>{formatNumber(filteredMovimientos.length)} de {formatNumber(data.efectivo.length)} registros</span>
             {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta) && (
               <button
                 onClick={() => {

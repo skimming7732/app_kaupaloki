@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAirtable, type NormalizedData } from '../context/AirtableContext';
 import { KpiStrip } from '../components/common/KpiStrip';
-import { fallbackBanderaUrl, formatDate } from '../utils/formatters';
+import { formatNumber, fallbackBanderaUrl, formatDate } from '../utils/formatters';
 
 const weekMs = 7 * 86400000;
 const bogotaDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' });
@@ -29,13 +29,13 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
           <h2 id="growth-heading" className="text-base font-bold">Registro de negocios</h2>
           <p className="text-xs text-muted-foreground">Últimas ocho semanas · negocios autorizados para tu rol</p>
         </div>
-        <p className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{total} en el período</p>
+        <p className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{formatNumber(total)} en el período</p>
       </div>
       <ol className="grid grid-cols-8 gap-1.5 sm:gap-3" aria-label="Registros por semana">
         {counts.map((count, index) => (
           <li key={index} className="flex min-w-0 flex-col items-center text-center">
             <span className="flex h-28 w-full flex-col justify-end rounded-t-lg border-b border-border sm:h-36">
-              <span className="pb-1 text-xs font-semibold tabular-nums">{count}</span>
+              <span className="pb-1 text-xs font-semibold tabular-nums">{formatNumber(count)}</span>
               <span aria-hidden="true" style={{ height: (count / max) * 75 + '%' }}
                 className="mx-auto w-full max-w-12 rounded-t-md bg-primary/75" />
             </span>

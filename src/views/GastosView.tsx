@@ -8,7 +8,7 @@ import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt'
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useAirtable, type GastoItem } from '../context/AirtableContext';
-import { formatCOP, formatUSD, formatDate } from '../utils/formatters';
+import { formatNumber, formatCOP, formatUSD, formatDate } from '../utils/formatters';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
 
 interface GastosViewProps {
@@ -112,7 +112,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
-          <span>{filteredGastos.length} de {data.gastos.length} registros</span>
+          <span>{formatNumber(filteredGastos.length)} de {formatNumber(data.gastos.length)} registros</span>
           {(search || selectedCategoria || selectedDivisa || fechaDesde || fechaHasta) && (
             <button
               onClick={() => {

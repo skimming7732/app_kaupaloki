@@ -1,4 +1,4 @@
-import { formatAmountField, formatAmountInput } from '../../utils/amountInput';
+import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
@@ -74,7 +74,7 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
   );
   const [divisaCode, setDivisaCode] = useState(negocio?.divisaCodigo || '');
   const [monto, setMonto] = useState(() => negocio ? formatAmountInput(String(negocio.montoDivisa)) : '');
-  const [tasa, setTasa] = useState(negocio ? String(negocio.tasaCambio) : '');
+  const [tasa, setTasa] = useState(negocio ? formatAmountInput(String(negocio.tasaCambio)) : '');
   const [fecha, setFecha] = useState(() => negocio ? negocio.fecha.slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [authorId, setAuthorId] = useState('');
   const [authorSearch, setAuthorSearch] = useState('');
@@ -112,8 +112,8 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
   const matchingCurrencies = currencies.filter((currency) =>
     normalizeSearch([currency.codigo, currencyName(currency), currency.pais].join(' ')).includes(query)
   );
-  const parsedMonto = Number(monto.replace(/,/g, ''));
-  const parsedTasa = Number(tasa);
+  const parsedMonto = parseAmountInput(monto);
+  const parsedTasa = parseAmountInput(tasa);
   const ingresoCOP = parsedMonto * parsedTasa;
   const canSubmit = Boolean(clienteId && selectedCurrency && fecha &&
     parsedMonto > 0 && parsedTasa > 0 && Number.isFinite(ingresoCOP));
@@ -383,7 +383,7 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
             </div>
             <div>
               <label htmlFor={id + '-rate'} className={labelClass}>Tasa de cambio en COP</label>
-              <input id={id + '-rate'} type="number" step="any" required value={tasa} onChange={(event) => setTasa(event.target.value)} placeholder="Ej. 3950" className={fieldClass} />
+              <input id={id + '-rate'} type="text" inputMode="decimal" required value={tasa} onChange={(event) => { const rate = formatAmountField(event.currentTarget); if (rate !== undefined) setTasa(rate); }} placeholder="Ej. 3,950.0000" className={fieldClass} />
             </div>
           </div>
 

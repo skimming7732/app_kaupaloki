@@ -5,7 +5,7 @@ import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCe
 import React, { useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
-import { formatUSD, formatDate } from '../utils/formatters';
+import { formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
   const { metrics, data } = useAirtable();
@@ -236,7 +236,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 </h3>
               </div>
               <span className="text-xs font-mono text-muted-foreground">
-                {(selectedWallet.movimientos || []).length} registros
+                {formatNumber((selectedWallet.movimientos || []).length)} registros
               </span>
             </div>
 
@@ -327,7 +327,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   Billeteras
                 </span>
                 <span className="text-base sm:text-lg font-extrabold font-mono text-white">
-                  {wallets.length}
+                  {formatNumber(wallets.length)}
                 </span>
               </div>
 
@@ -358,7 +358,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 <i className="ri-wallet-3-line text-sm" />
                 <span>Billeteras Cripto en Custodia</span>
               </h3>
-              <span className="text-xs text-muted-foreground">{wallets.length} billeteras operativas</span>
+              <span className="text-xs text-muted-foreground">{formatNumber(wallets.length)} billeteras operativas</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -498,7 +498,7 @@ export const ActivosDigitalesView: React.FC = () => {
                           {formatUSD(saldoReal)}
                         </td>
                         <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                          ${(w.rateFinal || 3200).toLocaleString('es-CO')}
+                          ${formatRate(w.rateFinal || 3200)}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <button

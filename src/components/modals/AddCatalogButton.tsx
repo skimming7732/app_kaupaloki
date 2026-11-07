@@ -1,3 +1,4 @@
+import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { formatCurrency } from '../../utils/formatters';
@@ -35,7 +36,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const previousDebit = source && edit?.fields[sourceField] === sourceId &&
     (!isPurchase || edit.fields.divisa_codigo === currency) ? Number(edit.fields[amountField]) : 0;
   const balance = Number(source?.saldoReal ?? source?.saldoCop ?? source?.saldoUsdt ?? 0) + previousDebit;
-  const exceedsBalance = !!source && Number(amount) > balance;
+  const exceedsBalance = !!source && parseAmountInput(amount) > balance;
   const liquidAccounts = data.activosLiquidos.filter((a) => (a.divisa || 'COP') === 'COP').map((a) => ({ value: a.id, label: accountOptionLabel(a) }));
   const wallets = data.activosDigitales.map((w) => ({ value: w.id, label: accountOptionLabel(w) }));
   const currencies = data.divisas.map((d) => ({ value: d.codigo, label: d.codigo + ' · ' + d.nombre }));
@@ -115,7 +116,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         return;
       }
       if (field.type === 'number') {
-        const number = Number(value);
+        const number = !value && field.optional ? 0 : parseAmountInput(value);
         if (!Number.isFinite(number) || (field.optional ? number < 0 : number <= 0)) {
           setError('Revisa el valor de ' + field.label + '.');
           return;
@@ -153,7 +154,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   return (
     <>
       <button type="button" className={edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass}
-        onClick={() => { setError(''); setSourceId(String(initial[sourceField] ?? '')); setAmount(String(initial[amountField] ?? '')); setCurrency(String(initial.divisa_codigo ?? '')); setOpen(true); }}>
+        onClick={() => { setError(''); setSourceId(String(initial[sourceField] ?? '')); setAmount(formatAmountInput(String(initial[amountField] ?? ''))); setCurrency(String(initial.divisa_codigo ?? '')); setOpen(true); }}>
         <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
       </button>
       {open && (
@@ -184,20 +185,23 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
                     {showBalance && field.name === amountField && (
                       <span className="flex items-center justify-between gap-2 text-xs">
                         <span>{source ? 'Disponible ' + formatCurrency(balance, sourceCurrency) : 'Selecciona un origen para ver el saldo'}</span>
-                        <button type="button" disabled={!source || balance <= 0} onClick={() => setAmount(String(balance))}
+                        <button type="button" disabled={!source || balance <= 0} onClick={() => setAmount(formatAmountInput(String(balance)))}
                           className="rounded border border-border px-2 py-1 text-primary disabled:opacity-50">Máx.</button>
                       </span>
                     )}
                     <input
                       value={(isPurchase || isSale) && field.name === amountField ? amount : undefined}
-                      onChange={(event) => { if (field.name === amountField) setAmount(event.target.value); }}
+                      onChange={(event) => {
+                        if (field.type !== 'number') return;
+                        const value = formatAmountField(event.currentTarget);
+                        if (field.name === amountField && value !== undefined) setAmount(value);
+                      }}
                       aria-invalid={field.name === amountField && exceedsBalance || undefined}
                       name={field.name}
-                      type={field.type || 'text'}
+                      type={field.type === 'date' ? 'date' : 'text'}
+                      inputMode={field.type === 'number' ? 'decimal' : undefined}
                       required={!field.optional}
-                      min={field.type === 'number' ? 0 : undefined}
-                      step={field.type === 'number' ? 'any' : undefined}
-                      defaultValue={field.name === amountField ? undefined : initial[field.name] ?? (field.type === 'date' ? today() : undefined)}
+                      defaultValue={field.name === amountField ? undefined : field.type === 'number' ? formatAmountInput(String(initial[field.name] ?? '')) : initial[field.name] ?? (field.type === 'date' ? today() : undefined)}
                       className={recordFieldClass}
                     />
                     {field.name === amountField && exceedsBalance && <span role="alert" className="text-xs text-destructive">El monto supera el saldo disponible.</span>}

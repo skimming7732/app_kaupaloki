@@ -1,3 +1,8 @@
+export const parseAmountInput = (value: string) => {
+  const normalized = value.trim().replace(/,/g, '');
+  return /^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(normalized) ? Number(normalized) : NaN;
+};
+
 export const formatAmountInput = (value: string) => {
   const [integer, decimal] = value.replace(/,/g, '').split('.');
   const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');

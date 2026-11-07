@@ -1,3 +1,4 @@
+import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { ReceiptInput } from './ReceiptInput';
 import { uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
@@ -33,7 +34,7 @@ const GastoForm = ({ onClose, record }: Pick<AddGastoModalProps, 'onClose' | 're
     event.preventDefault();
     if (busy) return;
     const fields = new FormData(event.currentTarget);
-    const monto = Number(fields.get('monto'));
+    const monto = parseAmountInput(String(fields.get('monto') ?? ''));
     const concepto = String(fields.get('concepto')).trim();
     const account = accounts.find((item) => item.id === accountId || (!accountId && accountLabel(item) === record?.origenFondos));
     if (!account || !concepto || !Number.isFinite(monto) || monto <= 0) {
@@ -86,7 +87,7 @@ const GastoForm = ({ onClose, record }: Pick<AddGastoModalProps, 'onClose' | 're
             </label>
             <label className={recordLabelClass}>
               <span>Monto</span>
-              <input type="number" name="monto" defaultValue={record?.monto} step="any" min="0" required className={recordFieldClass} />
+              <input type="text" inputMode="decimal" name="monto" defaultValue={record ? formatAmountInput(String(record.monto)) : undefined} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
             </label>
           </div>
           <AccountSelect label={divisa === 'COP' ? 'Cuenta de origen' : 'Billetera de origen'} accounts={accounts} value={accountId || accounts.find((item) => accountLabel(item) === record?.origenFondos)?.id || ''} onChange={setAccountId} />

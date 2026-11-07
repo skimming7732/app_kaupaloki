@@ -1,22 +1,26 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
+import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
+import { formatNumber } from '../../utils/formatters';
+import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 
 interface AddComisionistaModalProps {
   isOpen: boolean;
+  record?: NormalizedData['comisionistas'][number];
   onClose: () => void;
 }
 
-export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOpen, onClose }) => {
-  const { data, createComisionista } = useAirtable();
-  const [comisionistaId, setComisionistaId] = useState('');
-  const [selectedReferidos, setSelectedReferidos] = useState<string[]>([]);
-  const [porcentaje, setPorcentaje] = useState('1'); // 1%
+export const AddComisionistaModal = ({ isOpen, onClose, record }: AddComisionistaModalProps) =>
+  isOpen ? <ComisionistaForm key={record?.id ?? 'new'} onClose={onClose} record={record} /> : null;
+
+const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, 'isOpen'>) => {
+  const { data, saveComisionista } = useAirtable();
+  const [comisionistaId, setComisionistaId] = useState(record?.comisionistaId || '');
+  const [selectedReferidos, setSelectedReferidos] = useState<string[]>(record?.comisionaDeIds ?? []);
+  const [porcentaje, setPorcentaje] = useState(record ? formatNumber(record.porcentajeComision * 100, 0, 10) : '1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
 
   const toggleReferido = (id: string) => {
     if (selectedReferidos.includes(id)) {
@@ -28,12 +32,13 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!comisionistaId) {
       setError('Por favor seleccione el cliente comisionista');
       return;
     }
-    const pct = parseFloat(porcentaje);
-    if (isNaN(pct) || pct < 0 || pct > 100) {
+    const pct = parseAmountInput(porcentaje);
+    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
       setError('Por favor ingrese un porcentaje de comisión válido');
       return;
     }
@@ -43,7 +48,8 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
 
     const finishSound = prepareSuccessSound();
     try {
-      const ok = await createComisionista({
+      const ok = await saveComisionista({
+        id: record?.id,
         comisionistaId,
         comisionaDeIds: selectedReferidos,
         porcentajeComision: pct / 100,
@@ -53,9 +59,6 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
         throw new Error('No se pudo registrar el comisionista');
       }
 
-      setComisionistaId('');
-      setSelectedReferidos([]);
-      setPorcentaje('1');
       finishSound(true);
       onClose();
     } catch (err: any) {
@@ -68,14 +71,14 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-lg rounded-3xl border border-border shadow-2xl p-6 relative">
+      <div className="bg-card w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-3xl border border-border shadow-2xl p-6 relative">
         <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
               <i className="ri-user-star-line" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Registrar Comisionista</h3>
+              <h3 className="text-sm font-bold text-foreground">{record ? 'Editar comisionista' : 'Registrar comisionista'}</h3>
               <p className="text-xs text-muted-foreground">Configurar porcentaje y clientes asignados</p>
             </div>
           </div>
@@ -113,13 +116,11 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
             </label>
             <div className="relative">
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
+                type="text"
+                inputMode="decimal"
                 required
                 value={porcentaje}
-                onChange={(e) => setPorcentaje(e.target.value)}
+                onChange={(e) => { const value = formatAmountField(e.currentTarget); if (value !== undefined) setPorcentaje(value); }}
                 placeholder="1.0"
                 className="w-full px-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none pr-8"
               />
@@ -181,7 +182,7 @@ export const AddComisionistaModal: React.FC<AddComisionistaModalProps> = ({ isOp
               className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-md shadow-primary/20 hover:opacity-95 disabled:opacity-50 flex items-center gap-1.5"
             >
               {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>Registrar Comisionista</span>
+              <span>{record ? 'Guardar cambios' : 'Registrar comisionista'}</span>
             </button>
           </div>
         </form>

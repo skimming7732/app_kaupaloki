@@ -61,6 +61,10 @@ npm run build
 npm run preview
 ```
 
+## Formato de números
+
+En el dashboard, el portal del cliente y los formularios, usa coma para agrupar miles y punto decimal: `1,234.56`. Las tasas se muestran con exactamente cuatro decimales: `3,950.0000`. Los valores se guardan en Supabase como números, sin separadores de miles.
+
 ## Publicación de cambios en GitHub
 
 Al terminar cada tarea que cambie el proyecto, ejecuta las verificaciones correspondientes, crea un commit con los cambios de la tarea y ejecuta `git push origin <rama>`. Usa `main` por defecto cuando la tarea no indique otra rama. Antes de dar la tarea por terminada, confirma que GitHub recibió el commit e incluye su enlace en la entrega. Si falla el push, informa qué quedó pendiente.

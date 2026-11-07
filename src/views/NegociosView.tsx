@@ -6,7 +6,7 @@ import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCe
 import React, { useState, useMemo } from 'react';
 import { useAirtable } from '../context/AirtableContext';
 import { useAuth } from '../context/AuthContext';
-import { formatCOP, formatCurrency, formatDate } from '../utils/formatters';
+import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate } from '../utils/formatters';
 import { EditNegocioModal } from '../components/modals/EditNegocioModal';
 import { AddNegocioModal } from '../components/modals/AddNegocioModal';
 
@@ -124,7 +124,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
 
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
-            <span>{filteredNegocios.length} de {totalVisible} registros</span>
+            <span>{formatNumber(filteredNegocios.length)} de {formatNumber(totalVisible)} registros</span>
             {(search || selectedDivisa || selectedCliente || fechaDesde || fechaHasta) && (
               <button
                 onClick={() => {
@@ -189,7 +189,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                       {formatCurrency(n.montoDivisa, n.divisaCodigo)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                      ${n.tasaCambio.toLocaleString('es-CO')}
+                      ${formatRate(n.tasaCambio)}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-foreground">
                       {formatCOP(n.ingresoCOP)}

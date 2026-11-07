@@ -189,6 +189,7 @@ export interface NormalizedData {
     codigo: string;
     comisionistaId?: string;
     comisionistaNombre: string;
+    comisionaDeIds: string[];
     comisionaDeNombres: string[];
     ingresosCOP: number;
     porcentajeComision: number;
@@ -235,7 +236,7 @@ interface AirtableContextType {
   deleteUser: (idOrEmail: string) => Promise<{ success: boolean; error?: string }>;
   sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
   updateUserPermissions: (payload: any) => Promise<boolean>;
-  createComisionista: (payload: any) => Promise<boolean>;
+  saveComisionista: (payload: { id?: string; comisionistaId: string; comisionaDeIds: string[]; porcentajeComision: number }) => Promise<boolean>;
 }
 
 const defaultSnapshot: AirtableSnapshot = {
@@ -833,6 +834,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         codigo: cm.codigo || cm.Name || 'COM-000',
         comisionistaId: comId,
         comisionistaNombre: comNombre,
+        comisionaDeIds: refIds,
         comisionaDeNombres: refNombres,
         ingresosCOP: Number(cm.ingresos || cm.ingresosCOP || 0),
         porcentajeComision: Number(cm.porcentajeComision ?? cm['% COMISIÓN'] ?? 0),
@@ -958,32 +960,16 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       const montoDiv = Number(payload['Monto Divisa'] || payload.monto || payload.montoDivisa || 0);
       const tasaNum = Number(payload['Tasa Cambio'] || payload.tasa || payload.tasaCambio || 0);
-      const ingresoCopNum = Number(payload['Ingreso COP'] || payload.ingresoCOP || (montoDiv * tasaNum) || 0);
-
-      const insertData: any = {
-        fecha: payload['Fecha'] || payload.fecha || new Date().toISOString().split('T')[0],
-        cliente_id: clientObj.id,
-        cliente_codigo: clientObj.codigo,
-        cliente_nombre: clientObj.nombre,
-        divisa_codigo: divisaObj.codigo,
-        monto_divisa: montoDiv,
-        tasa: tasaNum,
-        tasa_cliente_cop: tasaNum,
-        ingreso_cop: ingresoCopNum,
-        monto_cop: ingresoCopNum,
-        usdt_por_divisa: 0,
-        costo_usdt_comp: 0,
-        estado: 'Completado',
-      };
-      if (payload.codigo) insertData.codigo = payload.codigo;
-
-      const id = crypto.randomUUID();
-      const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('negocios').insert(fields), {
-        fallbackCode: createCode('NEG', id),
-        generatedColumns: negocioGeneratedFields,
-        optionalColumns: [],
+      const { error } = await supabase.rpc('crear_negocio_dashboard', {
+        p_id: crypto.randomUUID(),
+        p_cliente_id: clientObj.id,
+        p_divisa_codigo: divisaObj.codigo,
+        p_fecha: payload['Fecha'] || payload.fecha || new Date().toISOString().slice(0, 10),
+        p_monto: montoDiv,
+        p_tasa: tasaNum,
+        p_codigo: payload.codigo || null,
       });
-
+      if (error?.code === '22023') throw new Error(error.message);
       if (error) throw error;
       await fetchFromSupabase();
       return true;
@@ -1373,14 +1359,16 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [fetchFromSupabase, userId]);
 
-  const createComisionista: AirtableContextType['createComisionista'] = async (payload) => {
-    const { error } = await supabase.from('comisionistas').insert({
+  const saveComisionista: AirtableContextType['saveComisionista'] = async (payload) => {
+    const record = {
       cliente_id: payload.comisionistaId,
       referidos_ids: payload.comisionaDeIds,
       porcentaje_comision: payload.porcentajeComision,
-      created_by: userId,
-    });
-    if (error) throw dashboardWriteError(error, 'No se pudo registrar el comisionista.');
+    };
+    const { error } = payload.id
+      ? await supabase.from('comisionistas').update(record).eq('id', payload.id).select('id').single()
+      : await supabase.from('comisionistas').insert(record);
+    if (error) throw dashboardWriteError(error, payload.id ? 'No se pudo editar el comisionista.' : 'No se pudo registrar el comisionista.');
     await fetchFromSupabase();
     return true;
   };
@@ -1406,7 +1394,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         createMovimientoEfectivo,
         createGasto,
         createCliente,
-        createComisionista,
+        saveComisionista,
         deleteUser,
         sendUserInvite,
         updateUserPermissions,

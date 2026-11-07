@@ -6,7 +6,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAirtable, type NormalizedData } from '../context/AirtableContext';
 import { supabase } from '../lib/supabase';
-import { formatCOP, formatCurrency, formatDate } from '../utils/formatters';
+import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate } from '../utils/formatters';
 
 type PortalData = {
   client: Pick<NormalizedData['clientes'][number], 'codigo' | 'nombre' | 'pais' | 'saldoPendienteCOP' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'estado'>;
@@ -181,7 +181,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           }`}
         >
           <i className="ri-exchange-dollar-line" />
-          <span>Negocios ({clientNegocios.length})</span>
+          <span>Negocios ({formatNumber(clientNegocios.length)})</span>
         </button>
 
         <button
@@ -193,7 +193,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           }`}
         >
           <i className="ri-send-plane-line" />
-          <span>Pagos y Dispersiones ({clientPagos.length})</span>
+          <span>Pagos y Dispersiones ({formatNumber(clientPagos.length)})</span>
         </button>
 
         <button
@@ -205,7 +205,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           }`}
         >
           <i className="ri-arrow-down-circle-line" />
-          <span>Ingresos ({clientIngresos.length})</span>
+          <span>Ingresos ({formatNumber(clientIngresos.length)})</span>
         </button>
       </div>
 
@@ -245,7 +245,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                         {formatCurrency(n.montoDivisa, n.divisaCodigo)}
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                        ${n.tasaCambio.toLocaleString('es-CO')}
+                        ${formatRate(n.tasaCambio)}
                       </td>
                       <td className="py-3 px-4 text-right font-bold text-foreground">
                         {formatCOP(n.ingresoCOP)}

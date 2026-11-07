@@ -2,14 +2,15 @@ import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
-import { formatCOP, formatDate } from '../utils/formatters';
+import { useAirtable, type NormalizedData } from '../context/AirtableContext';
+import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddComisionistaModal } from '../components/modals/AddComisionistaModal';
 
 export const ComisionistasView: React.FC = () => {
   const { data } = useAirtable();
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editing, setEditing] = useState<NormalizedData['comisionistas'][number]>();
 
   const { filteredComisionistas } = useMemo(() => {
 
@@ -58,7 +59,7 @@ export const ComisionistasView: React.FC = () => {
           />
         </div>
         <span className="text-xs text-muted-foreground font-medium">
-          {filteredComisionistas.length} registros encontrados
+          {formatNumber(filteredComisionistas.length)} registros encontrados
         </span>
       </div>
 
@@ -82,12 +83,13 @@ export const ComisionistasView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Comisiones (COP)</th>
                 <th className="py-3 px-4">Fecha</th>
                 <CreatedByHeader />
+                <th className="py-3 px-4">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredComisionistas.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center text-muted-foreground text-2xl">
                         <i className="ri-user-star-line" />
@@ -100,7 +102,7 @@ export const ComisionistasView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={8} rows={filteredComisionistas}>{(c) => (
+                <PaginatedRows columns={9} rows={filteredComisionistas}>{(c) => (
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{c.codigo}</td>
                     <td className="py-3 px-4 font-bold text-foreground">{c.comisionistaNombre}</td>
@@ -124,13 +126,18 @@ export const ComisionistasView: React.FC = () => {
                       {formatCOP(c.ingresosCOP)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-primary">
-                      {(c.porcentajeComision * 100).toFixed(2)}%
+                      {formatNumber(c.porcentajeComision * 100, 2)}%
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-emerald-500">
                       {formatCOP(c.comisionesCOP)}
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(c.fechaCreacion)}</td>
                     <CreatedByCell name={c.createdByName} />
+                    <td className="px-4">
+                      <button type="button" onClick={() => setEditing(c)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted">
+                        <i className="ri-edit-line" aria-hidden="true" /> Editar
+                      </button>
+                    </td>
                   </tr>
                 )}</PaginatedRows>
               )}
@@ -139,7 +146,7 @@ export const ComisionistasView: React.FC = () => {
         </div>
       </div>
 
-      <AddComisionistaModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+      <AddComisionistaModal isOpen={isAddOpen || Boolean(editing)} record={editing} onClose={() => { setIsAddOpen(false); setEditing(undefined); }} />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
-import { formatCurrency } from '../utils/formatters';
+import { formatNumber, formatRate, formatCurrency } from '../utils/formatters';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -48,7 +48,7 @@ export const ComprasUsdtView: React.FC = () => {
     rates.set(c.divisaCodigo, { total: rate.total + c.tasa, count: rate.count + 1 });
   }
   const averageRate = [...rates].map(([currency, rate]) =>
-    (rate.total / rate.count).toLocaleString('es-CO', { maximumFractionDigits: 6 }) + ' ' + currency + '/USDT'
+    formatRate(rate.total / rate.count) + ' ' + currency + '/USDT'
   );
 
   return (
@@ -94,7 +94,7 @@ export const ComprasUsdtView: React.FC = () => {
           {/* Date range shortcut */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
-        <p className="border-t border-border pt-2 text-xs text-muted-foreground" aria-live="polite">{filteredCompras.length} de {totalOperaciones} registros</p>
+        <p className="border-t border-border pt-2 text-xs text-muted-foreground" aria-live="polite">{formatNumber(filteredCompras.length)} de {formatNumber(totalOperaciones)} registros</p>
       </div>
 
       <KpiStrip metrics={([
@@ -140,16 +140,16 @@ export const ComprasUsdtView: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right font-medium text-foreground">
-                      {c.valorComprado.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} {c.divisaCodigo}
+                      {formatNumber(c.valorComprado, 0, 2)} {c.divisaCodigo}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                      {c.tasa.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                      {formatRate(c.tasa)}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-emerald-500 font-mono">
-                      +{c.usdtComprado.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDT
+                      +{formatNumber(c.usdtComprado, 0, 2)} USDT
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                      {c.costo.toFixed(4)}
+                      {formatRate(c.costo)}
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">

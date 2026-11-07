@@ -1,5 +1,5 @@
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
-import { formatCurrency } from '../utils/formatters';
+import { formatNumber, formatRate, formatCurrency } from '../utils/formatters';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -84,7 +84,7 @@ export const VentasUsdtView: React.FC = () => {
           {/* Date Range */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
-        <p className="border-t border-border pt-2 text-xs text-muted-foreground" aria-live="polite">{filteredVentas.length} de {data.ventasUsdt.length} registros</p>
+        <p className="border-t border-border pt-2 text-xs text-muted-foreground" aria-live="polite">{formatNumber(filteredVentas.length)} de {formatNumber(data.ventasUsdt.length)} registros</p>
       </div>
 
       <KpiStrip metrics={([
@@ -125,10 +125,10 @@ export const VentasUsdtView: React.FC = () => {
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(v.fecha)}</td>
                     <td className="py-3 px-4 font-semibold text-foreground">{v.concepto || 'Venta USDT'}</td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-rose-500">
-                      -{v.usdtVendido.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDT
+                      -{formatNumber(v.usdtVendido, 0, 2)} USDT
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                      {formatCOP(v.tasa)}
+                      ${formatRate(v.tasa)}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-emerald-500 font-mono">
                       {formatCOP(v.totalCOP)}

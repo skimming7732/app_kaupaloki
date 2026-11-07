@@ -1,53 +1,25 @@
-export function formatCop(amount: number, decimals = 2): string {
-  const num = Number(amount) || 0;
-  return '$' + new Intl.NumberFormat('es-CO', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(num);
+const numberFormatters = new Map<string, Intl.NumberFormat>();
+
+export function formatNumber(value: number | undefined | null, minimum = 0, maximum = minimum): string {
+  const key = minimum + ':' + maximum;
+  let formatter = numberFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: minimum, maximumFractionDigits: maximum });
+    numberFormatters.set(key, formatter);
+  }
+  const number = Number(value);
+  return formatter.format(Number.isFinite(number) ? number : 0);
 }
 
-export function formatCOP(val: number | undefined | null): string {
-  const n = Number(val) || 0;
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0,
-  }).format(n);
-}
+export const formatDecimal = (amount: number, decimals = 2) => formatNumber(amount, decimals);
+export const formatRate = (amount: number) => formatNumber(amount, 4);
+export const formatCop = (amount: number, decimals = 2) => '$' + formatNumber(amount, decimals);
+export const formatCOP = (amount: number | undefined | null) => '$' + formatNumber(amount, 0, 2);
+export const formatUsd = formatCop;
+export const formatUSD = (amount: number | undefined | null, decimals = 2) => '$' + formatNumber(amount, decimals);
 
-export function formatUsd(amount: number, decimals = 2): string {
-  const num = Number(amount) || 0;
-  return '$' + new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(num);
-}
-
-export function formatUSD(val: number | undefined | null, decimals: number = 2): string {
-  const n = Number(val) || 0;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(n);
-}
-
-export function formatDecimal(amount: number, decimals = 2): string {
-  const num = Number(amount) || 0;
-  return new Intl.NumberFormat('es-CO', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(num);
-}
-
-export function formatCurrency(amount: number | undefined | null, currencyCode: string = 'USD'): string {
-  const n = Number(amount) || 0;
-  if (currencyCode === 'COP') return formatCOP(n);
-  return `${currencyCode} ${new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n)}`;
+export function formatCurrency(amount: number | undefined | null, currencyCode = 'USD'): string {
+  return currencyCode === 'COP' ? formatCOP(amount) : currencyCode + ' ' + formatNumber(amount, 2);
 }
 
 export function formatDate(val: string | number | Date | undefined | null): string {

@@ -1,12 +1,12 @@
 import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
-import { fallbackBanderaUrl } from '../utils/formatters';
+import { formatNumber, fallbackBanderaUrl } from '../utils/formatters';
 import React, { useState } from 'react';
 import { useAirtable, type NormalizedData } from '../context/AirtableContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
-const amountFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 8 });
+const formatAmount = (value: number) => formatNumber(value, 0, 8);
 
 type Divisa = NormalizedData['divisas'][number];
 
@@ -44,7 +44,7 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
         ].map(([label, amount]) => (
           <div key={label} className="rounded-xl border border-border bg-card p-4">
             <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="mt-1 text-lg font-semibold">{amountFormatter.format(Number(amount))}</dd>
+            <dd className="mt-1 text-lg font-semibold">{formatAmount(Number(amount))}</dd>
           </div>
         ))}
       </dl>
@@ -163,13 +163,13 @@ export const DivisasView: React.FC = () => {
                     <td className="py-3 px-4 font-semibold text-foreground">{d.nombre}</td>
                     <td className="py-3 px-4 text-muted-foreground">{d.pais || 'Internacional'}</td>
                     <td className="py-3 px-4 text-right font-medium text-foreground">
-                      {amountFormatter.format(d.totalRecibido)}
+                      {formatAmount(d.totalRecibido)}
                     </td>
                     <td className="py-3 px-4 text-right font-medium text-foreground">
-                      {amountFormatter.format(d.totalComprado)}
+                      {formatAmount(d.totalComprado)}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-amber-500">
-                      {amountFormatter.format(d.totalPendiente)}
+                      {formatAmount(d.totalPendiente)}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">

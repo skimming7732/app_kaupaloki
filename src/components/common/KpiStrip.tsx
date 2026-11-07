@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatNumber } from '../../utils/formatters';
 
 type Metric = { label: string; value: React.ReactNode; icon?: string; featured?: boolean };
 
@@ -13,7 +13,7 @@ export const KpiStrip = ({ metrics, label = 'Resumen filtrado' }: { metrics: Met
           {metric.icon && <i className={metric.icon + ' text-primary'} aria-hidden="true" />}
           {metric.label}
         </p>
-        <div className="mt-1.5 break-words text-lg font-bold tabular-nums text-foreground">{metric.value}</div>
+        <div className="mt-1.5 break-words text-lg font-bold tabular-nums text-foreground">{typeof metric.value === 'number' ? formatNumber(metric.value) : metric.value}</div>
       </div>
     ))}
   </section>

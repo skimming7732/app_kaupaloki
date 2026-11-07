@@ -1,3 +1,4 @@
+import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { ReceiptInput } from './ReceiptInput';
 import { uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
@@ -43,7 +44,7 @@ const DispersionForm = ({ onClose, record }: Pick<AddDispersionModalProps, 'onCl
     event.preventDefault();
     if (busy) return;
     const fields = new FormData(event.currentTarget);
-    const monto = Number(fields.get('monto'));
+    const monto = parseAmountInput(String(fields.get('monto') ?? ''));
     const account = accounts.find((item) => item.id === accountId || (!accountId && accountLabel(item) === record?.origenFondos));
     if (!clienteId || !account || !Number.isFinite(monto) || monto <= 0) {
       setError('Selecciona un cliente y una cuenta de origen e ingresa un monto mayor que cero.');
@@ -87,7 +88,7 @@ const DispersionForm = ({ onClose, record }: Pick<AddDispersionModalProps, 'onCl
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={recordLabelClass}>
               <span>Monto (COP)</span>
-              <input type="number" name="monto" defaultValue={record?.monto} step="any" min="0" required className={recordFieldClass} />
+              <input type="text" inputMode="decimal" name="monto" defaultValue={record ? formatAmountInput(String(record.monto)) : undefined} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
             </label>
             <label className={recordLabelClass}>
               <span>Fecha</span>
