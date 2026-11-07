@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useAirtable } from '../../context/AirtableContext';
+import { useData } from '../../context/DataContext';
 
 interface SidebarProps {
   isMobileOpen?: boolean;
@@ -42,7 +42,7 @@ const SidebarSection = ({ label, icon, active, expanded, children }: {
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose }) => {
   const { profile } = useAuth();
   const { pathname } = useLocation();
-  const { syncStatus, lastSyncTime, syncWithAirtable } = useAirtable();
+  const { syncStatus, lastSyncTime, syncData } = useData();
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [hasKeyboardFocus, setHasKeyboardFocus] = useState(false);
@@ -252,7 +252,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
         >
           <button
             type="button"
-            onClick={() => syncWithAirtable(true)}
+            onClick={() => syncData(true)}
             title={
               !isExpanded
                 ? `Base de Datos (${syncStatus === 'syncing' ? 'Sincronizando...' : lastSyncTime || 'En vivo'})`
@@ -392,7 +392,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
         <div className="p-4 border-t border-[var(--border-main)] pb-8">
           <button
             type="button"
-            onClick={() => syncWithAirtable(true)}
+            onClick={() => syncData(true)}
             className="w-full p-2.5 rounded-xl border border-border bg-[var(--bg-card-secondary)] text-foreground text-xs font-bold flex items-center justify-between"
           >
             <div className="flex items-center gap-2">

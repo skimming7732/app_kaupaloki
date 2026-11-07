@@ -1,6 +1,6 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
+import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 
 interface AddClienteModalProps {
@@ -9,7 +9,7 @@ interface AddClienteModalProps {
 }
 
 export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClose }) => {
-  const { createCliente } = useAirtable();
+  const { createCliente } = useData();
   const { profile, user } = useAuth();
   const [nombre, setNombre] = useState('');
   const [pais, setPais] = useState('COLOMBIA');

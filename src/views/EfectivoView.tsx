@@ -5,7 +5,7 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
+import { useData } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
@@ -19,7 +19,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   onOpenAddMovimiento,
   onOpenAddGasto,
 }) => {
-  const { data } = useAirtable();
+  const { data } = useData();
   const [isAddMovOpen, setIsAddMovOpen] = useState(false);
   const [isAddGastoOpen, setIsAddGastoOpen] = useState(false);
 

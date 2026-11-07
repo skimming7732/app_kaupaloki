@@ -4,7 +4,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import React, { useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useAirtable, type NormalizedData } from '../context/AirtableContext';
+import { useData, type NormalizedData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
 import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate } from '../utils/formatters';
 
@@ -23,7 +23,7 @@ export const ClientPublicView = () => {
 
 const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) => {
   const navigate = useNavigate();
-  const { data } = useAirtable();
+  const { data } = useData();
   const { user, profile, is2faVerified } = useAuth();
   const [activeTab, setActiveTab] = useState<'negocios' | 'pagos' | 'ingresos'>('negocios');
   const [portal, setPortal] = useState<PortalData | null>(null);

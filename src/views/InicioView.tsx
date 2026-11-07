@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useAirtable, type NormalizedData } from '../context/AirtableContext';
+import { useData, type NormalizedData } from '../context/DataContext';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { formatNumber, fallbackBanderaUrl, formatDate } from '../utils/formatters';
 
@@ -189,7 +189,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
 
 export const InicioView = () => {
   const { user, profile } = useAuth();
-  const { data } = useAirtable();
+  const { data } = useData();
   const admin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const canSeeNegocios = admin || profile?.role === 'operador';
   const authorized = profile?.authorized_currencies || [];

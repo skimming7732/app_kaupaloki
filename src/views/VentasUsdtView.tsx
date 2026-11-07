@@ -6,11 +6,11 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
+import { useData } from '../context/DataContext';
 import { formatCOP, formatDate } from '../utils/formatters';
 
 export const VentasUsdtView: React.FC = () => {
-  const { data } = useAirtable();
+  const { data } = useData();
   const [search, setSearch] = useState('');
   const [filterDestino, setFilterDestino] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
@@ -102,11 +102,11 @@ export const VentasUsdtView: React.FC = () => {
                 <th className="py-3 px-4">Código</th>
                 <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Concepto</th>
+                <th className="py-3 px-4">Origen Fondos</th>
                 <th className="py-3 px-4 text-right">USDT Vendido</th>
                 <th className="py-3 px-4 text-right">Tasa Venta (COP)</th>
                 <th className="py-3 px-4 text-right">Total (COP)</th>
                 <th className="py-3 px-4">Destino Fondos</th>
-                <th className="py-3 px-4">Origen</th>
                 <CreatedByHeader />
                 <th className="py-3 px-4">Acciones</th>
               </tr>
@@ -124,6 +124,11 @@ export const VentasUsdtView: React.FC = () => {
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{v.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(v.fecha)}</td>
                     <td className="py-3 px-4 font-semibold text-foreground">{v.concepto || 'Venta USDT'}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
+                        {v.walletOrigen || 'Sin registro'}
+                      </span>
+                    </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-rose-500">
                       -{formatNumber(v.usdtVendido, 0, 2)} USDT
                     </td>
@@ -137,9 +142,6 @@ export const VentasUsdtView: React.FC = () => {
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
                         {v.destinoFondosNombre || 'Sin registro'}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground text-[11px] font-mono">
-                      {v.walletOrigen || 'Sin registro'}
                     </td>
                     <CreatedByCell name={v.createdByName} />
                     <td className="px-4"><AddCatalogButton table="ventas_usdt" edit={{ id: v.id, historical: !v.walletOrigenId || !v.destinoFondosId, fields: { fecha: v.fecha?.slice(0, 10) || '', concepto: v.concepto, usdt_vendido: v.usdtVendido, tasa: v.tasa, wallet_origen_id: v.walletOrigenId || '', destino_fondos_id: v.destinoFondosId || '' } }} /></td>

@@ -1,6 +1,6 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
+import { useData } from '../../context/DataContext';
 import { supabase } from '../../lib/supabase';
 
 interface AddUserModalProps {
@@ -66,7 +66,7 @@ const ROLES_OPTIONS: {
 ];
 
 export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
-  const { data, syncWithAirtable } = useAirtable();
+  const { data, syncData } = useData();
 
   // Wizard steps: 1 = Datos, 2 = Roles, 3 = Divisas (si rol es operador)
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -186,7 +186,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
 
       finishSound(true);
       setSuccess(true);
-      await syncWithAirtable(true);
+      await syncData(true);
 
       setTimeout(() => {
         handleClose();

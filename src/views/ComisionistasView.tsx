@@ -2,12 +2,12 @@ import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable, type NormalizedData } from '../context/AirtableContext';
+import { useData, type NormalizedData } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddComisionistaModal } from '../components/modals/AddComisionistaModal';
 
 export const ComisionistasView: React.FC = () => {
-  const { data } = useAirtable();
+  const { data } = useData();
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editing, setEditing] = useState<NormalizedData['comisionistas'][number]>();

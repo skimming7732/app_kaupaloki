@@ -3,7 +3,7 @@ import { ReceiptInput } from './ReceiptInput';
 import { uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useEffect, useId, useState } from 'react';
-import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
+import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatCOP } from '../../utils/formatters';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
@@ -21,7 +21,7 @@ export const AddDispersionModal = ({ isOpen, onClose, record }: AddDispersionMod
   isOpen ? <DispersionForm key={record?.id} onClose={onClose} record={record} /> : null;
 
 const DispersionForm = ({ onClose, record }: Pick<AddDispersionModalProps, 'onClose' | 'record'>) => {
-  const { data, createDispersion, updateDispersion, deleteDispersion } = useAirtable();
+  const { data, createDispersion, updateDispersion, deleteDispersion } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const clientInputId = useId();

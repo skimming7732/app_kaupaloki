@@ -3,7 +3,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { formatNumber, fallbackBanderaUrl } from '../utils/formatters';
 import React, { useState } from 'react';
-import { useAirtable, type NormalizedData } from '../context/AirtableContext';
+import { useData, type NormalizedData } from '../context/DataContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
 const formatAmount = (value: number) => formatNumber(value, 0, 8);
@@ -80,7 +80,7 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
 };
 
 export const DivisasView: React.FC = () => {
-  const { data } = useAirtable();
+  const { data } = useData();
   const [search, setSearch] = useState('');
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const selectedDivisa = data.divisas.find((item) => item.codigo === selectedCode);

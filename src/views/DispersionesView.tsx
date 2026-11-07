@@ -10,7 +10,7 @@ import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt'
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable, type NormalizedData } from '../context/AirtableContext';
+import { useData, type NormalizedData } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 
@@ -19,7 +19,7 @@ interface DispersionesViewProps {
 }
 
 export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDispersion }) => {
-  const { data, syncWithAirtable } = useAirtable();
+  const { data, syncData } = useData();
 
   const [editing, setEditing] = useState<NormalizedData['dispersiones'][number] | null>(null);
 
@@ -283,7 +283,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
           expenseId={selectedReceipt.id}
           dispersion
           currentReceipt={selectedReceipt.url}
-          onSaved={syncWithAirtable}
+          onSaved={syncData}
           onClose={() => setSelectedReceipt(null)}
         />
       )}

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAirtable } from '../context/AirtableContext';
+import { useData } from '../context/DataContext';
 import { formatCOP, formatUSD, formatRate } from '../utils/formatters';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 
 export const DashboardView: React.FC = () => {
-  const { metrics, data, updateRateUsdt } = useAirtable();
+  const { metrics, data, updateRateUsdt } = useData();
   const [rateInput, setRateInput] = useState<string>('');
   const [savingRate, setSavingRate] = useState<boolean>(false);
   const [rateSuccess, setRateSuccess] = useState<boolean>(false);

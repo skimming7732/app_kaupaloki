@@ -178,7 +178,7 @@ export interface Admin {
   authorized_currencies?: string[];
 }
 
-export interface UsuarioAirtable extends Admin {}
+export interface UsuarioApp extends Admin {}
 
 export interface MovimientoEfectivo {
   id: string;
@@ -1156,7 +1156,7 @@ export const ADMINS: Admin[] = [
   }
 ];
 
-export const USUARIOS_AIRTABLE: UsuarioAirtable[] = ADMINS;
+export const USUARIOS_APP: UsuarioApp[] = ADMINS;
 
 export const CURRENCY_FLAGS: Record<string, string> = {
   'USD': 'USD',

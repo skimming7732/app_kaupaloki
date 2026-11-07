@@ -1,7 +1,7 @@
 import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useId, useState } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
+import { useData } from '../../context/DataContext';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 import { AccountSelect, accountLabel } from './AccountSelect';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
@@ -15,7 +15,7 @@ export const AddEfectivoModal = ({ isOpen, onClose }: AddEfectivoModalProps) =>
   isOpen ? <EfectivoForm onClose={onClose} /> : null;
 
 const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
-  const { data, createMovimientoEfectivo, createCliente } = useAirtable();
+  const { data, createMovimientoEfectivo, createCliente } = useData();
   const id = useId();
   const [tipo, setTipo] = useState<'Ingreso' | 'Pago'>('Pago');
   const [clienteId, setClienteId] = useState('');

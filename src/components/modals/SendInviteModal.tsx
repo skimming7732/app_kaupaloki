@@ -1,16 +1,16 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
-import type { AirtableUser } from '../../context/AirtableContext';
+import { useData } from '../../context/DataContext';
+import type { AppUser } from '../../context/DataContext';
 
 interface SendInviteModalProps {
   isOpen: boolean;
-  user: AirtableUser | null;
+  user: AppUser | null;
   onClose: () => void;
 }
 
 export const SendInviteModal: React.FC<SendInviteModalProps> = ({ isOpen, user, onClose }) => {
-  const { sendUserInvite } = useAirtable();
+  const { sendUserInvite } = useData();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);

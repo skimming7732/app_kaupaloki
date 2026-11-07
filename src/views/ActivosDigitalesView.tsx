@@ -4,12 +4,12 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
+import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
-  const { metrics, data } = useAirtable();
+  const { metrics, data } = useData();
   const { theme } = useAuth();
   const isDark = theme === 'dark';
   const navigate = useNavigate();

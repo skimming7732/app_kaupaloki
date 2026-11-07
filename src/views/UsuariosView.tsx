@@ -1,15 +1,15 @@
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
-import type { AirtableUser } from '../context/AirtableContext';
+import { useData } from '../context/DataContext';
+import type { AppUser } from '../context/DataContext';
 import { EditUserModal } from '../components/modals/EditUserModal';
 import { SendInviteModal } from '../components/modals/SendInviteModal';
 import { DeleteUserModal } from '../components/modals/DeleteUserModal';
 import { AddUserModal } from '../components/modals/AddUserModal';
 
 export const UsuariosView: React.FC = () => {
-  const { data, updateRecord } = useAirtable();
+  const { data, updateRecord } = useData();
   const [selectedRole, setSelectedRole] = useState('Todos');
   const [search, setSearch] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -17,9 +17,9 @@ export const UsuariosView: React.FC = () => {
 
   // Modal states
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<AirtableUser | null>(null);
-  const [invitingUser, setInvitingUser] = useState<AirtableUser | null>(null);
-  const [deletingUser, setDeletingUser] = useState<AirtableUser | null>(null);
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [invitingUser, setInvitingUser] = useState<AppUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState<AppUser | null>(null);
 
   const roles = ['Todos', 'Super Admin', 'Admin', 'Operador', 'Dispersor'];
 
@@ -50,14 +50,14 @@ export const UsuariosView: React.FC = () => {
     });
   }, [data.usuarios, search, selectedRole]);
 
-  const handleCopyLink = (u: AirtableUser) => {
+  const handleCopyLink = (u: AppUser) => {
     const link = `${window.location.origin}/onboarding?email=${encodeURIComponent(u.correo)}`;
     navigator.clipboard.writeText(link);
     setCopiedId(u.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleToggleEstado = async (u: AirtableUser) => {
+  const handleToggleEstado = async (u: AppUser) => {
     const nuevoEstado = (u.estado || '').toLowerCase() === 'activo' ? 'Invitado' : 'Activo';
     setUpdatingId(u.id);
     try {

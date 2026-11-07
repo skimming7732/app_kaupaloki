@@ -3,7 +3,7 @@ import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { formatCurrency } from '../../utils/formatters';
 import { accountOptionLabel, type Account } from './AccountSelect';
-import { useAirtable, type CatalogTable } from '../../context/AirtableContext';
+import { useData, type CatalogTable } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 
@@ -17,7 +17,7 @@ const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota
 type CatalogEdit = { id: string; fields: Record<string, string | number>; historical: boolean };
 
 export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: CatalogEdit }) => {
-  const { data, createCatalogRecord, deleteCatalogRecord } = useAirtable();
+  const { data, createCatalogRecord, deleteCatalogRecord } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [open, setOpen] = useState(false);

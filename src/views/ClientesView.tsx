@@ -3,7 +3,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAirtable } from '../context/AirtableContext';
+import { useData } from '../context/DataContext';
 import { formatCOP, formatNumber } from '../utils/formatters';
 import { AddClienteModal } from '../components/modals/AddClienteModal';
 import { EditClienteModal } from '../components/modals/EditClienteModal';
@@ -33,7 +33,7 @@ const getCountryIso = (pais?: string): string => {
 };
 
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
-  const { data } = useAirtable();
+  const { data } = useData();
   const [search, setSearch] = useState('');
   const [sharingClient, setSharingClient] = useState<any | null>(null);
   const [editingClient, setEditingClient] = useState<any | null>(null);

@@ -1,6 +1,6 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
-import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
+import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatNumber } from '../../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
@@ -16,7 +16,7 @@ export const AddComisionistaModal = ({ isOpen, onClose, record }: AddComisionist
   isOpen ? <ComisionistaForm key={record?.id ?? 'new'} onClose={onClose} record={record} /> : null;
 
 const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, 'isOpen'>) => {
-  const { data, saveComisionista, deleteComisionista } = useAirtable();
+  const { data, saveComisionista, deleteComisionista } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [comisionistaId, setComisionistaId] = useState(record?.comisionistaId || '');

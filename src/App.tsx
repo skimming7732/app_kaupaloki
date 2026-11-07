@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { AirtableProvider } from './context/AirtableContext';
+import { DataProvider } from './context/DataContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
@@ -122,7 +122,7 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AirtableProvider>
+        <DataProvider>
           <Routes>
             {/* Public and standalone routes */}
             <Route path="/login" element={<LoginView />} />
@@ -215,7 +215,7 @@ export const App: React.FC = () => {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/inicio" replace />} />
           </Routes>
-        </AirtableProvider>
+        </DataProvider>
       </AuthProvider>
     </BrowserRouter>
   );

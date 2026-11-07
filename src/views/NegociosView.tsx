@@ -4,7 +4,7 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
+import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate } from '../utils/formatters';
 import { EditNegocioModal } from '../components/modals/EditNegocioModal';
@@ -15,7 +15,7 @@ interface NegociosViewProps {
 }
 
 export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) => {
-  const { data } = useAirtable();
+  const { data } = useData();
   const { profile } = useAuth();
   const isOperador = profile?.role === 'operador';
   const authorizedCurrencies = profile?.authorized_currencies || [];

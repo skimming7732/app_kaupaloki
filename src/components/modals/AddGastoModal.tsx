@@ -3,7 +3,7 @@ import { ReceiptInput } from './ReceiptInput';
 import { uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
-import { useAirtable, type GastoItem } from '../../context/AirtableContext';
+import { useData, type GastoItem } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { AccountSelect, accountLabel } from './AccountSelect';
 import { CategorySearchSelect } from '../common/CategorySearchSelect';
@@ -27,7 +27,7 @@ export const AddGastoModal = ({ isOpen, onClose, record, isCashContext, defaultO
   isOpen ? <GastoForm key={record?.id ?? (isCashContext ? 'cash' : 'normal')} onClose={onClose} record={record} isCashContext={isCashContext} defaultOrigenFondos={defaultOrigenFondos} /> : null;
 
 const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit<AddGastoModalProps, 'isOpen'>) => {
-  const { data, createGasto, updateGasto, deleteGasto } = useAirtable();
+  const { data, createGasto, updateGasto, deleteGasto } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
 

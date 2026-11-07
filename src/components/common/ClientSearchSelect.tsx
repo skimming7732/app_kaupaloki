@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
+import { useData } from '../../context/DataContext';
 
 interface ClientSearchSelectProps {
   id?: string;
@@ -20,7 +20,7 @@ export const ClientSearchSelect: React.FC<ClientSearchSelectProps> = ({
   onAddNewClient,
   inputClassName = '',
 }) => {
-  const { data } = useAirtable();
+  const { data } = useData();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

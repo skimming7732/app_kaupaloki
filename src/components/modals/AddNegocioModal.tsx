@@ -1,9 +1,9 @@
 import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
-import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
+import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { DIVISAS, type Divisa } from '../../data/airtableData';
+import { DIVISAS, type Divisa } from '../../data/appData';
 import { fallbackBanderaUrl, formatCOP, formatNumber } from '../../utils/formatters';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 
@@ -58,7 +58,7 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
   isOpen ? <NegocioDialog key={negocio?.id ?? 'new'} onClose={onClose} negocio={negocio} /> : null;
 
 const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'>) => {
-  const { data, createNegocio, createCliente, updateNegocio, deleteNegocio } = useAirtable();
+  const { data, createNegocio, createCliente, updateNegocio, deleteNegocio } = useData();
   const { profile } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const currencyTrigger = useRef<HTMLButtonElement>(null);
@@ -317,6 +317,29 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
               inputClassName="min-h-11"
               required
             />
+            {selectedClient && (
+              <div className="mt-3 p-3.5 rounded-xl border border-border bg-muted/30 shadow-sm space-y-2.5 animate-fade-in">
+                <div className="flex items-center justify-between border-b border-border/70 pb-2">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    CODIGO CLIENTE: <span className="font-mono text-foreground font-bold">{selectedClient.codigo}{selectedClient.nombre ? ` - ${selectedClient.nombre}` : ''}</span>
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center pt-0.5">
+                  <div className="rounded-xl bg-background/80 p-2.5 border border-border/50 shadow-xs">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">TOTAL NEGOCIOS</p>
+                    <p className="mt-1 text-base font-bold font-mono text-foreground">{selectedClient.totalNegocios ?? 0}</p>
+                  </div>
+                  <div className="rounded-xl bg-background/80 p-2.5 border border-border/50 shadow-xs">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">TOTAL PAGADO</p>
+                    <p className="mt-1 text-base font-bold font-mono text-emerald-500">{formatCOP(selectedClient.totalDispersadoCOP || selectedClient.pagadoCop || 0)}</p>
+                  </div>
+                  <div className="rounded-xl bg-background/80 p-2.5 border border-border/50 shadow-xs">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">TOTAL PENDIENTE</p>
+                    <p className="mt-1 text-base font-bold font-mono text-amber-500">{formatCOP(selectedClient.saldoPendienteCOP || selectedClient.pendienteCop || 0)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

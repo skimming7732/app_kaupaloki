@@ -6,11 +6,11 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
+import { useData } from '../context/DataContext';
 import { formatDate } from '../utils/formatters';
 
 export const ComprasUsdtView: React.FC = () => {
-  const { data } = useAirtable();
+  const { data } = useData();
   const [search, setSearch] = useState('');
   const [filterDivisa, setFilterDivisa] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
@@ -153,7 +153,7 @@ export const ComprasUsdtView: React.FC = () => {
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                        {c.walletDestino || 'Sin registro'}
+                        {c.walletDestino || (c.walletDestinoId && data.activosDigitales.find((a) => a.id === c.walletDestinoId)?.activo) || data.activosDigitales[0]?.activo || 'Sin registro'}
                       </span>
                     </td>
                     <CreatedByCell name={c.createdByName} />

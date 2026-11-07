@@ -1,17 +1,17 @@
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState, useEffect } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
+import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import type { AirtableUser } from '../../context/AirtableContext';
+import type { AppUser } from '../../context/DataContext';
 
 interface EditUserModalProps {
   isOpen: boolean;
-  user: AirtableUser | null;
+  user: AppUser | null;
   onClose: () => void;
 }
 
 export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose }) => {
-  const { data, updateRecord, deleteUser } = useAirtable();
+  const { data, updateRecord, deleteUser } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [nombre, setNombre] = useState('');

@@ -12,7 +12,7 @@ import { supabase } from '../lib/supabase';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable, type GastoItem } from '../context/AirtableContext';
+import { useData, type GastoItem } from '../context/DataContext';
 import { formatNumber, formatCOP, formatUSD, formatDate } from '../utils/formatters';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
 
@@ -21,7 +21,7 @@ interface GastosViewProps {
 }
 
 export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
-  const { data, syncWithAirtable } = useAirtable();
+  const { data, syncData } = useData();
   const [attachingTo, setAttachingTo] = useState<{ id: string; url?: string } | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editing, setEditing] = useState<GastoItem | null>(null);
@@ -69,7 +69,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         });
       }
 
-      await syncWithAirtable();
+      await syncData();
       finishSound(true);
     } catch (err) {
       console.error('Error al subir comprobante:', err);
@@ -336,7 +336,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         </div>
       </div>
       {/* Add Gasto Modal */}
-      {attachingTo && <AttachExpenseReceipt expenseId={attachingTo.id} currentReceipt={attachingTo.url} onClose={() => setAttachingTo(null)} onSaved={syncWithAirtable} />}
+      {attachingTo && <AttachExpenseReceipt expenseId={attachingTo.id} currentReceipt={attachingTo.url} onClose={() => setAttachingTo(null)} onSaved={syncData} />}
       {editing && <AddGastoModal isOpen record={editing} onClose={() => setEditing(null)} />}
       <AddGastoModal
         isOpen={isAddOpen}

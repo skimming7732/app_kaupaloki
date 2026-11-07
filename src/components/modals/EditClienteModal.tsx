@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAirtable, type NormalizedData } from '../../context/AirtableContext';
+import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 
@@ -10,7 +10,7 @@ interface EditClienteModalProps {
 }
 
 export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isOpen, onClose }) => {
-  const { data, updateCliente, deleteCliente } = useAirtable();
+  const { data, updateCliente, deleteCliente } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [nombre, setNombre] = useState(() => cliente?.nombre || '');
@@ -20,10 +20,29 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasRelatedRecords = Boolean(
+    cliente && (
+      (cliente.totalNegocios || 0) > 0 ||
+      (cliente.totalIngresosCOP || 0) > 0 ||
+      (cliente.totalDispersadoCOP || 0) > 0 ||
+      (cliente.saldoPendienteCOP || 0) !== 0 ||
+      cliente.esComisionista ||
+      (Array.isArray(cliente.comisionaDeIds) && cliente.comisionaDeIds.length > 0) ||
+      data.negocios.some((n) => n.clienteId === cliente.id || n.clienteCodigo === cliente.codigo) ||
+      data.dispersiones.some((d) => d.clienteId === cliente.id || d.clienteCodigo === cliente.codigo) ||
+      data.efectivo.some((e) => e.clienteId === cliente.id || e.clienteCodigo === cliente.codigo) ||
+      data.comisionistas.some((c) => c.comisionistaClienteId === cliente.id || (Array.isArray(c.comisionaDeIds) && c.comisionaDeIds.includes(cliente.id)))
+    )
+  );
+
   if (!isOpen || !cliente) return null;
 
     const handleDelete = async () => {
     if (!cliente) return;
+    if (hasRelatedRecords) {
+      setError('No se puede eliminar el cliente porque tiene negocios, pagos o movimientos asociados.');
+      return;
+    }
     if (!window.confirm(`¿Estás seguro de que deseas eliminar al cliente "${cliente.nombre}" (${cliente.codigo})? Esta acción no se puede deshacer.`)) {
       return;
     }
@@ -169,15 +188,31 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
           <div className="flex items-center justify-between gap-3 pt-4 border-t border-border mt-6">
             <div>
               {isAdmin && (
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={loading}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
-                >
-                  <i className="ri-delete-bin-line" />
-                  <span>Eliminar cliente</span>
-                </button>
+                hasRelatedRecords ? (
+                  <div className="flex items-center gap-2" title="No se puede eliminar: el cliente tiene registros o movimientos asociados">
+                    <button
+                      type="button"
+                      disabled
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground bg-muted/40 border border-border cursor-not-allowed flex items-center gap-1.5 opacity-60"
+                    >
+                      <i className="ri-lock-line" />
+                      <span>Eliminar cliente</span>
+                    </button>
+                    <span className="text-[10px] text-muted-foreground">
+                      (Tiene movimientos asociados)
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                  >
+                    <i className="ri-delete-bin-line" />
+                    <span>Eliminar cliente</span>
+                  </button>
+                )
               )}
             </div>
             <div className="flex items-center gap-2">

@@ -42,7 +42,7 @@ export function formatDate(val: string | number | Date | undefined | null): stri
   }
 }
 
-export function computeUserAirtableCode(name: string, role: string, country: string, num: number = 1): string {
+export function computeUserCode(name: string, role: string, country: string, num: number = 1): string {
   let rolePrefix = 'OP';
   const r = (role || '').toUpperCase();
   if (r.includes('SUPER') || r === 'SUPER ADMIN') {
