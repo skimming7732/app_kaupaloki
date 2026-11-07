@@ -954,7 +954,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return {
       totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
       totalActivosDigitales: res?.totalActivosDigitalesUsdt ?? totalDigFallback,
-      saldoPendienteClientes: res?.totalSaldoPendienteClientesCop ?? 0,
+      saldoPendienteClientes: totalSaldoPendienteFallback > 0 ? totalSaldoPendienteFallback : (res?.totalSaldoPendienteClientesCop ?? 0),
       gananciaEsperada,
       totalNegocioCOP: res?.totalNegocioCop ?? (data.negocios || []).reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0),
       totalClientesIngresosCOP,
