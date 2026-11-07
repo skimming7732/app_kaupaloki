@@ -135,9 +135,10 @@ export const App: React.FC = () => {
             <Route path="/" element={renderWithLayout(<InicioView />)} />
             <Route path="/inicio" element={renderWithLayout(<InicioView />)} />
             <Route
-              path="/dashboard"
+              path="/panel-control"
               element={renderWithLayout(<DashboardView />, ['super_admin', 'administrador'])}
             />
+            <Route path="/dashboard" element={<Navigate to="/panel-control" replace />} />
             <Route
               path="/negocios"
               element={renderWithLayout(

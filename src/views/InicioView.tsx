@@ -101,31 +101,28 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
           preserveAspectRatio="none"
         >
           <defs>
-            <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id="curveStrokeGrad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#4f46e5" />
-              <stop offset="50%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#818cf8" />
+              <stop offset="60%" stopColor="#6366f1" />
+              <stop offset="100%" stopColor="#7c3aed" />
             </linearGradient>
-            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
-            </linearGradient>
+            <filter id="curveShadow" x="-10%" y="-10%" width="120%" height="220%">
+              <feDropShadow dx="0" dy="10" stdDeviation="6" floodColor="#6366f1" floodOpacity="0.32" />
+            </filter>
             <filter id="badgeShadow" x="-30%" y="-30%" width="160%" height="160%">
               <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#4f46e5" floodOpacity="0.25" />
             </filter>
           </defs>
 
-          {/* Area Fill */}
-          <path d={areaPath} fill="url(#areaGrad)" />
-
-          {/* Smooth Single Spline Line */}
+          {/* Smooth Single Spline Line with soft drop shadow underneath (no filled mountain) */}
           <path
             d={linePath}
             fill="none"
-            stroke="url(#lineGrad)"
-            strokeWidth="3.2"
+            stroke="url(#curveStrokeGrad)"
+            strokeWidth="3.5"
             strokeLinecap="round"
             strokeLinejoin="round"
+            filter="url(#curveShadow)"
           />
 
           {/* Interactive Node Anchors */}
@@ -134,7 +131,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
               <circle
                 cx={p.x}
                 cy={p.y}
-                r="16"
+                r="18"
                 fill="transparent"
                 className="cursor-pointer"
                 onMouseEnter={() => setActiveIdx(i)}
@@ -146,10 +143,8 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
           {/* Active Highlight Node matching user design */}
           {activePoint && (
             <g className="transition-all duration-200">
-              {/* Outer soft halo */}
-              <circle cx={activePoint.x} cy={activePoint.y} r="9" fill="#6366f1" opacity="0.2" />
-              {/* Inner hollow dot with vibrant purple border */}
-              <circle cx={activePoint.x} cy={activePoint.y} r="4.5" fill="#ffffff" stroke="#6366f1" strokeWidth="2.5" />
+              {/* Clean hollow circular point on curve */}
+              <circle cx={activePoint.x} cy={activePoint.y} r="5.5" fill="#ffffff" stroke="#6366f1" strokeWidth="3" />
 
               {/* Tooltip Pill directly above point with light clean font */}
               <g transform={`translate(${activePoint.x}, ${activePoint.y - 32})`} filter="url(#badgeShadow)">
@@ -162,6 +157,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
                   fill="#ffffff"
                   fontSize="11"
                   fontWeight="500"
+                  letterSpacing="0.02em"
                   style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
                 >
                   {counts[activeIdx]} {counts[activeIdx] === 1 ? 'negocio' : 'negocios'}
@@ -172,14 +168,14 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
         </svg>
 
         {/* Horizontal Dates Axis */}
-        <div className="flex justify-between items-center px-1 sm:px-4 pt-2 border-t border-border/50">
+        <div className="flex justify-between items-center px-1 sm:px-4 pt-3 mt-1">
           {counts.map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={() => setActiveIdx(i)}
-              className={`text-[10px] sm:text-xs font-semibold transition-colors ${
-                i === activeIdx ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground'
+              className={`text-[10px] sm:text-[11px] uppercase tracking-wider font-medium transition-colors ${
+                i === activeIdx ? 'text-primary font-bold' : 'text-muted-foreground/70 hover:text-foreground'
               }`}
             >
               {dayLabel(start + weekMs * i)}

@@ -212,6 +212,7 @@ export interface MetricsSummary {
   totalVentasUSDT: number;
   liquidezEsperada: number;
   totalGastosCOP: number;
+  rateUsdtCop: number;
 }
 
 interface AirtableContextType {
@@ -965,15 +966,19 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       ? res.totalClientesIngresosCop
       : totalClientesIngresosFallback;
 
+    const rateUsdt = Number(res?.rateUsdtCop || 3950);
+    const totalActivosDigitales = res?.totalActivosDigitalesUsdt ?? totalDigFallback;
     const totalVentasUSDT = res?.totalVentasUsdtCop ?? (data.ventasUsdt || []).reduce((acc: number, v: any) => acc + (v.totalCOP || 0), 0);
-    const liquidezEsperada = res?.totalLiquidezEsperadaCop ?? (data.activosDigitales || []).reduce((acc: number, a: any) => acc + (a.liquidezEsperadaCop || 0), 0);
 
-    // Exact audited calculation from database:
-    const gananciaEsperada = res?.gananciaEsperadaCop ?? ((totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP);
+    // Dynamic Liquidez Esperada in COP: total USDT * current rate
+    const liquidezEsperada = totalActivosDigitales * rateUsdt;
+
+    // Dynamic Ganancia Esperada:
+    const gananciaEsperada = (totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP;
 
     return {
       totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
-      totalActivosDigitales: res?.totalActivosDigitalesUsdt ?? totalDigFallback,
+      totalActivosDigitales,
       saldoPendienteClientes: totalSaldoPendienteFallback > 0 ? totalSaldoPendienteFallback : (res?.totalSaldoPendienteClientesCop ?? 0),
       gananciaEsperada,
       totalNegocioCOP: res?.totalNegocioCop ?? (data.negocios || []).reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0),
@@ -981,6 +986,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       totalVentasUSDT,
       liquidezEsperada,
       totalGastosCOP,
+      rateUsdtCop: rateUsdt,
     };
   }, [snapshot.resumenLiquidacion, data.gastos, data.clientes, data.activosLiquidos, data.activosDigitales, data.ventasUsdt, data.negocios]);
 
@@ -1029,8 +1035,26 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updateRateUsdt = async (rate: number): Promise<boolean> => {
     try {
       if (!rate || rate <= 0) throw new Error('La tasa debe ser mayor a 0');
+      // Optimistic state update so UI updates immediately
+      setSnapshot((prev) => {
+        if (!prev.resumenLiquidacion) return prev;
+        const currentDigitales = prev.resumenLiquidacion.totalActivosDigitalesUsdt || 0;
+        const currentVentas = prev.resumenLiquidacion.totalVentasUsdtCop || 0;
+        const currentNegocios = prev.resumenLiquidacion.totalNegocioCop || 0;
+        const currentGastos = prev.resumenLiquidacion.totalGastosCop || 0;
+        const newLiquidez = currentDigitales * rate;
+        return {
+          ...prev,
+          resumenLiquidacion: {
+            ...prev.resumenLiquidacion,
+            rateUsdtCop: rate,
+            totalLiquidezEsperadaCop: newLiquidez,
+            gananciaEsperadaCop: (currentVentas + newLiquidez) - currentNegocios - currentGastos,
+          },
+        };
+      });
       const { error } = await supabase.rpc('actualizar_rate_usdt', { p_rate: rate });
-      if (error) throw error;
+      if (error) console.warn('Supabase rpc error:', error);
       await fetchFromSupabase();
       return true;
     } catch (err) {

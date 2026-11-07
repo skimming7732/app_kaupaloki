@@ -15,6 +15,23 @@ interface ClientesViewProps {
 
 type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'saldoPendienteCOP' | 'totalComisionesCOP' | 'estado';
 
+const getCountryIso = (pais?: string): string => {
+  if (!pais) return 'COL';
+  const p = pais.trim().toUpperCase();
+  if (p.includes('COLOMBIA') || p === 'COL') return 'COL';
+  if (p.includes('VENEZUELA') || p === 'VEN') return 'VEN';
+  if (p.includes('ESTADOS UNIDOS') || p.includes('USA') || p.includes('EEUU')) return 'USA';
+  if (p.includes('PANAM') || p === 'PAN') return 'PAN';
+  if (p.includes('ESPA') || p === 'ESP') return 'ESP';
+  if (p.includes('PER') || p === 'PER') return 'PER';
+  if (p.includes('MÉX') || p.includes('MEX') || p === 'MEX') return 'MEX';
+  if (p.includes('ECUADOR') || p === 'ECU') return 'ECU';
+  if (p.includes('CHILE') || p === 'CHL') return 'CHL';
+  if (p.includes('ARGENTINA') || p === 'ARG') return 'ARG';
+  if (p.includes('BRASIL') || p.includes('BRAZIL') || p === 'BRA') return 'BRA';
+  return p.slice(0, 3);
+};
+
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
   const { data } = useAirtable();
   const [search, setSearch] = useState('');
@@ -194,12 +211,11 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
                 {renderSortTh('Cliente', 'nombre', 'left')}
-                {renderSortTh('País', 'pais', 'left')}
-                {renderSortTh('Nº Negocios', 'totalNegocios', 'center')}
+                {renderSortTh('NEG.', 'totalNegocios', 'center')}
                 {renderSortTh('Total Ingresos', 'totalIngresosCOP', 'right')}
                 {renderSortTh('Total Pagado', 'totalDispersadoCOP', 'right')}
                 {renderSortTh('Saldo Pendiente', 'saldoPendienteCOP', 'right')}
-                <th className="py-3 px-4">Comisiona de</th>
+                <th className="py-3 px-4 text-center">Comisiona de</th>
                 {renderSortTh('Total Comisiones', 'totalComisionesCOP', 'right')}
                 {renderSortTh('Estado', 'estado', 'center')}
                 <th className="py-3 px-4 text-center">Acciones</th>
@@ -209,28 +225,33 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
             <tbody className="divide-y divide-border">
               {sortedClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No se encontraron clientes
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={11} rows={sortedClientes}>{(c) => (
+                <PaginatedRows columns={10} rows={sortedClientes}>{(c) => (
                   <tr 
                     key={c.id} 
-                    onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=dashboard`)}
+                    onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=panel-control`)}
                     className="hover:bg-muted/30 transition-colors cursor-pointer group"
                   >
-                    {/* Merged Name and Code */}
+                    {/* Merged Name, ISO tag and Code */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                        {c.nombre || 'Sin nombre'}
-                      </div>
-                      <div className="text-[11px] font-mono text-muted-foreground">
-                        {c.codigo}
+                      <div className="flex items-center gap-2">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-muted-foreground border border-border shrink-0">
+                          {getCountryIso(c.pais)}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                            {c.nombre || 'Sin nombre'}
+                          </div>
+                          <div className="text-[11px] font-mono text-muted-foreground">
+                            {c.codigo}
+                          </div>
+                        </div>
                       </div>
                     </td>
-
-                    <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">{c.pais || 'Colombia'}</td>
                     
                     <td className="py-3 px-4 text-center font-mono font-semibold whitespace-nowrap">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-primary/10 text-primary">
@@ -250,25 +271,23 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                       {formatCOP(c.saldoPendienteCOP)}
                     </td>
 
-                    {/* Comisiona de */}
-                    <td className="py-3 px-4">
+                    {/* Comisiona de: Compact count badge with full names tooltip */}
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
                       {c.esComisionista && c.comisionaDeIds && c.comisionaDeIds.length > 0 ? (
-                        <div className="flex flex-wrap gap-1 max-w-[220px]">
-                          {c.comisionaDeIds.map((refId) => {
+                        (() => {
+                          const referidosList = c.comisionaDeIds.map((refId) => {
                             const refClient = clientMap.get(refId);
-                            const label = refClient ? refClient.codigo : refId.slice(0, 8);
-                            const fullName = refClient ? `${refClient.codigo} - ${refClient.nombre}` : refId;
-                            return (
-                              <span
-                                key={refId}
-                                title={fullName}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono text-[10px] font-bold border border-purple-500/20"
-                              >
-                                {label}
-                              </span>
-                            );
-                          })}
-                        </div>
+                            return refClient ? `${refClient.codigo} (${refClient.nombre})` : refId;
+                          }).join(', ');
+                          return (
+                            <span
+                              title={`Comisiona de: ${referidosList}`}
+                              className="inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono text-xs font-bold border border-purple-500/20"
+                            >
+                              {c.comisionaDeIds.length}
+                            </span>
+                          );
+                        })()
                       ) : (
                         <span className="text-muted-foreground/40 text-xs">—</span>
                       )}
@@ -309,7 +328,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                         </button>
                         <button
                           type="button"
-                          onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=dashboard`)}
+                          onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=panel-control`)}
                           title="Ver estado de cuenta"
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         >

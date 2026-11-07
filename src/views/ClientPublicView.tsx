@@ -18,7 +18,7 @@ type PortalData = {
 export const ClientPublicView = () => {
   const { id } = useParams<{ id: string }>();
   const [params] = useSearchParams();
-  return <><PublicHeader /><ClientPortal key={id || params.get('ref') || ''} token={id || params.get('ref') || ''} preview={params.get('from') === 'dashboard'} /></>;
+  return <><PublicHeader /><ClientPortal key={id || params.get('ref') || ''} token={id || params.get('ref') || ''} preview={(params.get('from') === 'dashboard' || params.get('from') === 'panel-control')} /></>;
 };
 
 const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) => {

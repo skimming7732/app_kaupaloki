@@ -48,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
         title = 'Inicio';
         subtitle = 'Plataforma operativa Kaupaloki';
         break;
+      case '/panel-control':
       case '/dashboard':
         title = 'Panel de Control';
         subtitle = 'Liquidación y métricas en tiempo real';

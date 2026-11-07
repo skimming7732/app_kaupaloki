@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
 
   const primaryItems = [
     { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
-    ...(isAdmin ? [{ to: '/dashboard', label: 'Panel de control', icon: 'ri-dashboard-3-line' }] : []),
+    ...(isAdmin ? [{ to: '/panel-control', label: 'Panel de control', icon: 'ri-dashboard-3-line' }] : []),
     { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
     ...(isAdmin || role === 'operador' ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' }] : []),
   ];
