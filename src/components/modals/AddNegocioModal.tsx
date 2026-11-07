@@ -58,7 +58,7 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
   isOpen ? <NegocioDialog key={negocio?.id ?? 'new'} onClose={onClose} negocio={negocio} /> : null;
 
 const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'>) => {
-  const { data, createNegocio, createCliente, updateNegocio } = useAirtable();
+  const { data, createNegocio, createCliente, updateNegocio, deleteNegocio } = useAirtable();
   const { profile } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const currencyTrigger = useRef<HTMLButtonElement>(null);
@@ -125,6 +125,24 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
     setDivisaCode(currency.codigo);
     setCurrencyOpen(false);
     currencyTrigger.current?.focus();
+  };
+
+    const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+
+  const handleDelete = async () => {
+    if (!negocio) return;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el negocio ${negocio.codigo}? Esta acción recalculará automáticamente los saldos de clientes y estadísticas.`)) {
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const ok = await deleteNegocio(negocio.id);
+      if (ok) onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Error al eliminar el negocio.');
+      setSaving(false);
+    }
   };
 
   const backToBusiness = () => {

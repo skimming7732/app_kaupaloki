@@ -13,13 +13,27 @@ interface ClientesViewProps {
   onOpenAddCliente?: () => void;
 }
 
+type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'saldoPendienteCOP' | 'estado';
+
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
   const { data } = useAirtable();
   const [search, setSearch] = useState('');
   const [sharingClient, setSharingClient] = useState<any | null>(null);
   const [editingClient, setEditingClient] = useState<any | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('saldoPendienteCOP');
+  const [sortAsc, setSortAsc] = useState<boolean>(false); // Default: Descending (mayor saldo pendiente primero)
   const navigate = useNavigate();
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      // For monetary and number fields, default to descending; for text, default to ascending
+      setSortAsc(field === 'nombre' || field === 'pais' || field === 'estado');
+    }
+  };
 
   const filteredClientes = useMemo(() => {
     return data.clientes.filter((c) => {
@@ -29,6 +43,29 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
       return match;
     });
   }, [data.clientes, search]);
+
+  const sortedClientes = useMemo(() => {
+    return [...filteredClientes].sort((a, b) => {
+      let valA: any = a[sortField];
+      let valB: any = b[sortField];
+      if (sortField === 'nombre') {
+        valA = (a.nombre || a.codigo || '').toLowerCase();
+        valB = (b.nombre || b.codigo || '').toLowerCase();
+      } else if (sortField === 'pais' || sortField === 'estado') {
+        valA = (valA || '').toLowerCase();
+        valB = (valB || '').toLowerCase();
+      } else {
+        valA = Number(valA || 0);
+        valB = Number(valB || 0);
+      }
+
+      if (typeof valA === 'string') {
+        const cmp = valA.localeCompare(valB || '');
+        return sortAsc ? cmp : -cmp;
+      }
+      return sortAsc ? valA - valB : valB - valA;
+    });
+  }, [filteredClientes, sortField, sortAsc]);
 
   const getStatusBadge = (estado: string) => {
     const norm = (estado || 'SIN ACTIVIDAD').toUpperCase();
@@ -57,6 +94,31 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500">
         PENDIENTE
       </span>
+    );
+  };
+
+  const renderSortTh = (label: string, field: SortField, align: 'left' | 'center' | 'right' = 'left') => {
+    const isActive = sortField === field;
+    return (
+      <th
+        onClick={() => handleSort(field)}
+        className={`py-3 px-4 cursor-pointer select-none hover:text-foreground transition-colors ${
+          align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'
+        } ${isActive ? 'text-primary font-bold' : ''}`}
+      >
+        <span className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
+          <span>{label}</span>
+          <i
+            className={`text-xs ${
+              isActive
+                ? sortAsc
+                  ? 'ri-arrow-up-line text-primary'
+                  : 'ri-arrow-down-line text-primary'
+                : 'ri-arrow-up-down-line opacity-40 hover:opacity-100'
+            }`}
+          />
+        </span>
+      </th>
     );
   };
 
@@ -90,16 +152,30 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
             className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
           />
         </div>
-        <span className="text-xs text-muted-foreground font-medium">
-          {filteredClientes.length} clientes registrados
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground font-medium">
+            {sortedClientes.length} clientes registrados
+          </span>
+          {sortField !== 'saldoPendienteCOP' || sortAsc !== false ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSortField('saldoPendienteCOP');
+                setSortAsc(false);
+              }}
+              className="text-xs text-primary font-semibold hover:underline"
+            >
+              Reestablecer orden
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <KpiStrip metrics={([
-        ['Clientes', filteredClientes.length],
-        ['Total Negocios', formatNumber(sumRows(filteredClientes, (c) => c.totalNegocios ?? 0))],
-        ['Total Pagado', formatCOP(sumRows(filteredClientes, (c) => c.totalDispersadoCOP))],
-        ['Pendiente COP', formatCOP(sumRows(filteredClientes, (c) => c.saldoPendienteCOP))],
+        ['Clientes', sortedClientes.length],
+        ['Total Negocios', formatNumber(sumRows(sortedClientes, (c) => c.totalNegocios ?? 0))],
+        ['Total Pagado', formatCOP(sumRows(sortedClientes, (c) => c.totalDispersadoCOP))],
+        ['Pendiente COP', formatCOP(sumRows(sortedClientes, (c) => c.saldoPendienteCOP))],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Clientes Table */}
@@ -108,26 +184,26 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
-                <th className="py-3 px-4">Cliente</th>
-                <th className="py-3 px-4">País</th>
-                <th className="py-3 px-4 text-center">Nº Negocios</th>
-                <th className="py-3 px-4 text-right">Total Ingresos</th>
-                <th className="py-3 px-4 text-right">Total Pagado</th>
-                <th className="py-3 px-4 text-right">Saldo Pendiente</th>
-                <th className="py-3 px-4 text-center">Estado</th>
+                {renderSortTh('Cliente', 'nombre', 'left')}
+                {renderSortTh('País', 'pais', 'left')}
+                {renderSortTh('Nº Negocios', 'totalNegocios', 'center')}
+                {renderSortTh('Total Ingresos', 'totalIngresosCOP', 'right')}
+                {renderSortTh('Total Pagado', 'totalDispersadoCOP', 'right')}
+                {renderSortTh('Saldo Pendiente', 'saldoPendienteCOP', 'right')}
+                {renderSortTh('Estado', 'estado', 'center')}
                 <th className="py-3 px-4 text-center">Acciones</th>
                 <CreatedByHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredClientes.length === 0 ? (
+              {sortedClientes.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     No se encontraron clientes
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filteredClientes}>{(c) => (
+                <PaginatedRows columns={9} rows={sortedClientes}>{(c) => (
                   <tr 
                     key={c.id} 
                     onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=dashboard`)}

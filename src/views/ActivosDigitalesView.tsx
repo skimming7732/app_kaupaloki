@@ -462,7 +462,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {<PaginatedRows columns={8} rows={wallets}>{(w: any) => {
+                  {<PaginatedRows columns={7} rows={wallets}>{(w: any) => {
                     const saldoReal = w.saldoReal ?? w.saldoUsdt ?? 0;
                     return (
                       <tr

@@ -227,6 +227,8 @@ interface AirtableContextType {
   updateRecord: (table: string, id: string, fields: any) => Promise<any>;
   createNegocio: (payload: any) => Promise<boolean>;
   updateNegocio: (payload: any) => Promise<boolean>;
+  deleteNegocio: (id: string) => Promise<boolean>;
+  updateRateUsdt: (rate: number) => Promise<boolean>;
   createDispersion: (payload: any) => Promise<boolean>;
   updateDispersion: (payload: any) => Promise<boolean>;
   updateGasto: (payload: any) => Promise<boolean>;
@@ -516,6 +518,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         totalActivosLiquidosCop: Number(resumenData.total_activos_liquidos_cop || 518008020),
         totalSaldoPendienteClientesCop: Number(resumenData.total_saldo_pendiente_clientes_cop || 543418640),
         totalGastosCop: Number(resumenData.total_gastos_cop || 4000000),
+        rateUsdtCop: Number(resumenData.rate_usdt_cop || 3950),
       } : undefined;
 
       const newSnapshot: AirtableSnapshot = {
@@ -991,6 +994,31 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (err) {
       console.error('Error creating negocio in Supabase:', err);
       throw dashboardWriteError(err, 'No se pudo guardar el registro.');
+    }
+  };
+
+    const deleteNegocio = async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('negocios').delete().eq('id', id);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error('Error deleting negocio in Supabase:', err);
+      throw dashboardWriteError(err, 'No se pudo eliminar el negocio.');
+    }
+  };
+
+  const updateRateUsdt = async (rate: number): Promise<boolean> => {
+    try {
+      if (!rate || rate <= 0) throw new Error('La tasa debe ser mayor a 0');
+      const { error } = await supabase.rpc('actualizar_rate_usdt', { p_rate: rate });
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error('Error updating rate in Supabase:', err);
+      throw dashboardWriteError(err, 'No se pudo actualizar la tasa.');
     }
   };
 
