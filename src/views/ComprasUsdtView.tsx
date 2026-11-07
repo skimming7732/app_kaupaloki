@@ -1,3 +1,5 @@
+import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
+import { formatCurrency } from '../utils/formatters';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -14,12 +16,10 @@ export const ComprasUsdtView: React.FC = () => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
-  const { totalUsdtComprado, totalOperaciones, divisasUnicas, filteredCompras } = useMemo(() => {
-    let totalUsdt = 0;
+  const { totalOperaciones, divisasUnicas, filteredCompras } = useMemo(() => {
     const divisasSet = new Set<string>();
 
     data.comprasUsdt.forEach((c) => {
-      totalUsdt += c.usdtComprado;
       if (c.divisaCodigo) divisasSet.add(c.divisaCodigo);
     });
 
@@ -35,7 +35,6 @@ export const ComprasUsdtView: React.FC = () => {
     });
 
     return {
-      totalUsdtComprado: totalUsdt,
       totalOperaciones: data.comprasUsdt.length,
       divisasUnicas: Array.from(divisasSet).sort(),
       filteredCompras: filtered,
@@ -54,46 +53,6 @@ export const ComprasUsdtView: React.FC = () => {
           <AddCatalogButton table="compras_usdt" />
           <span className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs border border-primary/20">
             {filteredCompras.length} de {totalOperaciones} Registros
-          </span>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Total USDT Comprado</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <i className="ri-coin-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground">
-            {totalUsdtComprado.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDT
-          </span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Volumen global acumulado</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Total Operaciones</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
-              <i className="ri-file-list-3-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground">{totalOperaciones}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Transacciones registradas en el sistema</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Divisas Utilizadas</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
-              <i className="ri-global-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground">{divisasUnicas.length} Divisas</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">
-            {divisasUnicas.slice(0, 4).join(', ')}{divisasUnicas.length > 4 ? '...' : ''}
           </span>
         </div>
       </div>
@@ -129,6 +88,12 @@ export const ComprasUsdtView: React.FC = () => {
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
       </div>
+
+      <KpiStrip metrics={([
+        ['Compras', filteredCompras.length],
+        ['USDT comprados', formatCurrency(sumRows(filteredCompras, (c) => c.usdtComprado), 'USDT')],
+        ['Total entregado', totalsByCurrency(filteredCompras, (c) => c.divisaCodigo, (c) => c.valorComprado)],
+      ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Compras Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">

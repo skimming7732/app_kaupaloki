@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { formatDate } from '../../utils/formatters';
 import { supabase } from '../../lib/supabase';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 
@@ -17,8 +18,24 @@ export const ShareClientModal: React.FC<ShareClientModalProps> = ({ isOpen, onCl
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [copyError, setCopyError] = useState('');
-  const [generated, setGenerated] = useState<{ clientId: string; token: string; pin: string } | null>(null);
+  const [generated, setGenerated] = useState<{ clientId: string; token: string; pin: string; expiresAt: string } | null>(null);
   const [generating, setGenerating] = useState(false);
+
+  const [checking, setChecking] = useState(true);
+  const clientId = cliente?.id;
+  useEffect(() => {
+    if (!isOpen || !clientId) return;
+    let active = true;
+    setChecking(true);
+    setCopyError('');
+    void supabase.rpc('obtener_enlace_cliente', { p_client_id: clientId }).then(({ data, error }) => {
+      if (!active) return;
+      if (error) setCopyError('No se pudo consultar el enlace vigente.');
+      else setGenerated(data?.token && data?.pin ? { ...data, clientId } : null);
+      setChecking(false);
+    });
+    return () => { active = false; };
+  }, [isOpen, clientId]);
 
   if (!isOpen || !cliente) return null;
 
@@ -27,7 +44,7 @@ export const ShareClientModal: React.FC<ShareClientModalProps> = ({ isOpen, onCl
   const defaultMessage = `Hola *${cliente.nombre}*, consulta tu estado de cuenta en Kaupaloki:
 ${publicUrl}
 
-Tu PIN de 4 dígitos es *${link?.pin || ''}*. El enlace vence en 30 días.`;
+Tu PIN de 4 dígitos es *${link?.pin || ''}*. Vence el ${formatDate(link?.expiresAt)}.`;
 
   const generateLink = async () => {
     setGenerating(true);
@@ -36,7 +53,7 @@ Tu PIN de 4 dígitos es *${link?.pin || ''}*. El enlace vence en 30 días.`;
     try {
       const { data, error } = await supabase.rpc('crear_enlace_cliente', { p_client_id: cliente.id });
       if (error || !data?.token || !data?.pin) throw error;
-      setGenerated({ clientId: cliente.id, token: data.token, pin: data.pin });
+      setGenerated({ clientId: cliente.id, token: data.token, pin: data.pin, expiresAt: data.expiresAt });
       finishSound(true);
     } catch {
       setCopyError('No se pudo generar el enlace seguro.');
@@ -91,8 +108,8 @@ Tu PIN de 4 dígitos es *${link?.pin || ''}*. El enlace vence en 30 días.`;
         <div className="space-y-4">
           {copyError && <p role="alert" className="text-sm text-destructive">{copyError}</p>}
           {!link ? (
-            <button type="button" disabled={generating} onClick={generateLink} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">
-              {generating ? 'Generando…' : 'Generar enlace y PIN'}
+            <button type="button" disabled={checking || generating} onClick={generateLink} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+              {checking ? 'Buscando enlace vigente…' : generating ? 'Generando…' : 'Generar enlace y PIN'}
             </button>
           ) : <>
             {/* Client Code Highlight */}

@@ -5,7 +5,7 @@ import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt'
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
+import { useAirtable, type NormalizedData } from '../context/AirtableContext';
 import { formatCOP, formatDate } from '../utils/formatters';
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 
@@ -15,6 +15,8 @@ interface DispersionesViewProps {
 
 export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDispersion }) => {
   const { data, syncWithAirtable } = useAirtable();
+
+  const [editing, setEditing] = useState<NormalizedData['dispersiones'][number] | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -124,18 +126,19 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                 <th className="py-3 px-4 text-center">Comprobante</th>
                 <th className="py-3 px-4 text-center">Estado</th>
                 <CreatedByHeader />
+                <th scope="col" className="px-4 py-3">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredDispersiones.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No se encontraron dispersiones registradas
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filteredDispersiones}>{(d) => (
-                  <tr key={d.id} className="hover:bg-muted/30 transition-colors">
+                <PaginatedRows columns={10} rows={filteredDispersiones}>{(d) => (
+                  <tr key={d.id} className="hover:bg-muted/30 transition-colors [&>td]:py-4">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{d.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(d.fecha)}</td>
                     <td className="py-3 px-4 font-semibold text-foreground">{d.clienteNombre}</td>
@@ -161,6 +164,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                       </span>
                     </td>
                     <CreatedByCell name={d.createdByName} />
+                    <td className="px-4"><button type="button" onClick={() => setEditing(d)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold"><i className="ri-edit-line" aria-hidden="true" />Editar</button></td>
                   </tr>
                 )}</PaginatedRows>
               )}
@@ -170,6 +174,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
       </div>
 
       {/* Modals */}
+      {editing && <AddDispersionModal isOpen record={editing} onClose={() => setEditing(null)} />}
       <AddDispersionModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}

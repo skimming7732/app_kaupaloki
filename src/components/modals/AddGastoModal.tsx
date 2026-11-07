@@ -1,12 +1,14 @@
-import { receiptAccept, uploadReceipt } from '../../utils/receipts';
+import { ReceiptInput } from './ReceiptInput';
+import { uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
-import { useAirtable } from '../../context/AirtableContext';
+import { useAirtable, type GastoItem } from '../../context/AirtableContext';
 import { AccountSelect, accountLabel } from './AccountSelect';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
 
 interface AddGastoModalProps {
   isOpen: boolean;
+  record?: GastoItem;
   onClose: () => void;
 }
 
@@ -16,13 +18,13 @@ const categories = [
   'Alimentación y Viáticos', 'Otros Gastos Operativos',
 ];
 
-export const AddGastoModal = ({ isOpen, onClose }: AddGastoModalProps) =>
-  isOpen ? <GastoForm onClose={onClose} /> : null;
+export const AddGastoModal = ({ isOpen, onClose, record }: AddGastoModalProps) =>
+  isOpen ? <GastoForm key={record?.id} onClose={onClose} record={record} /> : null;
 
-const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
-  const { data, createGasto } = useAirtable();
-  const [divisa, setDivisa] = useState('COP');
-  const [accountId, setAccountId] = useState('');
+const GastoForm = ({ onClose, record }: Pick<AddGastoModalProps, 'onClose' | 'record'>) => {
+  const { data, createGasto, updateGasto } = useAirtable();
+  const [divisa, setDivisa] = useState<string>(record?.divisa || 'COP');
+  const [accountId, setAccountId] = useState(record?.origenFondosId || '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const accounts = divisa === 'COP' ? data.activosLiquidos : data.activosDigitales;
@@ -33,7 +35,7 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
     const fields = new FormData(event.currentTarget);
     const monto = Number(fields.get('monto'));
     const concepto = String(fields.get('concepto')).trim();
-    const account = accounts.find((item) => item.id === accountId);
+    const account = accounts.find((item) => item.id === accountId || (!accountId && accountLabel(item) === record?.origenFondos));
     if (!account || !concepto || !Number.isFinite(monto) || monto <= 0) {
       setError('Completa el concepto, selecciona el origen e ingresa un monto mayor que cero.');
       return;
@@ -43,10 +45,11 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
     setError('');
     const finishSound = prepareSuccessSound();
     try {
-      const success = await createGasto({
+      const success = await (record ? updateGasto : createGasto)({
+        id: record?.id,
         concepto, divisa, monto, origenFondos: accountLabel(account), origenFondosId: account.id,
         categoria: fields.get('categoria'), fecha: fields.get('fecha'),
-        comprobanteUrl: await uploadReceipt(fields.get('comprobante'), 'gastos'),
+        comprobanteUrl: record ? undefined : await uploadReceipt(fields.get('comprobante'), 'gastos'),
       });
       if (!success) throw new Error();
       finishSound(true);
@@ -60,18 +63,18 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
   };
 
   return (
-    <RecordDialog title="Registrar gasto" description="Clasifica el gasto y selecciona la cuenta o billetera de origen." icon="ri-receipt-line" busy={busy} error={error} onClose={onClose}>
+    <RecordDialog title={record ? "Editar gasto" : "Registrar gasto"} description="Clasifica el gasto y selecciona la cuenta o billetera de origen." icon="ri-receipt-line" busy={busy} error={error} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <fieldset disabled={busy} className="space-y-4">
           <label className={recordLabelClass}>
             <span>Concepto</span>
-            <input name="concepto" required className={recordFieldClass} />
+            <input name="concepto" defaultValue={record?.concepto} required className={recordFieldClass} />
           </label>
           <label className={recordLabelClass}>
             <span>Categoría contable</span>
-            <select name="categoria" required className={recordFieldClass}>
+            <select name="categoria" defaultValue={record?.categoria || ''} required className={recordFieldClass}>
               <option value="">Seleccionar categoría</option>
-              {categories.map((category) => <option key={category}>{category}</option>)}
+              {[...new Set([...categories, ...(record?.categoria ? [record.categoria] : [])])].map((category) => <option key={category}>{category}</option>)}
             </select>
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -83,20 +86,17 @@ const GastoForm = ({ onClose }: Pick<AddGastoModalProps, 'onClose'>) => {
             </label>
             <label className={recordLabelClass}>
               <span>Monto</span>
-              <input type="number" name="monto" step="any" min="0" required className={recordFieldClass} />
+              <input type="number" name="monto" defaultValue={record?.monto} step="any" min="0" required className={recordFieldClass} />
             </label>
           </div>
-          <AccountSelect label={divisa === 'COP' ? 'Cuenta de origen' : 'Billetera de origen'} accounts={accounts} value={accountId} onChange={setAccountId} />
+          <AccountSelect label={divisa === 'COP' ? 'Cuenta de origen' : 'Billetera de origen'} accounts={accounts} value={accountId || accounts.find((item) => accountLabel(item) === record?.origenFondos)?.id || ''} onChange={setAccountId} />
           <label className={recordLabelClass}>
             <span>Fecha</span>
-            <input type="date" name="fecha" required defaultValue={new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
+            <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
           </label>
-          <label className={recordLabelClass}>
-            <span>Subir comprobante (opcional)</span>
-            <input type="file" name="comprobante" accept={receiptAccept} className={recordFieldClass} />
-          </label>
+          {!record && <ReceiptInput />}
         </fieldset>
-        <RecordActions busy={busy} label="Registrar gasto" onClose={onClose} />
+        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar gasto"} onClose={onClose} />
       </form>
     </RecordDialog>
   );

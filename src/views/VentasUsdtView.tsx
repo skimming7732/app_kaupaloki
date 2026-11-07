@@ -1,3 +1,5 @@
+import { KpiStrip, sumRows } from '../components/common/KpiStrip';
+import { formatCurrency } from '../utils/formatters';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -14,14 +16,10 @@ export const VentasUsdtView: React.FC = () => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
-  const { totalUsdtVendido, totalCopRecibido, destinosUnicos, filteredVentas } = useMemo(() => {
-    let totalUsdt = 0;
-    let totalCop = 0;
+  const { destinosUnicos, filteredVentas } = useMemo(() => {
     const destinosSet = new Set<string>();
 
     data.ventasUsdt.forEach((v) => {
-      totalUsdt += v.usdtVendido;
-      totalCop += v.totalCOP;
       if (v.destinoFondosNombre) destinosSet.add(v.destinoFondosNombre);
     });
 
@@ -38,8 +36,6 @@ export const VentasUsdtView: React.FC = () => {
     });
 
     return {
-      totalUsdtVendido: totalUsdt,
-      totalCopRecibido: totalCop,
       destinosUnicos: Array.from(destinosSet).sort(),
       filteredVentas: filtered,
     };
@@ -58,46 +54,6 @@ export const VentasUsdtView: React.FC = () => {
           <span className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs border border-primary/20">
             {filteredVentas.length} de {data.ventasUsdt.length} Registros
           </span>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Total USDT Vendido</span>
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
-              <i className="ri-funds-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground">
-            {totalUsdtVendido.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDT
-          </span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Egreso de wallets corporativas</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Total Recibido (COP)</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <i className="ri-bank-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground font-mono">{formatCOP(totalCopRecibido)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Ingresado en bancos y caja</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Tasa Promedio Venta</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
-              <i className="ri-arrow-up-down-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground font-mono">
-            {totalUsdtVendido > 0 ? formatCOP(totalCopRecibido / totalUsdtVendido) : '$0'}
-          </span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Precio promedio de liquidación</span>
         </div>
       </div>
 
@@ -132,6 +88,12 @@ export const VentasUsdtView: React.FC = () => {
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
       </div>
+
+      <KpiStrip metrics={([
+        ['Ventas', filteredVentas.length],
+        ['USDT vendidos', formatCurrency(sumRows(filteredVentas, (v) => v.usdtVendido), 'USDT')],
+        ['COP recibidos', formatCOP(sumRows(filteredVentas, (v) => v.totalCOP))],
+      ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Ventas Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">

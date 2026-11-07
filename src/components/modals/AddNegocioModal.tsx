@@ -77,6 +77,7 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
   const [tasa, setTasa] = useState(negocio ? String(negocio.tasaCambio) : '');
   const [fecha, setFecha] = useState(() => negocio ? negocio.fecha.slice(0, 10) : new Date().toISOString().slice(0, 10));
   const [authorId, setAuthorId] = useState('');
+  const [authorSearch, setAuthorSearch] = useState('');
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [currencyQuery, setCurrencyQuery] = useState('');
   const [isCreatingClient, setIsCreatingClient] = useState(false);
@@ -256,20 +257,28 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6">
           {negocio && (
-            <div className="rounded-xl border border-border bg-muted/30 p-3">
-              {canAssignAuthor ? (
-                <>
-                  <label htmlFor={id + '-author'} className={labelClass}>Creado por</label>
-                  <select id={id + '-author'} value={authorId} onChange={(event) => setAuthorId(event.target.value)} className={fieldClass}>
-                    <option value="">Sin registro</option>
-                    {data.usuarios.filter((user) => ['administrador', 'super_admin', 'operador', 'dispersor'].includes(user.rol)).map((user) => (
-                      <option key={user.id} value={user.id}>{user.nombre}{user.correo ? ' · ' + user.correo : ''}</option>
-                    ))}
-                  </select>
-                </>
-              ) : (
-                <p className="text-sm"><span className="font-medium">Creado por</span> · {authorName || 'Sin registro'}</p>
-              )}
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <i className="ri-user-3-line" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted-foreground">Creado por</p>
+                {canAssignAuthor ? (
+                  <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                    <input type="search" aria-label="Buscar usuario" placeholder="Buscar por nombre o correo"
+                      value={authorSearch} onChange={(event) => setAuthorSearch(event.target.value)} className={fieldClass} />
+                    <select aria-label="Elegir usuario" value={authorId} onChange={(event) => setAuthorId(event.target.value)} className={fieldClass}>
+                      <option value="">Sin registro</option>
+                      {data.usuarios.filter((user) =>
+                        ['administrador', 'super_admin', 'operador', 'dispersor'].includes(user.rol) &&
+                        (user.id === authorId || normalizeSearch(user.nombre + ' ' + user.correo).includes(normalizeSearch(authorSearch.trim())))
+                      ).map((user) => (
+                        <option key={user.id} value={user.id}>{user.nombre}{user.correo ? ' · ' + user.correo : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : <p className="truncate text-sm font-semibold">{authorName || 'Sin registro'}</p>}
+              </div>
             </div>
           )}
           <div ref={clientField}>

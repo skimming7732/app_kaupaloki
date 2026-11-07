@@ -1,3 +1,4 @@
+import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -5,7 +6,7 @@ import { ReceiptPreview } from '../components/common/ReceiptPreview';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useAirtable } from '../context/AirtableContext';
+import { useAirtable, type GastoItem } from '../context/AirtableContext';
 import { formatCOP, formatUSD, formatDate } from '../utils/formatters';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
 
@@ -15,8 +16,10 @@ interface GastosViewProps {
 
 export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
   const { data, syncWithAirtable } = useAirtable();
-  const [attachingTo, setAttachingTo] = useState<string | null>(null);
+  const [attachingTo, setAttachingTo] = useState<{ id: string; url?: string } | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const [editing, setEditing] = useState<GastoItem | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -52,39 +55,9 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
     });
   }, [data.gastos, search, selectedCategoria, selectedDivisa, fechaDesde, fechaHasta]);
 
-  const totalGastosCOP = useMemo(() => {
-    return filteredGastos.reduce(
-      (acc, g) => acc + (g.divisa === 'COP' ? g.monto : g.monto * 4000),
-      0
-    );
-  }, [filteredGastos]);
-
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Top summary row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Total Gastos Operativos</span>
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
-              <i className="ri-receipt-line" />
-            </div>
-          </div>
-          <span className="text-xl font-bold text-foreground">{formatCOP(totalGastosCOP)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">{filteredGastos.length} gastos filtrados</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Categorías Registradas</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
-              <i className="ri-folder-chart-line" />
-            </div>
-          </div>
-          <span className="text-xl font-bold text-foreground">{categorias.length}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Clasificación contable activa</span>
-        </div>
-
+      <div className="flex justify-end">
         <div className="p-4 rounded-2xl bg-card border border-border shadow-sm flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold text-muted-foreground uppercase block mb-1">Nuevo Gasto</span>
@@ -150,6 +123,11 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         )}
       </div>
 
+      <KpiStrip metrics={([
+        ['Gastos', filteredGastos.length],
+        ['Total por divisa', totalsByCurrency(filteredGastos, (g) => g.divisa, (g) => g.monto)],
+      ] as const).map(([label, value]) => ({ label, value }))} />
+
       {/* Gastos Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
@@ -164,18 +142,19 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                 <th className="py-3 px-4">Comprobante</th>
                 <th className="py-3 px-4 text-right">Monto</th>
                 <CreatedByHeader />
+                <th scope="col" className="px-4 py-3">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredGastos.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     No se encontraron gastos registrados
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={8} rows={filteredGastos}>{(g) => (
-                  <tr key={g.id} className="hover:bg-muted/30 transition-colors">
+                <PaginatedRows columns={9} rows={filteredGastos}>{(g) => (
+                  <tr key={g.id} className="hover:bg-muted/30 transition-colors [&>td]:py-4">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{g.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(g.fecha)}</td>
                     <td className="py-3 px-4 font-semibold text-foreground">{g.concepto}</td>
@@ -187,9 +166,9 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                     <td className="py-3 px-4 text-muted-foreground">{g.origenFondos}</td>
                     <td className="py-3 px-4">
                       {g.comprobanteUrl ? (
-                        <ReceiptPreview receipt={g.comprobanteUrl} compact />
+                        <div className="space-y-1"><ReceiptPreview receipt={g.comprobanteUrl} compact /><button type="button" onClick={() => setAttachingTo({ id: g.id, url: g.comprobanteUrl })} className="text-xs font-semibold text-primary hover:underline">Editar comprobante</button></div>
                       ) : (
-                        <button type="button" onClick={() => setAttachingTo(g.id)} className="text-xs font-semibold text-primary hover:underline">
+                        <button type="button" onClick={() => setAttachingTo({ id: g.id })} className="text-xs font-semibold text-primary hover:underline">
                           Agregar comprobante
                         </button>
                       )}
@@ -198,6 +177,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                       {g.divisa === 'COP' ? formatCOP(g.monto) : formatUSD(g.monto)}
                     </td>
                     <CreatedByCell name={g.createdByName} />
+                    <td className="px-4"><button type="button" onClick={() => setEditing(g)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold"><i className="ri-edit-line" aria-hidden="true" />Editar</button></td>
                   </tr>
                 )}</PaginatedRows>
               )}
@@ -206,7 +186,8 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         </div>
       </div>
       {/* Add Gasto Modal */}
-      {attachingTo && <AttachExpenseReceipt expenseId={attachingTo} onClose={() => setAttachingTo(null)} onSaved={syncWithAirtable} />}
+      {attachingTo && <AttachExpenseReceipt expenseId={attachingTo.id} currentReceipt={attachingTo.url} onClose={() => setAttachingTo(null)} onSaved={syncWithAirtable} />}
+      {editing && <AddGastoModal isOpen record={editing} onClose={() => setEditing(null)} />}
       <AddGastoModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}

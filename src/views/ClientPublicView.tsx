@@ -1,3 +1,5 @@
+import { PublicHeader } from '../components/common/PublicHeader';
+import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import React, { useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
@@ -16,7 +18,7 @@ type PortalData = {
 export const ClientPublicView = () => {
   const { id } = useParams<{ id: string }>();
   const [params] = useSearchParams();
-  return <ClientPortal key={id || params.get('ref') || ''} token={id || params.get('ref') || ''} preview={params.get('from') === 'dashboard'} />;
+  return <><PublicHeader /><ClientPortal key={id || params.get('ref') || ''} token={id || params.get('ref') || ''} preview={params.get('from') === 'dashboard'} /></>;
 };
 
 const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) => {
@@ -82,21 +84,9 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
 
   if (!client) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background animate-fade-in">
+      <div className="min-h-[calc(100dvh-57px)] flex items-center justify-center p-4 bg-background animate-fade-in">
         <div className="w-full max-w-md bg-card border border-border rounded-3xl p-6 md:p-8 shadow-2xl relative text-center">
           <div className="mb-6">
-            <img
-              src="/logo.png"
-              alt="Kaupaloki"
-              className="theme-logo-dark mx-auto mb-4"
-              style={{ height: '32px', maxHeight: '32px', width: 'auto', maxWidth: '160px', objectFit: 'contain' }}
-            />
-            <img
-              src="/logo-blue.png"
-              alt="Kaupaloki"
-              className="theme-logo-light mx-auto mb-4"
-              style={{ height: '32px', maxHeight: '32px', width: 'auto', maxWidth: '160px', objectFit: 'contain' }}
-            />
             <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
               <i className="ri-shield-keyhole-line" />
             </div>
@@ -148,30 +138,12 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
 
   return (
     <div className="min-h-screen bg-background text-foreground py-8 px-4 sm:px-6 max-w-5xl mx-auto space-y-6">
-      {/* Top Bar with optional back button */}
-      <div className="flex items-center justify-between">
-        {isFromDashboard ? (
-          <button
-            onClick={() => navigate('/clientes')}
-            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground bg-card border border-border px-3 py-1.5 rounded-xl shadow-sm transition-colors"
-          >
-            <i className="ri-arrow-left-line" />
-            <span>Volver al Panel</span>
-          </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-black text-sm">
-              K
-            </div>
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Kaupaloki Portal</span>
-          </div>
-        )}
-
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-          <i className="ri-shield-check-line" />
-          <span>Estado de Cuenta Oficial</span>
-        </div>
-      </div>
+      {isFromDashboard && (
+        <button type="button" onClick={() => navigate('/clientes')}
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">
+          <i className="ri-arrow-left-line" aria-hidden="true" /> Volver al panel
+        </button>
+      )}
 
       {/* Client Overview Card */}
       <div className="p-6 md:p-8 rounded-3xl bg-card border border-border shadow-sm">
@@ -185,49 +157,21 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <span className="text-xs text-muted-foreground block">Saldo Pendiente</span>
-              <span className="text-2xl font-black text-foreground">
-                {formatCOP(
-                  client.saldoPendienteCOP !== undefined && client.saldoPendienteCOP !== null
-                    ? client.saldoPendienteCOP
-                    : (totalNegociosMonto + totalIngresosMonto - totalPagosMonto)
-                )}
-              </span>
-            </div>
-            <div className="w-px h-10 bg-border hidden sm:block" />
-            <span className="px-3 py-1.5 rounded-full text-xs font-bold uppercase bg-primary/10 text-primary">
-              {client.estado || 'PENDIENTE'}
-            </span>
-          </div>
-        </div>
-
-        {/* Quick summary stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-6">
-          <div>
-            <span className="text-xs text-muted-foreground block">Total Negocios / Ingresos</span>
-            <span className="text-lg font-bold text-foreground">
-              {formatCOP(client.totalIngresosCOP || (totalNegociosMonto + totalIngresosMonto))}
-            </span>
-          </div>
-          <div>
-            <span className="text-xs text-muted-foreground block">Total Pagado (Dispersado + Efectivo)</span>
-            <span className="text-lg font-bold text-emerald-500">
-              {formatCOP(client.totalDispersadoCOP || totalPagosMonto)}
-            </span>
-          </div>
-          <div>
-            <span className="text-xs text-muted-foreground block">Operaciones Realizadas</span>
-            <span className="text-lg font-bold text-foreground">
-              {clientNegocios.length + clientPagos.length + clientIngresos.length}
-            </span>
-          </div>
+          <span className="self-start rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
+            {client.estado || 'PENDIENTE'}
+          </span>
         </div>
       </div>
 
+      <KpiStrip label="Resumen de cuenta" metrics={[
+        { label: 'Saldo pendiente', value: formatCOP(client.saldoPendienteCOP ?? totalNegociosMonto + totalIngresosMonto - totalPagosMonto), icon: 'ri-wallet-3-line', featured: true },
+        { label: 'Total ingresos', value: formatCOP(client.totalIngresosCOP ?? totalNegociosMonto + totalIngresosMonto), icon: 'ri-arrow-down-circle-line' },
+        { label: 'Total pagado', value: formatCOP(client.totalDispersadoCOP ?? totalPagosMonto), icon: 'ri-send-plane-line' },
+        { label: 'Operaciones', value: clientNegocios.length + clientPagos.length + clientIngresos.length, icon: 'ri-list-check' },
+      ]} />
+
       {/* Tabs Row */}
-      <div className="flex items-center gap-2 border-b border-border pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
         <button
           onClick={() => setActiveTab('negocios')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${

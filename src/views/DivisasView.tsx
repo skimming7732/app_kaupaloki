@@ -1,3 +1,4 @@
+import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { fallbackBanderaUrl } from '../utils/formatters';
@@ -113,6 +114,13 @@ export const DivisasView: React.FC = () => {
           <AddCatalogButton table="divisas" />
         </div>
       </div>
+
+      <KpiStrip metrics={([
+        ['Divisas', filteredDivisas.length],
+        ['Total recibido', totalsByCurrency(filteredDivisas, (d) => d.codigo, (d) => d.totalRecibido)],
+        ['Total comprado', totalsByCurrency(filteredDivisas, (d) => d.codigo, (d) => d.totalComprado)],
+        ['Total pendiente', totalsByCurrency(filteredDivisas, (d) => d.codigo, (d) => d.totalPendiente)],
+      ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* De-compressed Clean Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">

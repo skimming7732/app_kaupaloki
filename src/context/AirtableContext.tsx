@@ -227,6 +227,8 @@ interface AirtableContextType {
   createNegocio: (payload: any) => Promise<boolean>;
   updateNegocio: (payload: any) => Promise<boolean>;
   createDispersion: (payload: any) => Promise<boolean>;
+  updateDispersion: (payload: any) => Promise<boolean>;
+  updateGasto: (payload: any) => Promise<boolean>;
   createMovimientoEfectivo: (payload: any) => Promise<boolean>;
   createGasto: (payload: any) => Promise<boolean>;
   createCliente: (nombre: string, pais: string) => Promise<any>;
@@ -300,7 +302,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         supabase.from('gastos').select('*').order('fecha', { ascending: false }),
         supabase.from('resumen_liquidacion').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.rpc('listar_perfiles_dashboard'),
-        supabase.from('comisionistas').select('*').order('fecha_creacion', { ascending: false }),
+        supabase.rpc('listar_comisionistas_dashboard'),
       ]);
       if (request !== latestFetch.current) return;
       for (const { error } of results) {
@@ -496,7 +498,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         id: c.id,
         codigo: c.codigo,
         comisionistaClienteId: c.cliente_id,
-        comisionaDeIds: c.referidos_ids,
+        comisionaDeIds: Array.isArray(c.referidos_ids) ? c.referidos_ids : [],
         porcentajeComision: Number(c.porcentaje_comision),
         ingresosCOP: Number(c.ingresos_cop || 0),
         comisionesCOP: Number(c.comisiones_cop || 0),
@@ -1223,6 +1225,30 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await fetchFromSupabase();
   };
 
+  const updateGasto = async (payload: any) => {
+    const { error } = await supabase.from('gastos').update({
+      concepto: payload.concepto, categoria: payload.categoria, divisa: payload.divisa, monto: payload.monto,
+      origen_fondos: payload.origenFondos, origen_fondos_id: payload.origenFondosId, fecha: payload.fecha,
+    }).eq('id', payload.id).select('id').single();
+    if (error) throw dashboardWriteError(error, 'No se pudo editar el gasto.');
+    await fetchFromSupabase();
+    return true;
+  };
+
+  const updateDispersion = async (payload: any) => {
+    const cliente = data.clientes.find((item) => item.id === payload.clienteId);
+    if (!cliente) throw new Error('Selecciona un cliente válido.');
+    const { error } = await writeDashboardRecord({
+      cliente_id: cliente.id, cliente_codigo: cliente.codigo, cliente_nombre: cliente.nombre,
+      monto: payload.monto, monto_cop: payload.monto, origen_fondos: payload.origenFondos,
+      origen_fondos_id: payload.origenFondosId, fecha: payload.fecha, referencia: payload.referencia,
+    }, (record) => supabase.from('dispersiones').update(record).eq('id', payload.id).select('id').single(),
+    { generatedColumns: ['monto_cop'] });
+    if (error) throw dashboardWriteError(error, 'No se pudo editar la dispersión.');
+    await fetchFromSupabase();
+    return true;
+  };
+
   const createRecord = async (table: string, fields: any): Promise<any> => {
     if (table === 'Clientes') {
       return createCliente(fields['Nombre'] || fields['NOMBRE'], fields['País'] || fields['PAÍS']);
@@ -1364,6 +1390,8 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         createNegocio,
         updateNegocio,
         createDispersion,
+        updateDispersion,
+        updateGasto,
         createMovimientoEfectivo,
         createGasto,
         createCliente,

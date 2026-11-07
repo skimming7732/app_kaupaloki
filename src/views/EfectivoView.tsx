@@ -1,3 +1,4 @@
+import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -32,26 +33,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const [fechaHasta, setFechaHasta] = useState('');
 
   // Resolve official Efectivo account from Activos Líquidos (e.g. EFECTIVO-CAJA)
-  const activoEfectivo = useMemo(() => {
-    return (
-      data.activosLiquidos.find(
-        (a) =>
-          a.tipo === 'EFECTIVO' ||
-          a.institucion === 'EFECTIVO' ||
-          (a.activo && a.activo.toUpperCase().includes('EFECTIVO'))
-      ) || null
-    );
-  }, [data.activosLiquidos]);
-
-  const { totalIngresos, totalPagos, balanceEfectivo, filteredMovimientos } = useMemo(() => {
-    let ingresos = 0;
-    let pagos = 0;
-
-    data.efectivo.forEach((m) => {
-      if (m.tipo === 'Ingreso') ingresos += m.monto;
-      else pagos += m.monto;
-    });
-
+  const { filteredMovimientos } = useMemo(() => {
     const filtered = data.efectivo.filter((m) => {
       const matchSearch =
         m.codigo.toLowerCase().includes(search.toLowerCase()) ||
@@ -68,56 +50,14 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       return matchSearch && matchTipo && matchCliente && matchFecha;
     });
 
-    // If official record in Activos Líquidos exists, use its synchronized balance; otherwise use calculated delta
-    const officialBalance = activoEfectivo ? (activoEfectivo.saldoCop ?? activoEfectivo.saldoReal) : (ingresos - pagos);
-
     return {
-      totalIngresos: ingresos,
-      totalPagos: pagos,
-      balanceEfectivo: officialBalance,
       filteredMovimientos: filtered,
     };
-  }, [data.efectivo, data.activosLiquidos, activoEfectivo, search, filterTipo, selectedCliente, fechaDesde, fechaHasta]);
+  }, [data.efectivo, search, filterTipo, selectedCliente, fechaDesde, fechaHasta]);
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* KPI Row & Action Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Saldo en Caja</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <i className="ri-wallet-3-line" />
-            </div>
-          </div>
-          <span className="text-xl font-bold text-foreground">{formatCOP(balanceEfectivo)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">
-            {activoEfectivo ? `${activoEfectivo.activo} (${activoEfectivo.empresa || 'CAJA'})` : 'EFECTIVO-CAJA'}
-          </span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Total Ingresos</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
-              <i className="ri-arrow-down-line" />
-            </div>
-          </div>
-          <span className="text-xl font-bold text-foreground">{formatCOP(totalIngresos)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Entradas registradas</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Total Pagos</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <i className="ri-arrow-up-line" />
-            </div>
-          </div>
-          <span className="text-xl font-bold text-foreground">{formatCOP(totalPagos)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Entregas a clientes</span>
-        </div>
-
+      <div className="flex justify-end">
         {/* Both Action Buttons on Header/Top Card */}
         <div className="p-3.5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-center gap-2">
           <button
@@ -214,6 +154,13 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         </div>
       </div>
 
+      <KpiStrip metrics={([
+        ['Movimientos', filteredMovimientos.length],
+        ['Entradas COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Ingreso' ? m.monto : 0))],
+        ['Salidas COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Pago' ? m.monto : 0))],
+        ['Neto COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Ingreso' ? m.monto : -m.monto))],
+      ] as const).map(([label, value]) => ({ label, value }))} />
+
       {/* Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
@@ -266,7 +213,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                        {m.origenFondos || (activoEfectivo ? activoEfectivo.activo : 'EFECTIVO-CAJA')}
+                        {m.origenFondos || '—'}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{m.referencia || '—'}</td>

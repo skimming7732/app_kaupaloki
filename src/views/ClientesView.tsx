@@ -1,3 +1,4 @@
+import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
@@ -72,6 +73,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
           {filteredClientes.length} clientes registrados
         </span>
       </div>
+
+      <KpiStrip metrics={([
+        ['Clientes', filteredClientes.length],
+        ['Ingresos COP', formatCOP(sumRows(filteredClientes, (c) => c.totalIngresosCOP))],
+        ['Dispersado COP', formatCOP(sumRows(filteredClientes, (c) => c.totalDispersadoCOP))],
+        ['Pendiente COP', formatCOP(sumRows(filteredClientes, (c) => c.saldoPendienteCOP))],
+      ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Clientes Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">

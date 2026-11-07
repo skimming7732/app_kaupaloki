@@ -1,3 +1,4 @@
+import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -145,6 +146,12 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
           </div>
         </div>
       </div>
+
+      <KpiStrip metrics={([
+        ['Negocios', filteredNegocios.length],
+        ['Ingreso COP', formatCOP(sumRows(filteredNegocios, (n) => n.ingresoCOP))],
+        ['Monto negociado', totalsByCurrency(filteredNegocios, (n) => n.divisaCodigo, (n) => n.montoDivisa)],
+      ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">

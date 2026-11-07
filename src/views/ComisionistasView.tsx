@@ -1,3 +1,4 @@
+import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
@@ -10,14 +11,7 @@ export const ComisionistasView: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const { totalComisiones, totalIngresosReferidos, filteredComisionistas } = useMemo(() => {
-    let totCom = 0;
-    let totIng = 0;
-
-    data.comisionistas.forEach((c) => {
-      totCom += c.comisionesCOP;
-      totIng += c.ingresosCOP;
-    });
+  const { filteredComisionistas } = useMemo(() => {
 
     const filtered = data.comisionistas.filter((c) => {
       const q = search.toLowerCase();
@@ -29,8 +23,6 @@ export const ComisionistasView: React.FC = () => {
     });
 
     return {
-      totalComisiones: totCom,
-      totalIngresosReferidos: totIng,
       filteredComisionistas: filtered,
     };
   }, [data.comisionistas, search]);
@@ -53,42 +45,6 @@ export const ComisionistasView: React.FC = () => {
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Total Comisiones Ganadas</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <i className="ri-money-dollar-circle-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground font-mono">{formatCOP(totalComisiones)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Monto total a liquidar a comisionistas</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Ingresos Base Referidos</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
-              <i className="ri-pie-chart-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground font-mono">{formatCOP(totalIngresosReferidos)}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Volumen operado por clientes referidos</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-semibold uppercase">Comisionistas Activos</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
-              <i className="ri-team-line text-base" />
-            </div>
-          </div>
-          <span className="text-xl font-black text-foreground">{data.comisionistas.length}</span>
-          <span className="text-[11px] text-muted-foreground block mt-0.5">Cuentas vinculadas con porcentaje</span>
-        </div>
-      </div>
-
       {/* Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border">
         <div className="relative w-full sm:w-80">
@@ -105,6 +61,12 @@ export const ComisionistasView: React.FC = () => {
           {filteredComisionistas.length} registros encontrados
         </span>
       </div>
+
+      <KpiStrip metrics={([
+        ['Comisionistas', filteredComisionistas.length],
+        ['Ingresos referidos', formatCOP(sumRows(filteredComisionistas, (c) => c.ingresosCOP))],
+        ['Comisiones', formatCOP(sumRows(filteredComisionistas, (c) => c.comisionesCOP))],
+      ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">

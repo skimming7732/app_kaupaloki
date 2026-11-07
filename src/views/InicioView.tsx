@@ -1,88 +1,101 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useAirtable } from '../context/AirtableContext';
+import { useAirtable, type NormalizedData } from '../context/AirtableContext';
+import { KpiStrip } from '../components/common/KpiStrip';
+import { fallbackBanderaUrl, formatDate } from '../utils/formatters';
 
-export const InicioView: React.FC = () => {
-  const { user } = useAuth();
-  const { data } = useAirtable();
-  const navigate = useNavigate();
+const weekMs = 7 * 86400000;
+const bogotaDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' });
+const dayLabel = (time: number) => formatDate(new Date(time).toISOString().slice(0, 10)).slice(0, 5);
 
-  const totalNegocios = data.negocios.length;
-  const totalClientes = data.clientes.length;
+const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => {
+  const end = Date.parse(bogotaDay.format(new Date())) + 86400000;
+  const start = end - weekMs * 8;
+  const counts = Array<number>(8).fill(0);
+  for (const negocio of negocios) {
+    const createdAt = Date.parse(negocio.createdAtAudit || '');
+    const day = Number.isFinite(createdAt) ? bogotaDay.format(createdAt) : negocio.fecha?.slice(0, 10) || '';
+    const index = Math.floor((Date.parse(day) - start) / weekMs);
+    if (index >= 0 && index < counts.length) counts[index]++;
+  }
+  const max = Math.max(1, ...counts);
+  const total = counts.reduce((sum, count) => sum + count, 0);
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl mx-auto py-6">
-      {/* Welcome Card */}
-      <div className="relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-primary/10 via-card to-card border border-border shadow-sm">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-              <i className="ri-shield-check-line" />
-              <span>Plataforma Operativa Kaupaloki</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
-              Bienvenido, {user?.nombre || user?.email?.split('@')[0] || 'Operador'}
-            </h1>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Panel central de operaciones cambiarias, dispersiones masivas y control de activos en custodia.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <button
-              onClick={() => navigate('/negocios')}
-              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:opacity-95 transition-all flex items-center justify-center gap-2"
-            >
-              <i className="ri-exchange-dollar-line text-lg" />
-              <span>Ir a Negocios</span>
-            </button>
-            <button
-              onClick={() => navigate('/clientes')}
-              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-card border border-border text-foreground font-semibold text-sm hover:bg-muted transition-all flex items-center justify-center gap-2 shadow-sm"
-            >
-              <i className="ri-group-line text-lg" />
-              <span>Ir a Clientes</span>
-            </button>
-          </div>
+    <section className="rounded-2xl border border-border bg-card p-4 sm:p-6" aria-labelledby="growth-heading">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 id="growth-heading" className="text-base font-bold">Registro de negocios</h2>
+          <p className="text-xs text-muted-foreground">Últimas ocho semanas · negocios autorizados para tu rol</p>
         </div>
+        <p className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">{total} en el período</p>
+      </div>
+      <ol className="grid grid-cols-8 gap-1.5 sm:gap-3" aria-label="Registros por semana">
+        {counts.map((count, index) => (
+          <li key={index} className="flex min-w-0 flex-col items-center text-center">
+            <span className="flex h-28 w-full flex-col justify-end rounded-t-lg border-b border-border sm:h-36">
+              <span className="pb-1 text-xs font-semibold tabular-nums">{count}</span>
+              <span aria-hidden="true" style={{ height: (count / max) * 75 + '%' }}
+                className="mx-auto w-full max-w-12 rounded-t-md bg-primary/75" />
+            </span>
+            <time className="mt-1.5 text-[9px] text-muted-foreground sm:text-xs" dateTime={new Date(start + weekMs * index).toISOString().slice(0, 10)}>
+              {dayLabel(start + weekMs * index)}
+            </time>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+};
 
-        {/* Decorative background glow */}
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+export const InicioView = () => {
+  const { user, profile } = useAuth();
+  const { data } = useAirtable();
+  const admin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canSeeNegocios = admin || profile?.role === 'operador';
+  const authorized = profile?.authorized_currencies || [];
+  const divisas = admin || !authorized.length ? data.divisas
+    : data.divisas.filter((currency) => authorized.includes(currency.codigo));
+  const negocios = canSeeNegocios ? data.negocios.filter((item) =>
+    admin || !authorized.length || authorized.includes(item.divisaCodigo)
+  ) : [];
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5">
+        <div>
+          <h1 className="text-2xl font-bold">Bienvenido, {profile?.full_name || user?.email?.split('@')[0] || 'Kaupaloki'}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Tu panel de operaciones y clientes.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {canSeeNegocios && <Link to="/negocios" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Ver negocios</Link>}
+          <Link to="/clientes" className="rounded-lg border border-border px-4 py-2 text-sm font-semibold">Ver clientes</Link>
+        </div>
       </div>
 
-      {/* Quick Summary Pill Row */}
-      <div className="grid grid-cols-2 gap-4">
-        <div 
-          onClick={() => navigate('/negocios')}
-          className="p-5 rounded-2xl bg-card border border-border hover:border-primary/40 transition-all cursor-pointer flex items-center justify-between group"
-        >
-          <div>
-            <span className="text-xs text-muted-foreground font-medium block mb-1">Negocios Registrados</span>
-            <span className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
-              {totalNegocios}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-            <i className="ri-arrow-right-line text-lg group-hover:translate-x-1 transition-transform" />
-          </div>
-        </div>
+      {canSeeNegocios && <GrowthChart negocios={negocios} />}
 
-        <div 
-          onClick={() => navigate('/clientes')}
-          className="p-5 rounded-2xl bg-card border border-border hover:border-primary/40 transition-all cursor-pointer flex items-center justify-between group"
-        >
-          <div>
-            <span className="text-xs text-muted-foreground font-medium block mb-1">Clientes Activos</span>
-            <span className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
-              {totalClientes}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-            <i className="ri-arrow-right-line text-lg group-hover:translate-x-1 transition-transform" />
-          </div>
-        </div>
-      </div>
+      <KpiStrip label="Indicadores de inicio" metrics={[
+        ...(canSeeNegocios ? [{ label: 'Negocios registrados', value: negocios.length, icon: 'ri-exchange-dollar-line' }] : []),
+        { label: 'Clientes registrados', value: data.clientes.length, icon: 'ri-team-line' },
+        { label: 'Divisas autorizadas', value: divisas.length, icon: 'ri-global-line' },
+      ]} />
+
+      <section className="rounded-2xl border border-border bg-card p-4 sm:p-6" aria-labelledby="currency-heading">
+        <h2 id="currency-heading" className="mb-3 text-sm font-bold">Mis divisas autorizadas</h2>
+        {divisas.length ? <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {divisas.map((currency) => {
+            const flag = fallbackBanderaUrl[currency.codigo] || currency.banderaUrl;
+            return <li key={currency.id} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
+              {flag ? <img src={flag} alt="" className="h-3.5 w-5 rounded-sm object-cover"
+                onError={(event) => { event.currentTarget.hidden = true; }} /> : <i className="ri-global-line text-muted-foreground" aria-hidden="true" />}
+              <span className="shrink-0 font-mono text-xs font-semibold">{currency.codigo}</span>
+              <span className="truncate text-xs text-muted-foreground" title={currency.nombre}>{currency.nombre}</span>
+            </li>;
+          })}
+        </ul> : <p className="text-xs text-muted-foreground">No hay divisas disponibles para tu perfil.</p>}
+      </section>
     </div>
   );
 };
