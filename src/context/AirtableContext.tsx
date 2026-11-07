@@ -609,6 +609,18 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         else estado = 'PENDIENTE';
       }
 
+            const comisionistaRecord = (snapshot.comisionistas || []).find(
+        (cm: any) => (cm.comisionistaClienteId && (cm.comisionistaClienteId === c.id || cm.comisionistaClienteId === c.codigo)) ||
+                     (cm.cliente_id && (cm.cliente_id === c.id || cm.cliente_id === c.codigo))
+      );
+      const comisionaDeIds: string[] = comisionistaRecord
+        ? (comisionistaRecord.comisionaDeIds || comisionistaRecord.referidos_ids || [])
+        : [];
+      const totalComisionesCOP: number = comisionistaRecord
+        ? Number(comisionistaRecord.comisionesCOP ?? comisionistaRecord.comisiones_cop ?? 0)
+        : 0;
+      const esComisionista: boolean = Boolean(comisionistaRecord);
+
       const fullCode = c.codigo || c.idCliente || c.cliente || c['CLIENTE'] || c.nombre || 'C-000';
 
       const rawDispersionesIds = c.dispersionesIds || c.fields?.['DISPERSIONES'] || c['DISPERSIONES'] || [];
@@ -621,6 +633,10 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         nombre: c.nombre || c['Nombre'] || fullCode,
         pais: c.pais || c['País'] || 'COLOMBIA',
         totalNegocios,
+        esComisionista,
+        comisionaDeIds,
+        totalComisionesCOP,
+        porcentajeComision: comisionistaRecord ? Number(comisionistaRecord.porcentajeComision ?? comisionistaRecord.porcentaje_comision ?? 0) : 0,
         totalIngresosCOP: totalIngresos,
         totalDispersadoCOP: totalDispersado,
         saldoPendienteCOP: saldoPendiente,
@@ -943,6 +959,7 @@ export const AirtableProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const totalGastosCOP = res?.totalGastosCop ?? (data.gastos || []).reduce((acc, g) => acc + (g.divisa === 'COP' ? g.monto : g.monto * 4000), 0);
     const totalLiqFallback = (data.activosLiquidos || []).reduce((acc: number, a: any) => acc + (a.saldoCop || 0), 0);
     const totalDigFallback = (data.activosDigitales || []).reduce((acc: number, d: any) => acc + (d.saldoUsdt || 0), 0);
+    const totalSaldoPendienteFallback = (data.clientes || []).reduce((acc: number, c: any) => acc + (c.saldoPendienteCOP ?? c.pendienteCop ?? 0), 0);
     const totalClientesIngresosFallback = (data.clientes || []).reduce((acc: number, c: any) => acc + (c.totalIngresosCOP || c.ingresosCop || 0), 0);
     const totalClientesIngresosCOP = (res?.totalClientesIngresosCop && res.totalClientesIngresosCop > 0)
       ? res.totalClientesIngresosCop

@@ -13,7 +13,7 @@ interface ClientesViewProps {
   onOpenAddCliente?: () => void;
 }
 
-type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'saldoPendienteCOP' | 'estado';
+type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'saldoPendienteCOP' | 'totalComisionesCOP' | 'estado';
 
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
   const { data } = useAirtable();
@@ -25,12 +25,20 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
   const [sortAsc, setSortAsc] = useState<boolean>(false); // Default: Descending (mayor saldo pendiente primero)
   const navigate = useNavigate();
 
+  const clientMap = useMemo(() => {
+    const map = new Map<string, any>();
+    data.clientes.forEach((c) => {
+      map.set(c.id, c);
+      map.set(c.codigo, c);
+    });
+    return map;
+  }, [data.clientes]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortAsc(!sortAsc);
     } else {
       setSortField(field);
-      // For monetary and number fields, default to descending; for text, default to ascending
       setSortAsc(field === 'nombre' || field === 'pais' || field === 'estado');
     }
   };
@@ -128,7 +136,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
         <div>
           <h2 className="text-base font-bold text-foreground">Gestión de Clientes</h2>
-          <p className="text-xs text-muted-foreground">Cuentas, estados de saldo y enlaces de consulta pública</p>
+          <p className="text-xs text-muted-foreground">Cuentas, estados de saldo, comisiones y enlaces de consulta pública</p>
         </div>
         <button
           type="button"
@@ -176,6 +184,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
         ['Total Negocios', formatNumber(sumRows(sortedClientes, (c) => c.totalNegocios ?? 0))],
         ['Total Pagado', formatCOP(sumRows(sortedClientes, (c) => c.totalDispersadoCOP))],
         ['Pendiente COP', formatCOP(sumRows(sortedClientes, (c) => c.saldoPendienteCOP))],
+        ['Total Comisiones', formatCOP(sumRows(sortedClientes, (c) => c.totalComisionesCOP ?? 0))],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Clientes Table */}
@@ -190,6 +199,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                 {renderSortTh('Total Ingresos', 'totalIngresosCOP', 'right')}
                 {renderSortTh('Total Pagado', 'totalDispersadoCOP', 'right')}
                 {renderSortTh('Saldo Pendiente', 'saldoPendienteCOP', 'right')}
+                <th className="py-3 px-4">Comisiona de</th>
+                {renderSortTh('Total Comisiones', 'totalComisionesCOP', 'right')}
                 {renderSortTh('Estado', 'estado', 'center')}
                 <th className="py-3 px-4 text-center">Acciones</th>
                 <CreatedByHeader />
@@ -198,19 +209,19 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
             <tbody className="divide-y divide-border">
               {sortedClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
                     No se encontraron clientes
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={sortedClientes}>{(c) => (
+                <PaginatedRows columns={11} rows={sortedClientes}>{(c) => (
                   <tr 
                     key={c.id} 
                     onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=dashboard`)}
                     className="hover:bg-muted/30 transition-colors cursor-pointer group"
                   >
                     {/* Merged Name and Code */}
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
                         {c.nombre || 'Sin nombre'}
                       </div>
@@ -219,31 +230,66 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                       </div>
                     </td>
 
-                    <td className="py-3 px-4 text-muted-foreground">{c.pais || 'Colombia'}</td>
+                    <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">{c.pais || 'Colombia'}</td>
                     
-                    <td className="py-3 px-4 text-center font-mono font-semibold">
+                    <td className="py-3 px-4 text-center font-mono font-semibold whitespace-nowrap">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-primary/10 text-primary">
                         {formatNumber(c.totalNegocios ?? 0)}
                       </span>
                     </td>
 
-                    <td className="py-3 px-4 text-right font-medium text-foreground">
+                    <td className="py-3 px-4 text-right font-medium text-foreground whitespace-nowrap">
                       {formatCOP(c.totalIngresosCOP)}
                     </td>
                     
-                    <td className="py-3 px-4 text-right font-medium text-emerald-500">
+                    <td className="py-3 px-4 text-right font-medium text-emerald-500 whitespace-nowrap">
                       {formatCOP(c.totalDispersadoCOP)}
                     </td>
                     
-                    <td className="py-3 px-4 text-right font-bold text-foreground">
+                    <td className="py-3 px-4 text-right font-bold text-foreground whitespace-nowrap">
                       {formatCOP(c.saldoPendienteCOP)}
                     </td>
 
-                    <td className="py-3 px-4 text-center">
+                    {/* Comisiona de */}
+                    <td className="py-3 px-4">
+                      {c.esComisionista && c.comisionaDeIds && c.comisionaDeIds.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-[220px]">
+                          {c.comisionaDeIds.map((refId) => {
+                            const refClient = clientMap.get(refId);
+                            const label = refClient ? refClient.codigo : refId.slice(0, 8);
+                            const fullName = refClient ? `${refClient.codigo} - ${refClient.nombre}` : refId;
+                            return (
+                              <span
+                                key={refId}
+                                title={fullName}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono text-[10px] font-bold border border-purple-500/20"
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/40 text-xs">—</span>
+                      )}
+                    </td>
+
+                    {/* Total Comisiones */}
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      {c.esComisionista ? (
+                        <span className="font-bold text-purple-600 dark:text-purple-400 font-mono">
+                          {formatCOP(c.totalComisionesCOP)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/40 text-xs">—</span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
                       {getStatusBadge(c.estado)}
                     </td>
 
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
