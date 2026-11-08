@@ -15,6 +15,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [nombre, setNombre] = useState('');
+  const [correo, setCorreo] = useState('');
   const [rol, setRol] = useState('operador');
   const [pais, setPais] = useState('Colombia');
   const [divisas, setDivisas] = useState<string[]>([]);
@@ -25,6 +26,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
   useEffect(() => {
     if (user) {
       setNombre(user.nombre || '');
+      setCorreo(user.correo || '');
       setRol(user.rol || 'operador');
       setPais(user.pais || 'Colombia');
       setDivisas(user.divisasAutorizadas || []);
@@ -72,6 +74,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
     try {
       await updateRecord('Usuarios', user.id, {
         'Nombre': nombre.trim(),
+        'Correo': correo.trim().toLowerCase(),
         'Rol': rol,
         'País': pais,
         'Divisas Autorizadas': ['administrador', 'super_admin'].includes(rol) ? [] : divisas,
@@ -113,6 +116,33 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">
+              Correo Electrónico {isAdmin ? '' : '(Solo administradores)'}
+            </label>
+            <div className="relative">
+              <input
+                type="email"
+                required
+                value={correo}
+                disabled={!isAdmin}
+                onChange={(e) => setCorreo(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                placeholder="correo@ejemplo.com"
+              />
+              {!isAdmin && (
+                <span className="absolute right-3 top-2.5 text-xs text-muted-foreground flex items-center gap-1">
+                  <i className="ri-lock-line" />
+                </span>
+              )}
+            </div>
+            {isAdmin && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Como administrador puedes actualizar el correo de acceso de este usuario en Supabase Auth y perfiles.
+              </p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre</label>

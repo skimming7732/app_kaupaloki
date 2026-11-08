@@ -139,10 +139,28 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   return (
     <div className="min-h-screen bg-background text-foreground py-8 px-4 sm:px-6 max-w-5xl mx-auto space-y-6">
       {isFromDashboard && (
-        <button type="button" onClick={() => navigate('/clientes')}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">
-          <i className="ri-arrow-left-line" aria-hidden="true" /> Volver al panel
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-primary/10 border border-primary/20 rounded-2xl px-4 py-2.5">
+          <div className="flex items-center gap-2 text-xs text-primary font-semibold">
+            <i className="ri-shield-user-line text-sm" />
+            <span>Vista de cliente pública (simulación de portal con PIN)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/clientes/${(internalClient?.codigo || token).toLowerCase()}`)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground px-3 py-1.5 text-xs font-bold shadow-xs hover:opacity-90"
+            >
+              <i className="ri-folder-user-line" /> Ir al Expediente Interno
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/clientes')}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            >
+              <i className="ri-arrow-left-line" /> Volver a Clientes
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Client Overview Card */}

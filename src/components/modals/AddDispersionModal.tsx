@@ -14,18 +14,19 @@ import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from 
 interface AddDispersionModalProps {
   isOpen: boolean;
   record?: NormalizedData['dispersiones'][number];
+  initialClienteId?: string;
   onClose: () => void;
 }
 
-export const AddDispersionModal = ({ isOpen, onClose, record }: AddDispersionModalProps) =>
-  isOpen ? <DispersionForm key={record?.id} onClose={onClose} record={record} /> : null;
+export const AddDispersionModal = ({ isOpen, onClose, record, initialClienteId }: AddDispersionModalProps) =>
+  isOpen ? <DispersionForm key={record?.id ?? initialClienteId} onClose={onClose} record={record} initialClienteId={initialClienteId} /> : null;
 
-const DispersionForm = ({ onClose, record }: Pick<AddDispersionModalProps, 'onClose' | 'record'>) => {
+const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersionModalProps, 'onClose' | 'record' | 'initialClienteId'>) => {
   const { data, createDispersion, updateDispersion, deleteDispersion } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const clientInputId = useId();
-  const [clienteId, setClienteId] = useState(record?.clienteId || '');
+  const [clienteId, setClienteId] = useState(record?.clienteId || initialClienteId || '');
   const [accountId, setAccountId] = useState(record?.origenFondosId || '');
   const [remoteAccounts, setRemoteAccounts] = useState<Account[]>([]);
   const [useLegacyAccounts, setUseLegacyAccounts] = useState(false);

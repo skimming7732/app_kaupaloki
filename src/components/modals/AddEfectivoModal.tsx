@@ -18,7 +18,7 @@ const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
   const { data, createMovimientoEfectivo, createCliente } = useData();
   const id = useId();
   const [tipo, setTipo] = useState<'Ingreso' | 'Pago'>('Pago');
-  const [clienteId, setClienteId] = useState('');
+  const [clienteId, setClienteId] = useState(initialClienteId || '');
   const [accountId, setAccountId] = useState('');
   const [name, setName] = useState('');
   const [addingClient, setAddingClient] = useState(false);

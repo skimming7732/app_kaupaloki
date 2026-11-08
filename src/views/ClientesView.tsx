@@ -233,7 +233,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                 <PaginatedRows columns={10} rows={sortedClientes}>{(c) => (
                   <tr 
                     key={c.id} 
-                    onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=panel-control`)}
+                    onClick={() => navigate(`/clientes/${c.codigo.toLowerCase()}`)}
                     className="hover:bg-muted/30 transition-colors cursor-pointer group"
                   >
                     {/* Merged Name, ISO tag and Code */}

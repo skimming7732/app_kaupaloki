@@ -1452,6 +1452,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return updateUserPermissions({
         id,
         nombre: fields.Nombre,
+        email: fields.Correo || fields.email,
         rol: fields.Rol,
         pais: fields['País'],
         divisasAutorizadas: fields['Divisas Autorizadas'],
@@ -1506,9 +1507,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserPermissions = async (payload: any): Promise<boolean> => {
     try {
-      const { id, nombre, pais, rol, estado, divisasAutorizadas } = payload;
+      const { id, nombre, email, correo, pais, rol, estado, divisasAutorizadas } = payload;
       const updates: any = {};
       if (nombre !== undefined) updates.full_name = nombre;
+      const targetEmail = email ?? correo;
+      if (targetEmail !== undefined && typeof targetEmail === 'string') {
+        const cleanEmail = targetEmail.trim().toLowerCase();
+        if (cleanEmail) updates.email = cleanEmail;
+      }
       if (pais !== undefined) updates.pais = pais;
       if (rol !== undefined) updates.role = rol;
       if (estado !== undefined) updates.status = estado.toLowerCase();

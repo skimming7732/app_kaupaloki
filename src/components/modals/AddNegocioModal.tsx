@@ -11,6 +11,7 @@ export type EditableNegocio = NormalizedData['negocios'][number];
 
 interface AddNegocioModalProps {
   negocio?: EditableNegocio;
+  initialClienteId?: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -54,10 +55,10 @@ const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showNa
   );
 };
 
-export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClose, negocio }) =>
-  isOpen ? <NegocioDialog key={negocio?.id ?? 'new'} onClose={onClose} negocio={negocio} /> : null;
+export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClose, negocio, initialClienteId }) =>
+  isOpen ? <NegocioDialog key={negocio?.id ?? initialClienteId ?? 'new'} onClose={onClose} negocio={negocio} initialClienteId={initialClienteId} /> : null;
 
-const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'>) => {
+const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioModalProps, 'isOpen'>) => {
   const { data, createNegocio, createCliente, updateNegocio, deleteNegocio } = useData();
   const { profile } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -70,7 +71,7 @@ const NegocioDialog = ({ onClose, negocio }: Omit<AddNegocioModalProps, 'isOpen'
     negocio
       ? data.clientes.find((client) => client.id === negocio.clienteId || client.codigo === negocio.clienteCodigo)?.id
         || negocio.clienteId || ''
-      : ''
+      : initialClienteId || ''
   );
   const [divisaCode, setDivisaCode] = useState(negocio?.divisaCodigo || '');
   const [monto, setMonto] = useState(() => negocio ? formatAmountInput(String(negocio.montoDivisa)) : '');

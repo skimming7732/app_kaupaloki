@@ -11,6 +11,7 @@ import { InicioView } from './views/InicioView';
 import { DashboardView } from './views/DashboardView';
 import { NegociosView } from './views/NegociosView';
 import { ClientesView } from './views/ClientesView';
+import { ClienteDetalleView } from './views/ClienteDetalleView';
 import { DispersionesView } from './views/DispersionesView';
 import { EfectivoView } from './views/EfectivoView';
 import { GastosView } from './views/GastosView';
@@ -185,6 +186,13 @@ export const App: React.FC = () => {
               path="/clientes"
               element={renderWithLayout(
                 <ClientesView onOpenAddCliente={() => setActiveModal('add-cliente')} />
+              )}
+            />
+            <Route
+              path="/clientes/:id"
+              element={renderWithLayout(
+                <ClienteDetalleView />,
+                ['super_admin', 'administrador', 'operador', 'dispersor']
               )}
             />
             <Route
