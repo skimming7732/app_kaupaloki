@@ -3,18 +3,20 @@ import { DateRangeFilter, matchesDateRange } from './DateRangeFilter';
 
 export const TABLE_PAGE_SIZE = 50;
 
-export function PaginatedRows<T>({ rows, children, columns, getDate }: {
+export function PaginatedRows<T>({ rows, children, columns, getDate, resetKey }: {
   rows: readonly T[];
   children: (row: T, index: number) => React.ReactNode;
   columns: number;
+  resetKey?: string;
   getDate?: (row: T) => string | undefined;
 }) {
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [previousRows, setPreviousRows] = useState(rows);
-  if (rows !== previousRows) {
-    setPreviousRows(rows);
+  const pageKey = resetKey ?? rows;
+  const [previousPageKey, setPreviousPageKey] = useState(pageKey);
+  if (pageKey !== previousPageKey) {
+    setPreviousPageKey(pageKey);
     setPage(1);
   }
   const filtered = getDate ? rows.filter((row) => matchesDateRange(getDate(row), from, to)) : rows;

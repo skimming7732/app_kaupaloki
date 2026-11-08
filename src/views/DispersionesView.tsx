@@ -3,6 +3,8 @@ import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { uploadReceipt, receiptAccept } from '../utils/receipts';
+import { dashboardWriteError } from '../utils/dashboardWrites';
+import type { Pago } from '../data/appData';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { supabase } from '../lib/supabase';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
@@ -17,6 +19,66 @@ import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 interface DispersionesViewProps {
   onOpenAddDispersion?: () => void;
 }
+
+type Dispersion = NormalizedData['dispersiones'][number];
+type DispersionStatus = Pago['estado'];
+
+const isRejected = (status: string) => status.trim().toUpperCase() === 'RECHAZADO';
+
+const DispersionStatusSelect = ({ dispersion, onSaved }: {
+  dispersion: Dispersion;
+  onSaved: () => Promise<void>;
+}) => {
+  const [pending, setPending] = useState<DispersionStatus>();
+  const [error, setError] = useState('');
+  const current = isRejected(dispersion.estado) ? 'RECHAZADO' : 'COMPLETADO';
+  const status = pending ?? current;
+
+  const save = async (next: DispersionStatus) => {
+    if (pending || next === current) return;
+    setPending(next);
+    setError('');
+    const finishSound = prepareSuccessSound();
+    try {
+      const previous = dispersion.raw.estado;
+      const update = supabase.from('dispersiones').update({ estado: next }).eq('id', dispersion.id);
+      const { error } = await (previous == null ? update.is('estado', null) : update.eq('estado', previous))
+        .select('id').single();
+      if (error?.code === 'PGRST116') {
+        await onSaved();
+        throw new Error('No se pudo aplicar el cambio. Revisa el estado actual e inténtalo de nuevo.');
+      }
+      if (error) throw dashboardWriteError(error, 'No se pudo guardar el estado.');
+      await onSaved();
+      finishSound(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el estado.');
+    } finally {
+      finishSound(false);
+      setPending(undefined);
+    }
+  };
+
+  return (
+    <>
+      <select
+        aria-label={'Estado de ' + dispersion.codigo}
+        value={status}
+        disabled={Boolean(pending)}
+        onChange={(event) => { void save(event.target.value as DispersionStatus); }}
+        className={'min-h-8 cursor-pointer rounded-lg border px-2 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait ' +
+          (status === 'RECHAZADO'
+            ? 'border-destructive/30 bg-destructive/10 text-destructive'
+            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400')}
+      >
+        <option value="COMPLETADO" className="bg-card text-foreground">Completado</option>
+        <option value="RECHAZADO" className="bg-card text-foreground">Rechazado</option>
+      </select>
+      {pending && <p role="status" className="mt-1 text-[10px] text-muted-foreground">Guardando…</p>}
+      {error && <p role="alert" className="mx-auto mt-1 max-w-40 whitespace-normal text-[11px] text-destructive">{error}</p>}
+    </>
+  );
+};
 
 export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDispersion }) => {
   const { data, syncData } = useData();
@@ -179,7 +241,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
 
       <KpiStrip metrics={[
         { label: 'Dispersiones', value: filteredDispersiones.length },
-        { label: 'Total dispersado', value: formatCOP(sumRows(filteredDispersiones, (d) => d.monto)) },
+        { label: 'Total dispersado', value: formatCOP(sumRows(filteredDispersiones, (d) => isRejected(d.estado) ? 0 : d.monto)) },
       ]} />
 
       {/* Dispersiones Table with Uniform Row Heights */}
@@ -208,7 +270,8 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={filteredDispersiones}>{(d) => (
+                <PaginatedRows columns={10} rows={filteredDispersiones}
+                  resetKey={JSON.stringify([search, selectedCliente, fechaDesde, fechaHasta])}>{(d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors h-14">
                     <td className="py-2.5 px-4 font-mono font-medium text-foreground whitespace-nowrap">{d.codigo}</td>
                     <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">{formatDate(d.fecha)}</td>
@@ -288,9 +351,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                     </td>
 
                     <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">
-                        {d.estado || 'Exitosa'}
-                      </span>
+                      <DispersionStatusSelect dispersion={d} onSaved={syncData} />
                     </td>
                     <CreatedByCell name={d.createdByName} />
                     <td className="px-4 py-2.5 text-center whitespace-nowrap">
