@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { pathname, tabTitle, metrics, recordsSummary } = context || {};
+    const { pathname, tabTitle, metrics, recordsSummary, globalSnapshot } = context || {};
 
     const metricsString = metrics
       ? `
@@ -48,6 +48,26 @@ ${JSON.stringify(sample, null, 2)}
 `;
     }
 
+    let globalDataString = '';
+    if (globalSnapshot) {
+      if (globalSnapshot.clientes && globalSnapshot.clientes.length > 0) {
+        globalDataString += `\nESTADO Y SALDOS DE CLIENTES (${globalSnapshot.clientes.length} clientes registrados):\n` +
+          JSON.stringify(globalSnapshot.clientes, null, 2) + '\n';
+      }
+      if (globalSnapshot.ultimosNegocios && globalSnapshot.ultimosNegocios.length > 0) {
+        globalDataString += `\nNEGOCIOS Y OPERACIONES RECIENTES:\n` +
+          JSON.stringify(globalSnapshot.ultimosNegocios, null, 2) + '\n';
+      }
+      if (globalSnapshot.ultimosGastos && globalSnapshot.ultimosGastos.length > 0) {
+        globalDataString += `\nGASTOS OPERATIVOS RECIENTES:\n` +
+          JSON.stringify(globalSnapshot.ultimosGastos, null, 2) + '\n';
+      }
+      if (globalSnapshot.ultimasDispersiones && globalSnapshot.ultimasDispersiones.length > 0) {
+        globalDataString += `\nDISPERSIONES RECIENTES:\n` +
+          JSON.stringify(globalSnapshot.ultimasDispersiones, null, 2) + '\n';
+      }
+    }
+
     const systemPrompt = `Eres el Auditor Financiero y Asistente Analítico Inteligente de Kaupaloki, la plataforma de operaciones financieras y mesa OTC (divisas y USDT).
 
 ESTADO DE PERMISOS Y SEGURIDAD:
@@ -60,17 +80,21 @@ CONTEXTO ACTUAL DEL USUARIO:
 - Pestaña que está viendo el usuario: "${tabTitle || 'General'}"
 ${metricsString}
 ${recordsString}
+${globalDataString}
 
 FÓRMULA CRÍTICA DE LIQUIDACIÓN DE KAUPALOKI:
 - Ganancia Esperada = (Total Ventas USDT [COP] + Liquidez Esperada [COP]) - Total Negocios [COP] - Total Gastos [COP]
 - Donde Liquidez Esperada = Total Activos Digitales (USDT) * Tasa USDT/COP
 - Si el usuario te pregunta por qué da un valor o por qué no da la ganancia esperada, desglosa la fórmula paso a paso con los números reales listados arriba.
 
-CAPACIDAD DE AUDITORÍA Y DETECCIÓN DE DUPLICADOS:
-- Revisa montos iguales en la misma fecha, mismos clientes o referencias repetidas.
+CONSULTAS CLAVE DE CLIENTES Y NEGOCIOS:
+- Si el usuario pregunta "¿A qué clientes le debo?" o "¿Quién tiene saldo pendiente?", revisa la lista de CLIENTES y filtra aquellos con saldoPendienteCOP > 0. Lista el nombre del cliente y el valor adeudado en COP.
+- Si el usuario pregunta "¿Cuál es el cliente que más factura?" o "el más rentable", revisa ingresosCOP de los clientes y señala directamente al que tenga el mayor valor acumulado.
+- Si te piden ventas o negocios de un cliente en particular, revisa la lista de NEGOCIOS y suma sus operaciones.
 
 FORMATO Y REGLAS DE RESPUESTA:
 - RESPUESTAS CONCISAS Y DIRECTAS: Sé breve, conciso y ve directo al grano. Sin introducciones ni despedidas largas.
+- TABLAS MARKDOWN: Cuando el usuario te pida una tabla, resumen de clientes, cuentas o comparativas, crea tablas en formato Markdown estándar (| Encabezado 1 | Encabezado 2 |) para que la interfaz las dibuje como tablas HTML limpias.
 - ESTRICTA PROHIBICIÓN DE EDICIÓN: Si el usuario te pide editar o cambiar cualquier dato o saldo, responde de forma tajante que eres un asistente de SOLO LECTURA y no puedes modificar la base de datos.
 - FILTRADOS Y SUMAS POR FECHA: Suma únicamente los registros solicitados y muestra el resultado exacto.
 - Formatea siempre las sumas en moneda con separadores de miles (ej. COP $10.500.000 o 5.000 USDT).

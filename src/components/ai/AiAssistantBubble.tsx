@@ -140,6 +140,62 @@ const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
       continue;
     }
 
+    // Markdown Table block detection
+    if (trimmed.startsWith('|') && trimmed.includes('|')) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+      i--; // Adjust because for loop will increment i
+
+      if (tableLines.length >= 2) {
+        const parseRow = (rowStr: string) => {
+          const cells = rowStr.split('|');
+          if (cells.length > 0 && cells[0].trim() === '') cells.shift();
+          if (cells.length > 0 && cells[cells.length - 1].trim() === '') cells.pop();
+          return cells.map((c) => c.trim());
+        };
+
+        const headers = parseRow(tableLines[0]);
+        // Check if second line is markdown table divider (e.g. | --- | :--- |)
+        const isDivider = tableLines[1].replace(/[\s|:-]/g, '') === '';
+        const bodyLines = isDivider ? tableLines.slice(2) : tableLines.slice(1);
+        const rows = bodyLines.map(parseRow);
+
+        elements.push(
+          <div
+            key={`table-${i}`}
+            className="overflow-x-auto my-2 rounded-xl border border-border shadow-xs max-w-full"
+          >
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-muted text-foreground uppercase tracking-wider text-[10px]">
+                <tr>
+                  {headers.map((h, hIdx) => (
+                    <th key={hIdx} className="px-3 py-2 border-b border-border font-bold">
+                      {parseInline(h)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60 bg-card/60">
+                {rows.map((row, rIdx) => (
+                  <tr key={rIdx} className="hover:bg-muted/30 transition-colors">
+                    {row.map((cell, cIdx) => (
+                      <td key={cIdx} className="px-3 py-2 text-foreground/90 whitespace-nowrap">
+                        {parseInline(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+        continue;
+      }
+    }
+
     // Normal paragraph
     elements.push(
       <p key={`p-${i}`} className="my-1 leading-relaxed">
