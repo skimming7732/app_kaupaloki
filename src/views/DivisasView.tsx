@@ -66,7 +66,7 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
 
       <dl className="grid gap-3 sm:grid-cols-3">
         {[
-          { label: 'Total recibido', amount: divisa.totalRecibido, detail: 'Acumulado registrado' },
+          { label: 'Total recibido', amount: divisa.totalRecibido, detail: codigo === 'USDT' ? 'De negocios registrados en USDT' : 'Acumulado registrado' },
           { label: codigo === 'USDT' ? 'USDT entregados' : 'Total comprado', amount: divisa.totalComprado, detail: 'Divisa entregada en operaciones de compra' },
           { label: 'Total pendiente', amount: divisa.totalPendiente, detail: 'Recibido menos lo entregado' },
         ].map(({ label, amount, detail }) => (
