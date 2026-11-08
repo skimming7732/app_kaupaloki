@@ -3,9 +3,10 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import { isTronAddress, readTronUsdtBalance } from '../utils/tronUsdtBalance';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
@@ -16,7 +17,37 @@ export const ActivosDigitalesView: React.FC = () => {
   const { assetId: selectedWalletId } = useParams();
   const setSelectedWalletId = (id: string | null) => navigate(id ? '/activos-digitales/' + encodeURIComponent(id) : '/activos-digitales');
 
-  const wallets = data.activosDigitales || [];
+  const recordedWallets = data.activosDigitales;
+  const [chainBalances, setChainBalances] = useState<Record<string, number | null>>({});
+  const [refreshBalance, setRefreshBalance] = useState(0);
+  const addressKey = [...new Set(recordedWallets
+    .filter((wallet) => !selectedWalletId || wallet.id === selectedWalletId)
+    .map((wallet) => String(wallet.wallet || '').trim())
+    .filter(isTronAddress))].join(',');
+
+  useEffect(() => {
+    if (!addressKey) return;
+    const addresses = addressKey.split(',');
+    const controller = new AbortController();
+    setChainBalances((previous) => {
+      const next = { ...previous };
+      for (const address of addresses) delete next[address];
+      return next;
+    });
+    for (const address of addresses) {
+      void readTronUsdtBalance(address, controller.signal)
+        .catch(() => null)
+        .then((balance) => {
+          if (!controller.signal.aborted) setChainBalances((previous) => ({ ...previous, [address]: balance }));
+        });
+    }
+    return () => controller.abort();
+  }, [addressKey, refreshBalance]);
+
+  const wallets = useMemo(() => recordedWallets.map((wallet) => ({
+    ...wallet,
+    saldoReal: chainBalances[String(wallet.wallet || '').trim()] ?? null,
+  })), [recordedWallets, chainBalances]);
 
   // Statement (Extracto) mode and filters state
   const [balanceMode, setBalanceMode] = React.useState<'contable' | 'real'>('contable');
@@ -29,6 +60,12 @@ export const ActivosDigitalesView: React.FC = () => {
     if (!selectedWalletId) return null;
     return wallets.find((w: any) => w.id === selectedWalletId) || null;
   }, [wallets, selectedWalletId]);
+
+  const selectedAddress = String(selectedWallet?.wallet || '').trim();
+  const chainLoading = isTronAddress(selectedAddress) && chainBalances[selectedAddress] === undefined;
+  const chainMessage = chainLoading ? 'Consultando TRON…'
+    : !isTronAddress(selectedAddress) ? 'Dirección TRON no disponible'
+    : 'No se pudo consultar TRON';
 
   // Filtered movements for statement with filters BEFORE table
   const filteredMovimientos = useMemo(() => {
@@ -84,7 +121,7 @@ export const ActivosDigitalesView: React.FC = () => {
     if (!address) return '#';
     // Clean whitespace
     const clean = address.trim();
-    return `https://tronscan.org/balanceView/${clean}/token-balances`;
+    return `https://tronscan.org/#/address/${encodeURIComponent(clean)}`;
   };
 
   const formatShortWallet = (address: string) => {
@@ -205,16 +242,23 @@ export const ActivosDigitalesView: React.FC = () => {
                   title={
                     selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal)
                       ? 'Ver saldo en cadena'
-                      : 'Esta wallet no tiene lectura on-chain configurada'
+                      : chainMessage
                   }
                 >
                   <i className="ri-shield-check-line text-sm" />
-                  <span>Saldo Real (TronLink / Tronscan)</span>
+                  <span>Saldo real en TRON</span>
                   {(selectedWallet.saldoReal === null || selectedWallet.saldoReal === undefined || !Number.isFinite(selectedWallet.saldoReal)) && (
-                    <span className="text-[10px] ml-1 opacity-75">(Sin datos)</span>
+                    <span className="text-[10px] ml-1 opacity-75">({chainMessage})</span>
                   )}
                 </button>
               </div>
+
+              {isTronAddress(selectedAddress) && (
+                <button type="button" disabled={chainLoading} onClick={() => setRefreshBalance((value) => value + 1)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 disabled:opacity-50">
+                  <i className="ri-refresh-line" aria-hidden="true" /> Actualizar saldo TRON
+                </button>
+              )}
 
               {/* Reference compare badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-xs">
@@ -224,7 +268,7 @@ export const ActivosDigitalesView: React.FC = () => {
                     {selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal) ? (
                       <strong className="font-mono text-cyan-300">{formatUSD(selectedWallet.saldoReal)}</strong>
                     ) : (
-                      <span className="text-slate-400 italic font-sans text-xs">Sin información</span>
+                      <span role="status" className="text-slate-200 text-xs">{chainMessage}</span>
                     )}
                   </>
                 ) : (
@@ -248,14 +292,14 @@ export const ActivosDigitalesView: React.FC = () => {
                     ? formatUSD(selectedWallet.saldoUsdt || 0)
                     : (selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal))
                     ? formatUSD(selectedWallet.saldoReal)
-                    : <span className="text-2xl font-sans text-slate-400">Sin datos on-chain</span>}
+                    : <span className="text-2xl font-sans text-slate-400">{chainMessage}</span>}
                 </div>
                 <span className="text-xs text-emerald-200/70 block mt-1">
                   {balanceMode === 'contable'
                     ? 'Registrado en contabilidad interna Kaupaloki'
                     : (selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal))
-                    ? 'Confirmado en red TRON (TRC20) Tronscan'
-                    : 'No se detecta lectura automática on-chain para esta dirección'}
+                    ? 'USDT confirmado en la red TRON'
+                    : chainMessage}
                 </span>
               </div>
 
@@ -282,7 +326,7 @@ export const ActivosDigitalesView: React.FC = () => {
                       </span>
                     </>
                   ) : (
-                    <span className="text-slate-400 italic">Sin datos reales para comparar descuadres</span>
+                    <span className="text-slate-400 italic">{chainMessage}</span>
                   )}
                 </span>
               </div>
@@ -293,13 +337,9 @@ export const ActivosDigitalesView: React.FC = () => {
                   <span>Liquidez en COP (Tasa Tesorería)</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-cyan-200">
-                  {formatCOP(
-                    (balanceMode === 'contable'
-                      ? (selectedWallet.saldoUsdt || 0)
-                      : (selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal))
-                      ? selectedWallet.saldoReal
-                      : (selectedWallet.saldoUsdt || 0)
-                    ) * (selectedWallet.rateFinal || 3950)
+                  {balanceMode === 'real' && selectedWallet.saldoReal == null ? '—' : formatCOP(
+                    (balanceMode === 'real' ? selectedWallet.saldoReal : selectedWallet.saldoUsdt || 0)
+                    * (selectedWallet.rateFinal || 3950)
                   )}
                 </div>
                 <span className="text-xs text-cyan-200/70 block mt-1 font-mono">
@@ -493,7 +533,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 {formatUSD(metrics.totalActivosDigitales)} <span className="text-xl sm:text-2xl font-bold text-emerald-300">USDT</span>
               </div>
               <p className="text-xs text-slate-300 mt-1">
-                Total consolidado en billeteras USDT (Red TRON TRC-20)
+                Total contable en billeteras USDT (Red TRON TRC-20)
               </p>
             </div>
 
@@ -509,10 +549,13 @@ export const ActivosDigitalesView: React.FC = () => {
 
               <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-center">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block">
-                  Saldo Real Total
+                  Saldo real verificado
                 </span>
                 <span className="text-base sm:text-lg font-extrabold font-mono text-cyan-300">
                   {totalSaldoRealUsdt !== null ? formatUSD(totalSaldoRealUsdt) : '—'}
+                </span>
+                <span className="block text-[10px] text-slate-300">
+                  {verifiedWalletsWithReal.length} de {wallets.length} billeteras
                 </span>
               </div>
 
