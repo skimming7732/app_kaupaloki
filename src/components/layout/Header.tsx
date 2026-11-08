@@ -90,9 +90,13 @@ export const Header: React.FC<HeaderProps> = ({
         title = 'Activos Líquidos';
         subtitle = 'Saldos consolidados en instituciones y caja';
         break;
-      case '/capital-socios':
-        title = 'Capital & Socios';
+      case '/capital':
+        title = 'Capital';
         subtitle = 'Capital, rendimientos y liquidaciones';
+        break;
+      case '/socios-inversionistas':
+        title = 'Socios & Inversionistas';
+        subtitle = 'Fichas y movimientos por persona';
         break;
       case '/activos-digitales':
         title = 'Activos Digitales';

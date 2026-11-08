@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useData } from '../context/DataContext';
 import { AccountSelect, accountLabel, type Account } from '../components/modals/AccountSelect';
@@ -19,13 +20,22 @@ const headings = ['Fecha', 'Nombre', 'Tipo', 'Capital aportado', 'Ingreso por di
 const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
 const isCash = (account: Account) => account.institucion?.toUpperCase() === 'EFECTIVO' || (account.activo || '').toUpperCase().includes('EFECTIVO');
 
-export function CapitalSociosView() {
+const directoryPath = '/socios-inversionistas';
+
+export function SociosInversionistasView() {
+  const { socioId } = useParams();
+  return <CapitalSociosView key={socioId || 'directory'} directory personId={socioId} />;
+}
+
+export function CapitalSociosView({ directory = false, personId }: { directory?: boolean; personId?: string } = {}) {
   const { data, syncData } = useData();
   const [people, setPeople] = useState<CapitalPerson[]>([]);
   const [movements, setMovements] = useState<CapitalMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState('');
+  const [search, setSearch] = useState('');
+  const showDirectory = directory && !personId;
   const [action, setAction] = useState<Action>();
   const [detail, setDetail] = useState<CapitalMovement>();
 
@@ -35,19 +45,21 @@ export function CapitalSociosView() {
     try {
       const [people, movements] = await Promise.all([
         loadCapitalRows<CapitalPerson>('capital_socios'),
-        loadCapitalRows<CapitalMovement>('capital_movimientos'),
+        showDirectory ? Promise.resolve([]) : loadCapitalRows<CapitalMovement>('capital_movimientos'),
       ]);
       setPeople(people);
       setMovements(movements);
     } catch {
-      setError('No se pudieron cargar los registros de Capital & Socios.');
+      setError('No se pudieron cargar los registros.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showDirectory]);
   useEffect(() => { void reload(); }, [reload]);
 
-  const rows = movements.filter((row) => !selected || row.socio_id === selected);
+  const currentPerson = personId ? people.find((person) => person.id === personId) : undefined;
+  const activePerson = personId || selected;
+  const rows = movements.filter((row) => !activePerson || row.socio_id === activePerson);
   const totals = rows.reduce((sum, row) => {
     const amounts = capitalAmounts(row);
     return { capital: sum.capital + amounts.capital, balance: sum.balance + amounts.balance, interest: sum.interest + amounts.interest };
@@ -59,18 +71,71 @@ export function CapitalSociosView() {
     void syncData();
   };
 
+  const loadError = error && (
+    <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+      {error} <button type="button" onClick={() => void reload()} className="underline">Reintentar</button>
+    </p>
+  );
+  const backLink = <Link to={directoryPath} className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+    <i className="ri-arrow-left-line" aria-hidden="true" /> Volver a socios e inversionistas
+  </Link>;
+
+  if (showDirectory) {
+    const visiblePeople = people.filter((person) => person.nombre.toLowerCase().includes(search.trim().toLowerCase()));
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <input type="search" aria-label="Buscar por nombre" placeholder="Buscar por nombre"
+            value={search} onChange={(event) => setSearch(event.target.value)} className={recordFieldClass + ' max-w-xs'} />
+          <button type="button" onClick={() => setAction('persona')} className={recordButtonClass}>{actionLabels.persona}</button>
+        </div>
+        {loadError}
+        {visiblePeople.length ? (
+          <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+            {visiblePeople.map((person) => (
+              <li key={person.id}>
+                <Link to={directoryPath + '/' + person.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50">
+                  <span className="min-w-0">
+                    <span className="block break-words text-sm font-semibold">{person.nombre}</span>
+                    <span className="text-xs text-muted-foreground">{person.tipo === 'SOCIO' ? 'Socio' : 'Inversionista'}</span>
+                  </span>
+                  <i className="ri-arrow-right-s-line shrink-0 text-lg text-muted-foreground" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : !error && <p className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+          {loading ? 'Cargando socios e inversionistas…' : search ? 'No hay coincidencias.' : 'Aún no hay socios ni inversionistas registrados.'}
+        </p>}
+        {action === 'persona' && <CapitalForm action="persona" initialPerson="" people={people} movements={[]}
+          onClose={() => setAction(undefined)} onSaved={saved} />}
+      </div>
+    );
+  }
+
+  if (personId && !currentPerson) {
+    return <div className="space-y-4">
+      {backLink}
+      {loadError || <p className="text-sm text-muted-foreground">{loading ? 'Cargando ficha…' : 'No se encontró esta ficha.'}</p>}
+    </div>;
+  }
+
   return (
     <div className="space-y-4">
+      {currentPerson && backLink}
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center gap-2">
+        {currentPerson ? <div className="min-w-0">
+          <h2 className="break-words text-base font-semibold">{currentPerson.nombre}</h2>
+          <p className="text-xs text-muted-foreground">{currentPerson.tipo === 'SOCIO' ? 'Socio' : 'Inversionista'}</p>
+        </div> : <div className="flex items-center gap-2">
           <label htmlFor="capital-person-filter" className="sr-only">Socio o inversionista</label>
           <select id="capital-person-filter" className={recordFieldClass} value={selected} onChange={(event) => setSelected(event.target.value)}>
             <option value="">Todos los socios e inversionistas</option>
             {people.map((person) => <option key={person.id} value={person.id}>{person.nombre}</option>)}
           </select>
-        </div>
+        </div>}
         <div className="flex flex-wrap gap-2">
-          {(Object.keys(actionLabels) as Action[]).map((key) => (
+          {(Object.keys(actionLabels) as Action[]).filter((key) => !currentPerson || key !== 'persona').map((key) => (
             <button type="button" key={key} onClick={() => setAction(key)} disabled={loading || (key !== 'persona' && !people.length)}
               className={key === 'persona' ? recordButtonClass : 'min-h-10 rounded-lg border border-border px-3 text-xs font-semibold hover:bg-muted disabled:opacity-50'}>
               {actionLabels[key]}
@@ -79,7 +144,7 @@ export function CapitalSociosView() {
         </div>
       </section>
 
-      {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error} <button type="button" onClick={() => void reload()} className="underline">Reintentar</button></p>}
+      {loadError}
       <KpiStrip metrics={[
         { label: 'Total capital', value: formatCOP(totals.capital), featured: true },
         { label: 'Total saldo', value: formatCOP(totals.balance) },
@@ -92,7 +157,7 @@ export function CapitalSociosView() {
             <tr>{headings.map((name, index) => <th key={name} scope="col" className={'whitespace-nowrap px-3 py-3 font-semibold ' + (index > 2 ? 'text-right' : '')}>{name}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-border">
-            <PaginatedRows rows={rows} columns={headings.length} resetKey={selected}>{(row) => {
+            <PaginatedRows rows={rows} columns={headings.length} resetKey={activePerson}>{(row) => {
               const person = peopleById.get(row.socio_id);
               const a = capitalAmounts(row);
               return (
@@ -120,7 +185,7 @@ export function CapitalSociosView() {
         </table>
       </div>
 
-      {action && <CapitalForm action={action} initialPerson={selected} people={people} movements={movements} onClose={() => setAction(undefined)} onSaved={saved} />}
+      {action && <CapitalForm action={action} initialPerson={activePerson} people={currentPerson ? [currentPerson] : people} movements={movements} onClose={() => setAction(undefined)} onSaved={saved} />}
       {detail && <RecordDialog title={capitalLabels[detail.tipo]} description={peopleById.get(detail.socio_id)?.nombre || ''} icon="ri-safe-line" onClose={() => setDetail(undefined)}>
         <dl className="space-y-2 text-sm">
           <div><dt className="font-semibold">Fecha</dt><dd>{formatDate(detail.fecha)}</dd></div>
