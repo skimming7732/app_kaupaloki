@@ -62,15 +62,22 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
 
   const numericAmount = parseAmountInput(amount);
   const exceedsBalance = !edit?.historical && hasSource && numericAmount > balance;
-  const previousRate = Number(edit?.fields.tasa || 0);
-  const initialRate = previousRate > 0 ? (previousRate >= 0.0001 ? formatRate(previousRate) : formatAmountInput(String(previousRate))) : '';
+  const previousRate = edit && edit.fields.tasa !== undefined && edit.fields.tasa !== null
+    ? Number(edit.fields.tasa) : null;
+  const initialRate = previousRate !== null
+    ? (previousRate > 0 ? (previousRate >= 0.0001 ? formatRate(previousRate) : formatAmountInput(String(previousRate))) : '0')
+    : '';
   const rateUnchanged = !!edit && rateInput === initialRate;
-  const rate = rateUnchanged ? previousRate : parseAmountInput(rateInput);
-  const received = rateUnchanged && numericAmount === Number(edit?.fields.valor_comprado)
+  const rate = rateUnchanged && previousRate !== null ? previousRate : parseAmountInput(rateInput);
+  const received = isPurchase && rate === 0
+    ? 0
+    : rateUnchanged && numericAmount === Number(edit?.fields.valor_comprado)
     ? Number(edit?.fields.usdt_comprado)
-    : Number((numericAmount / rate).toFixed(6));
+    : (rate > 0 ? Number((numericAmount / rate).toFixed(6)) : 0);
   const copReceived = numericAmount * rate;
-  const validPurchaseQuote = rate > 0 && Number.isFinite(received) && received > 0;
+  const validPurchaseQuote = isPurchase
+    ? (rate >= 0 && Number.isFinite(received) && received >= 0 && numericAmount > 0)
+    : false;
   const validSaleQuote = rate > 0 && Number.isFinite(copReceived) && copReceived > 0;
   const liquidAccounts = data.activosLiquidos.filter((a) => (a.divisa || 'COP') === 'COP');
   const wallets = data.activosDigitales;
@@ -165,6 +172,8 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         return;
       }
       record.wallet_destino_id = destinationId;
+      record.usdt_comprado = received;
+      record.costo = rate === 0 || numericAmount === 0 ? 0 : Number((received / numericAmount).toFixed(8));
     }
 
     if (isSale) {
@@ -178,14 +187,16 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
 
     for (const field of form.fields) {
       if (isUsdt && field.accounts) continue;
+      if (isPurchase && field.name === 'usdt_comprado') continue;
       const value = String(values.get(field.name) || '').trim();
-      if (!value && !field.optional) {
+      const allowsZero = isPurchase && field.name === 'tasa';
+      if (!value && !field.optional && (!allowsZero || value === '')) {
         setError('Completa el campo ' + field.label + '.');
         return;
       }
       if (field.type === 'number') {
         const number = !value && field.optional ? 0 : parseAmountInput(value);
-        if (!Number.isFinite(number) || (field.optional ? number < 0 : number <= 0)) {
+        if (!Number.isFinite(number) || (allowsZero || field.optional ? number < 0 : number <= 0)) {
           setError('Revisa el valor de ' + field.label + '.');
           return;
         }
@@ -341,7 +352,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
                       </div>
                       <output className="break-all text-xl font-bold tabular-nums text-primary" aria-live="polite">
                         {isPurchase
-                          ? (validPurchaseQuote ? formatNumber(received, 2, 6) + ' USDT' : '—')
+                          ? (validPurchaseQuote ? (rate === 0 ? '0.00 USDT' : formatNumber(received, 2, 6) + ' USDT') : '—')
                           : (validSaleQuote ? formatNumber(copReceived, 0, 2) + ' COP' : '—')}
                       </output>
                     </div>
