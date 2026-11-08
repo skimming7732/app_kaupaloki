@@ -173,7 +173,7 @@ export const ComprasUsdtView: React.FC = () => {
                       </span>
                     </td>
                     <CreatedByCell name={c.createdByName} />
-                    <td className="px-4"><AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: false, fields: { fecha: c.fecha?.slice(0, 10) || '', proveedor: c.proveedor || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, tasa: c.tasa || (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0), usdt_comprado: c.usdtComprado, origen_fondos_id: c.origenFondosId || '', wallet_destino_id: c.walletDestinoId || '' } }} /></td>
+                    <td className="px-4"><AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: false, fields: { fecha: c.fecha?.slice(0, 10) || '', proveedor: c.proveedor || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, tasa: c.tasa || (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0), usdt_comprado: c.usdtComprado, wallet_destino_id: c.walletDestinoId || '' } }} /></td>
                   </tr>
                 )}</PaginatedRows>
               )}

@@ -1,24 +1,33 @@
 import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
-import React, { useId, useState } from 'react';
+import React, { useState } from 'react';
 import { formatNumber, formatRate } from '../../utils/formatters';
 import { CurrencySelect } from './CurrencySelect';
-import { CURRENCY_BALANCE_SOURCE } from '../../utils/usdtPurchase';
 import { AccountSelect, type Account } from './AccountSelect';
-import { useData, type CatalogTable } from '../../context/DataContext';
-import { useAuth } from '../../context/AuthContext';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
+import { useAuth } from '../../context/AuthContext';
+import { useData, type CatalogTable } from '../../context/DataContext';
 
-type Option = { value: string; label: string };
-type Field = { name: string; label: string; type?: 'date' | 'number'; options?: Option[]; accounts?: Account[]; optional?: boolean };
-type Form = { title: string; description: string; icon: string; fields: Field[] };
+type Field = {
+  name: string;
+  label: string;
+  type?: 'text' | 'number' | 'date';
+  optional?: boolean;
+  options?: { value: string; label: string }[];
+  accounts?: Account[];
+};
 
-const dateField: Field = { name: 'fecha', label: 'Fecha de operación', type: 'date' };
-const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
+type Form = {
+  title: string;
+  description: string;
+  icon: string;
+  fields: Field[];
+};
 
-type CatalogEdit = { id: string; fields: Record<string, string | number>; historical: boolean };
+const dateField: Field = { name: 'fecha', label: 'Fecha de la operación', type: 'date' };
+const today = () => new Date().toISOString().slice(0, 10);
 
-export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: CatalogEdit }) => {
+export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: { id: string; historical?: boolean; fields: Record<string, any> } }) => {
   const { data, createCatalogRecord, deleteCatalogRecord } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
@@ -30,28 +39,27 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const [currency, setCurrency] = useState('');
   const [amount, setAmount] = useState('');
   const [rateInput, setRateInput] = useState('');
-  const originGroup = useId();
-  const [useCurrencyBalance, setUseCurrencyBalance] = useState(true);
+
   const isPurchase = table === 'compras_usdt';
   const isSale = table === 'ventas_usdt';
   const isUsdt = isPurchase || isSale;
-  const sourceField = isPurchase ? 'origen_fondos_id' : 'wallet_origen_id';
+  const sourceField = 'wallet_origen_id';
   const amountField = isPurchase ? 'valor_comprado' : 'usdt_vendido';
   const sourceCurrency = isPurchase ? currency : 'USDT';
   const selectedCurrency = data.divisas.find((item) => item.codigo === currency);
-  const fromCurrencyBalance = isPurchase && useCurrencyBalance && !edit?.historical;
+
   const previousPending = edit && !edit.historical && edit.fields.divisa_codigo === currency
     ? Number(edit.fields.valor_comprado) : 0;
   const pendingBalance = (selectedCurrency?.totalPendiente ?? 0) + previousPending;
-  const sources: Account[] = isPurchase
-    ? [...data.activosLiquidos.filter((a) => sourceCurrency !== 'USDT' && (a.divisa || 'COP') === sourceCurrency),
-      ...data.activosDigitales.filter(() => sourceCurrency === 'USDT')]
-    : data.activosDigitales;
-  const source = sources.find((item) => item.id === sourceId);
+
+  const source = data.activosDigitales.find((item) => item.id === sourceId);
   const previousDebit = source && edit?.fields[sourceField] === sourceId &&
     (!isPurchase || edit.fields.divisa_codigo === currency) ? Number(edit.fields[amountField]) : 0;
-  const balance = fromCurrencyBalance ? pendingBalance : Number(source?.saldoReal ?? source?.saldoCop ?? source?.saldoUsdt ?? 0) + previousDebit;
-  const hasSource = fromCurrencyBalance ? !!selectedCurrency : !!source;
+
+  // For purchase, funds ALWAYS come from the currency balance. For sales, from the wallet.
+  const balance = isPurchase ? pendingBalance : Number(source?.saldoReal ?? source?.saldoCop ?? source?.saldoUsdt ?? 0) + previousDebit;
+  const hasSource = isPurchase ? Boolean(selectedCurrency) : Boolean(source);
+
   const numericAmount = parseAmountInput(amount);
   const exceedsBalance = !edit?.historical && hasSource && numericAmount > balance;
   const previousRate = Number(edit?.fields.tasa || 0);
@@ -75,7 +83,6 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         dateField,
         { name: 'proveedor', label: 'Proveedor', optional: true },
         { name: 'divisa_codigo', label: 'Divisa entregada' },
-        { name: 'origen_fondos_id', label: 'Origen de los fondos', accounts: sources },
         { name: 'valor_comprado', label: 'Monto entregado', type: 'number' },
         { name: 'tasa', label: 'Tasa de compra', type: 'number' },
         { name: 'usdt_comprado', label: 'USDT a recibir', type: 'number' },
@@ -102,11 +109,10 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
       ],
     },
     activos_digitales: {
-      title: 'Agregar activo digital', description: 'Configura una billetera de custodia de USDT en la red TRON.', icon: 'ri-wallet-3-line',
+      title: 'Agregar billetera USDT', description: 'Registra una dirección USDT.', icon: 'ri-wallet-3-line',
       fields: [
-        { name: 'activo', label: 'Nombre de la billetera' },
-        { name: 'red', label: 'Red', options: [{ value: 'TRON (TRC20)', label: 'TRON (TRC20)' }] },
-        { name: 'wallet', label: 'Dirección pública' }, { name: 'titular', label: 'Titular', optional: true },
+        { name: 'activo', label: 'Nombre de la billetera' }, { name: 'red', label: 'Red' },
+        { name: 'wallet', label: 'Dirección de la billetera' },
         { name: 'saldo_usdt', label: 'Saldo inicial (USDT)', type: 'number', optional: true },
       ],
     },
@@ -121,12 +127,13 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const form = edit ? {
     ...base,
     title: isPurchase ? 'Editar compra USDT' : 'Editar venta USDT',
-    description: 'Modifica los datos, montos, origen o destino de la operación.',
+    description: 'Modifica los datos, montos o billetera de la operación.',
     fields: base.fields,
   } : base;
+
   const showBalance = isUsdt && !edit?.historical;
-  const sameWallet = showBalance && !!sourceId && !fromCurrencyBalance && sourceId === destinationId;
-  const missingAccounts = showBalance && (!hasSource || !destinationId);
+  const sameWallet = isSale && showBalance && Boolean(sourceId) && sourceId === destinationId;
+  const missingAccounts = isPurchase ? !destinationId : (!sourceId || !destinationId);
   const onClose = () => setOpen(false);
 
   const handleDelete = async () => {
@@ -149,28 +156,28 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy) return;
-    if (showBalance && (!hasSource || exceedsBalance)) {
-      setError('Selecciona un origen con saldo suficiente.');
-      return;
-    }
-    if (isUsdt && !(isPurchase ? validPurchaseQuote : validSaleQuote)) {
-      setError('Ingresa un monto y una tasa válidos.');
-      return;
-    }
-    if (sameWallet) {
-      setError('Elige una billetera de destino distinta de la de origen.');
-      return;
-    }
     const values = new FormData(event.currentTarget);
-    if (isUsdt) values.set('tasa', formatNumber(rate, 0, 20));
-    if (isPurchase) {
-      values.set('divisa_codigo', currency);
-      values.set('usdt_comprado', formatNumber(received, 0, 20));
-      if (fromCurrencyBalance) values.set(sourceField, CURRENCY_BALANCE_SOURCE);
-    }
     const record: Record<string, string | number> = {};
+
+    if (isPurchase) {
+      if (!destinationId) {
+        setError('Selecciona la billetera de destino.');
+        return;
+      }
+      record.wallet_destino_id = destinationId;
+    }
+
+    if (isSale) {
+      if (!sourceId || !destinationId) {
+        setError('Selecciona la billetera de origen y la cuenta de destino.');
+        return;
+      }
+      record.wallet_origen_id = sourceId;
+      record.destino_fondos_id = destinationId;
+    }
+
     for (const field of form.fields) {
-      if (isUsdt && edit?.historical && field.accounts) continue;
+      if (isUsdt && field.accounts) continue;
       const value = String(values.get(field.name) || '').trim();
       if (!value && !field.optional) {
         setError('Completa el campo ' + field.label + '.');
@@ -217,16 +224,15 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const renderField = (field: Field) => {
     if (isPurchase && field.name === 'divisa_codigo') return (
       <CurrencySelect key={field.name} label={field.label} currencies={data.divisas}
-        value={currency} onChange={(code) => { if (code !== currency) setSourceId(''); setCurrency(code); }}
-        details={useCurrencyBalance ? (item) => formatNumber(item.totalPendiente, 0, 6) : undefined} />
+        value={currency} onChange={(code) => setCurrency(code)}
+        details={(item) => formatNumber(item.totalPendiente, 0, 6)} />
     );
     if (field.accounts) {
       if (edit?.historical) return null;
       const isSource = field.name === sourceField;
-      if (isPurchase && isSource && (useCurrencyBalance || !selectedCurrency)) return null;
       return (
         <AccountSelect key={field.name}
-          label={isPurchase && isSource ? (currency === 'USDT' ? 'Billetera de origen' : 'Cuenta de origen') : field.label}
+          label={field.label}
           name={field.name} accounts={field.accounts} value={isSource ? sourceId : destinationId}
           onChange={isSource ? setSourceId : setDestinationId} compactSummary={isUsdt} />
       );
@@ -269,8 +275,8 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         {isAmount && showBalance && (
           <div className="flex min-h-8 items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>{hasSource ? (
-              <>{fromCurrencyBalance ? 'Pendiente por comprar' : 'Saldo disponible'} <strong className="text-foreground">{formatNumber(balance, 0, 6)} {sourceCurrency}</strong></>
-            ) : 'Selecciona el origen para ver el saldo.'}</span>
+              <>{isPurchase ? 'Pendiente por comprar' : 'Saldo disponible'} <strong className="text-foreground">{formatNumber(balance, 0, 6)} {sourceCurrency}</strong></>
+            ) : (isPurchase ? 'Selecciona la divisa para ver el saldo pendiente.' : 'Selecciona el origen para ver el saldo.')}</span>
             {hasSource && balance > 0 && (
               <button type="button" onClick={() => setAmount(formatNumber(balance, 0, 20))}
                 className="min-h-8 shrink-0 rounded-lg bg-primary/10 px-2.5 font-semibold text-primary hover:bg-primary/20">Máx.</button>
@@ -295,11 +301,12 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
           const initSource = String(initial[sourceField] ?? '');
           const fallbackWallet = isSale && !edit && !initSource ? wallets[0]?.id || '' : initSource;
           setSourceId(fallbackWallet);
-          setDestinationId(String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? ''));
+          const fallbackDest = isPurchase && !edit ? wallets[0]?.id || '' : String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? '');
+          setDestinationId(fallbackDest);
           setAmount(formatAmountInput(String(initial[amountField] ?? '')));
-          setCurrency(String(initial.divisa_codigo ?? ''));
+          const fallbackCurrency = isPurchase && !edit ? (data.divisas[0]?.codigo || '') : String(initial.divisa_codigo ?? '');
+          setCurrency(fallbackCurrency);
           setRateInput(initialRate);
-          setUseCurrencyBalance(!edit || initSource === CURRENCY_BALANCE_SOURCE);
           setOpen(true);
         }}>
         <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
@@ -310,34 +317,14 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
             <fieldset disabled={busy} className="min-w-0">
               {isUsdt ? (
                 <div className="space-y-6">
-                  <section aria-label="Origen y destino" className="space-y-4">
-                    {isPurchase && showBalance && (
-                      <fieldset className="min-w-0">
-                        <legend className="mb-2 text-sm font-semibold">¿De dónde salen los fondos?</legend>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {[
-                            { pending: true, title: 'Saldo pendiente de la divisa', detail: 'Usa lo que queda por comprar', icon: 'ri-exchange-dollar-line' },
-                            { pending: false, title: 'Activos líquidos', detail: 'Cuenta o billetera si entregas USDT', icon: 'ri-bank-line' },
-                          ].map(({ pending, title, detail, icon }) => (
-                            <label key={title} className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-input bg-background px-3 py-2 hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                              <input type="radio" name={originGroup} checked={useCurrencyBalance === pending}
-                                onChange={() => setUseCurrencyBalance(pending)} className="shrink-0 accent-primary" />
-                              <span className="min-w-0 flex-1">
-                                <span className="block text-sm font-semibold">{title}</span>
-                                <span className="block text-xs text-muted-foreground">{detail}</span>
-                              </span>
-                              <i className={icon + ' shrink-0 text-lg text-primary'} aria-hidden="true" />
-                            </label>
-                          ))}
-                        </div>
-                      </fieldset>
-                    )}
-                    {isPurchase && renderFields('divisa_codigo', 'origen_fondos_id')}
-                    {edit?.historical ? (
-                      <p className="text-xs text-muted-foreground">En esta operación histórica puedes corregir los datos de la operación. Las cuentas quedan fijas.</p>
+                  <section aria-label="Divisa y billetera" className="space-y-4">
+                    {isPurchase ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {renderFields('divisa_codigo', 'wallet_destino_id')}
+                      </div>
                     ) : (
-                      <div className={isPurchase ? undefined : 'grid gap-4 sm:grid-cols-2'}>
-                        {isPurchase ? renderFields('wallet_destino_id') : renderFields('wallet_origen_id', 'destino_fondos_id')}
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {renderFields('wallet_origen_id', 'destino_fondos_id')}
                       </div>
                     )}
                     {sameWallet && <p role="alert" className="text-xs text-destructive">Elige una billetera de destino distinta de la de origen.</p>}

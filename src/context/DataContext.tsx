@@ -172,7 +172,6 @@ export interface NormalizedData {
     costo: number;
     walletDestino?: string;
     walletDestinoId?: string;
-    origenFondosId?: string;
     raw: any;
   }>;
   ventasUsdt: Array<CreationAudit & {
@@ -423,7 +422,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         costo: Number(c.costo || 0),
         walletDestino: c.wallet_destino,
         walletDestinoId: c.wallet_destino_id,
-        origenFondosId: c.origen_fondos_id,
       }));
 
       const ventasUsdt = (ventasUsdtData || []).map((v: any) => ({
@@ -867,7 +865,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       costo: Number(c.costo ?? 0),
       walletDestino: c.walletDestino,
       walletDestinoId: c.walletDestinoId,
-      origenFondosId: c.origenFondosId,
       ...creationAudit(c),
       raw: c,
     }));
@@ -970,8 +967,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((e) => movement(e, e.tipo + ' de efectivo', e.tipo === 'Ingreso' ? e.monto : -e.monto)),
         ...dispersiones.filter((d) => d.origenFondosId === account.id && d.estado.trim().toUpperCase() !== 'RECHAZADO')
           .map((d) => movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto)),
-        ...comprasUsdt.filter((c) => c.origenFondosId === account.id)
-          .map((c) => movement(c, 'Compra USDT', -c.valorComprado)),
         ...ventasUsdt.filter((v) => v.destinoFondosId === account.id)
           .map((v) => movement(v, 'Venta USDT: ' + v.concepto, v.totalCOP)),
       ], new Set([
@@ -986,8 +981,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...capitalEntries(account.id, true),
         ...gastos.filter((g) => g.divisa === 'USDT' && matchesAccount(g, account))
           .map((g) => movement(g, 'Gasto USDT: ' + g.concepto, -Math.abs(g.monto))),
-        ...comprasUsdt.filter((c) => c.origenFondosId === account.id)
-          .map((c) => movement(c, 'Compra USDT', -c.valorComprado)),
         ...comprasUsdt.filter((c) => c.walletDestinoId === account.id)
           .map((c) => movement(c, 'Compra USDT en ' + c.divisaCodigo, c.usdtComprado)),
         ...ventasUsdt.filter((v) => v.walletOrigenId === account.id)
