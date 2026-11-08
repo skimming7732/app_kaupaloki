@@ -21,55 +21,52 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
   const [error, setError] = useState('');
 
   const [fecha, setFecha] = useState(edit?.fecha?.slice(0, 10) || new Date().toISOString().slice(0, 10));
-  const [tipoOrigen, setTipoOrigen] = useState<'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL'>(edit?.tipoOrigen || 'ACTIVO_LIQUIDO');
+  const [tipoActivo, setTipoActivo] = useState<'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL'>(
+    edit?.tipoOrigen || 'ACTIVO_LIQUIDO'
+  );
   const [origenId, setOrigenId] = useState(edit?.origenId || '');
-  const [tipoDestino, setTipoDestino] = useState<'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL'>(edit?.tipoDestino || 'ACTIVO_DIGITAL');
   const [destinoId, setDestinoId] = useState(edit?.destinoId || '');
   
   const [monto, setMonto] = useState(edit ? formatAmountInput(String(edit.monto)) : '');
-  const [montoDestino, setMontoDestino] = useState(edit ? formatAmountInput(String(edit.montoDestino)) : '');
   const [costo, setCosto] = useState(edit?.costo ? formatAmountInput(String(edit.costo)) : '0');
   const [concepto, setConcepto] = useState(edit?.concepto || '');
   const [notas, setNotas] = useState(edit?.notas || '');
 
-  // Accounts list
-  const liquidAccounts = data.activosLiquidos || [];
-  const digitalAccounts = data.activosDigitales || [];
+  // Accounts list based on selected asset type
+  const isDigital = tipoActivo === 'ACTIVO_DIGITAL';
+  const accounts = isDigital ? (data.activosDigitales || []) : (data.activosLiquidos || []);
+  const currency = isDigital ? 'USDT' : 'COP';
 
-  const sourceAccounts = tipoOrigen === 'ACTIVO_LIQUIDO' ? liquidAccounts : digitalAccounts;
-  const destAccounts = tipoDestino === 'ACTIVO_LIQUIDO' ? liquidAccounts : digitalAccounts;
+  const selectedSource = accounts.find((a: any) => a.id === origenId) || accounts[0];
+  const selectedDest = accounts.find((a: any) => a.id === destinoId) || (accounts.length > 1 ? accounts[1] : accounts[0]);
 
-  const selectedSource = sourceAccounts.find((a: any) => a.id === origenId) || sourceAccounts[0];
-  const selectedDest = destAccounts.find((a: any) => a.id === destinoId) || destAccounts[0];
-
-  const sourceCurrency = tipoOrigen === 'ACTIVO_DIGITAL' ? 'USDT' : (selectedSource?.divisa || 'COP');
-  const destCurrency = tipoDestino === 'ACTIVO_DIGITAL' ? 'USDT' : (selectedDest?.divisa || 'COP');
-  const isDifferentCurrency = sourceCurrency !== destCurrency;
-
-  const currentSourceBalance = tipoOrigen === 'ACTIVO_DIGITAL'
+  const currentSourceBalance = isDigital
     ? Number(selectedSource?.saldoUsdt || 0)
     : Number(selectedSource?.saldoCop || 0);
+
+  const currentDestBalance = isDigital
+    ? Number(selectedDest?.saldoUsdt || 0)
+    : Number(selectedDest?.saldoCop || 0);
 
   const numericMonto = parseAmountInput(monto);
   const numericCosto = parseAmountInput(costo);
   const totalDebit = numericMonto + (numericCosto > 0 ? numericCosto : 0);
-  const exceedsBalance = numericMonto > 0 && totalDebit > currentSourceBalance + (edit && edit.origenId === origenId ? Number(edit.monto) + Number(edit.costo || 0) : 0);
-  const isSameAccount = tipoOrigen === tipoDestino && origenId === destinoId;
+  const availableCredit = currentSourceBalance + (edit && edit.origenId === origenId ? Number(edit.monto) + Number(edit.costo || 0) : 0);
+  const exceedsBalance = numericMonto > 0 && totalDebit > availableCredit;
+  const isSameAccount = origenId && destinoId && origenId === destinoId;
 
   const openModal = () => {
     setError('');
-    const initTipoOrigen = edit?.tipoOrigen || 'ACTIVO_LIQUIDO';
-    const initTipoDestino = edit?.tipoDestino || 'ACTIVO_DIGITAL';
-    setTipoOrigen(initTipoOrigen);
-    setTipoDestino(initTipoDestino);
+    const initTipo = edit?.tipoOrigen || 'ACTIVO_LIQUIDO';
+    setTipoActivo(initTipo);
 
-    const initSourceAccs = initTipoOrigen === 'ACTIVO_LIQUIDO' ? liquidAccounts : digitalAccounts;
-    const initDestAccs = initTipoDestino === 'ACTIVO_LIQUIDO' ? liquidAccounts : digitalAccounts;
+    const targetAccounts = initTipo === 'ACTIVO_DIGITAL' ? (data.activosDigitales || []) : (data.activosLiquidos || []);
+    const defaultSrc = edit?.origenId || targetAccounts[0]?.id || '';
+    const defaultDst = edit?.destinoId || (targetAccounts.length > 1 ? targetAccounts[1]?.id : targetAccounts[0]?.id) || '';
 
-    setOrigenId(edit?.origenId || initSourceAccs[0]?.id || '');
-    setDestinoId(edit?.destinoId || initDestAccs[0]?.id || '');
+    setOrigenId(defaultSrc);
+    setDestinoId(defaultDst);
     setMonto(edit ? formatAmountInput(String(edit.monto)) : '');
-    setMontoDestino(edit ? formatAmountInput(String(edit.montoDestino)) : '');
     setCosto(edit?.costo ? formatAmountInput(String(edit.costo)) : '0');
     setConcepto(edit?.concepto || '');
     setNotas(edit?.notas || '');
@@ -77,16 +74,12 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
     setOpen(true);
   };
 
-  const handleSourceTypeChange = (type: 'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL') => {
-    setTipoOrigen(type);
-    const accounts = type === 'ACTIVO_LIQUIDO' ? liquidAccounts : digitalAccounts;
-    setOrigenId(accounts[0]?.id || '');
-  };
-
-  const handleDestTypeChange = (type: 'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL') => {
-    setTipoDestino(type);
-    const accounts = type === 'ACTIVO_LIQUIDO' ? liquidAccounts : digitalAccounts;
-    setDestinoId(accounts[0]?.id || '');
+  const handleTipoChange = (type: 'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL') => {
+    setTipoActivo(type);
+    const targetAccounts = type === 'ACTIVO_DIGITAL' ? (data.activosDigitales || []) : (data.activosLiquidos || []);
+    setOrigenId(targetAccounts[0]?.id || '');
+    setDestinoId(targetAccounts.length > 1 ? targetAccounts[1]?.id || '' : targetAccounts[0]?.id || '');
+    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,11 +87,11 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
     if (busy) return;
 
     if (!origenId) {
-      setError('Selecciona la cuenta o billetera de origen.');
+      setError(isDigital ? 'Selecciona la billetera de origen.' : 'Selecciona la cuenta de origen.');
       return;
     }
     if (!destinoId) {
-      setError('Selecciona la cuenta o billetera de destino.');
+      setError(isDigital ? 'Selecciona la billetera de destino.' : 'Selecciona la cuenta de destino.');
       return;
     }
     if (isSameAccount) {
@@ -110,16 +103,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
       return;
     }
     if (exceedsBalance) {
-      setError('El monto a transferir (incluyendo costo) supera el saldo disponible del origen.');
-      return;
-    }
-
-    const finalMontoDestino = isDifferentCurrency
-      ? parseAmountInput(montoDestino)
-      : numericMonto;
-
-    if (isDifferentCurrency && (!finalMontoDestino || finalMontoDestino <= 0)) {
-      setError('Ingresa el monto a recibir en la divisa de destino.');
+      setError(`El monto a transferir (${formatNumber(totalDebit, 2, 2)} ${currency} con costo) supera el saldo disponible (${formatNumber(availableCredit, 2, 2)} ${currency}).`);
       return;
     }
 
@@ -133,19 +117,19 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
     try {
       const payload = {
         fecha,
-        tipoOrigen,
+        tipoOrigen: tipoActivo,
         origenId,
         origenNombre: sourceName,
-        tipoDestino,
+        tipoDestino: tipoActivo, // STRICTLY SAME TYPE
         destinoId,
         destinoNombre: destName,
         monto: numericMonto,
-        divisaOrigen: sourceCurrency,
-        montoDestino: finalMontoDestino,
-        divisaDestino: destCurrency,
-        tasa: isDifferentCurrency && numericMonto > 0 ? Number((finalMontoDestino / numericMonto).toFixed(6)) : 1,
+        divisaOrigen: currency,
+        montoDestino: numericMonto, // 1:1 same asset type
+        divisaDestino: currency,
+        tasa: 1,
         costo: numericCosto >= 0 ? numericCosto : 0,
-        divisaCosto: sourceCurrency,
+        divisaCosto: currency,
         concepto: concepto.trim() || `Transferencia de ${sourceName} a ${destName}`,
         notas: notas.trim() || undefined,
       };
@@ -167,7 +151,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
   };
 
   const handleDelete = async () => {
-    if (!edit || !window.confirm('¿Estás seguro de que deseas eliminar esta transferencia interna? Los saldos se revertirán.')) {
+    if (!edit || !window.confirm('¿Estás seguro de que deseas eliminar esta transferencia interna? Los saldos se revertirán automáticamente.')) {
       return;
     }
     setBusy(true);
@@ -200,7 +184,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
       {open && (
         <RecordDialog
           title={edit ? 'Editar Transferencia Interna' : 'Registrar Transferencia Interna'}
-          description="Movimiento entre cuentas bancarias, caja o billeteras digitales."
+          description="Movimiento entre cuentas bancarias de la misma empresa o entre billeteras USDT."
           icon="ri-arrow-left-right-line"
           wide
           busy={busy}
@@ -209,142 +193,137 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             <fieldset disabled={busy} className="min-w-0 space-y-6">
-              {/* SECCIÓN ORIGEN */}
-              <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <i className="ri-upload-2-line text-rose-500" />
-                    <span>Origen de Fondos (Salida)</span>
-                  </h4>
-                  <div className="flex items-center gap-1 bg-muted p-0.5 rounded-lg text-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleSourceTypeChange('ACTIVO_LIQUIDO')}
-                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
-                        tipoOrigen === 'ACTIVO_LIQUIDO'
-                          ? 'bg-card text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Activo Líquido (Banco/Caja)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSourceTypeChange('ACTIVO_DIGITAL')}
-                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
-                        tipoOrigen === 'ACTIVO_DIGITAL'
-                          ? 'bg-card text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Activo Digital (Wallet USDT)
-                    </button>
-                  </div>
+              
+              {/* TIPO DE TRANSFERENCIA: LÍQUIDO O DIGITAL */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                  Tipo de Activo a Transferir
+                </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleTipoChange('ACTIVO_LIQUIDO')}
+                    className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all ${
+                      tipoActivo === 'ACTIVO_LIQUIDO'
+                        ? 'border-primary bg-primary/10 ring-2 ring-primary/20 shadow-sm'
+                        : 'border-border bg-card hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl shrink-0 ${tipoActivo === 'ACTIVO_LIQUIDO' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                      <i className="ri-bank-line text-lg" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-xs sm:text-sm text-foreground block">Entre Activos Líquidos</span>
+                      <span className="text-[11px] text-muted-foreground">Cuentas bancarias y caja (COP)</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTipoChange('ACTIVO_DIGITAL')}
+                    className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all ${
+                      tipoActivo === 'ACTIVO_DIGITAL'
+                        ? 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/20 shadow-sm'
+                        : 'border-border bg-card hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl shrink-0 ${tipoActivo === 'ACTIVO_DIGITAL' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <i className="ri-wallet-3-line text-lg" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-xs sm:text-sm text-foreground block">Entre Activos Digitales</span>
+                      <span className="text-[11px] text-muted-foreground">Billeteras y exchanges (USDT)</span>
+                    </div>
+                  </button>
                 </div>
+              </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 items-center">
-                  <div>
-                    <label className={recordLabelClass}>
-                      <span>Seleccionar Cuenta / Billetera de Origen</span>
-                      <select
-                        value={origenId}
-                        onChange={(e) => setOrigenId(e.target.value)}
-                        className={recordFieldClass}
-                        required
-                      >
-                        {sourceAccounts.map((a: any) => (
-                          <option key={a.id} value={a.id}>
-                            {a.activo} {a.institucion ? `(${a.institucion})` : ''} · Saldo: {tipoOrigen === 'ACTIVO_DIGITAL' ? `${formatNumber(a.saldoUsdt || 0, 2, 2)} USDT` : formatCOP(a.saldoCop || 0)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+              {/* CUENTA ORIGEN Y CUENTA DESTINO */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* ORIGEN */}
+                <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <i className="ri-upload-2-line text-rose-500" />
+                      <span>{isDigital ? 'Billetera Origen (Salida)' : 'Cuenta Origen (Salida)'}</span>
+                    </h4>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                      {currency}
+                    </span>
                   </div>
 
-                  <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
+                  <label className={recordLabelClass}>
+                    <span>Seleccionar {isDigital ? 'Billetera' : 'Cuenta'}</span>
+                    <select
+                      value={origenId}
+                      onChange={(e) => setOrigenId(e.target.value)}
+                      className={recordFieldClass}
+                      required
+                    >
+                      {accounts.map((a: any) => (
+                        <option key={a.id} value={a.id}>
+                          {a.activo} {a.institucion ? `(${a.institucion})` : ''} · Saldo: {isDigital ? `${formatNumber(a.saldoUsdt || 0, 2, 2)} USDT` : formatCOP(a.saldoCop || 0)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-2.5 text-xs">
                     <span className="text-muted-foreground block text-[11px]">Saldo disponible actual:</span>
-                    <span className="text-base font-extrabold font-mono text-foreground">
-                      {tipoOrigen === 'ACTIVO_DIGITAL'
-                        ? `${formatNumber(currentSourceBalance, 2, 6)} USDT`
-                        : formatCOP(currentSourceBalance)}
+                    <span className="text-sm sm:text-base font-extrabold font-mono text-foreground">
+                      {isDigital ? `${formatNumber(currentSourceBalance, 2, 6)} USDT` : formatCOP(currentSourceBalance)}
                     </span>
                   </div>
                 </div>
-              </div>
 
-              {/* SECCIÓN DESTINO */}
-              <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <i className="ri-download-2-line text-emerald-500" />
-                    <span>Destino de Fondos (Entrada)</span>
-                  </h4>
-                  <div className="flex items-center gap-1 bg-muted p-0.5 rounded-lg text-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleDestTypeChange('ACTIVO_LIQUIDO')}
-                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
-                        tipoDestino === 'ACTIVO_LIQUIDO'
-                          ? 'bg-card text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Activo Líquido (Banco/Caja)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDestTypeChange('ACTIVO_DIGITAL')}
-                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
-                        tipoDestino === 'ACTIVO_DIGITAL'
-                          ? 'bg-card text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Activo Digital (Wallet USDT)
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 items-center">
-                  <div>
-                    <label className={recordLabelClass}>
-                      <span>Seleccionar Cuenta / Billetera de Destino</span>
-                      <select
-                        value={destinoId}
-                        onChange={(e) => setDestinoId(e.target.value)}
-                        className={recordFieldClass}
-                        required
-                      >
-                        {destAccounts.map((a: any) => (
-                          <option key={a.id} value={a.id} disabled={tipoOrigen === tipoDestino && a.id === origenId}>
-                            {a.activo} {a.institucion ? `(${a.institucion})` : ''} {tipoOrigen === tipoDestino && a.id === origenId ? '(Misma que origen)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                {/* DESTINO */}
+                <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <i className="ri-download-2-line text-emerald-500" />
+                      <span>{isDigital ? 'Billetera Destino (Entrada)' : 'Cuenta Destino (Entrada)'}</span>
+                    </h4>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                      {currency}
+                    </span>
                   </div>
 
-                  <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
+                  <label className={recordLabelClass}>
+                    <span>Seleccionar {isDigital ? 'Billetera' : 'Cuenta'}</span>
+                    <select
+                      value={destinoId}
+                      onChange={(e) => setDestinoId(e.target.value)}
+                      className={recordFieldClass}
+                      required
+                    >
+                      {accounts.map((a: any) => (
+                        <option key={a.id} value={a.id} disabled={a.id === origenId}>
+                          {a.activo} {a.institucion ? `(${a.institucion})` : ''} {a.id === origenId ? '(Misma que origen)' : `· Saldo: ${isDigital ? `${formatNumber(a.saldoUsdt || 0, 2, 2)} USDT` : formatCOP(a.saldoCop || 0)}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-2.5 text-xs">
                     <span className="text-muted-foreground block text-[11px]">Saldo actual en destino:</span>
-                    <span className="text-base font-extrabold font-mono text-foreground">
-                      {tipoDestino === 'ACTIVO_DIGITAL'
-                        ? `${formatNumber(selectedDest?.saldoUsdt || 0, 2, 6)} USDT`
-                        : formatCOP(selectedDest?.saldoCop || 0)}
+                    <span className="text-sm sm:text-base font-extrabold font-mono text-foreground">
+                      {isDigital ? `${formatNumber(currentDestBalance, 2, 6)} USDT` : formatCOP(currentDestBalance)}
                     </span>
                   </div>
                 </div>
-                {isSameAccount && (
-                  <p role="alert" className="text-xs text-destructive font-semibold">
-                    Selecciona una cuenta de destino diferente al origen.
-                  </p>
-                )}
               </div>
 
-              {/* SECCIÓN MONTOS Y COSTO */}
+              {isSameAccount && (
+                <p role="alert" className="text-xs text-destructive font-semibold">
+                  El origen y el destino no pueden ser la misma cuenta.
+                </p>
+              )}
+
+              {/* MONTOS Y COSTO */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <label className={recordLabelClass}>
-                    <span>Monto a transferir <small className="text-muted-foreground">({sourceCurrency})</small></span>
+                    <span>Monto a transferir <small className="text-muted-foreground">({currency})</small></span>
                     <input
                       type="text"
                       inputMode="decimal"
@@ -353,13 +332,13 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
                         const val = formatAmountField(e.currentTarget);
                         if (val !== undefined) setMonto(val);
                       }}
-                      placeholder="0.00"
+                      placeholder={isDigital ? '0.00' : '0'}
                       required
                       className={recordFieldClass}
                     />
                   </label>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Disponible: {tipoOrigen === 'ACTIVO_DIGITAL' ? `${formatNumber(currentSourceBalance, 2, 2)} USDT` : formatCOP(currentSourceBalance)}</span>
+                    <span>Disponible: {isDigital ? `${formatNumber(currentSourceBalance, 2, 2)} USDT` : formatCOP(currentSourceBalance)}</span>
                     {currentSourceBalance > 0 && (
                       <button
                         type="button"
@@ -372,78 +351,33 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
                   </div>
                   {exceedsBalance && (
                     <p role="alert" className="text-xs text-destructive">
-                      El monto (incluyendo costo) supera el saldo disponible.
+                      El monto a transferir (incluyendo costo) supera el saldo disponible.
                     </p>
                   )}
                 </div>
 
-                {isDifferentCurrency ? (
-                  <div className="space-y-1.5">
-                    <label className={recordLabelClass}>
-                      <span>Monto a recibir en destino <small className="text-muted-foreground">({destCurrency})</small></span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={montoDestino}
-                        onChange={(e) => {
-                          const val = formatAmountField(e.currentTarget);
-                          if (val !== undefined) setMontoDestino(val);
-                        }}
-                        placeholder="0.00"
-                        required
-                        className={recordFieldClass}
-                      />
-                    </label>
-                    <span className="text-xs text-muted-foreground">
-                      Tasa implícita: {numericMonto > 0 && parseAmountInput(montoDestino) > 0
-                        ? `${formatNumber(parseAmountInput(montoDestino) / numericMonto, 2, 4)} ${destCurrency}/${sourceCurrency}`
-                        : '—'}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <label className={recordLabelClass}>
-                      <span>Costo / Comisión de la transferencia <small className="text-muted-foreground">({sourceCurrency})</small></span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={costo}
-                        onChange={(e) => {
-                          const val = formatAmountField(e.currentTarget);
-                          if (val !== undefined) setCosto(val);
-                        }}
-                        placeholder="0.00"
-                        className={recordFieldClass}
-                      />
-                    </label>
-                    <span className="text-xs text-muted-foreground">Fee bancario o costo de red (0 si exento)</span>
-                  </div>
-                )}
+                <div className="space-y-1.5">
+                  <label className={recordLabelClass}>
+                    <span>Costo / Comisión de la operación <small className="text-muted-foreground">({currency})</small></span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={costo}
+                      onChange={(e) => {
+                        const val = formatAmountField(e.currentTarget);
+                        if (val !== undefined) setCosto(val);
+                      }}
+                      placeholder="0.00"
+                      className={recordFieldClass}
+                    />
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {isDigital ? 'Fee de red (ej: 1 USDT). Se debita del origen.' : 'Fee bancario (0 si exento). Se debita del origen.'}
+                  </span>
+                </div>
               </div>
 
-              {isDifferentCurrency && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <label className={recordLabelClass}>
-                      <span>Costo / Comisión de la transferencia <small className="text-muted-foreground">({sourceCurrency})</small></span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={costo}
-                        onChange={(e) => {
-                          const val = formatAmountField(e.currentTarget);
-                          if (val !== undefined) setCosto(val);
-                        }}
-                        placeholder="0.00"
-                        className={recordFieldClass}
-                      />
-                    </label>
-                    <span className="text-xs text-muted-foreground">Fee bancario o costo de red (0 si exento)</span>
-                  </div>
-                </div>
-              )}
-
-              {/* SECCIÓN DETALLES */}
+              {/* FECHA Y CONCEPTO */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className={recordLabelClass}>
@@ -465,7 +399,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
                       type="text"
                       value={concepto}
                       onChange={(e) => setConcepto(e.target.value)}
-                      placeholder="Ej: Fondeo cuenta, Retiro a banco, Rebalanceo..."
+                      placeholder={isDigital ? 'Ej: Rebalanceo Binance a Kraken' : 'Ej: Transferencia Bancolombia a Nequi'}
                       required
                       className={recordFieldClass}
                     />
@@ -475,7 +409,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
             </fieldset>
 
             <RecordActions
-              submitDisabled={isSameAccount || exceedsBalance || numericMonto <= 0}
+              submitDisabled={Boolean(isSameAccount) || Boolean(exceedsBalance) || numericMonto <= 0}
               busy={busy}
               label={edit ? 'Guardar cambios' : 'Registrar transferencia'}
               onClose={() => setOpen(false)}

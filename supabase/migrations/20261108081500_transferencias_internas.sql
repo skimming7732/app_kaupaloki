@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.transferencias_internas (
   tipo_destino text NOT NULL CHECK (tipo_destino IN ('ACTIVO_LIQUIDO', 'ACTIVO_DIGITAL')),
   destino_id uuid NOT NULL,
   destino_nombre text,
+  CONSTRAINT chk_mismo_tipo CHECK (tipo_origen = tipo_destino),
   monto numeric(18, 4) NOT NULL CHECK (monto > 0),
   divisa_origen text NOT NULL DEFAULT 'COP',
   monto_destino numeric(18, 4) NOT NULL CHECK (monto_destino > 0),

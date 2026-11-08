@@ -29,14 +29,10 @@ export const TransferenciasInternasView: React.FC = () => {
       const matchDate = matchesDateRange(t.fecha, fechaDesde, fechaHasta);
 
       let matchTipo = true;
-      if (filterTipo === 'LIQ_A_LIQ') {
-        matchTipo = t.tipoOrigen === 'ACTIVO_LIQUIDO' && t.tipoDestino === 'ACTIVO_LIQUIDO';
-      } else if (filterTipo === 'DIG_A_DIG') {
-        matchTipo = t.tipoOrigen === 'ACTIVO_DIGITAL' && t.tipoDestino === 'ACTIVO_DIGITAL';
-      } else if (filterTipo === 'DIG_A_LIQ') {
-        matchTipo = t.tipoOrigen === 'ACTIVO_DIGITAL' && t.tipoDestino === 'ACTIVO_LIQUIDO';
-      } else if (filterTipo === 'LIQ_A_DIG') {
-        matchTipo = t.tipoOrigen === 'ACTIVO_LIQUIDO' && t.tipoDestino === 'ACTIVO_DIGITAL';
+      if (filterTipo === 'ACTIVO_LIQUIDO') {
+        matchTipo = t.tipoOrigen === 'ACTIVO_LIQUIDO';
+      } else if (filterTipo === 'ACTIVO_DIGITAL') {
+        matchTipo = t.tipoOrigen === 'ACTIVO_DIGITAL';
       }
 
       return matchSearch && matchDate && matchTipo;
@@ -183,10 +179,8 @@ export const TransferenciasInternasView: React.FC = () => {
               className="px-3 py-1.5 rounded-xl border border-input bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary outline-none"
             >
               <option value="TODOS">Todos los tipos</option>
-              <option value="LIQ_A_LIQ">Líquido → Líquido</option>
-              <option value="DIG_A_DIG">Digital → Digital</option>
-              <option value="DIG_A_LIQ">Digital → Líquido</option>
-              <option value="LIQ_A_DIG">Líquido → Digital</option>
+              <option value="ACTIVO_LIQUIDO">Entre Activos Líquidos (COP)</option>
+              <option value="ACTIVO_DIGITAL">Entre Activos Digitales (USDT)</option>
             </select>
           </div>
 
@@ -212,8 +206,7 @@ export const TransferenciasInternasView: React.FC = () => {
                 <th className="py-3 px-4">Código</th>
                 <th className="py-3 px-4">Origen</th>
                 <th className="py-3 px-4">Destino</th>
-                <th className="py-3 px-4 text-right">Monto Enviado</th>
-                <th className="py-3 px-4 text-right">Monto Recibido</th>
+                <th className="py-3 px-4 text-right">Monto</th>
                 <th className="py-3 px-4 text-right">Costo / Fee</th>
                 <th className="py-3 px-4">Concepto</th>
                 <th className="py-3 px-4 text-center">Acción</th>
@@ -223,12 +216,12 @@ export const TransferenciasInternasView: React.FC = () => {
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-8 text-center text-xs text-muted-foreground">
+                  <td colSpan={9} className="py-8 text-center text-xs text-muted-foreground">
                     No se encontraron transferencias internas con los filtros seleccionados.
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={filtered}>{(t: TransferenciaInterna) => (
+                <PaginatedRows columns={9} rows={filtered}>{(t: TransferenciaInterna) => (
                   <tr key={t.id} className="hover:bg-muted/40 transition-colors">
                     <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
                       {formatDate(t.fecha)}
@@ -252,11 +245,8 @@ export const TransferenciasInternasView: React.FC = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-rose-500 whitespace-nowrap">
-                      - {t.divisaOrigen === 'COP' ? formatCOP(t.monto) : `${formatNumber(t.monto, 2, 6)} USDT`}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-500 whitespace-nowrap">
-                      + {t.divisaDestino === 'COP' ? formatCOP(t.montoDestino) : `${formatNumber(t.montoDestino, 2, 6)} USDT`}
+                    <td className="py-3 px-4 text-right font-mono font-bold text-foreground whitespace-nowrap">
+                      {t.divisaOrigen === 'COP' ? formatCOP(t.monto) : `${formatNumber(t.monto, 2, 6)} USDT`}
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-medium text-muted-foreground whitespace-nowrap">
                       {t.costo > 0
