@@ -1,0 +1,1 @@
+export const CURRENCY_BALANCE_SOURCE = 'SALDO_DIVISA';

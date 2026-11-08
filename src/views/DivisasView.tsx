@@ -22,7 +22,8 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
       ...item, tipo: 'Negocio', detalle: item.clienteNombre, entrada: item.montoDivisa, salida: 0,
     })),
     ...data.comprasUsdt.filter((item) => item.divisaCodigo === codigo || codigo === 'USDT').map((item) => ({
-      ...item, tipo: 'Compra USDT', detalle: item.walletDestino,
+      ...item, tipo: item.divisaCodigo === 'USDT' && codigo === 'USDT' ? 'Movimiento USDT a USDT' : 'Compra USDT',
+      detalle: item.walletDestino,
       entrada: codigo === 'USDT' ? item.usdtComprado : 0,
       salida: item.divisaCodigo === codigo ? item.valorComprado : 0,
     })),
@@ -65,13 +66,14 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
 
       <dl className="grid gap-3 sm:grid-cols-3">
         {[
-          ['Total recibido', divisa.totalRecibido],
-          ['Total comprado', divisa.totalComprado],
-          ['Total pendiente', divisa.totalPendiente],
-        ].map(([label, amount]) => (
+          { label: 'Total recibido', amount: divisa.totalRecibido, detail: 'Acumulado registrado' },
+          { label: codigo === 'USDT' ? 'USDT entregados' : 'Total comprado', amount: divisa.totalComprado, detail: 'Divisa entregada en operaciones de compra' },
+          { label: 'Total pendiente', amount: divisa.totalPendiente, detail: 'Recibido menos lo entregado' },
+        ].map(({ label, amount, detail }) => (
           <div key={label} className="rounded-xl border border-border bg-card p-4">
             <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="mt-1 text-lg font-semibold">{formatAmount(Number(amount))}</dd>
+            <dd className="mt-1 text-lg font-semibold">{formatAmount(amount)}</dd>
+            <dd className="text-xs text-muted-foreground">{detail}</dd>
           </div>
         ))}
       </dl>

@@ -3,8 +3,8 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { DIVISAS, type Divisa } from '../../data/appData';
-import { fallbackBanderaUrl, formatCOP, formatNumber } from '../../utils/formatters';
+import { formatCOP, formatNumber, normalizeSearch } from '../../utils/formatters';
+import { CurrencySelect } from './CurrencySelect';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 
 export type EditableNegocio = NormalizedData['negocios'][number];
@@ -21,40 +21,6 @@ const labelClass = 'mb-1.5 block text-sm font-medium text-foreground';
 const secondaryClass = 'min-h-11 rounded-xl px-4 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50';
 const primaryClass = 'min-h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50';
 
-const normalizeSearch = (text: string) =>
-  text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
-
-const currencyName = (currency: Divisa) =>
-  currency.nombreDivisa || DIVISAS.find((item) => item.codigo === currency.codigo)?.nombreDivisa || currency.divisa;
-
-const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showName?: boolean }) => {
-  const catalogCurrency = DIVISAS.find((item) => item.codigo === currency.codigo);
-  const flag = currency.fallbackBanderaUrl || catalogCurrency?.fallbackBanderaUrl ||
-    fallbackBanderaUrl[currency.codigo] || currency.banderaUrl;
-  const name = currencyName(currency);
-
-  return (
-    <>
-      <span className="relative flex h-5 w-7 shrink-0 items-center justify-center overflow-hidden rounded bg-muted text-muted-foreground">
-        <i className="ri-money-dollar-circle-line" aria-hidden="true" />
-        {flag && (
-          <img
-            key={flag}
-            src={flag}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            onError={(event) => { event.currentTarget.hidden = true; }}
-          />
-        )}
-      </span>
-      <span className="min-w-14 shrink-0 whitespace-nowrap font-semibold">{currency.codigo}</span>
-      {showName && name && name !== currency.codigo && (
-        <span className="text-muted-foreground">{name}</span>
-      )}
-    </>
-  );
-};
-
 export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClose, negocio, initialClienteId }) =>
   isOpen ? <NegocioDialog key={negocio?.id ?? initialClienteId ?? 'new'} onClose={onClose} negocio={negocio} initialClienteId={initialClienteId} /> : null;
 
@@ -62,7 +28,6 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
   const { data, createNegocio, createCliente, updateNegocio, deleteNegocio } = useData();
   const { profile } = useAuth();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const currencyTrigger = useRef<HTMLButtonElement>(null);
   const clientField = useRef<HTMLDivElement>(null);
   const restoreClientFocus = useRef(false);
   const id = useId();
@@ -81,8 +46,6 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
   const [showClientModal, setShowClientModal] = useState(false);
   const [authorId, setAuthorId] = useState('');
   const [authorSearch, setAuthorSearch] = useState('');
-  const [currencyOpen, setCurrencyOpen] = useState(false);
-  const [currencyQuery, setCurrencyQuery] = useState('');
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPais, setNewClientPais] = useState('COLOMBIA');
@@ -111,21 +74,11 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
     (negocio?.createdBy && (data.usuarios.find((user) => user.id === negocio.createdBy)?.nombre || negocio.createdBy));
   const canAssignAuthor = Boolean(negocio && !authorName &&
     (profile?.role === 'administrador' || profile?.role === 'super_admin'));
-  const query = normalizeSearch(currencyQuery.trim());
-  const matchingCurrencies = currencies.filter((currency) =>
-    normalizeSearch([currency.codigo, currencyName(currency), currency.pais].join(' ')).includes(query)
-  );
   const parsedMonto = parseAmountInput(monto);
   const parsedTasa = parseAmountInput(tasa);
   const ingresoCOP = parsedMonto * parsedTasa;
   const canSubmit = Boolean(clienteId && selectedCurrency && fecha &&
     parsedMonto > 0 && parsedTasa > 0 && Number.isFinite(ingresoCOP));
-
-  const selectCurrency = (currency: Divisa) => {
-    setDivisaCode(currency.codigo);
-    setCurrencyOpen(false);
-    currencyTrigger.current?.focus();
-  };
 
     const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
 
@@ -321,76 +274,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div
-              className="relative"
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) setCurrencyOpen(false);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape' && currencyOpen) {
-                  event.preventDefault();
-                  setCurrencyOpen(false);
-                  currencyTrigger.current?.focus();
-                }
-              }}
-            >
-              <span id={id + '-currency-label'} className={labelClass}>Divisa</span>
-              <button
-                id={id + '-currency'}
-                ref={currencyTrigger}
-                type="button"
-                aria-labelledby={id + '-currency-label ' + id + '-currency'}
-                aria-expanded={currencyOpen}
-                onMouseDown={(event) => {
-                  if (currencyOpen) event.preventDefault();
-                }}
-                onClick={() => {
-                  setCurrencyQuery('');
-                  setCurrencyOpen(!currencyOpen);
-                }}
-                className={fieldClass + ' flex items-center justify-between gap-2 text-left'}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  {selectedCurrency ? <CurrencyLabel currency={selectedCurrency} showName={false} /> : 'Seleccionar divisa'}
-                </span>
-                <i className="ri-arrow-down-s-line text-muted-foreground" aria-hidden="true" />
-              </button>
-              {currencyOpen && (
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-border bg-card p-1.5 shadow-lg sm:right-auto sm:w-80">
-                  <input
-                    autoFocus
-                    type="search"
-                    aria-label="Buscar divisa"
-                    placeholder="Buscar por código, nombre o país"
-                    value={currencyQuery}
-                    onChange={(event) => setCurrencyQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter') return;
-                      event.preventDefault();
-                      if (matchingCurrencies[0]) selectCurrency(matchingCurrencies[0]);
-                    }}
-                    className={fieldClass}
-                  />
-                  <div className="mt-1 max-h-44 overflow-y-auto">
-                    {matchingCurrencies.length === 0 && (
-                      <p className="p-2 text-sm text-muted-foreground">No se encontraron divisas.</p>
-                    )}
-                    {matchingCurrencies.map((currency) => (
-                      <button
-                        type="button"
-                        key={currency.id}
-                        aria-pressed={currency.codigo === divisaCode}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => selectCurrency(currency)}
-                        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted aria-pressed:bg-primary/10"
-                      >
-                        <CurrencyLabel currency={currency} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <CurrencySelect currencies={currencies} value={divisaCode} onChange={setDivisaCode} />
 
             <div>
               <label htmlFor={id + '-date'} className={labelClass}>Fecha de operación</label>

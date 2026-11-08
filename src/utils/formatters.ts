@@ -1,5 +1,8 @@
 const numberFormatters = new Map<string, Intl.NumberFormat>();
 
+export const normalizeSearch = (text: string) =>
+  text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
 export function formatNumber(value: number | undefined | null, minimum = 0, maximum = minimum): string {
   const key = minimum + ':' + maximum;
   let formatter = numberFormatters.get(key);

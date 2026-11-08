@@ -1405,8 +1405,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         record = {
           ...record, codigo: 'CMP-' + id.slice(0, 8).toUpperCase(),
-          tasa: Number(fields.valor_comprado) / Number(fields.usdt_comprado),
-          costo: Number(fields.usdt_comprado) / Number(fields.valor_comprado),
           wallet_destino: accountLabel(data.activosDigitales, fields.wallet_destino_id),
         };
         break;
