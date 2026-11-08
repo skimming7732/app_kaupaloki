@@ -186,7 +186,7 @@ export const DashboardView: React.FC = () => {
           </div>
 
           <div className="p-4 rounded-xl bg-muted/40 border border-border">
-            <span className="text-xs text-muted-foreground block mb-1">Ingreso por interés</span>
+            <span className="text-xs text-muted-foreground block mb-1">Gastos por interés</span>
             <span className="text-xl font-bold text-rose-600 dark:text-rose-400">{formatCOP(-metrics.interesesSociosCOP)}</span>
             <span className="text-[11px] text-muted-foreground block mt-1">Gasto por intereses de socios e inversionistas</span>
           </div>
