@@ -47,9 +47,14 @@ export const ActivosDigitalesView: React.FC = () => {
     });
   }, [selectedWallet?.movimientos, movSearch, fechaDesde, fechaHasta, tipoFilter]);
 
-  const totalSaldoRealUsdt = useMemo(() => {
-    return wallets.reduce((acc: number, w: any) => acc + (w.saldoReal ?? w.saldoUsdt ?? 0), 0);
+  const verifiedWalletsWithReal = useMemo(() => {
+    return wallets.filter((w: any) => w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal));
   }, [wallets]);
+
+  const totalSaldoRealUsdt = useMemo(() => {
+    if (verifiedWalletsWithReal.length === 0) return null;
+    return verifiedWalletsWithReal.reduce((acc: number, w: any) => acc + Number(w.saldoReal), 0);
+  }, [verifiedWalletsWithReal]);
 
   const handleExportCSV = (wallet: any) => {
     const movements = wallet.movimientos || [];
@@ -185,15 +190,29 @@ export const ActivosDigitalesView: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setBalanceMode('real')}
+                  onClick={() => {
+                    const hasReal = selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal);
+                    if (hasReal) setBalanceMode('real');
+                  }}
+                  disabled={selectedWallet.saldoReal === null || selectedWallet.saldoReal === undefined || !Number.isFinite(selectedWallet.saldoReal)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    balanceMode === 'real'
+                    (selectedWallet.saldoReal === null || selectedWallet.saldoReal === undefined || !Number.isFinite(selectedWallet.saldoReal))
+                      ? 'opacity-40 cursor-not-allowed text-white/50'
+                      : balanceMode === 'real'
                       ? 'bg-cyan-400 text-slate-950 shadow-sm'
                       : 'text-white/80 hover:text-white'
                   }`}
+                  title={
+                    selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal)
+                      ? 'Ver saldo en cadena'
+                      : 'Esta wallet no tiene lectura on-chain configurada'
+                  }
                 >
                   <i className="ri-shield-check-line text-sm" />
                   <span>Saldo Real (TronLink / Tronscan)</span>
+                  {(selectedWallet.saldoReal === null || selectedWallet.saldoReal === undefined || !Number.isFinite(selectedWallet.saldoReal)) && (
+                    <span className="text-[10px] ml-1 opacity-75">(Sin datos)</span>
+                  )}
                 </button>
               </div>
 
@@ -202,7 +221,11 @@ export const ActivosDigitalesView: React.FC = () => {
                 {balanceMode === 'contable' ? (
                   <>
                     <span className="text-slate-300">Saldo Real On-Chain:</span>
-                    <strong className="font-mono text-cyan-300">{formatUSD(selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0)}</strong>
+                    {selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal) ? (
+                      <strong className="font-mono text-cyan-300">{formatUSD(selectedWallet.saldoReal)}</strong>
+                    ) : (
+                      <span className="text-slate-400 italic font-sans text-xs">Sin información</span>
+                    )}
                   </>
                 ) : (
                   <>
@@ -221,10 +244,18 @@ export const ActivosDigitalesView: React.FC = () => {
                   <span>{balanceMode === 'contable' ? 'Saldo Contable USDT' : 'Saldo Real Blockchain (TRON)'}</span>
                 </div>
                 <div className={`text-3xl sm:text-4xl font-extrabold font-mono tracking-tight ${balanceMode === 'contable' ? 'text-white' : 'text-cyan-300'}`}>
-                  {formatUSD(balanceMode === 'contable' ? (selectedWallet.saldoUsdt || 0) : (selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0))}
+                  {balanceMode === 'contable'
+                    ? formatUSD(selectedWallet.saldoUsdt || 0)
+                    : (selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal))
+                    ? formatUSD(selectedWallet.saldoReal)
+                    : <span className="text-2xl font-sans text-slate-400">Sin datos on-chain</span>}
                 </div>
                 <span className="text-xs text-emerald-200/70 block mt-1">
-                  {balanceMode === 'contable' ? 'Registrado en contabilidad interna Kaupaloki' : 'Confirmado en red TRON (TRC20) Tronscan'}
+                  {balanceMode === 'contable'
+                    ? 'Registrado en contabilidad interna Kaupaloki'
+                    : (selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal))
+                    ? 'Confirmado en red TRON (TRC20) Tronscan'
+                    : 'No se detecta lectura automática on-chain para esta dirección'}
                 </span>
               </div>
 
@@ -234,15 +265,25 @@ export const ActivosDigitalesView: React.FC = () => {
                   <span>{balanceMode === 'contable' ? 'Referencia Saldo Real' : 'Referencia Saldo Contable'}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-slate-200">
-                  {formatUSD(balanceMode === 'contable' ? (selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0) : (selectedWallet.saldoUsdt || 0))}
+                  {balanceMode === 'contable'
+                    ? (selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal))
+                      ? formatUSD(selectedWallet.saldoReal)
+                      : '—'
+                    : formatUSD(selectedWallet.saldoUsdt || 0)}
                 </div>
                 <span className="text-xs text-slate-300/80 block mt-1 flex items-center gap-1.5">
-                  <i className="ri-checkbox-circle-fill text-emerald-400" />
-                  <span>
-                    {Math.abs((selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0) - (selectedWallet.saldoUsdt || 0)) === 0
-                      ? 'Sin descuadre (Diferencia: $0.00 USDT)'
-                      : `Diferencia: ${formatUSD((selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0) - (selectedWallet.saldoUsdt || 0))}`}
-                  </span>
+                  {(selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal)) ? (
+                    <>
+                      <i className="ri-checkbox-circle-fill text-emerald-400" />
+                      <span>
+                        {Math.abs(selectedWallet.saldoReal - (selectedWallet.saldoUsdt || 0)) === 0
+                          ? 'Sin descuadre (Diferencia: $0.00 USDT)'
+                          : `Diferencia: ${formatUSD(selectedWallet.saldoReal - (selectedWallet.saldoUsdt || 0))}`}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-slate-400 italic">Sin datos reales para comparar descuadres</span>
+                  )}
                 </span>
               </div>
 
@@ -252,7 +293,14 @@ export const ActivosDigitalesView: React.FC = () => {
                   <span>Liquidez en COP (Tasa Tesorería)</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-cyan-200">
-                  {formatCOP((balanceMode === 'contable' ? (selectedWallet.saldoUsdt || 0) : (selectedWallet.saldoReal ?? selectedWallet.saldoUsdt ?? 0)) * (selectedWallet.rateFinal || 3950))}
+                  {formatCOP(
+                    (balanceMode === 'contable'
+                      ? (selectedWallet.saldoUsdt || 0)
+                      : (selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal))
+                      ? selectedWallet.saldoReal
+                      : (selectedWallet.saldoUsdt || 0)
+                    ) * (selectedWallet.rateFinal || 3950)
+                  )}
                 </div>
                 <span className="text-xs text-cyan-200/70 block mt-1 font-mono">
                   Tasa: ${selectedWallet.rateFinal || 3950} COP / USDT
@@ -464,7 +512,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   Saldo Real Total
                 </span>
                 <span className="text-base sm:text-lg font-extrabold font-mono text-cyan-300">
-                  {formatUSD(totalSaldoRealUsdt)}
+                  {totalSaldoRealUsdt !== null ? formatUSD(totalSaldoRealUsdt) : '—'}
                 </span>
               </div>
 
@@ -492,7 +540,7 @@ export const ActivosDigitalesView: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {wallets.map((w: any, idx: number) => {
                 const bgGradient = getCardGradient(idx);
-                const saldoReal = w.saldoReal ?? w.saldoUsdt ?? 0;
+                const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
 
                 return (
                   <div
@@ -544,7 +592,7 @@ export const ActivosDigitalesView: React.FC = () => {
                           Saldo Real
                         </span>
                         <div className="text-xl sm:text-2xl font-extrabold font-mono tracking-tight text-cyan-300">
-                          {formatUSD(saldoReal)}
+                          {hasReal ? formatUSD(w.saldoReal) : <span className="text-white/40 font-sans text-sm font-normal">—</span>}
                         </div>
                       </div>
                     </div>
@@ -591,7 +639,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {<PaginatedRows columns={7} rows={wallets}>{(w: any) => {
-                    const saldoReal = w.saldoReal ?? w.saldoUsdt ?? 0;
+                    const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
                     return (
                       <tr
                         key={w.id}
@@ -623,7 +671,7 @@ export const ActivosDigitalesView: React.FC = () => {
                           {formatUSD(w.saldoUsdt || 0)}
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-cyan-500">
-                          {formatUSD(saldoReal)}
+                          {hasReal ? formatUSD(w.saldoReal) : <span className="text-muted-foreground/50 font-sans font-normal">—</span>}
                         </td>
                         <td className="py-3 px-4 text-right font-mono text-muted-foreground">
                           ${formatRate(w.rateFinal || 3200)}

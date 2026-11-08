@@ -435,7 +435,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         divisa: a.divisa,
         tarifas: a.tarifas,
         saldoCop: Number(a.saldo_cop || 0),
-        saldoReal: Number(a.saldo_real ?? a.saldo_cop ?? 0),
+        saldoReal: (a.saldo_real !== null && a.saldo_real !== undefined && a.saldo_real !== '' && (a.institucion || '').toUpperCase() !== 'EFECTIVO' && !(a.activo || '').toUpperCase().includes('EFECTIVO'))
+          ? Number(a.saldo_real)
+          : null,
         saldoInicial: Number(a.saldo_inicial ?? 0),
         ingresosCop: Number(a.ingresos_cop || 0),
         egresosCop: Number(a.egresos_cop || 0),
@@ -452,7 +454,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         titular: d.titular,
         tarifas: d.tarifas,
         saldoUsdt: Number(d.saldo_usdt || 0),
-        saldoReal: Number(d.saldo_real ?? d.saldo_usdt ?? 0),
+        saldoReal: (d.saldo_real !== null && d.saldo_real !== undefined && d.saldo_real !== '')
+          ? Number(d.saldo_real)
+          : null,
         saldoInicial: Number(d.saldo_inicial ?? 0),
         ingresosUsdt: Number(d.ingresos_usdt || 0),
         egresosUsdt: Number(d.egresos_usdt || 0),
@@ -1378,10 +1382,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         break;
       case 'activos_liquidos':
-        record = { ...record, divisa: 'COP', saldo_inicial: fields.saldo_cop, saldo_real: fields.saldo_cop, ingresos_cop: 0, egresos_cop: 0 };
+        record = { ...record, divisa: 'COP', saldo_inicial: fields.saldo_cop, saldo_real: null, ingresos_cop: 0, egresos_cop: 0 };
         break;
       case 'activos_digitales':
-        record = { ...record, id_wallet: fields.wallet, saldo_inicial: fields.saldo_usdt, saldo_real: fields.saldo_usdt, ingresos_usdt: 0, egresos_usdt: 0 };
+        record = { ...record, id_wallet: fields.wallet, saldo_inicial: fields.saldo_usdt, saldo_real: null, ingresos_usdt: 0, egresos_usdt: 0 };
         break;
       case 'divisas':
         record = { ...record, divisa: fields.codigo, total_recibido: 0, total_comprado: 0, total_pendiente: 0 };

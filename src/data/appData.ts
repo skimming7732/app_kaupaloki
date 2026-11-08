@@ -1058,7 +1058,6 @@ export const ACTIVOS_DIGITALES: ActivoDigital[] = [
     ingresosUsdt: 132107,
     egresosUsdt: 132107,
     saldoUsdt: 0,
-    saldoReal: 0,
     rateFinal: 3200,
     liquidezEsperadaCop: 0,
     movimientos: [
@@ -1081,7 +1080,6 @@ export const ACTIVOS_DIGITALES: ActivoDigital[] = [
     ingresosUsdt: 29743,
     egresosUsdt: 0,
     saldoUsdt: 29743,
-    saldoReal: 29743,
     rateFinal: 3200,
     liquidezEsperadaCop: 95177600,
     movimientos: [
@@ -1100,7 +1098,6 @@ export const ACTIVOS_DIGITALES: ActivoDigital[] = [
     ingresosUsdt: 108304,
     egresosUsdt: 97000,
     saldoUsdt: 11304,
-    saldoReal: 11304,
     rateFinal: 3200,
     liquidezEsperadaCop: 36172800,
     movimientos: [

@@ -161,26 +161,54 @@ export const ActivosLiquidosView: React.FC = () => {
                   <i className="ri-booklet-line text-sm" />
                   <span>Saldo Contable</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setBalanceMode('real')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    balanceMode === 'real'
-                      ? 'bg-emerald-400 text-slate-950 shadow-sm'
-                      : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  <i className="ri-bank-line text-sm" />
-                  <span>Saldo Real (Banco / API)</span>
-                </button>
+                {((selectedActivo.institucion || '').toUpperCase() === 'EFECTIVO' || (selectedActivo.activo || '').toUpperCase().includes('EFECTIVO')) ? (
+                  <span className="px-3 py-1.5 text-xs text-slate-400/80 italic flex items-center gap-1">
+                    <i className="ri-information-line text-xs" />
+                    <span>Efectivo físico (no aplica API)</span>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedActivo.saldoReal !== null && selectedActivo.saldoReal !== undefined && Number.isFinite(selectedActivo.saldoReal)) {
+                        setBalanceMode('real');
+                      }
+                    }}
+                    disabled={selectedActivo.saldoReal === null || selectedActivo.saldoReal === undefined || !Number.isFinite(selectedActivo.saldoReal)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      (selectedActivo.saldoReal === null || selectedActivo.saldoReal === undefined || !Number.isFinite(selectedActivo.saldoReal))
+                        ? 'opacity-40 cursor-not-allowed text-white/50'
+                        : balanceMode === 'real'
+                        ? 'bg-emerald-400 text-slate-950 shadow-sm'
+                        : 'text-white/80 hover:text-white'
+                    }`}
+                    title={
+                      selectedActivo.saldoReal !== null && selectedActivo.saldoReal !== undefined && Number.isFinite(selectedActivo.saldoReal)
+                        ? 'Ver saldo real reportado'
+                        : 'Esta cuenta bancaria no tiene conexión API configurada'
+                    }
+                  >
+                    <i className="ri-bank-line text-sm" />
+                    <span>Saldo Real (Banco / API)</span>
+                    {(selectedActivo.saldoReal === null || selectedActivo.saldoReal === undefined || !Number.isFinite(selectedActivo.saldoReal)) && (
+                      <span className="text-[10px] ml-1 opacity-75">(Sin API)</span>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* Real-time sync badge / discrepancy watch */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-xs">
                 {balanceMode === 'contable' ? (
                   <>
-                    <span className="text-slate-300">Saldo Real Banco:</span>
-                    <strong className="font-mono text-emerald-300">{formatCOP(selectedActivo.saldoReal ?? selectedActivo.saldoCop)}</strong>
+                    <span className="text-slate-300">Saldo Real Banco / API:</span>
+                    {((selectedActivo.institucion || '').toUpperCase() === 'EFECTIVO' || (selectedActivo.activo || '').toUpperCase().includes('EFECTIVO')) ? (
+                      <span className="text-slate-400 font-mono text-xs italic">No aplica (Efectivo)</span>
+                    ) : (selectedActivo.saldoReal !== null && selectedActivo.saldoReal !== undefined && Number.isFinite(selectedActivo.saldoReal)) ? (
+                      <strong className="font-mono text-emerald-300">{formatCOP(selectedActivo.saldoReal)}</strong>
+                    ) : (
+                      <span className="text-slate-400 italic font-sans text-xs">Sin información</span>
+                    )}
                   </>
                 ) : (
                   <>
@@ -199,12 +227,22 @@ export const ActivosLiquidosView: React.FC = () => {
                   <span>{balanceMode === 'contable' ? 'Saldo Contable Disponible' : 'Saldo Real Verificado en Banco / API'}</span>
                 </div>
                 <div className={`text-3xl sm:text-4xl font-extrabold font-mono tracking-tight ${balanceMode === 'contable' ? 'text-white' : 'text-emerald-300'}`}>
-                  {formatCOP(balanceMode === 'contable' ? selectedActivo.saldoCop : (selectedActivo.saldoReal ?? selectedActivo.saldoCop))}
+                  {balanceMode === 'contable'
+                    ? formatCOP(selectedActivo.saldoCop)
+                    : (selectedActivo.saldoReal !== null && selectedActivo.saldoReal !== undefined && Number.isFinite(selectedActivo.saldoReal))
+                    ? formatCOP(selectedActivo.saldoReal)
+                    : <span className="text-2xl font-sans text-slate-300">
+                        {((selectedActivo.institucion || '').toUpperCase() === 'EFECTIVO' || (selectedActivo.activo || '').toUpperCase().includes('EFECTIVO'))
+                          ? 'No aplica en efectivo'
+                          : 'Sin sincronización API'}
+                      </span>}
                 </div>
                 <span className="text-xs text-slate-300/80 block mt-1">
                   {balanceMode === 'contable'
                     ? 'Libro mayor de tesorería y operaciones registradas'
-                    : 'Fondos en custodia bancaria institucional reportados'}
+                    : (selectedActivo.saldoReal !== null && selectedActivo.saldoReal !== undefined && Number.isFinite(selectedActivo.saldoReal))
+                    ? 'Fondos en custodia bancaria institucional reportados'
+                    : 'Esta entidad no cuenta con integración API para lectura en tiempo real'}
                 </span>
               </div>
 
@@ -214,15 +252,29 @@ export const ActivosLiquidosView: React.FC = () => {
                   <span>{balanceMode === 'contable' ? 'Referencia Saldo Real' : 'Referencia Saldo Contable'}</span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-slate-200">
-                  {formatCOP(balanceMode === 'contable' ? (selectedActivo.saldoReal ?? selectedActivo.saldoCop) : selectedActivo.saldoCop)}
+                  {balanceMode === 'contable'
+                    ? (selectedActivo.saldoReal !== null && selectedActivo.saldoReal !== undefined && Number.isFinite(selectedActivo.saldoReal))
+                      ? formatCOP(selectedActivo.saldoReal)
+                      : '—'
+                    : formatCOP(selectedActivo.saldoCop)}
                 </div>
                 <span className="text-xs text-slate-300/70 block mt-1 flex items-center gap-1.5">
-                  <i className="ri-checkbox-circle-fill text-emerald-400" />
-                  <span>
-                    {Math.abs((selectedActivo.saldoReal ?? selectedActivo.saldoCop) - selectedActivo.saldoCop) === 0
-                      ? 'Sin descuadres (Diferencia: $0 COP)'
-                      : `Diferencia: ${formatCOP((selectedActivo.saldoReal ?? selectedActivo.saldoCop) - selectedActivo.saldoCop)}`}
-                  </span>
+                  {(selectedActivo.saldoReal !== null && selectedActivo.saldoReal !== undefined && Number.isFinite(selectedActivo.saldoReal)) ? (
+                    <>
+                      <i className="ri-checkbox-circle-fill text-emerald-400" />
+                      <span>
+                        {Math.abs(selectedActivo.saldoReal - selectedActivo.saldoCop) === 0
+                          ? 'Sin descuadres (Diferencia: $0 COP)'
+                          : `Diferencia: ${formatCOP(selectedActivo.saldoReal - selectedActivo.saldoCop)}`}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="italic text-slate-400">
+                      {((selectedActivo.institucion || '').toUpperCase() === 'EFECTIVO' || (selectedActivo.activo || '').toUpperCase().includes('EFECTIVO'))
+                        ? 'Caja en efectivo física no posee API'
+                        : 'Sin datos de API bancaria para auditar descuadre'}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
