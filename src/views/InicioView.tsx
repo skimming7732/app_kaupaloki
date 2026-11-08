@@ -84,26 +84,18 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
     <section className="h-full rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm transition-all flex flex-col justify-between" aria-labelledby="growth-heading">
       {/* Top Header Card Info */}
       <div>
-        <div className="flex items-center justify-between pb-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/60 text-xs font-semibold text-foreground border border-border/50">
-            <i className="ri-calendar-line text-muted-foreground text-xs" />
-            <span>Últimas 8 semanas</span>
-          </span>
-          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
-            <i className="ri-bar-chart-2-fill" />
-          </div>
-        </div>
-
-        {/* Main Metric */}
-        <div className="mt-2 mb-4">
-          <div className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
-            {formatCOP(total)}
-          </div>
-          <div className="flex items-center gap-2.5 mt-1">
-            <span className="text-xs font-medium text-muted-foreground">Ingresos totales de clientes en el período</span>
+        <div className="flex items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/60 text-xs font-semibold text-foreground border border-border/50">
+              <i className="ri-calendar-line text-muted-foreground text-xs" />
+              <span>Últimas 8 semanas</span>
+            </span>
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500">
               <i className="ri-checkbox-circle-fill text-xs" /> En curso
             </span>
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+            <i className="ri-bar-chart-2-fill" />
           </div>
         </div>
       </div>
