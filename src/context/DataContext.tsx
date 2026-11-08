@@ -42,6 +42,7 @@ export interface ResumenLiquidacion {
   totalVentasUsdtCop: number;
   totalLiquidezEsperadaCop: number;
   totalGastosCop?: number;
+  totalCostosDispersionCop?: number;
   gananciaEsperadaCop: number;
   totalActivosDigitalesUsdt: number;
   totalActivosLiquidosCop: number;
@@ -122,6 +123,7 @@ export interface NormalizedData {
     clienteCodigo?: string;
     clienteNombre: string;
     monto: number;
+    costoCop: number;
     origenFondos: string;
     origenFondosId?: string;
     referencia?: string;
@@ -162,6 +164,7 @@ export interface NormalizedData {
     id: string;
     codigo: string;
     fecha: string;
+    proveedor?: string;
     divisaCodigo: string;
     valorComprado: number;
     usdtComprado: number;
@@ -214,6 +217,7 @@ export interface MetricsSummary {
   totalVentasUSDT: number;
   liquidezEsperada: number;
   totalGastosCOP: number;
+  totalCostosDispersionCOP: number;
   interesesSociosCOP: number;
   dividendosSociosCOP: number;
   gananciaDespuesDividendosCOP: number;
@@ -396,6 +400,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clienteNombre: d.cliente_nombre,
         monto: Number(d.monto || d.monto_cop || 0),
         montoCop: Number(d.monto_cop || d.monto || 0),
+        costoCop: Number(d.costo_cop ?? 0),
         origenFondos: d.origen_fondos,
         origenFondosId: d.origen_fondos_id,
         referencia: d.referencia,
@@ -410,6 +415,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         codigo: c.codigo,
         numero: c.numero,
         fecha: c.fecha,
+        proveedor: c.proveedor || '',
         divisaCodigo: c.divisa_codigo,
         valorComprado: Number(c.valor_comprado || 0),
         usdtComprado: Number(c.usdt_comprado || 0),
@@ -540,6 +546,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalActivosLiquidosCop: Number(resumenData.total_activos_liquidos_cop || 518008020),
         totalSaldoPendienteClientesCop: Number(resumenData.total_saldo_pendiente_clientes_cop || 543418640),
         totalGastosCop: resumenData.total_gastos_cop == null ? undefined : Number(resumenData.total_gastos_cop),
+        totalCostosDispersionCop: resumenData.total_costos_dispersion_cop == null ? undefined : Number(resumenData.total_costos_dispersion_cop),
         rateUsdtCop: Number(resumenData.rate_usdt_cop || 3950),
       } : undefined;
 
@@ -737,6 +744,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clienteCodigo,
         clienteNombre,
         monto: Number(d.monto ?? d.montoCop ?? d.valorTotalDispersion ?? 0),
+        costoCop: Number(d.costoCop ?? 0),
         origenFondos: d.origenFondos || d.medioPagoNombre || 'Sin especificar',
         origenFondosId: d.origenFondosId,
         referencia: d.referencia || d.concepto || '',
@@ -851,6 +859,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: c.id || c.codigo,
       codigo: c.codigo || c.idTransaccion || c.idCompra || 'CMP-000',
       fecha: c.fecha || c.fechaCompra || '',
+      proveedor: c.proveedor || '',
       divisaCodigo: c.divisaCodigo || c.divisaNombre || 'USD',
       valorComprado: Number(c.valorComprado ?? c.montoDivisa ?? 0),
       usdtComprado: Number(c.usdtComprado ?? c.totalRecibidoUsdt ?? 0),
@@ -1005,6 +1014,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const metrics: MetricsSummary = useMemo(() => {
     const res = snapshot.resumenLiquidacion;
     const totalGastosCOP = res?.totalGastosCop ?? (data.gastos || []).reduce((acc, g) => acc + (g.divisa === 'COP' ? g.monto : g.monto * 4000), 0);
+    const totalCostosDispersionCOP = res?.totalCostosDispersionCop ?? data.dispersiones.reduce(
+      (total, item) => item.estado.trim().toUpperCase() === 'RECHAZADO' ? total : total + item.costoCop, 0
+    );
     const totalLiqFallback = (data.activosLiquidos || []).reduce((acc: number, a: any) => acc + (a.saldoCop || 0), 0);
     const totalDigFallback = (data.activosDigitales || []).reduce((acc: number, d: any) => acc + (d.saldoUsdt || 0), 0);
     const totalSaldoPendienteFallback = (data.clientes || []).reduce((acc: number, c: any) => acc + (c.saldoPendienteCOP ?? c.pendienteCop ?? 0), 0);
@@ -1022,7 +1034,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Interest is already included in gastos. Dividends are deducted after net profit.
     const capitalTotals = summarizeCapital(capitalLedger.userId === userId ? capitalLedger.rows : []);
-    const gananciaEsperada = (totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP;
+    const gananciaEsperada = (totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP - totalCostosDispersionCOP;
 
     return {
       totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
@@ -1034,12 +1046,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalVentasUSDT,
       liquidezEsperada,
       totalGastosCOP,
+      totalCostosDispersionCOP,
       interesesSociosCOP: capitalTotals.interest,
       dividendosSociosCOP: capitalTotals.dividends,
       gananciaDespuesDividendosCOP: gananciaEsperada - capitalTotals.dividends,
       rateUsdtCop: rateUsdt,
     };
-  }, [snapshot.resumenLiquidacion, data.gastos, data.clientes, data.activosLiquidos, data.activosDigitales, data.ventasUsdt, data.negocios, capitalLedger, userId]);
+  }, [snapshot.resumenLiquidacion, data.gastos, data.dispersiones, data.clientes, data.activosLiquidos, data.activosDigitales, data.ventasUsdt, data.negocios, capitalLedger, userId]);
 
   // Direct Supabase operations (100% decoupled from Airtable)
   const createNegocio = async (payload: any): Promise<boolean> => {
@@ -1154,6 +1167,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currentVentas = prev.resumenLiquidacion.totalVentasUsdtCop || 0;
         const currentNegocios = prev.resumenLiquidacion.totalNegocioCop || 0;
         const currentGastos = prev.resumenLiquidacion.totalGastosCop || 0;
+        const currentCostosDispersion = prev.resumenLiquidacion.totalCostosDispersionCop || 0;
         const newLiquidez = currentDigitales * rate;
         return {
           ...prev,
@@ -1161,7 +1175,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...prev.resumenLiquidacion,
             rateUsdtCop: rate,
             totalLiquidezEsperadaCop: newLiquidez,
-            gananciaEsperadaCop: (currentVentas + newLiquidez) - currentNegocios - currentGastos,
+            gananciaEsperadaCop: (currentVentas + newLiquidez) - currentNegocios - currentGastos - currentCostosDispersion,
           },
         };
       });
@@ -1238,6 +1252,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cliente_nombre: clientObj?.nombre || 'Cliente',
         monto: montoNum,
         monto_cop: montoNum,
+        costo_cop: Number(payload.costoCop ?? 0),
         origen_fondos: payload.origenFondos || payload['Origen de Fondos'] || payload['Origen Fondos'] || 'COINSENDA-KAUPALOKI',
         origen_fondos_id: payload.origenFondosId || null,
         referencia: payload.referencia || payload['Referencia'] || '',
@@ -1460,6 +1475,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await writeDashboardRecord({
       cliente_id: cliente.id, cliente_codigo: cliente.codigo, cliente_nombre: cliente.nombre,
       monto: payload.monto, monto_cop: payload.monto, origen_fondos: payload.origenFondos,
+      ...(payload.costoCop !== undefined ? { costo_cop: payload.costoCop } : {}),
       origen_fondos_id: payload.origenFondosId, fecha: payload.fecha, referencia: payload.referencia,
     }, (record) => supabase.from('dispersiones').update(record).eq('id', payload.id).select('id').single(),
     { generatedColumns: ['monto_cop'] });

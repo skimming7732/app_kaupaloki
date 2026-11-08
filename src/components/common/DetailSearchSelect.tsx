@@ -12,6 +12,7 @@ type Props = {
   emptyMessage: string;
   required?: boolean;
   compact?: boolean;
+  showSelectedDetails?: boolean;
   inputClassName?: string;
   onAdd?: (query: string) => void;
 };
@@ -19,7 +20,7 @@ type Props = {
 const normalize = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export const DetailSearchSelect = ({
-  id, name, options, value, onChange, placeholder, emptyMessage, required, compact, inputClassName, onAdd,
+  id, name, options, value, onChange, placeholder, emptyMessage, required, compact, showSelectedDetails = true, inputClassName, onAdd,
 }: Props) => {
   const listId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -129,7 +130,7 @@ export const DetailSearchSelect = ({
           {!filtered.length && <p className="px-3 py-2 text-xs text-muted-foreground">{emptyMessage}</p>}
         </div>
       )}
-      {selected && !open && !compact && (
+      {selected && !open && !compact && showSelectedDetails && (
         <div className="mt-2 rounded-xl border border-border bg-muted/30 px-3 py-2">{selected.details}</div>
       )}
     </div>

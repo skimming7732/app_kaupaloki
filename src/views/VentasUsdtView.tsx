@@ -149,7 +149,7 @@ export const VentasUsdtView: React.FC = () => {
                       </span>
                     </td>
                     <CreatedByCell name={v.createdByName} />
-                    <td className="px-4"><AddCatalogButton table="ventas_usdt" edit={{ id: v.id, historical: false, fields: { fecha: v.fecha?.slice(0, 10) || '', concepto: v.concepto, usdt_vendido: v.usdtVendido, tasa: v.tasa, wallet_origen_id: v.walletOrigenId || '', destino_fondos_id: v.destinoFondosId || '' } }} /></td>
+                    <td className="px-4"><AddCatalogButton table="ventas_usdt" edit={{ id: v.id, historical: !v.walletOrigenId || !v.destinoFondosId, fields: { fecha: v.fecha?.slice(0, 10) || '', concepto: v.concepto, usdt_vendido: v.usdtVendido, tasa: v.tasa, wallet_origen_id: v.walletOrigenId || '', destino_fondos_id: v.destinoFondosId || '' } }} /></td>
                   </tr>
                 )}</PaginatedRows>
               )}

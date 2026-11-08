@@ -20,14 +20,19 @@ export type Account = {
 export const accountLabel = (account: Account) =>
   account.activo || account.institucion || account.wallet || account.id;
 
-export const AccountSelect = ({ label, accounts, name, value, onChange }: {
+export const AccountSelect = ({ label, accounts, name, value, onChange, compactSummary }: {
   label: string;
   accounts: Account[];
   name?: string;
   value: string;
   onChange: (id: string) => void;
+  compactSummary?: boolean;
 }) => {
   const id = useId();
+  const selected = compactSummary ? accounts.find((account) => account.id === value) : undefined;
+  const selectedCurrency = selected?.divisa || (selected?.saldoUsdt != null || selected?.wallet ? 'USDT' : 'COP');
+  const selectedBalance = selected?.saldoReal ?? selected?.saldoCop ?? selected?.saldoUsdt;
+  const institution = selected?.institucion || selected?.red;
   const options = accounts.map((account) => {
     const title = accountLabel(account);
     const digital = account.saldoUsdt != null || Boolean(account.red || account.wallet);
@@ -64,7 +69,14 @@ export const AccountSelect = ({ label, accounts, name, value, onChange }: {
     <div className="min-w-0 space-y-1.5">
       <label htmlFor={id} className={recordLabelClass}>{label}</label>
       <DetailSearchSelect id={id} name={name} value={value} options={options} onChange={onChange}
-        placeholder="Buscar cuenta o billetera" emptyMessage="No se encontraron activos disponibles." required />
+        placeholder="Buscar cuenta o billetera" emptyMessage="No se encontraron activos disponibles."
+        showSelectedDetails={!compactSummary} required />
+      {selected && (
+        <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
+          {institution && institution !== accountLabel(selected) && <span>{institution} ·</span>}
+          <span>{selectedBalance == null ? selectedCurrency + ' · Saldo no disponible' : 'Saldo ' + formatCurrency(selectedBalance, selectedCurrency)}</span>
+        </p>
+      )}
     </div>
   );
 };

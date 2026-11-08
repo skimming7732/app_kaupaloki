@@ -6,6 +6,7 @@ interface RecordDialogProps {
   icon: string;
   busy?: boolean;
   error?: string | null;
+  wide?: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }
@@ -14,7 +15,7 @@ export const recordFieldClass = 'w-full min-h-11 rounded-xl border border-input 
 export const recordLabelClass = 'block space-y-1.5 text-sm font-medium text-foreground';
 export const recordButtonClass = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50';
 
-export const RecordDialog = ({ title, description, icon, busy, error, onClose, children }: RecordDialogProps) => {
+export const RecordDialog = ({ title, description, icon, busy, error, wide, onClose, children }: RecordDialogProps) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -32,7 +33,7 @@ export const RecordDialog = ({ title, description, icon, busy, error, onClose, c
         event.preventDefault();
         if (!busy) onClose();
       }}
-      className="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      className={'m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm ' + (wide ? 'max-w-2xl' : 'max-w-lg')}
     >
       <header className="flex items-start gap-3 border-b border-border p-4 sm:p-6">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl text-primary">

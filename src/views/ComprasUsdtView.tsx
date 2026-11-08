@@ -26,7 +26,8 @@ export const ComprasUsdtView: React.FC = () => {
     const filtered = data.comprasUsdt.filter((c) => {
       const matchSearch =
         c.codigo.toLowerCase().includes(search.toLowerCase()) ||
-        c.divisaCodigo.toLowerCase().includes(search.toLowerCase());
+        c.divisaCodigo.toLowerCase().includes(search.toLowerCase()) ||
+        Boolean(c.proveedor && c.proveedor.toLowerCase().includes(search.toLowerCase()));
       const matchDivisa = !filterDivisa || c.divisaCodigo === filterDivisa;
 
       const matchFecha = matchesDateRange(c.fecha, fechaDesde, fechaHasta);
@@ -74,7 +75,7 @@ export const ComprasUsdtView: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por código de compra o divisa..."
+              placeholder="Buscar por código, proveedor o divisa..."
               className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
@@ -119,6 +120,7 @@ export const ComprasUsdtView: React.FC = () => {
               <tr>
                 <th className="py-3 px-4">Código</th>
                 <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4">Proveedor</th>
                 <th className="py-3 px-4">Divisa</th>
                 <th className="py-3 px-4 text-right">Valor Comprado</th>
                 <th className="py-3 px-4 text-right">Tasa</th>
@@ -132,15 +134,22 @@ export const ComprasUsdtView: React.FC = () => {
             <tbody className="divide-y divide-border">
               {filteredCompras.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
                     No hay registros de compras USDT coincidentes con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={filteredCompras}>{(c) => (
+                <PaginatedRows columns={11} rows={filteredCompras}>{(c) => (
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{c.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(c.fecha)}</td>
+                    <td className="py-3 px-4">
+                      {c.proveedor ? (
+                        <span className="font-semibold text-foreground">{c.proveedor}</span>
+                      ) : (
+                        <span className="text-muted-foreground italic text-[11px]">Sin registro</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px]">
                         {c.divisaCodigo}
@@ -164,7 +173,7 @@ export const ComprasUsdtView: React.FC = () => {
                       </span>
                     </td>
                     <CreatedByCell name={c.createdByName} />
-                    <td className="px-4"><AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: !c.origenFondosId || !c.walletDestinoId, fields: { fecha: c.fecha?.slice(0, 10) || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, tasa: c.tasa || (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0), usdt_comprado: c.usdtComprado, origen_fondos_id: c.origenFondosId || '', wallet_destino_id: c.walletDestinoId || '' } }} /></td>
+                    <td className="px-4"><AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: false, fields: { fecha: c.fecha?.slice(0, 10) || '', proveedor: c.proveedor || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, tasa: c.tasa || (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0), usdt_comprado: c.usdtComprado, origen_fondos_id: c.origenFondosId || '', wallet_destino_id: c.walletDestinoId || '' } }} /></td>
                   </tr>
                 )}</PaginatedRows>
               )}

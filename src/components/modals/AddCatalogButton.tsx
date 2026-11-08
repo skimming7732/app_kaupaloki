@@ -1,7 +1,7 @@
 import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
-import React, { useState } from 'react';
-import { formatCurrency, formatNumber, formatRate } from '../../utils/formatters';
+import React, { useId, useState } from 'react';
+import { formatNumber, formatRate } from '../../utils/formatters';
 import { CurrencySelect } from './CurrencySelect';
 import { CURRENCY_BALANCE_SOURCE } from '../../utils/usdtPurchase';
 import { AccountSelect, type Account } from './AccountSelect';
@@ -29,10 +29,12 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const [destinationId, setDestinationId] = useState('');
   const [currency, setCurrency] = useState('');
   const [amount, setAmount] = useState('');
-  const [purchaseRate, setPurchaseRate] = useState('');
+  const [rateInput, setRateInput] = useState('');
+  const originGroup = useId();
   const [useCurrencyBalance, setUseCurrencyBalance] = useState(true);
   const isPurchase = table === 'compras_usdt';
   const isSale = table === 'ventas_usdt';
+  const isUsdt = isPurchase || isSale;
   const sourceField = isPurchase ? 'origen_fondos_id' : 'wallet_origen_id';
   const amountField = isPurchase ? 'valor_comprado' : 'usdt_vendido';
   const sourceCurrency = isPurchase ? currency : 'USDT';
@@ -54,23 +56,27 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const exceedsBalance = !edit?.historical && hasSource && numericAmount > balance;
   const previousRate = Number(edit?.fields.tasa || 0);
   const initialRate = previousRate > 0 ? (previousRate >= 0.0001 ? formatRate(previousRate) : formatAmountInput(String(previousRate))) : '';
-  const rateUnchanged = !!edit && purchaseRate === initialRate;
-  const rate = rateUnchanged ? previousRate : parseAmountInput(purchaseRate);
+  const rateUnchanged = !!edit && rateInput === initialRate;
+  const rate = rateUnchanged ? previousRate : parseAmountInput(rateInput);
   const received = rateUnchanged && numericAmount === Number(edit?.fields.valor_comprado)
     ? Number(edit?.fields.usdt_comprado)
     : Number((numericAmount / rate).toFixed(6));
+  const copReceived = numericAmount * rate;
   const validPurchaseQuote = rate > 0 && Number.isFinite(received) && received > 0;
+  const validSaleQuote = rate > 0 && Number.isFinite(copReceived) && copReceived > 0;
   const liquidAccounts = data.activosLiquidos.filter((a) => (a.divisa || 'COP') === 'COP');
   const wallets = data.activosDigitales;
   const currencies = data.divisas.map((d) => ({ value: d.codigo, label: d.codigo + ' · ' + d.nombre }));
 
   const forms: Record<CatalogTable, Form> = {
     compras_usdt: {
-      title: 'Registrar compra USDT', description: 'Indica la divisa entregada y la billetera que recibe los USDT.', icon: 'ri-shopping-cart-2-line',
+      title: 'Registrar compra USDT', description: 'Indica la divisa entregada, el proveedor y la billetera que recibe los USDT.', icon: 'ri-shopping-cart-2-line',
       fields: [
-        dateField, { name: 'divisa_codigo', label: 'Divisa entregada' },
+        dateField,
+        { name: 'proveedor', label: 'Proveedor', optional: true },
+        { name: 'divisa_codigo', label: 'Divisa entregada' },
         { name: 'origen_fondos_id', label: 'Origen de los fondos', accounts: sources },
-        { name: 'valor_comprado', label: 'Monto en divisa', type: 'number' },
+        { name: 'valor_comprado', label: 'Monto entregado', type: 'number' },
         { name: 'tasa', label: 'Tasa de compra', type: 'number' },
         { name: 'usdt_comprado', label: 'USDT a recibir', type: 'number' },
         { name: 'wallet_destino_id', label: 'Billetera de destino', accounts: wallets },
@@ -83,7 +89,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         { name: 'wallet_origen_id', label: 'Billetera de origen', accounts: wallets },
         { name: 'usdt_vendido', label: 'USDT vendidos', type: 'number' },
         { name: 'tasa', label: 'Tasa de venta (COP por USDT)', type: 'number' },
-        { name: 'destino_fondos_id', label: 'Cuenta de destino', accounts: liquidAccounts },
+        { name: 'destino_fondos_id', label: 'Cuenta de destino en COP', accounts: liquidAccounts },
       ],
     },
     activos_liquidos: {
@@ -118,10 +124,12 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
     description: 'Modifica los datos, montos, origen o destino de la operación.',
     fields: base.fields,
   } : base;
-  const showBalance = (isPurchase || isSale) && !edit?.historical;
+  const showBalance = isUsdt && !edit?.historical;
+  const sameWallet = showBalance && !!sourceId && !fromCurrencyBalance && sourceId === destinationId;
+  const missingAccounts = showBalance && (!hasSource || !destinationId);
   const onClose = () => setOpen(false);
 
-    const handleDelete = async () => {
+  const handleDelete = async () => {
     if (!edit) return;
     const itemLabel = isPurchase ? 'esta compra de USDT' : isSale ? 'esta venta de USDT' : 'este registro';
     if (!window.confirm(`¿Estás seguro de que deseas eliminar ${itemLabel}?`)) {
@@ -145,20 +153,24 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
       setError('Selecciona un origen con saldo suficiente.');
       return;
     }
-    if (isPurchase && !validPurchaseQuote) {
-      setError('Ingresa un monto y una tasa válidos para calcular los USDT.');
+    if (isUsdt && !(isPurchase ? validPurchaseQuote : validSaleQuote)) {
+      setError('Ingresa un monto y una tasa válidos.');
+      return;
+    }
+    if (sameWallet) {
+      setError('Elige una billetera de destino distinta de la de origen.');
       return;
     }
     const values = new FormData(event.currentTarget);
+    if (isUsdt) values.set('tasa', formatNumber(rate, 0, 20));
     if (isPurchase) {
       values.set('divisa_codigo', currency);
-      values.set('tasa', formatNumber(rate, 0, 20));
       values.set('usdt_comprado', formatNumber(received, 0, 20));
       if (fromCurrencyBalance) values.set(sourceField, CURRENCY_BALANCE_SOURCE);
     }
     const record: Record<string, string | number> = {};
     for (const field of form.fields) {
-      if (isPurchase && edit?.historical && field.accounts) continue;
+      if (isUsdt && edit?.historical && field.accounts) continue;
       const value = String(values.get(field.name) || '').trim();
       if (!value && !field.optional) {
         setError('Completa el campo ' + field.label + '.');
@@ -173,6 +185,8 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         record[field.name] = number;
       } else if (value) {
         record[field.name] = value;
+      } else if (edit && field.optional) {
+        record[field.name] = '';
       }
     }
 
@@ -200,112 +214,161 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
     }
   };
 
+  const renderField = (field: Field) => {
+    if (isPurchase && field.name === 'divisa_codigo') return (
+      <CurrencySelect key={field.name} label={field.label} currencies={data.divisas}
+        value={currency} onChange={(code) => { if (code !== currency) setSourceId(''); setCurrency(code); }}
+        details={useCurrencyBalance ? (item) => formatNumber(item.totalPendiente, 0, 6) : undefined} />
+    );
+    if (field.accounts) {
+      if (edit?.historical) return null;
+      const isSource = field.name === sourceField;
+      if (isPurchase && isSource && (useCurrencyBalance || !selectedCurrency)) return null;
+      return (
+        <AccountSelect key={field.name}
+          label={isPurchase && isSource ? (currency === 'USDT' ? 'Billetera de origen' : 'Cuenta de origen') : field.label}
+          name={field.name} accounts={field.accounts} value={isSource ? sourceId : destinationId}
+          onChange={isSource ? setSourceId : setDestinationId} compactSummary={isUsdt} />
+      );
+    }
+
+    const isAmount = isUsdt && field.name === amountField;
+    const isRate = isUsdt && field.name === 'tasa';
+    const unit = isAmount ? sourceCurrency : isRate && isPurchase && currency ? currency + ' por USDT' : '';
+    return (
+      <div className="min-w-0 space-y-1.5" key={field.name}>
+        <label className={recordLabelClass}>
+          <span>{field.label}{unit && <small className="ml-1 whitespace-nowrap text-muted-foreground">({unit})</small>}{field.optional && <small className="ml-1 text-muted-foreground">(opcional)</small>}</span>
+          {field.options ? (
+            <select name={field.name} required className={recordFieldClass} defaultValue={initial[field.name]}>
+              <option value="">Seleccionar</option>
+              {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          ) : (
+            <input
+              value={isAmount ? amount : isRate ? rateInput : undefined}
+              defaultValue={isAmount || isRate ? undefined : field.type === 'number'
+                ? formatAmountInput(String(initial[field.name] ?? ''))
+                : initial[field.name] ?? (field.type === 'date' ? today() : undefined)}
+              onChange={field.type === 'number' ? (event) => {
+                const value = formatAmountField(event.currentTarget);
+                if (value === undefined) return;
+                if (isAmount) setAmount(value);
+                if (isRate) setRateInput(value);
+              } : undefined}
+              aria-invalid={isAmount && exceedsBalance || undefined}
+              name={field.name}
+              type={field.type === 'date' ? 'date' : 'text'}
+              inputMode={field.type === 'number' ? 'decimal' : undefined}
+              placeholder={isRate ? '0.0000' : isAmount ? '0.00' : field.name === 'proveedor' ? 'Nombre o empresa del proveedor' : undefined}
+              required={!field.optional}
+              className={recordFieldClass}
+            />
+          )}
+        </label>
+        {isAmount && showBalance && (
+          <div className="flex min-h-8 items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>{hasSource ? (
+              <>{fromCurrencyBalance ? 'Pendiente por comprar' : 'Saldo disponible'} <strong className="text-foreground">{formatNumber(balance, 0, 6)} {sourceCurrency}</strong></>
+            ) : 'Selecciona el origen para ver el saldo.'}</span>
+            {hasSource && balance > 0 && (
+              <button type="button" onClick={() => setAmount(formatNumber(balance, 0, 20))}
+                className="min-h-8 shrink-0 rounded-lg bg-primary/10 px-2.5 font-semibold text-primary hover:bg-primary/20">Máx.</button>
+            )}
+          </div>
+        )}
+        {isAmount && exceedsBalance && <p role="alert" className="text-xs text-destructive">El monto supera el saldo disponible.</p>}
+      </div>
+    );
+  };
+
+  const renderFields = (...names: string[]) => names.map((name) => {
+    const field = form.fields.find((item) => item.name === name);
+    return field ? renderField(field) : null;
+  });
+
   return (
     <>
       <button type="button" className={edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass}
         onClick={() => {
           setError('');
           const initSource = String(initial[sourceField] ?? '');
-          const fallbackWallet = isSale && !initSource && wallets.length >= 1 ? wallets[0].id : initSource;
+          const fallbackWallet = isSale && !edit && !initSource ? wallets[0]?.id || '' : initSource;
           setSourceId(fallbackWallet);
           setDestinationId(String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? ''));
           setAmount(formatAmountInput(String(initial[amountField] ?? '')));
           setCurrency(String(initial.divisa_codigo ?? ''));
-          setPurchaseRate(initialRate);
+          setRateInput(initialRate);
           setUseCurrencyBalance(!edit || initSource === CURRENCY_BALANCE_SOURCE);
           setOpen(true);
         }}>
         <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
       </button>
       {open && (
-        <RecordDialog {...form} busy={busy} error={error} onClose={onClose}>
-          <form onSubmit={submit} className="space-y-4">
-            <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
-              {form.fields.map((field) => {
-                if (isPurchase && field.name === 'divisa_codigo') return (
-                  <CurrencySelect key={field.name} label={field.label} currencies={data.divisas} align="right"
-                    value={currency} onChange={(code) => { if (code !== currency) setSourceId(''); setCurrency(code); }}
-                    details={(item) => formatNumber(item.totalPendiente, 0, 6)} />
-                );
-                if (isPurchase && field.name === sourceField && !edit?.historical) return (
-                  <div key={field.name} className="space-y-2 sm:col-span-2">
-                    <div className={recordLabelClass}>{field.label}</div>
-                    <div className="grid grid-cols-2 gap-2" role="group" aria-label={field.label}>
-                      {[true, false].map((pending) => (
-                        <button key={String(pending)} type="button" aria-pressed={useCurrencyBalance === pending}
-                          onClick={() => setUseCurrencyBalance(pending)}
-                          className="min-h-11 rounded-xl border border-input px-2 text-sm font-medium hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary/10">
-                          {pending ? 'Saldo pendiente de la divisa' : 'Cuenta o billetera'}
-                        </button>
-                      ))}
-                    </div>
-                    {selectedCurrency && (
-                      <p className="rounded-lg bg-muted/60 px-3 py-2 text-sm">
-                        Pendiente por comprar: <strong>{formatNumber(pendingBalance, 0, 6)} {currency}</strong>
-                      </p>
+        <RecordDialog {...form} wide={isUsdt} busy={busy} error={error} onClose={onClose}>
+          <form onSubmit={submit} className="space-y-6">
+            <fieldset disabled={busy} className="min-w-0">
+              {isUsdt ? (
+                <div className="space-y-6">
+                  <section aria-label="Origen y destino" className="space-y-4">
+                    {isPurchase && showBalance && (
+                      <fieldset className="min-w-0">
+                        <legend className="mb-2 text-sm font-semibold">¿De dónde salen los fondos?</legend>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {[
+                            { pending: true, title: 'Saldo pendiente de la divisa', detail: 'Usa lo que queda por comprar', icon: 'ri-exchange-dollar-line' },
+                            { pending: false, title: 'Activos líquidos', detail: 'Cuenta o billetera si entregas USDT', icon: 'ri-bank-line' },
+                          ].map(({ pending, title, detail, icon }) => (
+                            <label key={title} className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-input bg-background px-3 py-2 hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                              <input type="radio" name={originGroup} checked={useCurrencyBalance === pending}
+                                onChange={() => setUseCurrencyBalance(pending)} className="shrink-0 accent-primary" />
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-sm font-semibold">{title}</span>
+                                <span className="block text-xs text-muted-foreground">{detail}</span>
+                              </span>
+                              <i className={icon + ' shrink-0 text-lg text-primary'} aria-hidden="true" />
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
                     )}
-                    {!selectedCurrency && <p className="text-xs text-muted-foreground">Selecciona la divisa entregada para ver su saldo pendiente.</p>}
-                    {!useCurrencyBalance && !!selectedCurrency && (
-                      <AccountSelect label="Cuenta o billetera de origen" name={field.name} accounts={sources} value={sourceId} onChange={setSourceId} />
-                    )}
-                  </div>
-                );
-                if (isPurchase && edit?.historical && field.accounts) return null;
-                if (field.accounts) return (
-                  <AccountSelect key={field.name} label={field.label} name={field.name} accounts={field.accounts}
-                    value={field.name === sourceField ? sourceId : destinationId}
-                    onChange={field.name === sourceField ? setSourceId : setDestinationId} />
-                );
-                if (isPurchase && field.name === 'usdt_comprado') return (
-                  <div key={field.name} className="rounded-xl border border-border bg-muted/40 p-3 sm:col-span-2">
-                    <p className="text-sm text-muted-foreground">{field.label}</p>
-                    <output className="text-xl font-semibold tabular-nums" aria-live="polite">
-                      {validPurchaseQuote ? formatNumber(received, 2, 6) + ' USDT' : '—'}
-                    </output>
-                    <p className="text-xs text-muted-foreground">Monto entregado ÷ tasa de compra</p>
-                  </div>
-                );
-                return (
-                  <label className={recordLabelClass} key={field.name}>
-                    <span>{field.label}{isPurchase && field.name === 'tasa' && currency ? ' (' + currency + ' por USDT)' : ''}{field.optional && <small className="ml-1 text-muted-foreground">(opcional)</small>}</span>
-                    {field.options ? (
-                      <select name={field.name} required className={recordFieldClass} defaultValue={initial[field.name]}>
-                        <option value="">Seleccionar</option>
-                        {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                      </select>
+                    {isPurchase && renderFields('divisa_codigo', 'origen_fondos_id')}
+                    {edit?.historical ? (
+                      <p className="text-xs text-muted-foreground">En esta operación histórica puedes corregir los datos de la operación. Las cuentas quedan fijas.</p>
                     ) : (
-                      <>
-                      {showBalance && field.name === amountField && (
-                        <span className="flex items-center justify-between gap-2 text-xs">
-                          <span>{hasSource ? 'Disponible: ' + (fromCurrencyBalance ? formatNumber(balance, 0, 6) + ' ' + currency : formatCurrency(balance, sourceCurrency)) : 'Selecciona un origen para ver el saldo'}</span>
-                          <button type="button" disabled={!hasSource || balance <= 0} onClick={() => setAmount(formatAmountInput(String(balance)))}
-                            className="rounded border border-border px-2 py-1 text-primary disabled:opacity-50">Máx.</button>
-                        </span>
-                      )}
-                      <input
-                        value={(isPurchase || isSale) && field.name === amountField ? amount : isPurchase && field.name === 'tasa' ? purchaseRate : undefined}
-                        onChange={(event) => {
-                          if (field.type !== 'number') return;
-                          const value = formatAmountField(event.currentTarget);
-                          if (field.name === amountField && value !== undefined) setAmount(value);
-                          if (isPurchase && field.name === 'tasa' && value !== undefined) setPurchaseRate(value);
-                        }}
-                        aria-invalid={field.name === amountField && exceedsBalance || undefined}
-                        name={field.name}
-                        type={field.type === 'date' ? 'date' : 'text'}
-                        inputMode={field.type === 'number' ? 'decimal' : undefined}
-                        required={!field.optional}
-                        defaultValue={field.name === amountField || (isPurchase && field.name === 'tasa') ? undefined : field.type === 'number' ? formatAmountInput(String(initial[field.name] ?? '')) : initial[field.name] ?? (field.type === 'date' ? today() : undefined)}
-                        className={recordFieldClass}
-                      />
-                      {field.name === amountField && exceedsBalance && <span role="alert" className="text-xs text-destructive">El monto supera el saldo disponible.</span>}
-                      </>
+                      <div className={isPurchase ? undefined : 'grid gap-4 sm:grid-cols-2'}>
+                        {isPurchase ? renderFields('wallet_destino_id') : renderFields('wallet_origen_id', 'destino_fondos_id')}
+                      </div>
                     )}
-                  </label>
-                );
-              })}
+                    {sameWallet && <p role="alert" className="text-xs text-destructive">Elige una billetera de destino distinta de la de origen.</p>}
+                  </section>
+
+                  <section aria-label="Monto y tasa" className="space-y-3 border-t border-border pt-4">
+                    <div className="grid items-start gap-4 sm:grid-cols-2">
+                      {renderFields(amountField, 'tasa')}
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-semibold">{isPurchase ? 'USDT a recibir' : 'COP a recibir'}</p>
+                        <p className="text-xs text-muted-foreground">{isPurchase ? 'Monto entregado ÷ tasa' : 'USDT vendidos × tasa'}</p>
+                      </div>
+                      <output className="break-all text-xl font-bold tabular-nums text-primary" aria-live="polite">
+                        {isPurchase
+                          ? (validPurchaseQuote ? formatNumber(received, 2, 6) + ' USDT' : '—')
+                          : (validSaleQuote ? formatNumber(copReceived, 0, 2) + ' COP' : '—')}
+                      </output>
+                    </div>
+                  </section>
+
+                  <section aria-label="Datos de la operación" className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+                    {isPurchase ? renderFields('fecha', 'proveedor') : renderFields('fecha', 'concepto')}
+                  </section>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">{form.fields.map(renderField)}</div>
+              )}
             </fieldset>
-            <RecordActions submitDisabled={exceedsBalance || (isPurchase && (!validPurchaseQuote || !currency || (showBalance && (!hasSource || !destinationId))))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && isAdmin ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
+            <RecordActions submitDisabled={exceedsBalance || sameWallet || (isPurchase && (!validPurchaseQuote || !currency || missingAccounts)) || (isSale && (!validSaleQuote || missingAccounts))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && isAdmin ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
           </form>
         </RecordDialog>
       )}

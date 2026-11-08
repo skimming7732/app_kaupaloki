@@ -66,9 +66,16 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
     if (busy) return;
     const fields = new FormData(event.currentTarget);
     const monto = parseAmountInput(String(fields.get('monto') ?? ''));
+    const costoInput = String(fields.get('costo') ?? '').trim();
+    const costoCop = costoInput ? parseAmountInput(costoInput) : 0;
     const account = accounts.find((item) => item.id === accountId || (!accountId && accountLabel(item) === record?.origenFondos));
     if (!clienteId || !account || !Number.isFinite(monto) || monto <= 0) {
       setError('Selecciona un cliente y una cuenta de origen e ingresa un monto mayor que cero.');
+      return;
+    }
+
+    if (!Number.isFinite(costoCop) || costoCop < 0 || /\.\d{3,}$/.test(costoInput)) {
+      setError('Ingresa un costo válido con hasta dos decimales.');
       return;
     }
 
@@ -80,6 +87,7 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
         id: record?.id,
         clienteId,
         monto,
+        costoCop,
         origenFondosId: account.id,
         origenFondos: accountLabel(account),
         fecha: fields.get('fecha'),
@@ -112,14 +120,22 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
               <input type="text" inputMode="decimal" name="monto" defaultValue={record ? formatAmountInput(String(record.monto)) : undefined} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
             </label>
             <label className={recordLabelClass}>
+              <span>Costo de dispersión (COP)</span>
+              <input type="text" inputMode="decimal" name="costo" placeholder="0.00"
+                defaultValue={record?.costoCop ? formatAmountInput(String(record.costoCop)) : ''}
+                onChange={(event) => formatAmountField(event.currentTarget)} className={recordFieldClass} />
+            </label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={recordLabelClass}>
               <span>Fecha</span>
               <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
             </label>
+            <label className={recordLabelClass}>
+              <span>Referencia (opcional)</span>
+              <input name="referencia" defaultValue={record?.referencia} className={recordFieldClass} />
+            </label>
           </div>
-          <label className={recordLabelClass}>
-            <span>Referencia (opcional)</span>
-            <input name="referencia" defaultValue={record?.referencia} className={recordFieldClass} />
-          </label>
           {!record && <ReceiptInput />}
         </fieldset>
         <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar dispersión"} onClose={onClose} onDelete={record && isAdmin ? handleDelete : undefined} deleteLabel="Eliminar dispersión" />

@@ -242,6 +242,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
       <KpiStrip metrics={[
         { label: 'Dispersiones', value: filteredDispersiones.length },
         { label: 'Total dispersado', value: formatCOP(sumRows(filteredDispersiones, (d) => isRejected(d.estado) ? 0 : d.monto)) },
+        { label: 'Total costos de dispersiones', value: formatCOP(sumRows(filteredDispersiones, (d) => isRejected(d.estado) ? 0 : d.costoCop)) },
       ]} />
 
       {/* Dispersiones Table with Uniform Row Heights */}
@@ -254,6 +255,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                 <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Cliente</th>
                 <th className="py-3 px-4 text-right">Monto</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">Costo (COP)</th>
                 <th className="py-3 px-4">Institución / Origen</th>
                 <th className="py-3 px-4">Referencia</th>
                 <th className="py-3 px-4 text-center">Comprobante</th>
@@ -265,12 +267,12 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
             <tbody className="divide-y divide-border">
               {filteredDispersiones.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
                     No se encontraron dispersiones registradas
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={filteredDispersiones}
+                <PaginatedRows columns={11} rows={filteredDispersiones}
                   resetKey={JSON.stringify([search, selectedCliente, fechaDesde, fechaHasta])}>{(d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors h-14">
                     <td className="py-2.5 px-4 font-mono font-medium text-foreground whitespace-nowrap">{d.codigo}</td>
@@ -279,6 +281,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                     <td className="py-2.5 px-4 text-right font-bold text-foreground whitespace-nowrap">
                       {formatCOP(d.monto)}
                     </td>
+                    <td className="py-2.5 px-4 text-right tabular-nums whitespace-nowrap">{formatCOP(d.costoCop)}</td>
                     <td className="py-2.5 px-4 whitespace-nowrap">
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
                         {d.origenFondos || 'Bancolombia'}
