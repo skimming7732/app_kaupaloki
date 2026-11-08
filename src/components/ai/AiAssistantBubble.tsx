@@ -11,6 +11,148 @@ import {
 
 const MAX_SESSIONS = 10;
 
+// Custom Markdown Formatter Component
+const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
+  // Clean raw LaTeX blocks if present
+  const cleaned = content
+    .replace(/\\\[([\s\S]*?)\\\]/g, '$1')
+    .replace(/\\begin\{aligned\}([\s\S]*?)\\end\{aligned\}/g, '$1')
+    .replace(/\\mathbf\{([^}]+)\}/g, '$1')
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/\\;/g, ' ')
+    .replace(/&/g, '')
+    .trim();
+
+  const parseInline = (text: string): React.ReactNode => {
+    // Splits by **bold**, `code`, or *italic*
+    const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+        return (
+          <strong key={index} className="font-bold text-foreground">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+        return (
+          <code
+            key={index}
+            className="px-1.5 py-0.5 rounded bg-muted/80 text-foreground font-mono text-[11px]"
+          >
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+        return (
+          <em key={index} className="italic">
+            {part.slice(1, -1)}
+          </em>
+        );
+      }
+      return part;
+    });
+  };
+
+  const lines = cleaned.split('\n');
+  const elements: React.ReactNode[] = [];
+  let currentList: { type: 'ul' | 'ol'; items: string[] } | null = null;
+
+  const flushList = () => {
+    if (currentList) {
+      if (currentList.type === 'ul') {
+        elements.push(
+          <ul key={`ul-${elements.length}`} className="list-disc pl-5 my-1.5 space-y-1">
+            {currentList.items.map((item, idx) => (
+              <li key={idx} className="leading-relaxed">
+                {parseInline(item)}
+              </li>
+            ))}
+          </ul>
+        );
+      } else {
+        elements.push(
+          <ol key={`ol-${elements.length}`} className="list-decimal pl-5 my-1.5 space-y-1">
+            {currentList.items.map((item, idx) => (
+              <li key={idx} className="leading-relaxed">
+                {parseInline(item)}
+              </li>
+            ))}
+          </ol>
+        );
+      }
+      currentList = null;
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    if (!trimmed) {
+      flushList();
+      continue;
+    }
+
+    // Bullet items: - or * or •
+    const bulletMatch = trimmed.match(/^[-*•]\s+(.*)$/);
+    if (bulletMatch) {
+      if (!currentList || currentList.type !== 'ul') {
+        flushList();
+        currentList = { type: 'ul', items: [] };
+      }
+      currentList.items.push(bulletMatch[1]);
+      continue;
+    }
+
+    // Numbered list items: 1. or 2)
+    const numMatch = trimmed.match(/^(\d+)[.)]\s+(.*)$/);
+    if (numMatch) {
+      if (!currentList || currentList.type !== 'ol') {
+        flushList();
+        currentList = { type: 'ol', items: [] };
+      }
+      currentList.items.push(numMatch[2]);
+      continue;
+    }
+
+    flushList();
+
+    // Headings
+    if (trimmed.startsWith('### ')) {
+      elements.push(
+        <h5
+          key={`h5-${i}`}
+          className="font-bold text-xs uppercase tracking-wide text-foreground mt-2 mb-1"
+        >
+          {parseInline(trimmed.slice(4))}
+        </h5>
+      );
+      continue;
+    }
+    if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+      elements.push(
+        <h4 key={`h4-${i}`} className="font-bold text-sm text-foreground mt-2.5 mb-1">
+          {parseInline(trimmed.replace(/^#+\s*/, ''))}
+        </h4>
+      );
+      continue;
+    }
+
+    // Normal paragraph
+    elements.push(
+      <p key={`p-${i}`} className="my-1 leading-relaxed">
+        {parseInline(trimmed)}
+      </p>
+    );
+  }
+
+  flushList();
+
+  return <div className="text-xs space-y-1">{elements}</div>;
+};
+
 export const AiAssistantBubble: React.FC = () => {
   const { profile, user } = useAuth();
   const { data, metrics } = useData();
@@ -70,6 +212,21 @@ export const AiAssistantBubble: React.FC = () => {
   // Determine current view details & records
   const currentViewDetails = useMemo((): { title: string; records: any[] } => {
     const p = location.pathname;
+
+    if (p === '/' || p === '/inicio') {
+      return {
+        title: 'Inicio / Resumen Operativo',
+        records: (data.clientes || []).map((c) => ({
+          cliente: c.nombre,
+          saldoPendienteCOP: c.saldoPendienteCOP,
+          totalIngresosCOP: c.totalIngresosCOP,
+          totalDispersadoCOP: c.totalDispersadoCOP,
+          totalNegocios: c.totalNegocios,
+          estado: c.estado,
+        })),
+      };
+    }
+
     if (p.includes('/panel-control') || p.includes('/dashboard')) {
       return {
         title: 'Panel de Control / Liquidación',
@@ -90,6 +247,7 @@ export const AiAssistantBubble: React.FC = () => {
         ],
       };
     }
+
     if (p.includes('/gastos')) {
       return {
         title: 'Gastos Operativos',
@@ -104,6 +262,7 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     if (p.includes('/negocios')) {
       return {
         title: 'Negocios',
@@ -119,6 +278,7 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     if (p.includes('/clientes')) {
       return {
         title: 'Clientes',
@@ -134,6 +294,7 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     if (p.includes('/dispersiones')) {
       return {
         title: 'Dispersiones',
@@ -148,6 +309,7 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     if (p.includes('/efectivo')) {
       return {
         title: 'Efectivo Dosquebradas',
@@ -162,6 +324,7 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     if (p.includes('/ventas-usdt')) {
       return {
         title: 'Ventas USDT',
@@ -175,6 +338,7 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     if (p.includes('/compras-usdt')) {
       return {
         title: 'Compras USDT',
@@ -189,18 +353,21 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     if (p.includes('/activos-digitales')) {
       return {
         title: 'Activos Digitales',
         records: data.activosDigitales || [],
       };
     }
+
     if (p.includes('/activos-liquidos') || p.includes('/activos')) {
       return {
         title: 'Activos Líquidos',
         records: data.activosLiquidos || [],
       };
     }
+
     if (p.includes('/divisas')) {
       return {
         title: 'Divisas',
@@ -213,6 +380,7 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     if (p.includes('/comisionistas')) {
       return {
         title: 'Comisionistas',
@@ -225,9 +393,14 @@ export const AiAssistantBubble: React.FC = () => {
         })),
       };
     }
+
     return {
       title: 'General Kaupaloki',
-      records: [],
+      records: (data.clientes || []).map((c) => ({
+        cliente: c.nombre,
+        saldoPendienteCOP: c.saldoPendienteCOP,
+        ingresosCOP: c.totalIngresosCOP,
+      })),
     };
   }, [location.pathname, data, metrics]);
 
@@ -256,7 +429,7 @@ export const AiAssistantBubble: React.FC = () => {
         {
           id: `msg_welcome_${Date.now()}`,
           role: 'assistant',
-          content: `Hola **${profile?.nombre || profile?.full_name || 'Administrador'}**. Soy el **Auditor Financiero IA** de Kaupaloki.\n\nEstoy analizando en tiempo real la pestaña actual: **${currentViewDetails.title}** (${currentViewDetails.records.length} registros cargados).\n\nTengo acceso **estrictamente de solo lectura** para auditar números, verificar por qué no da una ganancia, sumar totales o detectar duplicados e inconsistencias.\n\n¿En qué puedo ayudarte hoy?`,
+          content: `Hola **${profile?.nombre || profile?.full_name || 'Administrador'}**. Soy el **Auditor Financiero IA** de Kaupaloki.\n\nTengo acceso en tiempo real a tus clientes, métricas de liquidación y registros de **${currentViewDetails.title}**.\n\nMi acceso es **estrictamente de solo lectura**. ¿Qué consulta o auditoría deseas realizar?`,
           timestamp: Date.now(),
         },
       ],
@@ -352,6 +525,37 @@ export const AiAssistantBubble: React.FC = () => {
           saldoPendienteClientes: metrics.saldoPendienteClientes,
         },
         recordsSummary: currentViewDetails.records,
+        globalSnapshot: {
+          clientes: (data.clientes || []).map((c) => ({
+            nombre: c.nombre,
+            ingresosCOP: c.totalIngresosCOP,
+            dispersadoCOP: c.totalDispersadoCOP,
+            saldoPendienteCOP: c.saldoPendienteCOP,
+            totalNegocios: c.totalNegocios,
+            estado: c.estado,
+          })),
+          ultimosNegocios: (data.negocios || []).slice(0, 30).map((n) => ({
+            cliente: n.clienteNombre,
+            ingresoCOP: n.ingresoCOP,
+            montoDivisa: n.montoDivisa,
+            divisa: n.divisaCodigo,
+            tasa: n.tasaCambio,
+            fecha: n.fecha,
+          })),
+          ultimosGastos: (data.gastos || []).slice(0, 30).map((g) => ({
+            concepto: g.concepto,
+            categoria: g.categoria,
+            monto: g.monto,
+            divisa: g.divisa,
+            fecha: g.fecha,
+          })),
+          ultimasDispersiones: (data.dispersiones || []).slice(0, 30).map((d) => ({
+            cliente: d.clienteNombre,
+            monto: d.monto,
+            fecha: d.fecha,
+            origen: d.origenFondos,
+          })),
+        },
       };
 
       const aiResponse = await askGroqAssistant(text, updatedMessages, contextData);
@@ -412,21 +616,20 @@ export const AiAssistantBubble: React.FC = () => {
   // Quick prompt presets
   const quickPrompts = [
     {
+      label: '💰 ¿A qué clientes le debo?',
+      query: '¿A qué clientes le debo dinero actualmente? Revisa los saldos pendientes y muéstrame la lista con los valores exactos.',
+    },
+    {
+      label: '🏆 Cliente más rentable',
+      query: '¿Cuál es el cliente que más ha facturado o que tiene mayor volumen de ingresos acumulado?',
+    },
+    {
       label: '🔍 Detectar duplicados',
       query: `Revisa minuciosamente los registros de esta pestaña ("${currentViewDetails.title}") y busca si hay registros duplicados o sospechosos (mismo cliente, monto idéntico en fecha cercana o referencias repetidas).`,
     },
     {
-      label: '💰 Explicar Ganancia Esperada',
-      query:
-        'Explícame paso a paso con la fórmula oficial de Kaupaloki cómo se calcula la Ganancia Esperada con los números actuales y dime si hay algún factor que la esté disminuyendo o descuadrando.',
-    },
-    {
-      label: '📊 Resumen de esta pestaña',
-      query: `Dame un resumen financiero y estadístico claro de lo que está cargado en la pestaña "${currentViewDetails.title}". Suma totales e indica los puntos más importantes.`,
-    },
-    {
-      label: '⚠️ ¿Por qué no da este valor?',
-      query: `Audita los números que estás viendo en "${currentViewDetails.title}" y las métricas globales: ¿detectas alguna inconsistencia, saldo negativo o dato que no cuadre?`,
+      label: '📊 Explicar Ganancia Esperada',
+      query: 'Explícame paso a paso con la fórmula oficial de Kaupaloki cómo se calcula la Ganancia Esperada con los números actuales.',
     },
   ];
 
@@ -442,7 +645,7 @@ export const AiAssistantBubble: React.FC = () => {
                 handleStartNewChat();
               }
             }}
-            className="group relative w-12 h-12 rounded-full bg-slate-900/90 dark:bg-slate-900/95 hover:bg-slate-800 text-white flex items-center justify-center shadow-lg shadow-black/30 hover:shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all duration-200 border border-emerald-500/30 hover:border-emerald-400/70 backdrop-blur-md"
+            className="group relative w-12 h-12 rounded-full bg-slate-900/95 hover:bg-slate-800 text-white flex items-center justify-center shadow-lg shadow-black/40 hover:shadow-emerald-500/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-emerald-500/30 hover:border-emerald-400/70 backdrop-blur-md"
             title="Auditor Financiero IA"
             aria-label="Auditor Financiero IA"
           >
@@ -469,11 +672,11 @@ export const AiAssistantBubble: React.FC = () => {
         )}
       </div>
 
-      {/* Chat Window / Drawer */}
+      {/* Chat Window / Drawer: FULL SCREEN ON MOBILE, FLOATING CARD ON DESKTOP */}
       {isOpen && (
-        <div className="fixed inset-x-2 bottom-2 md:inset-auto md:bottom-6 md:right-6 z-50 w-auto md:w-[460px] h-[85vh] max-h-[680px] bg-card text-card-foreground rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed inset-0 md:inset-auto md:bottom-6 md:right-6 z-50 w-full h-full md:w-[480px] md:h-[85vh] md:max-h-[720px] bg-card text-card-foreground md:rounded-2xl shadow-2xl border-0 md:border md:border-border flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
-          <div className="p-3.5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border-b border-border flex items-center justify-between gap-2 shadow-sm">
+          <div className="p-3.5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white border-b border-border flex items-center justify-between gap-2 shadow-sm flex-shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-inner flex-shrink-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -504,7 +707,7 @@ export const AiAssistantBubble: React.FC = () => {
               {/* History Toggle Button */}
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className={`p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors ${
+                className={`p-2 md:p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors ${
                   showHistory ? 'bg-white/15 text-white' : ''
                 }`}
                 title="Historial de chats (hasta 10)"
@@ -522,7 +725,7 @@ export const AiAssistantBubble: React.FC = () => {
               {/* New Chat Button */}
               <button
                 onClick={handleStartNewChat}
-                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-2 md:p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
                 title="Empezar nuevo chat"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -535,13 +738,13 @@ export const AiAssistantBubble: React.FC = () => {
                 </svg>
               </button>
 
-              {/* Close Button */}
+              {/* Close Button: prominent for mobile */}
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-                title="Cerrar"
+                className="p-2 md:p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                title="Cerrar chat"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -554,16 +757,16 @@ export const AiAssistantBubble: React.FC = () => {
           </div>
 
           {/* Context Banner: Active Tab Pill */}
-          <div className="px-3.5 py-1.5 bg-muted/60 border-b border-border/70 flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="px-3.5 py-1.5 bg-muted/60 border-b border-border/70 flex items-center justify-between text-[11px] text-muted-foreground flex-shrink-0">
             <div className="flex items-center gap-1.5 truncate">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="font-medium text-foreground">Pestaña activa:</span>
+              <span className="font-medium text-foreground">Contexto:</span>
               <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold truncate">
                 {currentViewDetails.title}
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground whitespace-nowrap pl-2 font-mono">
-              {currentViewDetails.records.length} items
+              {data.clientes?.length || 0} clientes cargados
             </span>
           </div>
 
@@ -571,7 +774,7 @@ export const AiAssistantBubble: React.FC = () => {
           <div className="relative flex-1 overflow-hidden flex flex-col bg-background">
             {/* History Slide-down Drawer */}
             {showHistory && (
-              <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm p-4 flex flex-col border-b border-border animate-in fade-in duration-150">
+              <div className="absolute inset-0 z-20 bg-background/98 backdrop-blur-sm p-4 flex flex-col border-b border-border animate-in fade-in duration-150">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -582,13 +785,13 @@ export const AiAssistantBubble: React.FC = () => {
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    Historial de Chats Privados ({sessions.length}/{MAX_SESSIONS})
+                    Historial de Consultas ({sessions.length}/{MAX_SESSIONS})
                   </h4>
                   <button
                     onClick={() => setShowHistory(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2 py-1 rounded hover:bg-muted"
                   >
-                    Volver
+                    Volver al chat
                   </button>
                 </div>
 
@@ -629,7 +832,7 @@ export const AiAssistantBubble: React.FC = () => {
 
                         <button
                           onClick={(e) => handleDeleteSession(sess.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 hover:text-red-500 text-muted-foreground transition-all"
+                          className="p-1 rounded hover:bg-red-500/10 hover:text-red-500 text-muted-foreground transition-all"
                           title="Eliminar chat"
                         >
                           <svg
@@ -653,7 +856,7 @@ export const AiAssistantBubble: React.FC = () => {
 
                 <button
                   onClick={handleStartNewChat}
-                  className="mt-3 w-full py-2 px-3 rounded-xl bg-primary text-primary-foreground font-semibold text-xs flex items-center justify-center gap-1.5 shadow hover:opacity-90 transition-opacity"
+                  className="mt-3 w-full py-2.5 px-3 rounded-xl bg-primary text-primary-foreground font-semibold text-xs flex items-center justify-center gap-1.5 shadow hover:opacity-90 transition-opacity"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -686,7 +889,7 @@ export const AiAssistantBubble: React.FC = () => {
                     Auditor Financiero Listo
                   </h4>
                   <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                    Pregunta sobre sumas, fórmulas de liquidación, registros duplicados o
+                    Pregunta sobre sumas, clientes adeudados, fórmulas de liquidación o
                     discrepancias en <strong>{currentViewDetails.title}</strong>.
                   </p>
                 </div>
@@ -700,15 +903,14 @@ export const AiAssistantBubble: React.FC = () => {
                   }`}
                 >
                   <div
-                    className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-xs shadow-sm ${
+                    className={`max-w-[92%] sm:max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs shadow-sm ${
                       msg.role === 'user'
                         ? 'bg-primary text-primary-foreground rounded-br-xs'
                         : 'bg-muted/80 text-foreground border border-border/80 rounded-bl-xs'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap leading-relaxed break-words font-sans">
-                      {msg.content}
-                    </div>
+                    {/* Formatted Markdown Message */}
+                    <FormattedMessage content={msg.content} />
 
                     <div
                       className={`flex items-center justify-between gap-3 mt-1.5 text-[9px] pt-1 border-t ${
@@ -727,7 +929,7 @@ export const AiAssistantBubble: React.FC = () => {
                       {msg.role === 'assistant' && (
                         <button
                           onClick={() => handleCopy(msg.id, msg.content)}
-                          className="hover:underline flex items-center gap-1 font-mono"
+                          className="hover:underline flex items-center gap-1 font-mono cursor-pointer"
                         >
                           {copiedId === msg.id ? '✓ Copiado' : 'Copiar'}
                         </button>
@@ -741,7 +943,7 @@ export const AiAssistantBubble: React.FC = () => {
                 <div className="flex items-start gap-2">
                   <div className="bg-muted/90 border border-border rounded-2xl rounded-bl-xs px-3.5 py-2.5 text-xs text-muted-foreground flex items-center gap-2 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                    <span>Analizando registros y calculando fórmulas...</span>
+                    <span>Analizando clientes, registros y fórmulas...</span>
                   </div>
                 </div>
               )}
@@ -750,14 +952,14 @@ export const AiAssistantBubble: React.FC = () => {
             </div>
 
             {/* Quick Prompts Chips */}
-            <div className="p-2 bg-card/60 border-t border-border/60">
+            <div className="p-2 bg-card/60 border-t border-border/60 flex-shrink-0">
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                 {quickPrompts.map((qp, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSendMessage(qp.query)}
                     disabled={isLoading}
-                    className="whitespace-nowrap flex-shrink-0 text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted/90 hover:bg-muted border border-border text-foreground transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                    className="whitespace-nowrap flex-shrink-0 text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted/90 hover:bg-muted border border-border text-foreground transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
                     {qp.label}
                   </button>
@@ -766,22 +968,22 @@ export const AiAssistantBubble: React.FC = () => {
             </div>
 
             {/* Input Box */}
-            <div className="p-3 bg-card border-t border-border flex items-end gap-2">
+            <div className="p-3 bg-card border-t border-border flex items-end gap-2 flex-shrink-0 pb-safe">
               <textarea
                 ref={inputRef}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={`Pregunta sobre ${currentViewDetails.title}... (Shift+Enter para salto de línea)`}
+                placeholder="Pregunta sobre clientes, deudas, ventas o fórmulas..."
                 rows={1}
                 disabled={isLoading}
-                className="flex-1 max-h-24 min-h-[38px] resize-none px-3 py-2 text-xs rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-foreground placeholder:text-muted-foreground disabled:opacity-50"
+                className="flex-1 max-h-24 min-h-[40px] resize-none px-3.5 py-2.5 text-xs rounded-xl bg-background border border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary text-foreground placeholder:text-muted-foreground disabled:opacity-50"
               />
 
               <button
                 onClick={() => handleSendMessage()}
                 disabled={!inputMessage.trim() || isLoading}
-                className="h-[38px] w-[38px] flex-shrink-0 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-primary/20"
+                className="h-[40px] w-[40px] flex-shrink-0 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-primary/20 cursor-pointer"
                 title="Enviar mensaje"
               >
                 {isLoading ? (

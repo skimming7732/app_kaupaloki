@@ -20,6 +20,12 @@ export interface ViewContextData {
   tabTitle: string;
   metrics?: Record<string, any>;
   recordsSummary?: any[];
+  globalSnapshot?: {
+    clientes?: any[];
+    ultimosNegocios?: any[];
+    ultimosGastos?: any[];
+    ultimasDispersiones?: any[];
+  };
   extraContext?: string;
 }
 
