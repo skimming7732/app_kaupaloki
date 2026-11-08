@@ -2,13 +2,13 @@ import { formatAmountField, formatAmountInput, parseAmountInput } from '../../ut
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { formatCurrency } from '../../utils/formatters';
-import { accountOptionLabel, type Account } from './AccountSelect';
+import { AccountSelect, type Account } from './AccountSelect';
 import { useData, type CatalogTable } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 
 type Option = { value: string; label: string };
-type Field = { name: string; label: string; type?: 'date' | 'number'; options?: Option[]; optional?: boolean };
+type Field = { name: string; label: string; type?: 'date' | 'number'; options?: Option[]; accounts?: Account[]; optional?: boolean };
 type Form = { title: string; description: string; icon: string; fields: Field[] };
 
 const dateField: Field = { name: 'fecha', label: 'Fecha de operación', type: 'date' };
@@ -24,6 +24,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [sourceId, setSourceId] = useState('');
+  const [destinationId, setDestinationId] = useState('');
   const [currency, setCurrency] = useState('');
   const [amount, setAmount] = useState('');
   const isPurchase = table === 'compras_usdt';
@@ -40,8 +41,8 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
     (!isPurchase || edit.fields.divisa_codigo === currency) ? Number(edit.fields[amountField]) : 0;
   const balance = Number(source?.saldoReal ?? source?.saldoCop ?? source?.saldoUsdt ?? 0) + previousDebit;
   const exceedsBalance = !!source && parseAmountInput(amount) > balance;
-  const liquidAccounts = data.activosLiquidos.filter((a) => (a.divisa || 'COP') === 'COP').map((a) => ({ value: a.id, label: accountOptionLabel(a) }));
-  const wallets = data.activosDigitales.map((w) => ({ value: w.id, label: accountOptionLabel(w) }));
+  const liquidAccounts = data.activosLiquidos.filter((a) => (a.divisa || 'COP') === 'COP');
+  const wallets = data.activosDigitales;
   const currencies = data.divisas.map((d) => ({ value: d.codigo, label: d.codigo + ' · ' + d.nombre }));
 
   const forms: Record<CatalogTable, Form> = {
@@ -49,20 +50,20 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
       title: 'Registrar compra USDT', description: 'Indica la divisa entregada y la billetera que recibe los USDT.', icon: 'ri-shopping-cart-2-line',
       fields: [
         dateField, { name: 'divisa_codigo', label: 'Divisa entregada', options: currencies },
-        { name: 'origen_fondos_id', label: 'Cuenta o billetera de origen', options: sources.map((account) => ({ value: account.id, label: accountOptionLabel(account) })) },
+        { name: 'origen_fondos_id', label: 'Cuenta o billetera de origen', accounts: sources },
         { name: 'valor_comprado', label: 'Monto en divisa', type: 'number' },
         { name: 'usdt_comprado', label: 'USDT recibidos', type: 'number' },
-        { name: 'wallet_destino_id', label: 'Billetera de destino', options: wallets },
+        { name: 'wallet_destino_id', label: 'Billetera de destino', accounts: wallets },
       ],
     },
     ventas_usdt: {
       title: 'Registrar venta USDT', description: 'Selecciona la billetera de origen y la cuenta que recibe los COP.', icon: 'ri-funds-line',
       fields: [
         dateField, { name: 'concepto', label: 'Concepto' },
-        { name: 'wallet_origen_id', label: 'Billetera de origen', options: wallets },
+        { name: 'wallet_origen_id', label: 'Billetera de origen', accounts: wallets },
         { name: 'usdt_vendido', label: 'USDT vendidos', type: 'number' },
         { name: 'tasa', label: 'Tasa de venta (COP por USDT)', type: 'number' },
-        { name: 'destino_fondos_id', label: 'Cuenta de destino', options: liquidAccounts },
+        { name: 'destino_fondos_id', label: 'Cuenta de destino', accounts: liquidAccounts },
       ],
     },
     activos_liquidos: {
@@ -174,8 +175,9 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         onClick={() => {
           setError('');
           const initSource = String(initial[sourceField] ?? '');
-          const fallbackWallet = isSale && !initSource && wallets.length >= 1 ? wallets[0].value : initSource;
+          const fallbackWallet = isSale && !initSource && wallets.length >= 1 ? wallets[0].id : initSource;
           setSourceId(fallbackWallet);
+          setDestinationId(String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? ''));
           setAmount(formatAmountInput(String(initial[amountField] ?? '')));
           setCurrency(String(initial.divisa_codigo ?? ''));
           setOpen(true);
@@ -186,15 +188,18 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         <RecordDialog {...form} busy={busy} error={error} onClose={onClose}>
           <form onSubmit={submit} className="space-y-4">
             <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
-              {form.fields.map((field) => (
+              {form.fields.map((field) => field.accounts ? (
+                <AccountSelect key={field.name} label={field.label} name={field.name} accounts={field.accounts}
+                  value={field.name === sourceField ? sourceId : destinationId}
+                  onChange={field.name === sourceField ? setSourceId : setDestinationId} />
+              ) : (
                 <label className={recordLabelClass} key={field.name}>
                   <span>{field.label}{field.optional && <small className="ml-1 text-muted-foreground">(opcional)</small>}</span>
                   {field.options ? (
                     <select name={field.name} required className={recordFieldClass}
-                      value={(isPurchase || isSale) && field.name === sourceField ? sourceId : field.name === 'divisa_codigo' ? currency : undefined}
-                      defaultValue={field.name !== sourceField && field.name !== 'divisa_codigo' ? initial[field.name] : undefined}
+                      value={field.name === 'divisa_codigo' ? currency : undefined}
+                      defaultValue={field.name !== 'divisa_codigo' ? initial[field.name] : undefined}
                       onChange={(event) => {
-                        if (field.name === sourceField) setSourceId(event.target.value);
                         if (field.name === 'divisa_codigo') {
                           setCurrency(event.target.value);
                           setSourceId('');

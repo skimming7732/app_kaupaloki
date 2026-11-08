@@ -1,178 +1,57 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useData } from '../../context/DataContext';
+import React from 'react';
+import { useData, type NormalizedData } from '../../context/DataContext';
+import { formatCOP, formatNumber } from '../../utils/formatters';
+import { DetailSearchSelect } from './DetailSearchSelect';
 
-interface ClientSearchSelectProps {
+export const ClientDetails = ({ client }: { client: NormalizedData['clientes'][number] }) => (
+  <span className="block min-w-0 text-xs">
+    <span className="block break-words font-semibold text-foreground">{client.nombre}</span>
+    <span className="mt-0.5 block text-muted-foreground">
+      Código cliente <span className="break-all font-mono font-semibold text-foreground">{client.codigo}</span>
+    </span>
+    <span className="mt-2 grid grid-cols-3 gap-x-2 gap-y-1">
+      <span><span className="block text-[10px] text-muted-foreground">Total negocios</span><strong>{formatNumber(client.totalNegocios ?? 0)}</strong></span>
+      <span><span className="block text-[10px] text-muted-foreground">Total pagado</span><strong className="break-words">{formatCOP(client.totalDispersadoCOP)}</strong></span>
+      <span><span className="block text-[10px] text-muted-foreground">Total pendiente</span><strong className="break-words">{formatCOP(client.saldoPendienteCOP)}</strong></span>
+    </span>
+  </span>
+);
+
+type Props = {
   id?: string;
-  value: string; // client id or code
+  value: string;
   onChange: (clientId: string, clientLabel: string) => void;
   placeholder?: string;
   required?: boolean;
-  onAddNewClient?: (initialQuery?: string) => void;
+  compact?: boolean;
   inputClassName?: string;
-}
+  excludeIds?: string[];
+  onAddNewClient?: (initialQuery?: string) => void;
+};
 
-export const ClientSearchSelect: React.FC<ClientSearchSelectProps> = ({
-  id,
-  value,
-  onChange,
-  placeholder = 'Buscar cliente por nombre o código...',
-  required = false,
-  onAddNewClient,
-  inputClassName = '',
-}) => {
+export const ClientSearchSelect = ({
+  id, value, onChange, placeholder = 'Buscar cliente por nombre o código', required, compact,
+  inputClassName, excludeIds, onAddNewClient,
+}: Props) => {
   const { data } = useData();
-  const [query, setQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const preserveQuery = useRef(false);
+  const clients = data.clientes.filter((client) => !excludeIds?.includes(client.id));
+  const selected = clients.find((client) => client.id === value || client.codigo === value || client.nombre === value);
 
-  // Sync initial query with current selected value
-  useEffect(() => {
-    if (value) {
-      const found = data.clientes.find((c) => c.id === value || c.codigo === value || c.nombre === value);
-      if (found) {
-        setQuery(found.codigo ? `${found.codigo} - ${found.nombre}` : found.nombre);
-      }
-    } else if (preserveQuery.current) {
-      preserveQuery.current = false;
-    } else {
-      setQuery('');
-    }
-  }, [value, data.clientes]);
-
-  // Click outside listener
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const filteredClients = data.clientes.filter((c) => {
-    const q = query.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      c.nombre.toLowerCase().includes(q) ||
-      c.codigo.toLowerCase().includes(q)
-    );
-  });
-
-  return (
-    <div ref={containerRef} className="relative w-full">
-      <div className="relative">
-        <i className="ri-user-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
-        <input
-          id={id}
-          type="text"
-          required={required && !value}
-          value={query}
-          onFocus={() => setIsOpen(true)}
-          onClick={() => setIsOpen(true)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape' && isOpen) {
-              event.preventDefault();
-              setIsOpen(false);
-            }
-          }}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setIsOpen(true);
-            if (value) {
-              preserveQuery.current = true;
-              onChange('', '');
-            }
-          }}
-          placeholder={placeholder}
-          className={`w-full pl-9 pr-8 py-2 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted-foreground ${inputClassName}`}
-        />
-        {value ? (
-          <button
-            type="button"
-            onClick={() => {
-              setQuery('');
-              onChange('', '');
-            }}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm p-1 rounded-full hover:bg-muted"
-            title="Limpiar selección"
-          >
-            <i className="ri-close-line" />
-          </button>
-        ) : (
-          <i className="ri-arrow-down-s-line absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none" />
-        )}
-      </div>
-
-      {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1.5 max-h-60 overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl p-1.5 backdrop-blur-md">
-          {onAddNewClient && (
-            <div className="p-1 pb-1.5 border-b border-border mb-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  onAddNewClient(query);
-                }}
-                className="w-full text-left px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold flex items-center justify-between transition-colors"
-              >
-                <span className="flex items-center gap-1.5">
-                  <i className="ri-user-add-line text-sm" />
-                  <span>+ Agregar Nuevo Cliente</span>
-                </span>
-                <span className="text-[10px] bg-primary/20 px-2 py-0.5 rounded-full">Rápido</span>
-              </button>
-            </div>
-          )}
-
-          {filteredClients.length === 0 ? (
-            <div className="py-4 px-3 text-center text-xs text-muted-foreground space-y-2">
-              <p>No se encontraron clientes para &quot;{query}&quot;</p>
-              {onAddNewClient && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    onAddNewClient(query);
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 inline-flex items-center gap-1.5 transition-all shadow-sm"
-                >
-                  <i className="ri-user-add-line" />
-                  <span>Crear cliente &quot;{query}&quot;</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            filteredClients.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => {
-                  onChange(c.id, c.codigo);
-                  setQuery(`${c.codigo} - ${c.nombre}`);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between my-0.5 ${
-                  value === c.id || value === c.codigo
-                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
-                    : 'text-foreground hover:bg-muted/70'
-                }`}
-              >
-                <div className="truncate flex items-center gap-2">
-                  <span className="font-mono font-bold text-xs bg-muted/60 px-1.5 py-0.5 rounded-md border border-border/50 shrink-0">
-                    {c.codigo}
-                  </span>
-                  <span className="truncate font-medium">{c.nombre}</span>
-                </div>
-                <span className="text-[10px] opacity-80 uppercase font-semibold whitespace-nowrap ml-2 bg-muted/40 px-1.5 py-0.5 rounded">
-                  {c.pais || 'COL'}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
+  return <DetailSearchSelect
+    id={id}
+    value={selected?.id || ''}
+    options={clients.map((client) => ({
+      id: client.id,
+      label: client.codigo ? client.codigo + ' · ' + client.nombre : client.nombre,
+      search: client.codigo + ' ' + client.nombre,
+      details: <ClientDetails client={client} />,
+    }))}
+    onChange={(id) => onChange(id, clients.find((client) => client.id === id)?.codigo || '')}
+    placeholder={placeholder}
+    emptyMessage="No se encontraron clientes."
+    required={required}
+    compact={compact}
+    inputClassName={inputClassName}
+    onAdd={onAddNewClient}
+  />;
 };

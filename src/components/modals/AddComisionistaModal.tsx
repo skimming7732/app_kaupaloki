@@ -4,7 +4,7 @@ import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatNumber } from '../../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
-import { ClientSearchSelect } from '../common/ClientSearchSelect';
+import { ClientDetails, ClientSearchSelect } from '../common/ClientSearchSelect';
 
 interface AddComisionistaModalProps {
   isOpen: boolean;
@@ -25,13 +25,7 @@ const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, '
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toggleReferido = (id: string) => {
-    if (selectedReferidos.includes(id)) {
-      setSelectedReferidos(selectedReferidos.filter((r) => r !== id));
-    } else {
-      setSelectedReferidos([...selectedReferidos, id]);
-    }
-  };
+
 
     const handleDelete = async () => {
     if (!record) return;
@@ -162,28 +156,25 @@ const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, '
                 </button>
               )}
             </div>
-            <div className="max-h-44 overflow-y-auto rounded-xl border border-border p-2 space-y-1 bg-muted/20">
-              {data.clientes.map((c) => {
-                const isSelected = selectedReferidos.includes(c.id);
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => toggleReferido(c.id)}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                      isSelected
-                        ? 'bg-primary text-primary-foreground font-semibold'
-                        : 'hover:bg-muted text-foreground'
-                    }`}
-                  >
-                    <span className="truncate">
-                      <strong>{c.codigo}</strong> • {c.nombre}
-                    </span>
-                    <i className={isSelected ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'} />
-                  </button>
-                );
-              })}
-            </div>
+            <ClientSearchSelect value="" excludeIds={selectedReferidos} placeholder="Buscar y agregar cliente referido"
+              onChange={(id) => { if (id) setSelectedReferidos((current) => current.includes(id) ? current : [...current, id]); }} />
+            {selectedReferidos.length > 0 && (
+              <ul className="mt-2 max-h-44 space-y-1 overflow-y-auto">
+                {selectedReferidos.map((id) => {
+                  const client = data.clientes.find((item) => item.id === id);
+                  return (
+                    <li key={id} className="flex items-start justify-between gap-2 rounded-lg border border-border p-2">
+                      {client ? <ClientDetails client={client} /> : <span className="break-all text-xs">{id}</span>}
+                      <button type="button" aria-label={'Quitar ' + (client?.nombre || 'cliente referido')}
+                        onClick={() => setSelectedReferidos((current) => current.filter((item) => item !== id))}
+                        className="shrink-0 rounded px-1 text-muted-foreground hover:bg-muted hover:text-foreground">
+                        <i className="ri-close-line" aria-hidden="true" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">

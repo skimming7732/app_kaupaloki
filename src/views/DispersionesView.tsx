@@ -1,5 +1,5 @@
+import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
-import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { uploadReceipt, receiptAccept } from '../utils/receipts';
@@ -151,14 +151,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
 
           {/* Cliente */}
           <div>
-            <TableSelectFilter label="Cliente" value={selectedCliente} onChange={setSelectedCliente} className="w-full">
-              <option value="">Todos los clientes</option>
-              {data.clientes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.codigo} - {c.nombre}
-                </option>
-              ))}
-            </TableSelectFilter>
+            <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
           </div>
 
           {/* Fecha Desde */}

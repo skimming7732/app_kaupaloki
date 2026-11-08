@@ -6,7 +6,7 @@ import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCe
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
+import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
   const { metrics, data } = useData();
@@ -303,7 +303,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   )}
                 </div>
                 <span className="text-xs text-cyan-200/70 block mt-1 font-mono">
-                  Tasa: ${selectedWallet.rateFinal || 3950} COP / USDT
+                  Tasa: ${formatRate(selectedWallet.rateFinal || 3950)} COP / USDT
                 </span>
               </div>
             </div>

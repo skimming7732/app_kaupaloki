@@ -8,13 +8,14 @@ import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from 
 
 interface AddEfectivoModalProps {
   isOpen: boolean;
+  initialClienteId?: string;
   onClose: () => void;
 }
 
-export const AddEfectivoModal = ({ isOpen, onClose }: AddEfectivoModalProps) =>
-  isOpen ? <EfectivoForm onClose={onClose} /> : null;
+export const AddEfectivoModal = ({ isOpen, initialClienteId, onClose }: AddEfectivoModalProps) =>
+  isOpen ? <EfectivoForm key={initialClienteId} initialClienteId={initialClienteId} onClose={onClose} /> : null;
 
-const EfectivoForm = ({ onClose }: Pick<AddEfectivoModalProps, 'onClose'>) => {
+const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps, 'isOpen'>) => {
   const { data, createMovimientoEfectivo, createCliente } = useData();
   const id = useId();
   const [tipo, setTipo] = useState<'Ingreso' | 'Pago'>('Pago');

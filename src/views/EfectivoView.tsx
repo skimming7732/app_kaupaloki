@@ -1,3 +1,4 @@
+import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { recordButtonClass } from '../components/modals/RecordDialog';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
@@ -105,10 +106,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             </TableSelectFilter>
           </div>
 
-          <TableSelectFilter label="Cliente" value={selectedCliente} onChange={setSelectedCliente} className="w-full">
-            <option value="">Todos los clientes</option>
-            {data.clientes.map((c) => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
-          </TableSelectFilter>
+          <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
           {/* Fecha Desde */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>

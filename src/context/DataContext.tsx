@@ -86,6 +86,7 @@ export interface NormalizedData {
     codigo: string;
     nombre: string;
     pais?: string;
+    totalNegocios: number;
     totalIngresosCOP: number;
     totalDispersadoCOP: number;
     saldoPendienteCOP: number;
