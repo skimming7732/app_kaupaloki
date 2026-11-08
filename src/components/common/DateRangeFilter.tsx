@@ -137,6 +137,18 @@ export function DateRangeFilter({
           >
             Mes
           </button>
+          <button
+            type="button"
+            onClick={handleClear}
+            className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              !hasFilter
+                ? 'bg-primary/10 text-primary font-bold border border-primary/20'
+                : 'bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+            title="Ver todo el histórico (Máximo)"
+          >
+            Máx
+          </button>
           {hasFilter && (
             <button
               type="button"

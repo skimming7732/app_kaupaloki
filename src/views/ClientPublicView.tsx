@@ -1,12 +1,13 @@
 import { PublicHeader } from '../components/common/PublicHeader';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
 import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate } from '../utils/formatters';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 
 type PortalData = {
   client: Pick<NormalizedData['clientes'][number], 'codigo' | 'nombre' | 'pais' | 'saldoPendienteCOP' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'estado'>;
@@ -31,6 +32,11 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const [pinError, setPinError] = useState('');
   const [verifyingPin, setVerifyingPin] = useState(false);
 
+  // Filters state: Date range defaults to Máximo (empty strings = all dates)
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [selectedDivisa, setSelectedDivisa] = useState('');
+
   const isFromDashboard = preview && !!user && !!is2faVerified &&
     ['administrador', 'super_admin', 'operador', 'dispersor'].includes(profile?.role || '');
   const internalClient = isFromDashboard
@@ -42,20 +48,64 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const clientNegocios = internalClient ? data.negocios.filter(matches) : portal?.negocios || [];
   const dispersiones = internalClient ? data.dispersiones.filter(matches) : portal?.dispersiones || [];
   const efectivo = internalClient ? data.efectivo.filter(matches) : portal?.efectivo || [];
-  const clientPagos = [
+
+  const clientPagos = useMemo(() => [
     ...dispersiones.map((item) => ({
       ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos,
     })),
     ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({
       ...item, tipo: 'Pago en efectivo', origen: item.origenFondos, comprobanteUrl: undefined,
     })),
-  ].sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const clientIngresos = efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
+  ].sort((a, b) => b.fecha.localeCompare(a.fecha)), [dispersiones, efectivo]);
+
+  const clientIngresos = useMemo(() => efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
     ...item, concepto: item.referencia || 'Ingreso en efectivo', origen: item.origenFondos,
-  }));
-  const totalPagosMonto = clientPagos.reduce((sum, item) => sum + item.monto, 0);
-  const totalNegociosMonto = clientNegocios.reduce((sum, item) => sum + item.ingresoCOP, 0);
-  const totalIngresosMonto = clientIngresos.reduce((sum, item) => sum + item.monto, 0);
+  })).sort((a, b) => b.fecha.localeCompare(a.fecha)), [efectivo]);
+
+  // Available currencies from the client's transactions
+  const divisasUnicas = useMemo(() => {
+    const set = new Set<string>();
+    clientNegocios.forEach((item) => {
+      if (item.divisaCodigo) set.add(item.divisaCodigo.toUpperCase());
+    });
+    return Array.from(set).sort();
+  }, [clientNegocios]);
+
+  // Filtered lists reacting dynamically to date and currency
+  const filteredNegocios = useMemo(() => {
+    return clientNegocios.filter((item) => {
+      const matchFecha = matchesDateRange(item.fecha, fechaDesde, fechaHasta);
+      const matchDivisa = !selectedDivisa || item.divisaCodigo?.toUpperCase() === selectedDivisa.toUpperCase();
+      return matchFecha && matchDivisa;
+    });
+  }, [clientNegocios, fechaDesde, fechaHasta, selectedDivisa]);
+
+  const filteredPagos = useMemo(() => {
+    return clientPagos.filter((item) => {
+      return matchesDateRange(item.fecha, fechaDesde, fechaHasta);
+    });
+  }, [clientPagos, fechaDesde, fechaHasta]);
+
+  const filteredIngresos = useMemo(() => {
+    return clientIngresos.filter((item) => {
+      return matchesDateRange(item.fecha, fechaDesde, fechaHasta);
+    });
+  }, [clientIngresos, fechaDesde, fechaHasta]);
+
+  // Aggregated amounts for the filtered view
+  const totalPagosMonto = useMemo(() => clientPagos.reduce((sum, item) => sum + item.monto, 0), [clientPagos]);
+  const totalNegociosMonto = useMemo(() => clientNegocios.reduce((sum, item) => sum + item.ingresoCOP, 0), [clientNegocios]);
+  const totalIngresosMonto = useMemo(() => clientIngresos.reduce((sum, item) => sum + item.monto, 0), [clientIngresos]);
+
+  const totalFilteredPagosMonto = useMemo(() => filteredPagos.reduce((sum, item) => sum + item.monto, 0), [filteredPagos]);
+  const totalFilteredNegociosMonto = useMemo(() => filteredNegocios.reduce((sum, item) => sum + item.ingresoCOP, 0), [filteredNegocios]);
+  const totalFilteredNegociosDivisa = useMemo(() => {
+    if (!selectedDivisa) return 0;
+    return filteredNegocios.reduce((sum, item) => sum + item.montoDivisa, 0);
+  }, [filteredNegocios, selectedDivisa]);
+  const totalFilteredIngresosMonto = useMemo(() => filteredIngresos.reduce((sum, item) => sum + item.monto, 0), [filteredIngresos]);
+
+  const hasFilter = Boolean(fechaDesde || fechaHasta || selectedDivisa);
 
   const handleVerifyPin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -182,11 +232,82 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       </div>
 
       <KpiStrip label="Resumen de cuenta" metrics={[
-        { label: 'Saldo pendiente', value: formatCOP(totalNegociosMonto + totalIngresosMonto > 0 || totalPagosMonto > 0 ? (totalNegociosMonto + totalIngresosMonto - totalPagosMonto) : (client.saldoPendienteCOP || 0)), icon: 'ri-wallet-3-line', featured: true },
-        { label: 'Total ingresos', value: formatCOP(totalNegociosMonto + totalIngresosMonto > 0 ? (totalNegociosMonto + totalIngresosMonto) : (client.totalIngresosCOP || 0)), icon: 'ri-arrow-down-circle-line' },
-        { label: 'Total pagado', value: formatCOP(totalPagosMonto > 0 ? totalPagosMonto : (client.totalDispersadoCOP || 0)), icon: 'ri-send-plane-line' },
-        { label: 'Operaciones', value: clientNegocios.length + clientPagos.length + clientIngresos.length, icon: 'ri-list-check' },
+        {
+          label: 'Saldo pendiente (cuenta)',
+          value: formatCOP(client.saldoPendienteCOP ?? (totalNegociosMonto + totalIngresosMonto - totalPagosMonto)),
+          icon: 'ri-wallet-3-line',
+          featured: true,
+        },
+        {
+          label: selectedDivisa ? `Ingresos ${selectedDivisa}` : (hasFilter ? 'Ingresos en período' : 'Total ingresos'),
+          value: selectedDivisa
+            ? `${formatCurrency(totalFilteredNegociosDivisa, selectedDivisa)} (${formatCOP(totalFilteredNegociosMonto)})`
+            : formatCOP(hasFilter ? (totalFilteredNegociosMonto + totalFilteredIngresosMonto) : (totalNegociosMonto + totalIngresosMonto > 0 ? (totalNegociosMonto + totalIngresosMonto) : (client.totalIngresosCOP || 0))),
+          icon: 'ri-arrow-down-circle-line',
+        },
+        {
+          label: hasFilter ? 'Pagado en período' : 'Total pagado',
+          value: formatCOP(hasFilter ? totalFilteredPagosMonto : (totalPagosMonto > 0 ? totalPagosMonto : (client.totalDispersadoCOP || 0))),
+          icon: 'ri-send-plane-line',
+        },
+        {
+          label: 'Operaciones',
+          value: filteredNegocios.length + filteredPagos.length + filteredIngresos.length,
+          icon: 'ri-list-check',
+        },
       ]} />
+
+      {/* Filter Toolbar: Rango de fecha (por defecto Máximo) y Filtro de Divisa */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-card border border-border shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end gap-3 flex-1">
+          {/* Divisa Filter */}
+          <div className="flex flex-col gap-1.5 w-full sm:w-44">
+            <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+              <i className="ri-money-dollar-circle-line text-xs" />
+              <span>Divisa</span>
+            </span>
+            <select
+              aria-label="Filtrar por Divisa"
+              value={selectedDivisa}
+              onChange={(e) => setSelectedDivisa(e.target.value)}
+              className="h-8 rounded-lg border border-input bg-background px-2.5 py-1 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+            >
+              <option value="">Todas las divisas {divisasUnicas.length ? `(${divisasUnicas.length})` : ''}</option>
+              {divisasUnicas.map((div) => (
+                <option key={div} value={div}>{div}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date Range Filter with default Máximo */}
+          <DateRangeFilter
+            from={fechaDesde}
+            to={fechaHasta}
+            setFrom={setFechaDesde}
+            setTo={setFechaHasta}
+            className="w-full sm:w-auto"
+          />
+        </div>
+
+        {/* Clear Filters / Filter Status */}
+        {hasFilter && (
+          <div className="flex items-center gap-2 self-start md:self-end pb-0.5 text-xs">
+            <span className="text-muted-foreground text-[11px]">Filtro activo</span>
+            <button
+              type="button"
+              onClick={() => {
+                setFechaDesde('');
+                setFechaHasta('');
+                setSelectedDivisa('');
+              }}
+              className="px-2.5 py-1 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 font-bold transition-colors inline-flex items-center gap-1 text-[11px]"
+            >
+              <i className="ri-close-line" />
+              <span>Restablecer a Máximo</span>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Tabs Row */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
@@ -199,7 +320,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           }`}
         >
           <i className="ri-exchange-dollar-line" />
-          <span>Negocios ({formatNumber(clientNegocios.length)})</span>
+          <span>Negocios ({formatNumber(filteredNegocios.length)})</span>
         </button>
 
         <button
@@ -211,7 +332,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           }`}
         >
           <i className="ri-send-plane-line" />
-          <span>Pagos y Dispersiones ({formatNumber(clientPagos.length)})</span>
+          <span>Pagos y Dispersiones ({formatNumber(filteredPagos.length)})</span>
         </button>
 
         <button
@@ -223,7 +344,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           }`}
         >
           <i className="ri-arrow-down-circle-line" />
-          <span>Ingresos ({formatNumber(clientIngresos.length)})</span>
+          <span>Ingresos ({formatNumber(filteredIngresos.length)})</span>
         </button>
       </div>
 
@@ -242,30 +363,32 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4 text-right">Ingreso COP</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {clientNegocios.length === 0 ? (
+              <tbody className="divide-y border-border">
+                {filteredNegocios.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-muted-foreground">
-                      No hay negocios registrados para este cliente
+                      {hasFilter
+                        ? 'No hay negocios que coincidan con la fecha o divisa seleccionada'
+                        : 'No hay negocios registrados para este cliente'}
                     </td>
                   </tr>
                 ) : (
-                  <PaginatedRows columns={6} rows={clientNegocios}>{(n) => (
-                    <tr key={n.id} className="hover:bg-muted/30">
+                  <PaginatedRows columns={6} rows={filteredNegocios}>{(n) => (
+                    <tr key={n.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-medium">{n.codigo}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{formatDate(n.fecha)}</td>
+                      <td className="py-3 px-4 text-muted-foreground font-mono">{formatDate(n.fecha)}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-bold">
                           {n.divisaCodigo}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right font-medium">
+                      <td className="py-3 px-4 text-right font-medium font-mono">
                         {formatCurrency(n.montoDivisa, n.divisaCodigo)}
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-muted-foreground">
                         ${formatRate(n.tasaCambio)}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-foreground">
+                      <td className="py-3 px-4 text-right font-bold text-foreground font-mono">
                         {formatCOP(n.ingresoCOP)}
                       </td>
                     </tr>
@@ -292,18 +415,20 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4 text-right">Monto Pagado (COP)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {clientPagos.length === 0 ? (
+              <tbody className="divide-y border-border">
+                {filteredPagos.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-muted-foreground">
-                      No hay pagos ni dispersiones registradas
+                      {hasFilter
+                        ? 'No hay pagos ni dispersiones en el rango de fechas seleccionado'
+                        : 'No hay pagos ni dispersiones registradas'}
                     </td>
                   </tr>
                 ) : (
-                  <PaginatedRows columns={6} rows={clientPagos}>{(p) => (
-                    <tr key={p.id} className="hover:bg-muted/30">
+                  <PaginatedRows columns={6} rows={filteredPagos}>{(p) => (
+                    <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-medium">{p.codigo}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{formatDate(p.fecha)}</td>
+                      <td className="py-3 px-4 text-muted-foreground font-mono">{formatDate(p.fecha)}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-foreground border border-border">
                           {p.tipo}
@@ -311,7 +436,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{p.origen}</td>
                       <td className="py-3 px-4 font-mono text-muted-foreground">{p.referencia || '—'}</td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-500">
+                      <td className="py-3 px-4 text-right font-bold text-emerald-500 font-mono">
                         {formatCOP(p.monto)}
                       </td>
                     </tr>
@@ -337,21 +462,23 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4 text-right">Monto Ingresado (COP)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {clientIngresos.length === 0 ? (
+              <tbody className="divide-y border-border">
+                {filteredIngresos.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-10 text-center text-muted-foreground">
-                      No hay ingresos de caja registrados para este cliente
+                      {hasFilter
+                        ? 'No hay ingresos de caja en el rango de fechas seleccionado'
+                        : 'No hay ingresos de caja registrados para este cliente'}
                     </td>
                   </tr>
                 ) : (
-                  <PaginatedRows columns={5} rows={clientIngresos}>{(i) => (
-                    <tr key={i.id} className="hover:bg-muted/30">
+                  <PaginatedRows columns={5} rows={filteredIngresos}>{(i) => (
+                    <tr key={i.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-medium">{i.codigo}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{formatDate(i.fecha)}</td>
+                      <td className="py-3 px-4 text-muted-foreground font-mono">{formatDate(i.fecha)}</td>
                       <td className="py-3 px-4 font-medium text-foreground">{i.concepto}</td>
                       <td className="py-3 px-4 text-muted-foreground">{i.origen}</td>
-                      <td className="py-3 px-4 text-right font-bold text-foreground">
+                      <td className="py-3 px-4 text-right font-bold text-foreground font-mono">
                         {formatCOP(i.monto)}
                       </td>
                     </tr>

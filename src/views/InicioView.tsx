@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData, type NormalizedData } from '../context/DataContext';
-import { KpiStrip } from '../components/common/KpiStrip';
-import { formatNumber, fallbackBanderaUrl, formatDate } from '../utils/formatters';
+import { formatNumber, formatCOP, fallbackBanderaUrl, formatDate } from '../utils/formatters';
 
 const weekMs = 7 * 86400000;
 const bogotaDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' });
@@ -39,19 +38,24 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
   }
   const end = Date.parse(bogotaDay.format(new Date())) + 86400000;
   const start = end - weekMs * 8;
+  const amounts = Array<number>(8).fill(0);
   const counts = Array<number>(8).fill(0);
+
   for (const negocio of negocios) {
     const createdAt = Date.parse(negocio.createdAtAudit || '');
     const day = Number.isFinite(createdAt) ? bogotaDay.format(createdAt) : negocio.fecha?.slice(0, 10) || '';
     const index = Math.floor((Date.parse(day) - start) / weekMs);
-    if (index >= 0 && index < counts.length) counts[index]++;
+    if (index >= 0 && index < amounts.length) {
+      amounts[index] += Number(negocio.ingresoCOP || 0);
+      counts[index]++;
+    }
   }
 
-  const max = Math.max(1, ...counts);
-  const total = counts.reduce((sum, count) => sum + count, 0);
+  const max = Math.max(1, ...amounts);
+  const total = amounts.reduce((sum, val) => sum + val, 0);
 
   // Default active point is the latest or highest
-  const defaultIdx = counts.lastIndexOf(max) >= 0 ? counts.lastIndexOf(max) : counts.length - 1;
+  const defaultIdx = amounts.lastIndexOf(max) >= 0 ? amounts.lastIndexOf(max) : amounts.length - 1;
   const [activeIdx, setActiveIdx] = useState(defaultIdx);
 
   // SVG dimensions
@@ -62,17 +66,19 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
   const padBottom = 25;
   const plotWidth = width - padX * 2;
   const plotHeight = height - padTop - padBottom;
-  const baseY = height - padBottom;
 
-  const points = counts.map((count, i) => ({
-    x: padX + (i * plotWidth) / (counts.length - 1),
-    y: padTop + (1 - count / max) * plotHeight,
+  const points = amounts.map((amount, i) => ({
+    x: padX + (i * plotWidth) / (amounts.length - 1),
+    y: padTop + (1 - amount / max) * plotHeight,
   }));
 
   const linePath = buildSmoothPath(points);
-  const areaPath = points.length > 0 ? `${linePath} L ${points[points.length - 1].x},${baseY} L ${points[0].x},${baseY} Z` : '';
   const activePoint = points[activeIdx] || points[points.length - 1];
-  const tooltipX = activePoint ? Math.max(45, Math.min(width - 45, activePoint.x)) : 320;
+
+  const activeAmount = amounts[activeIdx] || 0;
+  const tooltipText = formatCOP(activeAmount);
+  const pillWidth = Math.max(90, tooltipText.length * 7.5 + 24);
+  const tooltipX = activePoint ? Math.max(pillWidth / 2 + 8, Math.min(width - pillWidth / 2 - 8, activePoint.x)) : 320;
 
   return (
     <section className="h-full rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm transition-all flex flex-col justify-between" aria-labelledby="growth-heading">
@@ -90,11 +96,11 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
 
         {/* Main Metric */}
         <div className="mt-2 mb-4">
-          <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
-            {formatNumber(total)}
+          <div className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground font-mono">
+            {formatCOP(total)}
           </div>
           <div className="flex items-center gap-2.5 mt-1">
-            <span className="text-xs font-medium text-muted-foreground">Registro de negocios autorizados</span>
+            <span className="text-xs font-medium text-muted-foreground">Ingresos totales de clientes en el período</span>
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500">
               <i className="ri-checkbox-circle-fill text-xs" /> En curso
             </span>
@@ -106,8 +112,7 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
       <div className="relative w-full pt-1">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-44 sm:h-52 overflow-visible select-none"
-          preserveAspectRatio="none"
+          className="w-full h-44 sm:h-52 select-none"
         >
           <defs>
             <linearGradient id="curveStrokeGrad" x1="0" y1="0" x2="1" y2="0">
@@ -115,15 +120,20 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
               <stop offset="60%" stopColor="#6366f1" />
               <stop offset="100%" stopColor="#7c3aed" />
             </linearGradient>
-            <filter id="curveShadow" x="-10%" y="-10%" width="120%" height="220%">
-              <feDropShadow dx="0" dy="10" stdDeviation="6" floodColor="#6366f1" floodOpacity="0.32" />
-            </filter>
-            <filter id="badgeShadow" x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#4f46e5" floodOpacity="0.25" />
-            </filter>
           </defs>
 
-          {/* Smooth Single Spline Line with soft drop shadow (hardware-accelerated across mobile) */}
+          {/* Glow shadow line (safe across all mobile GPUs) */}
+          <path
+            d={linePath}
+            fill="none"
+            stroke="#6366f1"
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.18"
+          />
+
+          {/* Smooth Single Spline Line */}
           <path
             d={linePath}
             fill="none"
@@ -131,7 +141,6 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
             strokeWidth="3.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ filter: 'drop-shadow(0 8px 10px rgba(99, 102, 241, 0.32))' }}
           />
 
           {/* Interactive Node Anchors */}
@@ -140,7 +149,7 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
               <circle
                 cx={p.x}
                 cy={p.y}
-                r="18"
+                r="20"
                 fill="transparent"
                 className="cursor-pointer"
                 onMouseEnter={() => setActiveIdx(i)}
@@ -153,24 +162,23 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
           {/* Active Highlight Node matching user design */}
           {activePoint && (
             <g className="transition-all duration-200">
-              {/* Clean hollow circular point on curve */}
               <circle cx={activePoint.x} cy={activePoint.y} r="5.5" fill="#ffffff" stroke="#6366f1" strokeWidth="3" />
 
-              {/* Tooltip Pill directly above point with light clean font */}
-              <g transform={`translate(${tooltipX}, ${activePoint.y - 32})`} style={{ filter: 'drop-shadow(0 4px 6px rgba(79, 70, 229, 0.28))' }}>
-                <rect x="-38" y="-11" width="76" height="22" rx="6" fill="#6366f1" />
-                <polygon points="-4,11 4,11 0,15" fill="#6366f1" />
+              {/* Tooltip Pill directly above point */}
+              <g transform={`translate(${tooltipX}, ${activePoint.y - 32})`}>
+                <rect x={-pillWidth / 2} y="-11" width={pillWidth} height="22" rx="6" fill="#4f46e5" />
+                <polygon points="-4,11 4,11 0,15" fill="#4f46e5" />
                 <text
                   x="0"
                   y="3.5"
                   textAnchor="middle"
                   fill="#ffffff"
                   fontSize="11"
-                  fontWeight="500"
+                  fontWeight="600"
                   letterSpacing="0.02em"
                   style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
                 >
-                  {counts[activeIdx]} {counts[activeIdx] === 1 ? 'negocio' : 'negocios'}
+                  {tooltipText}
                 </text>
               </g>
             </g>
@@ -179,13 +187,13 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
 
         {/* Horizontal Dates Axis (Responsive: 4 on mobile, all 8 on desktop) */}
         <div className="flex justify-between items-center px-1 sm:px-4 pt-3 mt-1">
-          {counts.map((_, i) => (
+          {amounts.map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={() => setActiveIdx(i)}
               className={`text-[10px] sm:text-[11px] uppercase tracking-wider font-medium transition-colors ${
-                i % 2 !== 0 && i !== counts.length - 1 ? 'hidden sm:inline-block' : 'inline-block'
+                i % 2 !== 0 && i !== amounts.length - 1 ? 'hidden sm:inline-block' : 'inline-block'
               } ${
                 i === activeIdx ? 'text-primary font-bold' : 'text-muted-foreground/70 hover:text-foreground'
               }`}
@@ -201,15 +209,12 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
 
 export const InicioView = () => {
   const { user, profile } = useAuth();
-  const { data, loading } = useData();
+  const { data, loading, metrics } = useData();
   const admin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const canSeeNegocios = admin || profile?.role === 'operador';
   const authorized = profile?.authorized_currencies || [];
   const divisas = admin || !authorized.length ? data.divisas
     : data.divisas.filter((currency) => authorized.includes(currency.codigo));
-  const negocios = canSeeNegocios ? data.negocios.filter((item) =>
-    admin || !authorized.length || authorized.includes(item.divisaCodigo)
-  ) : [];
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 py-4">
@@ -229,62 +234,68 @@ export const InicioView = () => {
         </div>
       </div>
 
-      {/* 75% Chart / 25% Stacked KPIs Layout */}
-      {canSeeNegocios ? (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
-          {/* Chart takes 75% of width */}
-          <div className="lg:col-span-3">
-            <GrowthChart negocios={negocios} loading={loading} />
+      {/* 75% Chart / 25% Stacked KPIs Layout — Visible para TODOS los usuarios */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
+        {/* Chart takes 75% of width */}
+        <div className="lg:col-span-3">
+          <GrowthChart negocios={data.negocios} loading={loading} />
+        </div>
+
+        {/* KPIs stacked vertically taking 25% of width */}
+        <div className="lg:col-span-1 flex flex-col justify-between gap-3">
+          <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Total Ingresos Clientes</span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-sm">
+                <i className="ri-hand-coin-line" />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground font-mono mt-2 truncate" title={formatCOP(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP)}>
+              {formatCOP(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP)}
+            </div>
+            <span className="text-[11px] text-muted-foreground mt-0.5">Histórico consolidado</span>
           </div>
 
-          {/* KPIs stacked vertically taking 25% of width */}
-          <div className="lg:col-span-1 flex flex-col justify-between gap-3">
-            <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Negocios registrados</span>
-                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm">
-                  <i className="ri-exchange-dollar-line" />
-                </div>
+          <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Negocios registrados</span>
+              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm">
+                <i className="ri-exchange-dollar-line" />
               </div>
-              <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
-                {formatNumber(negocios.length)}
-              </div>
-              <span className="text-[11px] text-muted-foreground mt-0.5">Operaciones autorizadas</span>
             </div>
+            <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
+              {formatNumber(data.negocios.length)}
+            </div>
+            <span className="text-[11px] text-muted-foreground mt-0.5">Operaciones registradas</span>
+          </div>
 
-            <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Clientes registrados</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-sm">
-                  <i className="ri-team-line" />
-                </div>
+          <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Clientes registrados</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-sm">
+                <i className="ri-team-line" />
               </div>
-              <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
-                {formatNumber(data.clientes.length)}
-              </div>
-              <span className="text-[11px] text-muted-foreground mt-0.5">Cartera global</span>
             </div>
+            <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
+              {formatNumber(data.clientes.length)}
+            </div>
+            <span className="text-[11px] text-muted-foreground mt-0.5">Cartera global</span>
+          </div>
 
-            <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Divisas autorizadas</span>
-                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-sm">
-                  <i className="ri-global-line" />
-                </div>
+          <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Divisas autorizadas</span>
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-sm">
+                <i className="ri-global-line" />
               </div>
-              <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
-                {formatNumber(divisas.length)}
-              </div>
-              <span className="text-[11px] text-muted-foreground mt-0.5">Mercados activos</span>
             </div>
+            <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
+              {formatNumber(divisas.length)}
+            </div>
+            <span className="text-[11px] text-muted-foreground mt-0.5">Mercados activos</span>
           </div>
         </div>
-      ) : (
-        <KpiStrip label="Indicadores de inicio" metrics={[
-          { label: 'Clientes registrados', value: data.clientes.length, icon: 'ri-team-line' },
-          { label: 'Divisas autorizadas', value: divisas.length, icon: 'ri-global-line' },
-        ]} />
-      )}
+      </div>
 
       {/* Authorized Currencies */}
       <section className="rounded-2xl border border-border bg-card p-4 sm:p-6" aria-labelledby="currency-heading">
