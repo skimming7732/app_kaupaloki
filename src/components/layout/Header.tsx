@@ -77,6 +77,10 @@ export const Header: React.FC<HeaderProps> = ({
         title = 'Ventas USDT';
         subtitle = 'Liquidación y monetización de Tether a cuentas bancarias y caja';
         break;
+      case '/transferencias-internas':
+        title = 'Transferencias Internas';
+        subtitle = 'Movimientos entre activos líquidos y digitales';
+        break;
       case '/efectivo':
         title = 'Efectivo';
         subtitle = 'Efectivo Dosquebradas y pagos físicos';

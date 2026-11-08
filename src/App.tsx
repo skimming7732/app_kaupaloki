@@ -29,6 +29,7 @@ import { ClientPublicView } from './views/ClientPublicView';
 import { ComprasUsdtView } from './views/ComprasUsdtView';
 import { VentasUsdtView } from './views/VentasUsdtView';
 import { ComisionistasView } from './views/ComisionistasView';
+import { TransferenciasInternasView } from './views/TransferenciasInternasView';
 
 // Modals
 import { AddNegocioModal } from './components/modals/AddNegocioModal';
@@ -217,6 +218,10 @@ export const App: React.FC = () => {
             <Route
               path="/ventas-usdt"
               element={renderWithLayout(<VentasUsdtView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/transferencias-internas"
+              element={renderWithLayout(<TransferenciasInternasView />, ['super_admin', 'administrador'])}
             />
             <Route
               path="/efectivo"

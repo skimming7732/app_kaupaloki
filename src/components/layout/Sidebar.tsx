@@ -64,6 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       ...(isAdmin ? [
         { to: '/compras-usdt', label: 'Compras USDT', icon: 'ri-shopping-cart-2-line' },
         { to: '/ventas-usdt', label: 'Ventas USDT', icon: 'ri-funds-line' },
+        { to: '/transferencias-internas', label: 'Transferencias internas', icon: 'ri-arrow-left-right-line' },
         { to: '/comisionistas', label: 'Comisionistas', icon: 'ri-user-star-line' },
         { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
       ] : []),

@@ -58,6 +58,7 @@ export interface DataSnapshot {
   divisas: any[];
   comprasUsdt: any[];
   ventasUsdt: any[];
+  transferenciasInternas?: any[];
   activosLiquidos: any[];
   activosDigitales: any[];
   efectivo: any[];
@@ -65,6 +66,29 @@ export interface DataSnapshot {
   comisionistas?: any[];
   usuarios: any[];
   resumenLiquidacion?: ResumenLiquidacion;
+}
+
+export interface TransferenciaInterna extends CreationAudit {
+  id: string;
+  codigo: string;
+  fecha: string;
+  tipoOrigen: 'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL';
+  origenId: string;
+  origenNombre: string;
+  tipoDestino: 'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL';
+  destinoId: string;
+  destinoNombre: string;
+  monto: number;
+  divisaOrigen: string;
+  montoDestino: number;
+  divisaDestino: string;
+  tasa: number;
+  costo: number;
+  divisaCosto: string;
+  concepto: string;
+  notas?: string;
+  comprobanteUrl?: string;
+  raw: any;
 }
 
 export interface GastoItem extends CreationAudit {
@@ -201,6 +225,7 @@ export interface NormalizedData {
     fechaCreacion?: string;
     raw: any;
   }>;
+  transferenciasInternas: TransferenciaInterna[];
   usuarios: AppUser[];
   activosLiquidos: any[];
   activosDigitales: any[];
@@ -252,6 +277,9 @@ interface DataContextType {
   updateCliente: (payload: { id: string; nombre?: string; pais?: string; authorId?: string }) => Promise<boolean>;
   deleteUser: (idOrEmail: string) => Promise<{ success: boolean; error?: string }>;
   sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
+  createTransferenciaInterna: (payload: any) => Promise<boolean>;
+  updateTransferenciaInterna: (id: string, payload: any) => Promise<boolean>;
+  deleteTransferenciaInterna: (id: string) => Promise<boolean>;
   updateUserPermissions: (payload: any) => Promise<boolean>;
   saveComisionista: (payload: { id?: string; comisionistaId: string; comisionaDeIds: string[]; porcentajeComision: number }) => Promise<boolean>;
 }
@@ -264,6 +292,7 @@ const defaultSnapshot: DataSnapshot = {
   divisas: [],
   comprasUsdt: [],
   ventasUsdt: [],
+  transferenciasInternas: [],
   comisionistas: [],
   activosLiquidos: [],
   activosDigitales: [],
@@ -325,6 +354,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('activos_digitales').select('*'),
         supabase.from('efectivo').select('*').order('fecha', { ascending: false }),
         supabase.from('gastos').select('*').order('fecha', { ascending: false }),
+        supabase.from('transferencias_internas').select('*').order('fecha', { ascending: false }),
         supabase.from('resumen_liquidacion').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.rpc('listar_perfiles_dashboard'),
         supabase.rpc('listar_comisionistas_dashboard'),
@@ -336,7 +366,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const [
         clientesData, divisasData, negociosData, dispersionesData, comprasUsdtData,
         ventasUsdtData, activosLiquidosData, activosDigitalesData, efectivoData,
-        gastosData, resumenData, profilesData, comisionistasData,
+        gastosData, transferenciasInternasData, resumenData, profilesData, comisionistasData,
       ] = results.map((result) => result.data);
 
       const clientes = (clientesData || []).map((c: any) => ({
@@ -557,6 +587,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         pagos: dispersiones,
         comprasUsdt,
         ventasUsdt,
+        transferenciasInternas: transferenciasInternasData || [],
         activosLiquidos,
         activosDigitales,
         efectivo,
@@ -910,6 +941,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     });
 
+    // Transferencias Internas
+    const transferenciasInternas: TransferenciaInterna[] = (snapshot.transferenciasInternas || []).map((t: any) => ({
+      id: t.id,
+      codigo: t.codigo || 'TRF-000',
+      fecha: t.fecha || '',
+      tipoOrigen: t.tipo_origen || t.tipoOrigen,
+      origenId: t.origen_id || t.origenId,
+      origenNombre: t.origen_nombre || t.origenNombre || '',
+      tipoDestino: t.tipo_destino || t.tipoDestino,
+      destinoId: t.destino_id || t.destinoId,
+      destinoNombre: t.destino_nombre || t.destinoNombre || '',
+      monto: Number(t.monto || 0),
+      divisaOrigen: t.divisa_origen || t.divisaOrigen || 'COP',
+      montoDestino: Number(t.monto_destino ?? t.montoDestino ?? t.monto ?? 0),
+      divisaDestino: t.divisa_destino || t.divisaDestino || 'COP',
+      tasa: Number(t.tasa ?? 1),
+      costo: Number(t.costo ?? 0),
+      divisaCosto: t.divisa_costo || t.divisaCosto || 'COP',
+      concepto: t.concepto || '',
+      notas: t.notas,
+      comprobanteUrl: t.comprobante_url || t.comprobanteUrl,
+      ...creationAudit(t),
+      raw: t,
+    }));
+
     // Combine stored movements and transactions linked to this specific account.
     type LinkedMovement = CreationAudit & { fecha: string; origen: string; concepto: string; monto: number; tercero?: string };
     const mergeMovements = (account: any, linked: LinkedMovement[], excludedOrigins: Set<string>) => {
@@ -969,6 +1025,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((d) => movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto)),
         ...ventasUsdt.filter((v) => v.destinoFondosId === account.id)
           .map((v) => movement(v, 'Venta USDT: ' + v.concepto, v.totalCOP)),
+        ...transferenciasInternas.filter((t) => t.tipoOrigen === 'ACTIVO_LIQUIDO' && t.origenId === account.id)
+          .flatMap((t) => [
+            movement(t, 'Transferencia a ' + (t.destinoNombre || 'cuenta') + (t.concepto ? ': ' + t.concepto : ''), -t.monto),
+            ...(t.costo > 0 && t.divisaCosto === 'COP' ? [{
+              ...creationAudit(t),
+              fecha: t.fecha,
+              origen: t.codigo + '-FEE',
+              concepto: 'Comisión transferencia ' + t.codigo,
+              monto: -t.costo,
+            }] : []),
+          ]),
+        ...transferenciasInternas.filter((t) => t.tipoDestino === 'ACTIVO_LIQUIDO' && t.destinoId === account.id)
+          .map((t) => movement(t, 'Transferencia desde ' + (t.origenNombre || 'cuenta') + (t.concepto ? ': ' + t.concepto : ''), t.montoDestino)),
       ], new Set([
         ...ventasUsdt.filter((v) => v.destinoFondosId && v.destinoFondosId !== account.id).map((v) => v.codigo),
         ...dispersiones.filter((d) => d.estado.trim().toUpperCase() === 'RECHAZADO').map((d) => d.codigo),
@@ -985,6 +1054,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((c) => movement(c, 'Compra USDT en ' + c.divisaCodigo, c.usdtComprado)),
         ...ventasUsdt.filter((v) => v.walletOrigenId === account.id)
           .map((v) => movement(v, 'Venta USDT: ' + v.concepto, -v.usdtVendido)),
+        ...transferenciasInternas.filter((t) => t.tipoOrigen === 'ACTIVO_DIGITAL' && t.origenId === account.id)
+          .flatMap((t) => [
+            movement(t, 'Transferencia a ' + (t.destinoNombre || 'billetera') + (t.concepto ? ': ' + t.concepto : ''), -t.monto),
+            ...(t.costo > 0 && t.divisaCosto === 'USDT' ? [{
+              ...creationAudit(t),
+              fecha: t.fecha,
+              origen: t.codigo + '-FEE',
+              concepto: 'Comisión transferencia ' + t.codigo,
+              monto: -t.costo,
+            }] : []),
+          ]),
+        ...transferenciasInternas.filter((t) => t.tipoDestino === 'ACTIVO_DIGITAL' && t.destinoId === account.id)
+          .map((t) => movement(t, 'Transferencia desde ' + (t.origenNombre || 'billetera') + (t.concepto ? ': ' + t.concepto : ''), t.montoDestino)),
       ], new Set(ventasUsdt.filter((v) => v.walletOrigenId && v.walletOrigenId !== account.id).map((v) => v.codigo))),
     }));
 
@@ -999,6 +1081,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       comprasUsdt,
       ventasUsdt,
       comisionistas,
+      transferenciasInternas,
       activosLiquidos: enrichedActivosLiquidos,
       activosDigitales: enrichedActivosDigitales,
     };
@@ -1433,10 +1516,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         break;
       case 'activos_liquidos':
-        record = { ...record, divisa: 'COP', saldo_inicial: fields.saldo_cop, saldo_real: null, ingresos_cop: 0, egresos_cop: 0 };
+        if (!editId) {
+          record = { ...record, divisa: 'COP', saldo_inicial: fields.saldo_cop, saldo_real: null, ingresos_cop: 0, egresos_cop: 0 };
+        }
         break;
       case 'activos_digitales':
-        record = { ...record, id_wallet: fields.wallet, saldo_inicial: fields.saldo_usdt, saldo_real: null, ingresos_usdt: 0, egresos_usdt: 0 };
+        if (!editId) {
+          record = { ...record, id_wallet: fields.wallet, saldo_inicial: fields.saldo_usdt, saldo_real: null, ingresos_usdt: 0, egresos_usdt: 0 };
+        }
         break;
       case 'divisas':
         record = { ...record, divisa: fields.codigo, total_recibido: 0, total_comprado: 0, total_pendiente: 0 };
@@ -1616,6 +1703,80 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const createTransferenciaInterna = async (payload: any): Promise<boolean> => {
+    try {
+      const record = {
+        fecha: payload.fecha || new Date().toISOString().slice(0, 10),
+        tipo_origen: payload.tipoOrigen,
+        origen_id: payload.origenId,
+        origen_nombre: payload.origenNombre,
+        tipo_destino: payload.tipoDestino,
+        destino_id: payload.destinoId,
+        destino_nombre: payload.destinoNombre,
+        monto: Number(payload.monto),
+        divisa_origen: payload.divisaOrigen || (payload.tipoOrigen === 'ACTIVO_DIGITAL' ? 'USDT' : 'COP'),
+        monto_destino: Number(payload.montoDestino || payload.monto),
+        divisa_destino: payload.divisaDestino || (payload.tipoDestino === 'ACTIVO_DIGITAL' ? 'USDT' : 'COP'),
+        tasa: Number(payload.tasa || 1),
+        costo: Number(payload.costo || 0),
+        divisa_costo: payload.divisaCosto || (payload.tipoOrigen === 'ACTIVO_DIGITAL' ? 'USDT' : 'COP'),
+        concepto: payload.concepto?.trim() || '',
+        notas: payload.notas?.trim() || null,
+        comprobante_url: payload.comprobanteUrl || null,
+      };
+      const { error } = await supabase.from('transferencias_internas').insert(record);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err: any) {
+      console.error('Error creating transferencia interna:', err);
+      throw dashboardWriteError(err, 'No se pudo registrar la transferencia interna.');
+    }
+  };
+
+  const updateTransferenciaInterna = async (id: string, payload: any): Promise<boolean> => {
+    try {
+      const record = {
+        fecha: payload.fecha,
+        tipo_origen: payload.tipoOrigen,
+        origen_id: payload.origenId,
+        origen_nombre: payload.origenNombre,
+        tipo_destino: payload.tipoDestino,
+        destino_id: payload.destinoId,
+        destino_nombre: payload.destinoNombre,
+        monto: Number(payload.monto),
+        divisa_origen: payload.divisaOrigen,
+        monto_destino: Number(payload.montoDestino || payload.monto),
+        divisa_destino: payload.divisaDestino,
+        tasa: Number(payload.tasa || 1),
+        costo: Number(payload.costo || 0),
+        divisa_costo: payload.divisaCosto,
+        concepto: payload.concepto?.trim() || '',
+        notas: payload.notas?.trim() || null,
+        comprobante_url: payload.comprobanteUrl || null,
+      };
+      const { error } = await supabase.from('transferencias_internas').update(record).eq('id', id);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err: any) {
+      console.error('Error updating transferencia interna:', err);
+      throw dashboardWriteError(err, 'No se pudo actualizar la transferencia interna.');
+    }
+  };
+
+  const deleteTransferenciaInterna = async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('transferencias_internas').delete().eq('id', id);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting transferencia interna:', err);
+      throw dashboardWriteError(err, 'No se pudo eliminar la transferencia interna.');
+    }
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -1645,6 +1806,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteGasto,
         deleteComisionista,
         deleteCatalogRecord,
+        createTransferenciaInterna,
+        updateTransferenciaInterna,
+        deleteTransferenciaInterna,
         updateRateUsdt,
         saveComisionista,
         deleteUser,

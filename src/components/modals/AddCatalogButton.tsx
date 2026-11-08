@@ -167,10 +167,15 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
     const record: Record<string, string | number> = {};
 
     if (isPurchase) {
+      if (!currency) {
+        setError('Selecciona la divisa entregada.');
+        return;
+      }
       if (!destinationId) {
         setError('Selecciona la billetera de destino.');
         return;
       }
+      record.divisa_codigo = currency;
       record.wallet_destino_id = destinationId;
       record.usdt_comprado = received;
       record.costo = rate === 0 || numericAmount === 0 ? 0 : Number((received / numericAmount).toFixed(8));
@@ -187,7 +192,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
 
     for (const field of form.fields) {
       if (isUsdt && field.accounts) continue;
-      if (isPurchase && field.name === 'usdt_comprado') continue;
+      if (isPurchase && (field.name === 'usdt_comprado' || field.name === 'divisa_codigo')) continue;
       const value = String(values.get(field.name) || '').trim();
       const allowsZero = isPurchase && field.name === 'tasa';
       if (!value && !field.optional && (!allowsZero || value === '')) {
@@ -234,9 +239,12 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
 
   const renderField = (field: Field) => {
     if (isPurchase && field.name === 'divisa_codigo') return (
-      <CurrencySelect key={field.name} label={field.label} currencies={data.divisas}
-        value={currency} onChange={(code) => setCurrency(code)}
-        details={(item) => formatNumber(item.totalPendiente, 0, 6)} />
+      <div key={field.name}>
+        <CurrencySelect label={field.label} currencies={data.divisas}
+          value={currency} onChange={(code) => setCurrency(code)}
+          details={(item) => formatNumber(item.totalPendiente, 0, 6)} />
+        <input type="hidden" name="divisa_codigo" value={currency} />
+      </div>
     );
     if (field.accounts) {
       if (edit?.historical) return null;

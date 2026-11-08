@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -440,6 +441,14 @@ export const ActivosLiquidosView: React.FC = () => {
         /* VISTA GENERAL: RESUMEN CONSOLIDADO + TARJETAS HORIZON UI + TABLA */
         /* ============================================================== */
         <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Activos Líquidos</h1>
+              <p className="text-xs text-muted-foreground">Gestión de cuentas bancarias operativas y efectivo en custodia.</p>
+            </div>
+            <AddCatalogButton table="activos_liquidos" />
+          </div>
+
           {/* Consolidated Summary Banner */}
           <div
             style={{
@@ -554,6 +563,7 @@ export const ActivosLiquidosView: React.FC = () => {
                 <h3 className="text-sm font-bold text-foreground">Detalle de Instituciones</h3>
                 <p className="text-xs text-muted-foreground">Listado de balances y acceso directo a movimientos</p>
               </div>
+              <AddCatalogButton table="activos_liquidos" />
             </div>
 
             <div className="overflow-x-auto">
@@ -596,17 +606,32 @@ export const ActivosLiquidosView: React.FC = () => {
                         {formatCOP(a.saldoCop || 0)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedActivoId(a.id);
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-[11px] inline-flex items-center gap-1 transition-colors"
-                        >
-                          <span>Extracto</span>
-                          <i className="ri-arrow-right-line" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedActivoId(a.id)}
+                            className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-[11px] inline-flex items-center gap-1 transition-colors"
+                          >
+                            <span>Extracto</span>
+                            <i className="ri-arrow-right-line" />
+                          </button>
+                          <AddCatalogButton
+                            table="activos_liquidos"
+                            edit={{
+                              id: a.id,
+                              historical: false,
+                              fields: {
+                                activo: a.activo || '',
+                                institucion: a.institucion || '',
+                                titular: a.titular || '',
+                                empresa: a.empresa || '',
+                                cuenta: a.cuenta || '',
+                                tarifas: a.tarifas || '',
+                                saldo_cop: a.saldoCop || 0,
+                              },
+                            }}
+                          />
+                        </div>
                       </td>
                       <CreatedByCell name={a.createdByName} />
                     </tr>
