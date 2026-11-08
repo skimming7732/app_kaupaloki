@@ -28,7 +28,15 @@ const buildSmoothPath = (points: { x: number; y: number }[]) => {
   return d;
 };
 
-const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => {
+const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios']; loading?: boolean }) => {
+  if (loading) {
+    return (
+      <section className="h-full min-h-[280px] rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm flex flex-col items-center justify-center gap-3">
+        <i className="ri-loader-4-line text-2xl text-primary animate-spin" />
+        <span className="text-xs text-muted-foreground font-semibold">Cargando métricas y gráfica...</span>
+      </section>
+    );
+  }
   const end = Date.parse(bogotaDay.format(new Date())) + 86400000;
   const start = end - weekMs * 8;
   const counts = Array<number>(8).fill(0);
@@ -49,7 +57,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
   // SVG dimensions
   const width = 640;
   const height = 180;
-  const padX = 35;
+  const padX = 42;
   const padTop = 45;
   const padBottom = 25;
   const plotWidth = width - padX * 2;
@@ -64,6 +72,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
   const linePath = buildSmoothPath(points);
   const areaPath = points.length > 0 ? `${linePath} L ${points[points.length - 1].x},${baseY} L ${points[0].x},${baseY} Z` : '';
   const activePoint = points[activeIdx] || points[points.length - 1];
+  const tooltipX = activePoint ? Math.max(45, Math.min(width - 45, activePoint.x)) : 320;
 
   return (
     <section className="h-full rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm transition-all flex flex-col justify-between" aria-labelledby="growth-heading">
@@ -114,7 +123,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
             </filter>
           </defs>
 
-          {/* Smooth Single Spline Line with soft drop shadow underneath (no filled mountain) */}
+          {/* Smooth Single Spline Line with soft drop shadow (hardware-accelerated across mobile) */}
           <path
             d={linePath}
             fill="none"
@@ -122,7 +131,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
             strokeWidth="3.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            filter="url(#curveShadow)"
+            style={{ filter: 'drop-shadow(0 8px 10px rgba(99, 102, 241, 0.32))' }}
           />
 
           {/* Interactive Node Anchors */}
@@ -136,6 +145,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
                 className="cursor-pointer"
                 onMouseEnter={() => setActiveIdx(i)}
                 onClick={() => setActiveIdx(i)}
+                onTouchStart={() => setActiveIdx(i)}
               />
             </g>
           ))}
@@ -147,7 +157,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
               <circle cx={activePoint.x} cy={activePoint.y} r="5.5" fill="#ffffff" stroke="#6366f1" strokeWidth="3" />
 
               {/* Tooltip Pill directly above point with light clean font */}
-              <g transform={`translate(${activePoint.x}, ${activePoint.y - 32})`} filter="url(#badgeShadow)">
+              <g transform={`translate(${tooltipX}, ${activePoint.y - 32})`} style={{ filter: 'drop-shadow(0 4px 6px rgba(79, 70, 229, 0.28))' }}>
                 <rect x="-38" y="-11" width="76" height="22" rx="6" fill="#6366f1" />
                 <polygon points="-4,11 4,11 0,15" fill="#6366f1" />
                 <text
@@ -167,7 +177,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
           )}
         </svg>
 
-        {/* Horizontal Dates Axis */}
+        {/* Horizontal Dates Axis (Responsive: 4 on mobile, all 8 on desktop) */}
         <div className="flex justify-between items-center px-1 sm:px-4 pt-3 mt-1">
           {counts.map((_, i) => (
             <button
@@ -175,6 +185,8 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
               type="button"
               onClick={() => setActiveIdx(i)}
               className={`text-[10px] sm:text-[11px] uppercase tracking-wider font-medium transition-colors ${
+                i % 2 !== 0 && i !== counts.length - 1 ? 'hidden sm:inline-block' : 'inline-block'
+              } ${
                 i === activeIdx ? 'text-primary font-bold' : 'text-muted-foreground/70 hover:text-foreground'
               }`}
             >
@@ -189,7 +201,7 @@ const GrowthChart = ({ negocios }: { negocios: NormalizedData['negocios'] }) => 
 
 export const InicioView = () => {
   const { user, profile } = useAuth();
-  const { data } = useData();
+  const { data, loading } = useData();
   const admin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const canSeeNegocios = admin || profile?.role === 'operador';
   const authorized = profile?.authorized_currencies || [];
@@ -222,7 +234,7 @@ export const InicioView = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
           {/* Chart takes 75% of width */}
           <div className="lg:col-span-3">
-            <GrowthChart negocios={negocios} />
+            <GrowthChart negocios={negocios} loading={loading} />
           </div>
 
           {/* KPIs stacked vertically taking 25% of width */}
