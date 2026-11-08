@@ -1140,8 +1140,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteCatalogRecord = async (table: CatalogTable, id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from(table).delete().eq('id', id);
+      const { data, error } = await supabase.from(table).delete().eq('id', id).select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('No se pudo eliminar el registro o no cuentas con los permisos requeridos.');
+      }
       await fetchFromSupabase();
       return true;
     } catch (err) {
