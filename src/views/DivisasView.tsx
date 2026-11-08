@@ -2,9 +2,11 @@ import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { formatNumber, fallbackBanderaUrl } from '../utils/formatters';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 
 const formatAmount = (value: number) => formatNumber(value, 0, 8);
 
@@ -12,7 +14,10 @@ type Divisa = NormalizedData['divisas'][number];
 
 const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: NormalizedData; onBack: () => void }) => {
   const { codigo } = divisa;
-  const movimientos = [
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+
+  const rawMovimientos = useMemo(() => [
     ...data.negocios.filter((item) => item.divisaCodigo === codigo).map((item) => ({
       ...item, tipo: 'Negocio', detalle: item.clienteNombre, entrada: item.montoDivisa, salida: 0,
     })),
@@ -25,17 +30,39 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
       ...item, tipo: 'Venta USDT', detalle: item.concepto,
       entrada: codigo === 'COP' ? item.totalCOP : 0, salida: codigo === 'USDT' ? item.usdtVendido : 0,
     })),
-  ].sort((a, b) => b.fecha.localeCompare(a.fecha) || a.codigo.localeCompare(b.codigo));
+  ].sort((a, b) => b.fecha.localeCompare(a.fecha) || a.codigo.localeCompare(b.codigo)), [data, codigo]);
+
+  const movimientos = useMemo(() => {
+    return rawMovimientos.filter((m) => matchesDateRange(m.fecha, fechaDesde, fechaHasta));
+  }, [rawMovimientos, fechaDesde, fechaHasta]);
 
   return (
-    <div className="space-y-4">
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10">
-        <i className="ri-arrow-left-line" aria-hidden="true" /> Volver a divisas
-      </button>
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors w-fit"
+        >
+          <i className="ri-arrow-left-line" aria-hidden="true" /> Volver a divisas
+        </button>
+      </div>
+
       <div>
-        <h2 className="text-xl font-bold">Extracto de {codigo}</h2>
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          {(fallbackBanderaUrl[codigo] || divisa.banderaUrl) && (
+            <img
+              src={fallbackBanderaUrl[codigo] || divisa.banderaUrl}
+              alt=""
+              className="inline-block h-6 w-8 rounded-sm object-cover shadow-sm"
+              onError={(event) => { event.currentTarget.hidden = true; }}
+            />
+          )}
+          <span>Extracto de {codigo}</span>
+        </h2>
         <p className="text-sm text-muted-foreground">{divisa.nombre} · Movimientos de cambio registrados</p>
       </div>
+
       <dl className="grid gap-3 sm:grid-cols-3">
         {[
           ['Total recibido', divisa.totalRecibido],
@@ -48,10 +75,34 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
           </div>
         ))}
       </dl>
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+
+      {/* Date Range Filter Toolbar placed strictly BEFORE the table */}
+      <div className="p-3.5 rounded-2xl bg-card border border-border flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <DateRangeFilter
+          from={fechaDesde}
+          to={fechaHasta}
+          setFrom={setFechaDesde}
+          setTo={setFechaHasta}
+          className="w-full sm:w-auto"
+        />
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{formatNumber(movimientos.length)} de {formatNumber(rawMovimientos.length)} movimientos</span>
+          {(fechaDesde || fechaHasta) && (
+            <button
+              type="button"
+              onClick={() => { setFechaDesde(''); setFechaHasta(''); }}
+              className="text-primary hover:underline font-semibold"
+            >
+              Limpiar filtro
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-left text-xs">
           <caption className="sr-only">Movimientos de cambio en {codigo}</caption>
-          <thead className="bg-muted/40 text-muted-foreground">
+          <thead className="bg-muted/40 text-muted-foreground uppercase tracking-wider font-semibold">
             <tr>
               {['Fecha', 'Operación', 'Referencia', 'Detalle', 'Entrada', 'Salida'].map((label) => (
                 <th key={label} scope="col" className="px-4 py-3">{label}</th>
@@ -59,19 +110,32 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {movimientos.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No hay movimientos registrados para esta divisa.</td></tr>
-            )}
-            {<PaginatedRows columns={6} rows={movimientos} getDate={(movement) => movement.fecha}>{(item) => (
-              <tr key={item.tipo + '-' + item.id}>
-                <td className="whitespace-nowrap px-4 py-3">{formatDate(item.fecha)}</td>
-                <td className="whitespace-nowrap px-4 py-3">{item.tipo}</td>
-                <td className="whitespace-nowrap px-4 py-3 font-mono">{item.codigo}</td>
-                <td className="px-4 py-3">{item.detalle || '—'}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-emerald-600">{item.entrada ? formatCurrency(item.entrada, codigo) : '—'}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-rose-600">{item.salida ? formatCurrency(item.salida, codigo) : '—'}</td>
+            {movimientos.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                  {rawMovimientos.length === 0
+                    ? 'No hay movimientos registrados para esta divisa.'
+                    : 'No hay movimientos en el rango de fechas seleccionado.'}
+                </td>
               </tr>
-            )}</PaginatedRows>}
+            ) : (
+              <PaginatedRows columns={6} rows={movimientos} getDate={(movement) => movement.fecha}>
+                {(item) => (
+                  <tr key={item.tipo + '-' + item.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="whitespace-nowrap px-4 py-3 font-mono">{formatDate(item.fecha)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 font-medium">{item.tipo}</td>
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-muted-foreground">{item.codigo}</td>
+                    <td className="px-4 py-3">{item.detalle || '—'}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-emerald-600 font-mono font-medium">
+                      {item.entrada ? formatCurrency(item.entrada, codigo) : '—'}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-rose-600 font-mono font-medium">
+                      {item.salida ? formatCurrency(item.salida, codigo) : '—'}
+                    </td>
+                  </tr>
+                )}
+              </PaginatedRows>
+            )}
           </tbody>
         </table>
       </div>
@@ -81,9 +145,14 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
 
 export const DivisasView: React.FC = () => {
   const { data } = useData();
+  const navigate = useNavigate();
+  const { codigo } = useParams<{ codigo?: string }>();
   const [search, setSearch] = useState('');
-  const [selectedCode, setSelectedCode] = useState<string | null>(null);
-  const selectedDivisa = data.divisas.find((item) => item.codigo === selectedCode);
+
+  const selectedDivisa = useMemo(() => {
+    if (!codigo) return null;
+    return data.divisas.find((item) => item.codigo.toUpperCase() === codigo.toUpperCase()) || null;
+  }, [data.divisas, codigo]);
 
   const filteredDivisas = data.divisas.filter((d) => {
     return (
@@ -93,7 +162,25 @@ export const DivisasView: React.FC = () => {
     );
   });
 
-  if (selectedDivisa) return <ExtractoDivisa divisa={selectedDivisa} data={data} onBack={() => setSelectedCode(null)} />;
+  if (codigo) {
+    if (selectedDivisa) {
+      return <ExtractoDivisa divisa={selectedDivisa} data={data} onBack={() => navigate('/divisas')} />;
+    }
+    if (data.divisas.length > 0) {
+      return (
+        <div className="p-8 text-center space-y-4">
+          <p className="text-muted-foreground text-sm">Divisa "{codigo}" no encontrada.</p>
+          <button
+            type="button"
+            onClick={() => navigate('/divisas')}
+            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+          >
+            Volver a Divisas
+          </button>
+        </div>
+      );
+    }
+  }
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -137,7 +224,7 @@ export const DivisasView: React.FC = () => {
                 <th className="py-3 px-4 text-center">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y border-border">
               {filteredDivisas.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-muted-foreground">
@@ -150,14 +237,15 @@ export const DivisasView: React.FC = () => {
                     <td className="py-3 px-4">
                       <button
                         type="button"
-                        onClick={() => setSelectedCode(d.codigo)}
+                        onClick={() => navigate('/divisas/' + d.codigo)}
                         aria-label={'Ver extracto de ' + d.codigo}
-                        className="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary hover:bg-primary/20"
+                        className="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary hover:bg-primary/20 transition-colors inline-flex items-center gap-1.5"
                       >
                         {(fallbackBanderaUrl[d.codigo] || d.banderaUrl) && (
-                          <img src={fallbackBanderaUrl[d.codigo] || d.banderaUrl} alt="" className="mr-1 inline-block h-[1em] w-[1.35em] rounded-sm object-cover align-[-0.1em]" onError={(event) => { event.currentTarget.hidden = true; }} />
+                          <img src={fallbackBanderaUrl[d.codigo] || d.banderaUrl} alt="" className="inline-block h-[1em] w-[1.35em] rounded-sm object-cover align-[-0.1em]" onError={(event) => { event.currentTarget.hidden = true; }} />
                         )}
-                        {d.codigo} <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                        <span>{d.codigo}</span>
+                        <i className="ri-arrow-right-s-line" aria-hidden="true" />
                       </button>
                     </td>
                     <td className="py-3 px-4 font-semibold text-foreground">{d.nombre}</td>

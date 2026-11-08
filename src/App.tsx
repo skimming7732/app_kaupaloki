@@ -244,7 +244,15 @@ export const App: React.FC = () => {
               element={renderWithLayout(<ActivosDigitalesView />, ['super_admin', 'administrador'])}
             />
             <Route
-              path="/divisas"
+              path="/divisas/:codigo?"
+              element={renderWithLayout(<DivisasView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/divisa/:codigo"
+              element={renderWithLayout(<DivisasView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/divsa/:codigo"
               element={renderWithLayout(<DivisasView />, ['super_admin', 'administrador'])}
             />
             <Route

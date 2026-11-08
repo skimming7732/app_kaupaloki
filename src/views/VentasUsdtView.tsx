@@ -41,6 +41,10 @@ export const VentasUsdtView: React.FC = () => {
     };
   }, [data.ventasUsdt, search, filterDestino, fechaDesde, fechaHasta]);
 
+  const totalUsdtVendidos = sumRows(filteredVentas, (v) => v.usdtVendido);
+  const totalCopRecibidos = sumRows(filteredVentas, (v) => v.totalCOP);
+  const tasaPromedioVenta = totalUsdtVendidos > 0 ? (totalCopRecibidos / totalUsdtVendidos) : 0;
+
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Top Header Card */}
@@ -89,8 +93,9 @@ export const VentasUsdtView: React.FC = () => {
 
       <KpiStrip metrics={([
         ['Ventas', filteredVentas.length],
-        ['USDT vendidos', formatCurrency(sumRows(filteredVentas, (v) => v.usdtVendido), 'USDT')],
-        ['COP recibidos', formatCOP(sumRows(filteredVentas, (v) => v.totalCOP))],
+        ['USDT vendidos', formatCurrency(totalUsdtVendidos, 'USDT')],
+        ['Tasa promedio', tasaPromedioVenta > 0 ? '$' + formatRate(tasaPromedioVenta) + ' COP' : '—'],
+        ['COP recibidos', formatCOP(totalCopRecibidos)],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Ventas Table */}
@@ -144,7 +149,7 @@ export const VentasUsdtView: React.FC = () => {
                       </span>
                     </td>
                     <CreatedByCell name={v.createdByName} />
-                    <td className="px-4"><AddCatalogButton table="ventas_usdt" edit={{ id: v.id, historical: !v.walletOrigenId || !v.destinoFondosId, fields: { fecha: v.fecha?.slice(0, 10) || '', concepto: v.concepto, usdt_vendido: v.usdtVendido, tasa: v.tasa, wallet_origen_id: v.walletOrigenId || '', destino_fondos_id: v.destinoFondosId || '' } }} /></td>
+                    <td className="px-4"><AddCatalogButton table="ventas_usdt" edit={{ id: v.id, historical: false, fields: { fecha: v.fecha?.slice(0, 10) || '', concepto: v.concepto, usdt_vendido: v.usdtVendido, tasa: v.tasa, wallet_origen_id: v.walletOrigenId || '', destino_fondos_id: v.destinoFondosId || '' } }} /></td>
                   </tr>
                 )}</PaginatedRows>
               )}

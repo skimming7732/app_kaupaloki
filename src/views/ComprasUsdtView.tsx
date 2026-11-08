@@ -100,7 +100,14 @@ export const ComprasUsdtView: React.FC = () => {
       <KpiStrip metrics={([
         ['Compras', filteredCompras.length],
         ['Valor comprado', totalsByCurrency(filteredCompras, (c) => c.divisaCodigo, (c) => c.valorComprado)],
-        ['Tasa promedio', averageRate.length ? <ul className="space-y-1">{averageRate.map((rate) => <li key={rate}>{rate}</li>)}</ul> : '-'],
+        ['Tasa promedio', averageRate.length === 0 ? '—' : averageRate.length === 1 ? averageRate[0] : (
+          <details className="text-sm">
+            <summary className="cursor-pointer text-primary">Ver {averageRate.length} tasas</summary>
+            <ul className="mt-2 space-y-1 text-xs font-medium">
+              {averageRate.map((rate) => <li key={rate}>{rate}</li>)}
+            </ul>
+          </details>
+        )],
         ['USDT comprado', formatCurrency(sumRows(filteredCompras, (c) => c.usdtComprado), 'USDT')],
       ] as const).map(([label, value]) => ({ label, value }))} />
 

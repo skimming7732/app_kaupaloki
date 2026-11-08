@@ -94,11 +94,8 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const form = edit ? {
     ...base,
     title: isPurchase ? 'Editar compra USDT' : 'Editar venta USDT',
-    description: edit.historical
-      ? 'Registro histórico sin cuentas vinculadas. Cambiar sus datos no modifica los saldos.'
-      : 'Al guardar, los saldos se ajustan según el cambio.',
-    fields: edit.historical ? base.fields.filter(({ name }) =>
-      !['origen_fondos_id', 'wallet_destino_id', 'wallet_origen_id', 'destino_fondos_id'].includes(name)) : base.fields,
+    description: 'Modifica los datos, montos, origen o destino de la operación.',
+    fields: base.fields,
   } : base;
   const showBalance = (isPurchase || isSale) && !edit?.historical;
   const onClose = () => setOpen(false);
@@ -174,7 +171,15 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   return (
     <>
       <button type="button" className={edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass}
-        onClick={() => { setError(''); setSourceId(String(initial[sourceField] ?? '')); setAmount(formatAmountInput(String(initial[amountField] ?? ''))); setCurrency(String(initial.divisa_codigo ?? '')); setOpen(true); }}>
+        onClick={() => {
+          setError('');
+          const initSource = String(initial[sourceField] ?? '');
+          const fallbackWallet = isSale && !initSource && wallets.length >= 1 ? wallets[0].value : initSource;
+          setSourceId(fallbackWallet);
+          setAmount(formatAmountInput(String(initial[amountField] ?? '')));
+          setCurrency(String(initial.divisa_codigo ?? ''));
+          setOpen(true);
+        }}>
         <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
       </button>
       {open && (
