@@ -1,40 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { formatCOP, formatUSD, formatRate } from '../utils/formatters';
+import { formatAmountField, parseAmountInput } from '../utils/amountInput';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 
 export const DashboardView: React.FC = () => {
   const { metrics, data, updateRateUsdt } = useData();
-  const [rateInput, setRateInput] = useState<string>('');
-  const [savingRate, setSavingRate] = useState<boolean>(false);
-  const [rateSuccess, setRateSuccess] = useState<boolean>(false);
+  const [editingRate, setEditingRate] = useState(false);
+  const [rateInput, setRateInput] = useState('');
+  const [savingRate, setSavingRate] = useState(false);
+  const [rateMessage, setRateMessage] = useState('');
+  const currentRate = metrics.rateUsdtCop || 3950;
 
-  useEffect(() => {
-    if (metrics.rateUsdtCop) {
-      setRateInput(String(metrics.rateUsdtCop));
+  const openRateEditor = () => {
+    setRateInput(formatRate(currentRate));
+    setRateMessage('');
+    setEditingRate(true);
+  };
+
+  const handleRateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (savingRate) return;
+    const rate = parseAmountInput(rateInput);
+    if (!Number.isFinite(rate) || rate <= 0) {
+      setRateMessage('Ingresa una tasa mayor que cero.');
+      return;
     }
-  }, [metrics.rateUsdtCop]);
-
-  const handleRateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanRate = Number(rateInput.replace(/,/g, '').trim());
-    if (!cleanRate || cleanRate <= 0) return;
 
     setSavingRate(true);
-    setRateSuccess(false);
+    setRateMessage('');
     const finishSound = prepareSuccessSound();
-
     try {
-      const ok = await updateRateUsdt(cleanRate);
-      if (ok) {
-        finishSound(true);
-        setRateSuccess(true);
-        setTimeout(() => setRateSuccess(false), 3000);
+      if (!await updateRateUsdt(rate)) {
+        setRateMessage('No se pudo guardar la tasa. Inténtalo de nuevo.');
+        return;
       }
-    } catch (err) {
-      finishSound(false);
-      console.error('Error updating rate:', err);
+      finishSound(true);
+      setEditingRate(false);
+      setRateMessage('Tasa guardada.');
+    } catch {
+      setRateMessage('No se pudo guardar la tasa. Inténtalo de nuevo.');
     } finally {
+      finishSound(false);
       setSavingRate(false);
     }
   };
@@ -96,57 +103,50 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* Manual USDT/COP Rate Widget */}
-      <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl shrink-0">
-            <i className="ri-exchange-box-line" />
+      <section aria-labelledby="treasury-rate-title" className="rounded-xl border border-border bg-card px-3 py-2 sm:px-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 id="treasury-rate-title" className="text-xs font-medium text-muted-foreground">Tasa manual USDT / COP</h2>
+            <p className="font-mono text-sm font-bold tabular-nums text-foreground">${formatRate(currentRate)}</p>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-bold text-foreground">Tasa Manual USDT / COP (Liquidación Tesorería)</h4>
-              <span className="text-[11px] font-mono bg-primary/15 text-primary px-2.5 py-0.5 rounded-full font-bold">
-                ${formatRate(metrics.rateUsdtCop || 3950)}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Define la tasa de conversión para calcular la Liquidez Esperada en COP ({formatCOP(metrics.liquidezEsperada)}) de los activos digitales ({formatUSD(metrics.totalActivosDigitales)}).
-            </p>
-          </div>
+          {!editingRate && (
+            <button type="button" onClick={openRateEditor}
+              className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-semibold hover:bg-muted">
+              <i className="ri-edit-line" aria-hidden="true" /> Editar
+            </button>
+          )}
         </div>
 
-        <form onSubmit={handleRateSubmit} className="flex items-center gap-2 shrink-0">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">$</span>
+        {editingRate && (
+          <form onSubmit={handleRateSubmit} className="mt-2 flex items-center gap-1.5">
             <input
               type="text"
               inputMode="decimal"
+              aria-label="Tasa manual USDT por COP"
+              autoFocus
+              required
+              disabled={savingRate}
               value={rateInput}
-              onChange={(e) => setRateInput(e.target.value)}
-              placeholder="3,950.00"
-              className="h-10 w-32 pl-7 pr-3 rounded-xl border border-input bg-background text-xs font-mono font-bold text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              onChange={(event) => {
+                const value = formatAmountField(event.currentTarget);
+                if (value !== undefined) setRateInput(value);
+              }}
+              className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-2.5 font-mono text-sm focus:border-primary focus:outline-none sm:max-w-36"
             />
-          </div>
-          <button
-            type="submit"
-            disabled={savingRate || !rateInput}
-            className={`h-10 px-4 rounded-xl font-semibold text-xs shadow-md transition-all flex items-center gap-1.5 ${
-              rateSuccess
-                ? 'bg-emerald-500 text-white shadow-emerald-500/20'
-                : 'bg-primary text-primary-foreground shadow-primary/20 hover:opacity-95 disabled:opacity-50'
-            }`}
-          >
-            {savingRate ? (
-              <i className="ri-loader-4-line animate-spin" />
-            ) : rateSuccess ? (
-              <i className="ri-checkbox-circle-fill" />
-            ) : (
-              <i className="ri-check-line" />
-            )}
-            <span>{savingRate ? 'Guardando…' : rateSuccess ? 'Guardada' : 'Definir Tasa'}</span>
-          </button>
-        </form>
-      </div>
+            <button type="submit" disabled={savingRate}
+              className="h-10 shrink-0 rounded-lg bg-primary px-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50">
+              {savingRate ? 'Guardando…' : 'Guardar'}
+            </button>
+            <button type="button" disabled={savingRate} onClick={() => { setEditingRate(false); setRateMessage(''); }}
+              className="h-10 shrink-0 rounded-lg px-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50">
+              Cancelar
+            </button>
+          </form>
+        )}
+        <p role="status" className={editingRate && rateMessage ? 'mt-1.5 text-xs text-destructive' : 'sr-only'}>
+          {rateMessage}
+        </p>
+      </section>
 
       {/* Settlement Breakdown Card */}
       <div className="p-6 rounded-2xl bg-card border border-border shadow-sm">
