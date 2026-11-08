@@ -37,6 +37,17 @@ export function capitalAmounts(row: CapitalMovement) {
   return { contribution, dividends, interest, outflow, withdrawal, capital: contribution - withdrawal, balance: dividends + interest - outflow };
 }
 
+export function summarizeCapital(rows: CapitalMovement[]) {
+  return rows.reduce((sum, row) => {
+    const amounts = capitalAmounts(row);
+    sum.capital += amounts.capital;
+    sum.balance += amounts.balance;
+    sum.interest += amounts.interest;
+    sum.dividends += amounts.dividends;
+    return sum;
+  }, { capital: 0, balance: 0, interest: 0, dividends: 0 });
+}
+
 export async function loadCapitalRows<T>(table: 'capital_socios' | 'capital_movimientos'): Promise<T[]> {
   const rows: T[] = [];
   for (let offset = 0; ; offset += 500) {

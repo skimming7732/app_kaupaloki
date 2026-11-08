@@ -156,11 +156,11 @@ export const DashboardView: React.FC = () => {
             <span>Resumen de Liquidación y Negocios</span>
           </h3>
           <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1 rounded-lg border border-border">
-            Fórmula: (Ventas USDT + Liquidez) - Ingresos Clientes - Gastos
+            (Ventas USDT + Liquidez) − Ingresos Clientes − Gastos Operativos − Intereses
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="p-4 rounded-xl bg-muted/40 border border-border">
             <span className="text-xs text-muted-foreground block mb-1">Total Ingresos Clientes</span>
             <span className="text-xl font-bold text-foreground">{formatCOP(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP)}</span>
@@ -181,14 +181,31 @@ export const DashboardView: React.FC = () => {
 
           <div className="p-4 rounded-xl bg-muted/40 border border-border">
             <span className="text-xs text-muted-foreground block mb-1">Gastos Operativos</span>
-            <span className="text-xl font-bold text-rose-600 dark:text-rose-400">-{formatCOP(metrics.totalGastosCOP)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">{data.gastos.length} gastos deducidos</span>
+            <span className="text-xl font-bold text-rose-600 dark:text-rose-400">{formatCOP(-(metrics.totalGastosCOP - metrics.interesesSociosCOP))}</span>
+            <span className="text-[11px] text-muted-foreground block mt-1">Sin intereses de socios e inversionistas</span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-muted/40 border border-border">
+            <span className="text-xs text-muted-foreground block mb-1">Ingreso por interés</span>
+            <span className="text-xl font-bold text-rose-600 dark:text-rose-400">{formatCOP(-metrics.interesesSociosCOP)}</span>
+            <span className="text-[11px] text-muted-foreground block mt-1">Gasto por intereses de socios e inversionistas</span>
           </div>
 
           <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
             <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold block mb-1">Ganancia Estimada Neta</span>
             <span className="text-xl font-black text-purple-700 dark:text-purple-300">{formatCOP(metrics.gananciaEsperada)}</span>
             <span className="text-[11px] text-purple-600/80 dark:text-purple-400/80 block mt-1">Margen real auditado</span>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+          <div className="p-4 rounded-xl border border-border bg-muted/40">
+            <span className="block text-xs text-muted-foreground">Ingreso por dividendos</span>
+            <span className="text-xl font-bold">{formatCOP(metrics.dividendosSociosCOP ? -metrics.dividendosSociosCOP : 0)}</span>
+            <span className="block text-[11px] text-muted-foreground">Distribución de la ganancia neta a socios</span>
+          </div>
+          <div className="p-4 rounded-xl border border-border bg-muted/40">
+            <span className="block text-xs text-muted-foreground">Ganancia después de dividendos</span>
+            <span className="text-xl font-bold">{formatCOP(metrics.gananciaDespuesDividendosCOP)}</span>
           </div>
         </div>
       </div>

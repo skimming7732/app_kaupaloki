@@ -1,4 +1,4 @@
-import { capitalLabels, loadCapitalRows, type CapitalMovement } from '../utils/capitalSocios';
+import { capitalLabels, loadCapitalRows, summarizeCapital, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -214,6 +214,9 @@ export interface MetricsSummary {
   totalVentasUSDT: number;
   liquidezEsperada: number;
   totalGastosCOP: number;
+  interesesSociosCOP: number;
+  dividendosSociosCOP: number;
+  gananciaDespuesDividendosCOP: number;
   rateUsdtCop: number;
 }
 
@@ -279,7 +282,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
     return defaultSnapshot;
   });
-  const [capitalLedger, setCapitalLedger] = useState<{ userId?: string; rows: CapitalMovement[] }>({ rows: [] });
+  const [capitalLedger, setCapitalLedger] = useState<{ userId?: string; rows: CapitalMovement[]; people: CapitalPerson[] }>({ rows: [], people: [] });
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
@@ -303,8 +306,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSyncStatus('syncing');
     try {
       const capitalPromise = userId
-        ? loadCapitalRows<CapitalMovement>('capital_movimientos').catch(() => null)
-        : Promise.resolve([]);
+        ? loadCapitalRows<CapitalMovement>('capital_movimientos').then(async (rows) => ({
+          rows,
+          people: rows.length ? await loadCapitalRows<CapitalPerson>('capital_socios').catch(() => []) : [],
+        })).catch(() => null)
+        : Promise.resolve({ rows: [], people: [] });
       const results = await Promise.all([
         supabase.from('clientes').select('*').order('numero', { ascending: false }),
         supabase.from('divisas').select('*'),
@@ -533,7 +539,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalActivosDigitalesUsdt: Number(resumenData.total_activos_digitales_usdt || 11000),
         totalActivosLiquidosCop: Number(resumenData.total_activos_liquidos_cop || 518008020),
         totalSaldoPendienteClientesCop: Number(resumenData.total_saldo_pendiente_clientes_cop || 543418640),
-        totalGastosCop: Number(resumenData.total_gastos_cop || 4000000),
+        totalGastosCop: resumenData.total_gastos_cop == null ? undefined : Number(resumenData.total_gastos_cop),
         rateUsdtCop: Number(resumenData.rate_usdt_cop || 3950),
       } : undefined;
 
@@ -557,7 +563,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const capitalRows = await capitalPromise;
       if (request !== latestFetch.current) return;
-      if (capitalRows !== null) setCapitalLedger({ userId, rows: capitalRows });
+      if (capitalRows !== null) setCapitalLedger({ userId, ...capitalRows });
       applySnapshot(newSnapshot);
       setSyncStatus('synced');
       setTimeout(() => {
@@ -899,7 +905,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // Combine stored movements and transactions linked to this specific account.
-    type LinkedMovement = CreationAudit & { fecha: string; origen: string; concepto: string; monto: number };
+    type LinkedMovement = CreationAudit & { fecha: string; origen: string; concepto: string; monto: number; tercero?: string };
     const mergeMovements = (account: any, linked: LinkedMovement[], excludedOrigins: Set<string>) => {
       // Imported statements are newest first, including entries on the same day.
       const existing = Array.isArray(account.movimientos)
@@ -934,12 +940,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const capitalRows = capitalLedger.userId === userId ? capitalLedger.rows : [];
+    const capitalPeople = new Map(capitalLedger.people.map((person) => [person.id, person.nombre]));
     const capitalEntries = (accountId: string, digital: boolean): LinkedMovement[] => capitalRows
       .filter((row) => (digital ? row.cuenta_digital_id : row.cuenta_liquida_id) === accountId)
       .map((row) => ({
         fecha: row.fecha,
         origen: 'CAP-' + row.id,
         concepto: 'Capital & Socios · ' + capitalLabels[row.tipo],
+        tercero: capitalPeople.get(row.socio_id),
         monto: Number(row.monto) * (row.tipo === 'CONTRATO' ? 1 : -1),
       }));
 
@@ -1012,7 +1020,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Dynamic Liquidez Esperada in COP: total USDT * current rate
     const liquidezEsperada = totalActivosDigitales * rateUsdt;
 
-    // Dynamic Ganancia Esperada:
+    // Interest is already included in gastos. Dividends are deducted after net profit.
+    const capitalTotals = summarizeCapital(capitalLedger.userId === userId ? capitalLedger.rows : []);
     const gananciaEsperada = (totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP;
 
     return {
@@ -1025,9 +1034,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalVentasUSDT,
       liquidezEsperada,
       totalGastosCOP,
+      interesesSociosCOP: capitalTotals.interest,
+      dividendosSociosCOP: capitalTotals.dividends,
+      gananciaDespuesDividendosCOP: gananciaEsperada - capitalTotals.dividends,
       rateUsdtCop: rateUsdt,
     };
-  }, [snapshot.resumenLiquidacion, data.gastos, data.clientes, data.activosLiquidos, data.activosDigitales, data.ventasUsdt, data.negocios]);
+  }, [snapshot.resumenLiquidacion, data.gastos, data.clientes, data.activosLiquidos, data.activosDigitales, data.ventasUsdt, data.negocios, capitalLedger, userId]);
 
   // Direct Supabase operations (100% decoupled from Airtable)
   const createNegocio = async (payload: any): Promise<boolean> => {

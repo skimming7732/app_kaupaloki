@@ -6,7 +6,7 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
-import { useData } from '../context/DataContext';
+import { useData, type NormalizedData } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
@@ -31,28 +31,66 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
-  // Resolve official Efectivo account from Activos Líquidos (e.g. EFECTIVO-CAJA)
-  const { filteredMovimientos } = useMemo(() => {
-    const filtered = data.efectivo.filter((m) => {
+  // Start with the Caja extract so its imported and linked movements appear
+  // here too. Prefer the original cash row when both share the same code.
+  const movimientos = useMemo(() => {
+    type CashRow = NormalizedData['efectivo'][number];
+    const originals = new Map(data.efectivo.map((row) => [row.codigo, row]));
+    const included = new Set<string>();
+    const rows: CashRow[] = [];
+
+    for (const account of data.activosLiquidos) {
+      const isCash = String(account.institucion || '').toUpperCase() === 'EFECTIVO'
+        || String(account.activo || '').toUpperCase().includes('EFECTIVO');
+      if (!isCash) continue;
+
+      for (const [index, entry] of (account.movimientos || []).entries()) {
+        const code = entry.origen || account.id + ':' + index;
+        if (included.has(code)) continue;
+        const original = originals.get(code);
+        if (original) {
+          rows.push(original);
+        } else {
+          const amount = Number(entry.monto);
+          if (!Number.isFinite(amount) || amount === 0) continue;
+          rows.push({
+            id: 'caja:' + code,
+            codigo: entry.origen || '—',
+            fecha: entry.fecha || '',
+            tipo: amount > 0 ? 'Ingreso' : 'Pago',
+            clienteNombre: entry.tercero || '',
+            monto: Math.abs(amount),
+            origenFondos: account.activo || account.institucion,
+            referencia: entry.concepto,
+            createdByName: entry.createdByName,
+            raw: entry,
+          });
+        }
+        included.add(code);
+      }
+    }
+
+    rows.push(...data.efectivo.filter((row) => !included.has(row.codigo)));
+    return rows.sort((left, right) => right.fecha.slice(0, 10).localeCompare(left.fecha.slice(0, 10)));
+  }, [data.activosLiquidos, data.efectivo]);
+
+  const filteredMovimientos = useMemo(() => {
+    return movimientos.filter((m) => {
       const matchSearch =
         m.codigo.toLowerCase().includes(search.toLowerCase()) ||
         m.clienteNombre.toLowerCase().includes(search.toLowerCase()) ||
-        (m.referencia && m.referencia.toLowerCase().includes(search.toLowerCase()));
+        m.origenFondos?.toLowerCase().includes(search.toLowerCase()) ||
+        m.referencia?.toLowerCase().includes(search.toLowerCase());
       const matchTipo = !filterTipo || m.tipo === filterTipo;
       const matchCliente =
         !selectedCliente ||
-        m.clienteId === selectedCliente ||
-        m.clienteNombre.toLowerCase().includes(selectedCliente.toLowerCase());
+        m.clienteId === selectedCliente;
 
       const matchFecha = matchesDateRange(m.fecha, fechaDesde, fechaHasta);
 
       return matchSearch && matchTipo && matchCliente && matchFecha;
     });
-
-    return {
-      filteredMovimientos: filtered,
-    };
-  }, [data.efectivo, search, filterTipo, selectedCliente, fechaDesde, fechaHasta]);
+  }, [movimientos, search, filterTipo, selectedCliente, fechaDesde, fechaHasta]);
 
   const secondaryAction = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold hover:bg-muted';
   return (
@@ -92,7 +130,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por código, cliente o referencia..."
+              placeholder="Buscar por código, persona o referencia..."
               className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
@@ -102,7 +140,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             <TableSelectFilter label="Tipo" value={filterTipo} onChange={setFilterTipo} className="w-full">
               <option value="">Todos los tipos</option>
               <option value="Ingreso">Ingreso a Caja</option>
-              <option value="Pago">Pago a Cliente</option>
+              <option value="Pago">Salida de Caja</option>
             </TableSelectFilter>
           </div>
 
@@ -112,7 +150,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
-          <span>{formatNumber(filteredMovimientos.length)} de {formatNumber(data.efectivo.length)} registros</span>
+          <span>{formatNumber(filteredMovimientos.length)} de {formatNumber(movimientos.length)} registros</span>
             {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta) && (
               <button
                 onClick={() => {
@@ -147,7 +185,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <th className="py-3 px-4">Código</th>
                 <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Tipo</th>
-                <th className="py-3 px-4">Cliente Asignado</th>
+                <th className="py-3 px-4">Cliente / tercero</th>
                 <th className="py-3 px-4 text-right">Monto (COP)</th>
                 <th className="py-3 px-4">Institución</th>
                 <th className="py-3 px-4">Referencia / Detalle</th>
@@ -174,7 +212,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                             : 'bg-amber-500/10 text-amber-500'
                         }`}
                       >
-                        {m.tipo}
+                        {m.tipo === 'Ingreso' ? 'Ingreso' : 'Salida'}
                       </span>
                     </td>
                     {/* Exact Client Name from {CLIENTE} column */}
@@ -182,7 +220,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       {m.clienteNombre && m.clienteNombre !== 'Ingreso de Caja' && m.clienteNombre !== 'Movimiento Interno' ? (
                         <span className="font-mono text-xs">{m.clienteNombre}</span>
                       ) : (
-                        <span className="text-muted-foreground italic text-[11px]">{m.clienteNombre || 'Sin cliente asignado'}</span>
+                        <span className="text-muted-foreground italic text-[11px]">{m.clienteNombre || '—'}</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right font-bold text-foreground">

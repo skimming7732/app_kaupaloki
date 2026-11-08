@@ -9,7 +9,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { formatCOP, formatDate, formatCurrency, formatRate } from '../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../utils/amountInput';
 import { prepareSuccessSound } from '../utils/confirmationSound';
-import { capitalAmounts, capitalLabels, loadCapitalRows, type CapitalKind, type CapitalMethod, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
+import { capitalAmounts, capitalLabels, loadCapitalRows, summarizeCapital, type CapitalKind, type CapitalMethod, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
 
 type Action = 'persona' | 'contrato' | 'liquidar' | 'adelanto' | 'rendimiento';
 const actionLabels: Record<Action, string> = {
@@ -45,7 +45,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
     try {
       const [people, movements] = await Promise.all([
         loadCapitalRows<CapitalPerson>('capital_socios'),
-        showDirectory ? Promise.resolve([]) : loadCapitalRows<CapitalMovement>('capital_movimientos'),
+        loadCapitalRows<CapitalMovement>('capital_movimientos'),
       ]);
       setPeople(people);
       setMovements(movements);
@@ -54,16 +54,13 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
     } finally {
       setLoading(false);
     }
-  }, [showDirectory]);
+  }, []);
   useEffect(() => { void reload(); }, [reload]);
 
   const currentPerson = personId ? people.find((person) => person.id === personId) : undefined;
   const activePerson = personId || selected;
   const rows = movements.filter((row) => !activePerson || row.socio_id === activePerson);
-  const totals = rows.reduce((sum, row) => {
-    const amounts = capitalAmounts(row);
-    return { capital: sum.capital + amounts.capital, balance: sum.balance + amounts.balance, interest: sum.interest + amounts.interest };
-  }, { capital: 0, balance: 0, interest: 0 });
+  const totals = summarizeCapital(rows);
   const peopleById = new Map(people.map((person) => [person.id, person]));
   const saved = () => {
     setAction(undefined);
@@ -81,6 +78,12 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
   </Link>;
 
   if (showDirectory) {
+    const movementsByPerson = new Map<string, CapitalMovement[]>();
+    for (const movement of movements) {
+      const list = movementsByPerson.get(movement.socio_id);
+      if (list) list.push(movement);
+      else movementsByPerson.set(movement.socio_id, [movement]);
+    }
     const visiblePeople = people.filter((person) => person.nombre.toLowerCase().includes(search.trim().toLowerCase()));
     return (
       <div className="space-y-4">
@@ -92,17 +95,35 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
         {loadError}
         {visiblePeople.length ? (
           <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-            {visiblePeople.map((person) => (
-              <li key={person.id}>
-                <Link to={directoryPath + '/' + person.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50">
-                  <span className="min-w-0">
-                    <span className="block break-words text-sm font-semibold">{person.nombre}</span>
-                    <span className="text-xs text-muted-foreground">{person.tipo === 'SOCIO' ? 'Socio' : 'Inversionista'}</span>
-                  </span>
-                  <i className="ri-arrow-right-s-line shrink-0 text-lg text-muted-foreground" aria-hidden="true" />
-                </Link>
-              </li>
-            ))}
+            {visiblePeople.map((person) => {
+              const summary = summarizeCapital(movementsByPerson.get(person.id) || []);
+              const figures = [
+                { label: 'Capital', amount: summary.capital },
+                { label: 'Saldo por liquidar', amount: summary.balance },
+                { label: 'Intereses', amount: summary.interest },
+                { label: 'Dividendos', amount: person.tipo === 'SOCIO' ? summary.dividends : null },
+              ];
+              return (
+                <li key={person.id}>
+                  <Link to={directoryPath + '/' + person.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 hover:bg-muted/50 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
+                    <div className="min-w-0">
+                      <span className="block break-words text-sm font-semibold">{person.nombre}</span>
+                      <span className="text-xs text-muted-foreground">{person.tipo === 'SOCIO' ? 'Socio' : 'Inversionista'}</span>
+                    </div>
+                    <dl className="col-span-2 row-start-2 grid grid-cols-2 gap-2 border-t border-border pt-2 text-xs sm:col-span-1 sm:row-start-auto sm:grid-cols-4 sm:border-0 sm:pt-0">
+                      {figures.map(({ label, amount }) => (
+                        <div key={label} className="min-w-0">
+                          <dt className="text-muted-foreground">{label}</dt>
+                          <dd className={'break-words font-semibold tabular-nums ' + (amount !== null && amount < 0 ? 'text-destructive' : '')}>{amount === null ? '—' : formatCOP(amount)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <i className="ri-arrow-right-s-line col-start-2 row-start-1 text-lg text-muted-foreground sm:col-start-auto sm:row-start-auto" aria-hidden="true" />
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         ) : !error && <p className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
           {loading ? 'Cargando socios e inversionistas…' : search ? 'No hay coincidencias.' : 'Aún no hay socios ni inversionistas registrados.'}
