@@ -81,6 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .maybeSingle();
 
       if (dbProfile) {
+        if (dbProfile.status && ['invitado', 'invited'].includes(String(dbProfile.status).toLowerCase())) {
+          dbProfile.status = 'activo';
+          void supabase.from('profiles').update({ status: 'activo' }).eq('id', dbProfile.id);
+        }
+
         let finalRole: any = dbProfile.role || 'operador';
         if (isSuper || finalRole === 'super_admin') finalRole = 'super_admin';
         else if (finalRole === 'dispersador' || finalRole === 'dispersor') finalRole = 'dispersor';

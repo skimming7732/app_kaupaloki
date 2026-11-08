@@ -11,6 +11,7 @@ import { ShareClientModal } from '../components/modals/ShareClientModal';
 import { AddNegocioModal, type EditableNegocio } from '../components/modals/AddNegocioModal';
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
+import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 
 const getCountryIso = (pais?: string): string => {
   if (!pais) return 'COL';
@@ -38,6 +39,8 @@ export const ClienteDetalleView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'negocios' | 'dispersiones' | 'efectivo' | 'comisiones'>('negocios');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
 
   // Modals state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -75,16 +78,22 @@ export const ClienteDetalleView: React.FC = () => {
 
   // Associated records
   const clientNegocios = useMemo(() => {
-    return data.negocios.filter(matchesClient).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
-  }, [data.negocios, cliente]);
+    return data.negocios
+      .filter((n) => matchesClient(n) && matchesDateRange(n.fecha, fechaDesde, fechaHasta))
+      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  }, [data.negocios, cliente, fechaDesde, fechaHasta]);
 
   const clientDispersiones = useMemo(() => {
-    return data.dispersiones.filter(matchesClient).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
-  }, [data.dispersiones, cliente]);
+    return data.dispersiones
+      .filter((d) => matchesClient(d) && matchesDateRange(d.fecha, fechaDesde, fechaHasta))
+      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  }, [data.dispersiones, cliente, fechaDesde, fechaHasta]);
 
   const clientEfectivo = useMemo(() => {
-    return data.efectivo.filter(matchesClient).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
-  }, [data.efectivo, cliente]);
+    return data.efectivo
+      .filter((e) => matchesClient(e) && matchesDateRange(e.fecha, fechaDesde, fechaHasta))
+      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  }, [data.efectivo, cliente, fechaDesde, fechaHasta]);
 
   // Commission info
   const comisionistaData = useMemo(() => {
@@ -475,6 +484,31 @@ export const ClienteDetalleView: React.FC = () => {
           )}
         </button>
       </div>
+
+      {/* Date Range Filter for Tabs */}
+      {activeTab !== 'comisiones' && (
+        <div className="p-3 rounded-2xl bg-card border border-border flex flex-wrap items-center justify-between gap-3">
+          <DateRangeFilter
+            from={fechaDesde}
+            to={fechaHasta}
+            setFrom={setFechaDesde}
+            setTo={setFechaHasta}
+            className="w-full sm:w-auto"
+          />
+          {(fechaDesde || fechaHasta) && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Filtrando por fecha</span>
+              <button
+                type="button"
+                onClick={() => { setFechaDesde(''); setFechaHasta(''); }}
+                className="text-primary hover:underline font-semibold"
+              >
+                Ver todo el histórico
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tab 1: Negocios */}
       {activeTab === 'negocios' && (
