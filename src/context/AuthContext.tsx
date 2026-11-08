@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { clearTwoFactorVerification, connectTwoFactorTabs, getTwoFactorSessionKey } from '../utils/twoFactorTabs';
 import { supabase } from '../lib/supabase';
 
 export interface UserProfile {
@@ -28,7 +30,6 @@ interface AuthContextType {
   toggleTheme: () => void;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  set2faVerified: (val: boolean) => void;
   verify2FASession: () => void;
 }
 
@@ -47,9 +48,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
   const [loading, setLoading] = useState(true);
-  const [is2faVerified, setIs2faVerified] = useState<boolean>(() => {
-    return sessionStorage.getItem('kaupaloki_2fa_verified') === 'true';
-  });
+  const [is2faVerified, setIs2faVerified] = useState(false);
+  const activeSession = useRef<string | undefined>(undefined);
+  const loadedUserId = useRef<string | undefined>(undefined);
+  const verification = useRef<ReturnType<typeof connectTwoFactorTabs> | undefined>(undefined);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('kaupaloki_theme') as 'dark' | 'light') || 'dark';
   });
@@ -69,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     syncThemeToDOM(next);
   };
 
-  const fetchProfile = async (email: string, authUser: any) => {
+  const fetchProfile = async (email: string, authUser: any, isCurrent = () => true) => {
     try {
       const cleanEmail = email.toLowerCase().trim();
       const isSuper = cleanEmail === SUPER_ADMIN_EMAIL;
@@ -79,6 +81,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*')
         .ilike('email', cleanEmail)
         .maybeSingle();
+
+      if (!isCurrent()) return;
 
       if (dbProfile) {
         if (dbProfile.status && ['invitado', 'invited'].includes(String(dbProfile.status).toLowerCase())) {
@@ -149,55 +153,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const set2faVerified = (val: boolean) => {
-    setIs2faVerified(val);
-    if (val) {
-      sessionStorage.setItem('kaupaloki_2fa_verified', 'true');
-    } else {
-      sessionStorage.removeItem('kaupaloki_2fa_verified');
-    }
-  };
-
   const logout = async () => {
-    sessionStorage.removeItem('kaupaloki_2fa_verified');
+    verification.current?.close();
+    verification.current = undefined;
+    activeSession.current = undefined;
+    loadedUserId.current = undefined;
+    clearTwoFactorVerification();
     localStorage.removeItem('kaupaloki_user_profile');
+    setIs2faVerified(false);
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
-    setIs2faVerified(false);
     window.location.replace('/login');
   };
 
   useEffect(() => {
     syncThemeToDOM(theme);
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user?.email) {
-        setUser(session.user);
-        await fetchProfile(session.user.email, session.user);
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user?.email) {
-        setUser(session.user);
-        await fetchProfile(session.user.email, session.user);
-      } else if (event === 'SIGNED_OUT') {
+    let mounted = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session: Session | null) => {
+      if (!session?.user?.email) {
+        verification.current?.close();
+        verification.current = undefined;
+        activeSession.current = undefined;
+        loadedUserId.current = undefined;
+        clearTwoFactorVerification();
+        setIs2faVerified(false);
         setUser(null);
         setProfile(null);
-        setIs2faVerified(false);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      const key = getTwoFactorSessionKey(session);
+      const identity = key ?? session.access_token;
+      if (identity === activeSession.current && event !== 'USER_UPDATED') return;
+
+      if (identity !== activeSession.current) {
+        verification.current?.close();
+        activeSession.current = identity;
+        const connection = connectTwoFactorTabs(key, () => {
+          if (mounted && activeSession.current === identity) setIs2faVerified(true);
+        });
+        verification.current = connection;
+        setIs2faVerified(connection.verified());
+      }
+      // Recovery can issue a new session for the same user. Keep that form mounted
+      // while the verification state switches to the new session.
+      const needsProfile = loadedUserId.current !== session.user.id;
+      if (!needsProfile && event !== 'USER_UPDATED') return;
+      if (needsProfile) setLoading(true);
+      setUser(session.user);
+
+      // Supabase auth callbacks hold the session lock. Query the profile after releasing it.
+      const isCurrent = () => mounted && activeSession.current === identity;
+      setTimeout(() => {
+        if (!isCurrent()) return;
+        void Promise.all([
+          fetchProfile(session.user.email!, session.user, isCurrent),
+          verification.current?.ready,
+        ]).then(() => {
+          if (isCurrent()) {
+            loadedUserId.current = session.user.id;
+            setLoading(false);
+          }
+        });
+      }, 0);
     });
 
     return () => {
-      subscription?.unsubscribe();
+      mounted = false;
+      subscription.unsubscribe();
+      verification.current?.close();
+      verification.current = undefined;
+      activeSession.current = undefined;
+      loadedUserId.current = undefined;
     };
   }, []);
 
+  const renderedSession = activeSession.current;
   const verify2FASession = () => {
-    set2faVerified(true);
+    if (renderedSession && renderedSession === activeSession.current) verification.current?.verify();
   };
 
   return (
@@ -211,7 +247,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleTheme,
         logout,
         refreshProfile,
-        set2faVerified,
         verify2FASession,
       }}
     >

@@ -77,6 +77,7 @@ const AppLayout: React.FC<{
 }> = ({ children, activeModal, setActiveModal }) => {
   const { user, is2faVerified, loading } = useAuth();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (loading) {
     return (
@@ -99,8 +100,6 @@ const AppLayout: React.FC<{
   if (!is2faVerified && location.pathname !== '/2fa') {
     return <Navigate to="/2fa" replace />;
   }
-
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row">
