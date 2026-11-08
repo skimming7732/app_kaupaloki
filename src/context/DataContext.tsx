@@ -1,3 +1,4 @@
+import { capitalLabels, loadCapitalRows, type CapitalMovement } from '../utils/capitalSocios';
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -278,6 +279,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
     return defaultSnapshot;
   });
+  const [capitalLedger, setCapitalLedger] = useState<{ userId?: string; rows: CapitalMovement[] }>({ rows: [] });
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
@@ -300,6 +302,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const request = ++latestFetch.current;
     setSyncStatus('syncing');
     try {
+      const capitalPromise = userId
+        ? loadCapitalRows<CapitalMovement>('capital_movimientos').catch(() => null)
+        : Promise.resolve([]);
       const results = await Promise.all([
         supabase.from('clientes').select('*').order('numero', { ascending: false }),
         supabase.from('divisas').select('*'),
@@ -439,7 +444,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         saldoReal: (a.saldo_real !== null && a.saldo_real !== undefined && a.saldo_real !== '' && (a.institucion || '').toUpperCase() !== 'EFECTIVO' && !(a.activo || '').toUpperCase().includes('EFECTIVO'))
           ? Number(a.saldo_real)
           : null,
-        saldoInicial: Number(a.saldo_inicial ?? 0),
+        saldoInicial: a.saldo_inicial == null ? null : Number(a.saldo_inicial),
         ingresosCop: Number(a.ingresos_cop || 0),
         egresosCop: Number(a.egresos_cop || 0),
         movimientos: a.movimientos || [],
@@ -458,7 +463,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         saldoReal: (d.saldo_real !== null && d.saldo_real !== undefined && d.saldo_real !== '')
           ? Number(d.saldo_real)
           : null,
-        saldoInicial: Number(d.saldo_inicial ?? 0),
+        saldoInicial: d.saldo_inicial == null ? null : Number(d.saldo_inicial),
         ingresosUsdt: Number(d.ingresos_usdt || 0),
         egresosUsdt: Number(d.egresos_usdt || 0),
         rateFinal: Number(d.rate_final || 3230),
@@ -550,6 +555,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resumenLiquidacion,
       };
 
+      const capitalRows = await capitalPromise;
+      if (request !== latestFetch.current) return;
+      if (capitalRows !== null) setCapitalLedger({ userId, rows: capitalRows });
       applySnapshot(newSnapshot);
       setSyncStatus('synced');
       setTimeout(() => {
@@ -561,7 +569,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       if (request === latestFetch.current) setLoading(false);
     }
-  }, [applySnapshot]);
+  }, [applySnapshot, userId]);
 
   const syncData = useCallback(
     async (_forceLive = false) => {
@@ -892,17 +900,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Combine stored movements and transactions linked to this specific account.
     type LinkedMovement = CreationAudit & { fecha: string; origen: string; concepto: string; monto: number };
-    const mergeMovements = (account: any, linked: LinkedMovement[]) => {
-      const existing = Array.isArray(account.movimientos) ? [...account.movimientos] : [];
+    const mergeMovements = (account: any, linked: LinkedMovement[], excludedOrigins: Set<string>) => {
+      // Imported statements are newest first, including entries on the same day.
+      const existing = Array.isArray(account.movimientos)
+        ? account.movimientos.filter((entry) => !excludedOrigins.has(entry.origen)).reverse()
+        : [];
       for (const movement of linked) {
         const index = existing.findIndex((entry) => entry.origen === movement.origen || entry.concepto?.includes(movement.origen));
         if (index < 0) existing.push(movement);
-        else if (movement.createdByName && !existing[index].createdByName) {
-          existing[index] = { ...existing[index], ...creationAudit(movement) };
+        else {
+          const audit = movement.createdByName && !existing[index].createdByName ? creationAudit(movement) : {};
+          existing[index] = { ...existing[index], monto: movement.monto, ...audit };
         }
       }
-      existing.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
-      let balance = Number(account.saldoInicial || 0);
+      existing.sort((a, b) => (a.fecha || '').slice(0, 10).localeCompare((b.fecha || '').slice(0, 10)));
+      const net = existing.reduce((total, entry) => total + Number(entry.monto || 0), 0);
+      const closing = account.saldoCop ?? account.saldoUsdt;
+      let balance = closing == null ? Number(account.saldoInicial ?? 0) : Number(closing) - net;
       return existing.map((entry) => {
         balance += Number(entry.monto || 0);
         return { ...entry, balance };
@@ -919,9 +933,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return Boolean(label && label === account.activo?.trim().toLowerCase());
     };
 
+    const capitalRows = capitalLedger.userId === userId ? capitalLedger.rows : [];
+    const capitalEntries = (accountId: string, digital: boolean): LinkedMovement[] => capitalRows
+      .filter((row) => (digital ? row.cuenta_digital_id : row.cuenta_liquida_id) === accountId)
+      .map((row) => ({
+        fecha: row.fecha,
+        origen: 'CAP-' + row.id,
+        concepto: 'Capital & Socios · ' + capitalLabels[row.tipo],
+        monto: Number(row.monto) * (row.tipo === 'CONTRATO' ? 1 : -1),
+      }));
+
     const enrichedActivosLiquidos = (snapshot.activosLiquidos || []).map((account) => ({
       ...account,
       movimientos: mergeMovements(account, [
+        ...capitalEntries(account.id, false),
         ...gastos.filter((g) => g.divisa === 'COP' && matchesAccount(g, account))
           .map((g) => movement(g, 'Gasto: ' + g.concepto, -Math.abs(g.monto))),
         ...efectivo.filter((e) => matchesAccount(e, account))
@@ -932,12 +957,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((c) => movement(c, 'Compra USDT', -c.valorComprado)),
         ...ventasUsdt.filter((v) => v.destinoFondosId === account.id)
           .map((v) => movement(v, 'Venta USDT: ' + v.concepto, v.totalCOP)),
-      ]),
+      ], new Set([
+        ...ventasUsdt.filter((v) => v.destinoFondosId && v.destinoFondosId !== account.id).map((v) => v.codigo),
+        ...dispersiones.filter((d) => d.estado.trim().toUpperCase() === 'RECHAZADO').map((d) => d.codigo),
+      ])),
     }));
 
     const enrichedActivosDigitales = (snapshot.activosDigitales || []).map((account) => ({
       ...account,
       movimientos: mergeMovements(account, [
+        ...capitalEntries(account.id, true),
         ...gastos.filter((g) => g.divisa === 'USDT' && matchesAccount(g, account))
           .map((g) => movement(g, 'Gasto USDT: ' + g.concepto, -Math.abs(g.monto))),
         ...comprasUsdt.filter((c) => c.origenFondosId === account.id)
@@ -946,7 +975,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((c) => movement(c, 'Compra USDT en ' + c.divisaCodigo, c.usdtComprado)),
         ...ventasUsdt.filter((v) => v.walletOrigenId === account.id)
           .map((v) => movement(v, 'Venta USDT: ' + v.concepto, -v.usdtVendido)),
-      ]),
+      ], new Set(ventasUsdt.filter((v) => v.walletOrigenId && v.walletOrigenId !== account.id).map((v) => v.codigo))),
     }));
 
     return {
@@ -963,7 +992,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activosLiquidos: enrichedActivosLiquidos,
       activosDigitales: enrichedActivosDigitales,
     };
-  }, [snapshot]);
+  }, [snapshot, capitalLedger, userId]);
 
   const metrics: MetricsSummary = useMemo(() => {
     const res = snapshot.resumenLiquidacion;

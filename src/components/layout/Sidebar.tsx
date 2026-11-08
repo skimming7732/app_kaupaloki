@@ -72,6 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       { to: '/efectivo', label: 'Efectivo', icon: 'ri-money-dollar-circle-line' },
       { to: '/activos-liquidos', label: 'Activos líquidos', icon: 'ri-bank-line' },
       { to: '/activos-digitales', label: 'Activos digitales', icon: 'ri-coin-line' },
+      { to: '/capital-socios', label: 'Capital & Socios', icon: 'ri-hand-coin-line' },
       { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
     ] : [] },
     { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin ? [

@@ -1,3 +1,4 @@
+import { CapitalSociosView } from './views/CapitalSociosView';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -246,6 +247,7 @@ export const App: React.FC = () => {
               path="/activos-digitales/:assetId?"
               element={renderWithLayout(<ActivosDigitalesView />, ['super_admin', 'administrador'])}
             />
+            <Route path="/capital-socios" element={renderWithLayout(<CapitalSociosView />, ['super_admin', 'administrador'])} />
             <Route
               path="/divisas/:codigo?"
               element={renderWithLayout(<DivisasView />, ['super_admin', 'administrador'])}
