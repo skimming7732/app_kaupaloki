@@ -273,25 +273,12 @@ export const InicioView = () => {
             </div>
             <span className="text-[11px] text-muted-foreground mt-0.5">Cartera global</span>
           </div>
-
-          <div className="flex-1 rounded-2xl border border-border bg-card p-4 sm:p-5 flex flex-col justify-center shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Divisas autorizadas</span>
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-sm">
-                <i className="ri-global-line" />
-              </div>
-            </div>
-            <div className="text-2xl font-extrabold text-foreground font-mono mt-2">
-              {formatNumber(divisas.length)}
-            </div>
-            <span className="text-[11px] text-muted-foreground mt-0.5">Mercados activos</span>
-          </div>
         </div>
       </div>
 
       {/* Authorized Currencies */}
       <section className="rounded-2xl border border-border bg-card p-4 sm:p-6" aria-labelledby="currency-heading">
-        <h2 id="currency-heading" className="mb-3 text-sm font-bold">Mis divisas autorizadas</h2>
+        <h2 id="currency-heading" className="mb-3 text-sm font-bold">Mis divisas autorizadas ({divisas.length})</h2>
         {divisas.length ? (
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {divisas.map((currency) => {
