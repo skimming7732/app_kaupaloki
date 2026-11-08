@@ -36,6 +36,7 @@ import { AddDispersionModal } from './components/modals/AddDispersionModal';
 import { AddEfectivoModal } from './components/modals/AddEfectivoModal';
 import { AddGastoModal } from './components/modals/AddGastoModal';
 import { AddUserModal } from './components/modals/AddUserModal';
+import { AiAssistantBubble } from './components/ai/AiAssistantBubble';
 
 const RequireAuthFor2FA: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -124,6 +125,9 @@ const AppLayout: React.FC<{
       <AddEfectivoModal isOpen={activeModal === 'add-efectivo'} onClose={() => setActiveModal(null)} />
       <AddGastoModal isOpen={activeModal === 'add-gasto' || activeModal === 'add-gasto-efectivo'} isCashContext={activeModal === 'add-gasto-efectivo'} onClose={() => setActiveModal(null)} />
       <AddUserModal isOpen={activeModal === 'add-user'} onClose={() => setActiveModal(null)} />
+
+      {/* AI Financial Auditor Assistant (Only visible to Admin & Super Admin) */}
+      <AiAssistantBubble />
     </div>
   );
 };
