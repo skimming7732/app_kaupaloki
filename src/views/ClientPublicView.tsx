@@ -50,7 +50,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const efectivo = internalClient ? data.efectivo.filter(matches) : portal?.efectivo || [];
 
   const clientPagos = useMemo(() => [
-    ...dispersiones.map((item) => ({
+    ...dispersiones.filter((item) => item.estado?.trim().toUpperCase() !== 'RECHAZADO').map((item) => ({
       ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos,
     })),
     ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({

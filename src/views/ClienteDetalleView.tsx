@@ -129,24 +129,21 @@ export const ClienteDetalleView: React.FC = () => {
   };
 
   const openReceiptLightbox = (item: NormalizedData['dispersiones'][number]) => {
-    if (!item.comprobanteUrl) return;
-    const items: LightboxItem[] = clientDispersiones
-      .filter((d) => Boolean(d.comprobanteUrl))
-      .map((d) => ({
-        id: d.id,
+    const items: LightboxItem[] = clientDispersiones.flatMap((d) =>
+      (d.comprobanteUrl || '').split(',').map((url) => url.trim()).filter(Boolean).map((url, index) => ({
+        id: d.id + '-' + index,
         codigo: d.codigo,
-        montoCop: d.monto,
-        fecha: d.fecha,
-        origenFondos: d.origenFondos,
-        comprobanteUrl: d.comprobanteUrl!,
-      }));
-    const index = items.findIndex((i) => i.id === item.id);
-    setLightboxState({
-      isOpen: true,
-      index: index >= 0 ? index : 0,
-      items,
-    });
+        clienteNombre: d.clienteNombre,
+        monto: d.monto,
+        comprobanteUrl: url,
+      }))
+    );
+    const index = items.findIndex((entry) => entry.id === item.id + '-0');
+    if (index >= 0) setLightboxState({ isOpen: true, index, items });
   };
+
+  const rejectedTotal = data.dispersiones.reduce((total, item) =>
+    matchesClient(item) && item.estado.trim().toUpperCase() === 'RECHAZADO' ? total + item.monto : total, 0);
 
   if (!cliente) {
     return (
@@ -400,8 +397,11 @@ export const ClienteDetalleView: React.FC = () => {
             {formatCOP(cliente.saldoPendienteCOP)}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            Ingresos menos dispersiones
+            Ingresos registrados menos pagos efectivos
           </div>
+          {rejectedTotal > 0 && (
+            <p className="mt-1 text-xs text-destructive">Dispersiones rechazadas: {formatCOP(rejectedTotal)}</p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -634,7 +634,7 @@ export const ClienteDetalleView: React.FC = () => {
                     <th className="py-3 px-4 text-right">Monto Pagado (COP)</th>
                     <th className="py-3 px-4">Origen de Fondos</th>
                     <th className="py-3 px-4">Referencia / Destino</th>
-                    <th className="py-3 px-4 text-center">Comprobante (9:16)</th>
+                    <th className="py-3 px-4 text-center">Comprobante</th>
                     <th className="py-3 px-4 text-center">Estado</th>
                     <CreatedByHeader />
                     <th className="py-3 px-4 text-center">Acciones</th>
@@ -667,20 +667,21 @@ export const ClienteDetalleView: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 text-center">
                           {d.comprobanteUrl ? (
-                            <div
+                            <button
+                              type="button"
                               onClick={() => openReceiptLightbox(d)}
-                              className="inline-block cursor-pointer hover:opacity-80 transition-opacity"
-                              title="Ver comprobante en formato móvil (9:16)"
+                              className="inline-flex h-10 w-7 items-center justify-center overflow-hidden rounded-md border border-border align-middle hover:opacity-80"
+                              aria-label={'Ver comprobante de ' + d.codigo}
                             >
-                              <ReceiptThumbnail receipt={d.comprobanteUrl} className="w-9 h-14 object-cover rounded-lg border border-border shadow-xs inline-block" />
-                            </div>
+                              <ReceiptThumbnail receipt={d.comprobanteUrl.split(',')[0].trim()} />
+                            </button>
                           ) : (
                             <span className="text-[11px] text-muted-foreground italic">Sin adjunto</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            d.estado === 'DISPERSADO' || d.estado === 'APROBADO'
+                            ['COMPLETADO', 'DISPERSADO', 'APROBADO'].includes(d.estado.toUpperCase())
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                               : 'bg-muted text-muted-foreground'
                           }`}>
@@ -952,7 +953,8 @@ export const ClienteDetalleView: React.FC = () => {
       {/* Lightbox Modal for 9:16 mobile receipts */}
       <ReceiptLightboxModal
         isOpen={lightboxState.isOpen}
-        initialIndex={lightboxState.index}
+        currentIndex={lightboxState.index}
+        onNavigate={(index) => setLightboxState((prev) => ({ ...prev, index }))}
         items={lightboxState.items}
         onClose={() => setLightboxState((prev) => ({ ...prev, isOpen: false }))}
       />

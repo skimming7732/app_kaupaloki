@@ -926,7 +926,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((g) => movement(g, 'Gasto: ' + g.concepto, -Math.abs(g.monto))),
         ...efectivo.filter((e) => matchesAccount(e, account))
           .map((e) => movement(e, e.tipo + ' de efectivo', e.tipo === 'Ingreso' ? e.monto : -e.monto)),
-        ...dispersiones.filter((d) => d.origenFondosId === account.id)
+        ...dispersiones.filter((d) => d.origenFondosId === account.id && d.estado.trim().toUpperCase() !== 'RECHAZADO')
           .map((d) => movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto)),
         ...comprasUsdt.filter((c) => c.origenFondosId === account.id)
           .map((c) => movement(c, 'Compra USDT', -c.valorComprado)),

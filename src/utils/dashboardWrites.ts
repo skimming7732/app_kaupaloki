@@ -33,6 +33,10 @@ export async function writeDashboardRecord<T extends WriteResult>(
 export function dashboardWriteError(error: unknown, fallback: string): Error {
   if (error instanceof Error) return error;
   const code = (error as WriteError | null)?.code;
+  const message = (error as WriteError | null)?.message;
+  if (code === 'P0001' && message && /^(Vincula una cuenta de origen|Ingresa un monto válido para completar la dispersión|La cuenta de origen no está disponible o su saldo contable)/.test(message)) {
+    return new Error(message);
+  }
   if (code === '42501' || code === 'PGRST301') return new Error('Tu sesión no tiene permiso para guardar este registro.');
   if (code === 'PGRST204' || code === 'PGRST205' || code === '42703' || code === '42883') {
     return new Error('Falta actualizar la base de datos para guardar este formulario.');
