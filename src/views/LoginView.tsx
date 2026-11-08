@@ -29,7 +29,7 @@ export const LoginView: React.FC = () => {
 
     try {
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
-        redirectTo: `${window.location.origin}/perfil/seguridad`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (resetErr) throw resetErr;
       setForgotSuccess(true);
@@ -228,9 +228,10 @@ export const LoginView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsForgotPasswordOpen(false)}
-                    className="w-1/2 py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-muted font-semibold text-xs transition-colors"
+                    className="w-1/2 py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-muted hover:text-foreground font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
                   >
-                    Cancelar
+                    <i className="ri-arrow-left-line" />
+                    <span>Atrás</span>
                   </button>
                   <button
                     type="submit"

@@ -46,17 +46,40 @@ export const TwoFactorView: React.FC = () => {
     }
   }, [is2faVerified, navigate]);
 
+  // Redirect to login if user is not authenticated (prevents incognito access)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
   // Determine mode once profile is loaded
   useEffect(() => {
     if (authLoading) return;
 
+    if (!user) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
     if (profile?.two_factor_secret || profile?.two_factor_enabled) {
       setMode('verify');
-    } else if (user) {
+    } else {
       // User does not have 2FA configured yet
       initSetup();
     }
-  }, [profile, authLoading, user]);
+  }, [profile, authLoading, user, navigate]);
+
+  const handleBackToLogin = async () => {
+    sessionStorage.removeItem('kaupaloki_2fa_verified');
+    sessionStorage.removeItem('kpl_pending_2fa_secret');
+    await supabase.auth.signOut();
+    if (logout) {
+      await logout();
+    } else {
+      navigate('/login', { replace: true });
+    }
+  };
 
   // Resend cooldown timer countdown
   useEffect(() => {
@@ -363,7 +386,7 @@ export const TwoFactorView: React.FC = () => {
     setTimeout(() => setCopiedCodes(false), 2000);
   };
 
-  if (authLoading) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-3">
@@ -378,21 +401,32 @@ export const TwoFactorView: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top Standalone Header */}
       <header className="w-full flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={handleBackToLogin}
+            title="Volver a la pantalla de login"
+            className="px-2.5 sm:px-3 h-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+          >
+            <i className="ri-arrow-left-line" />
+            <span className="hidden sm:inline">Volver al login</span>
+            <span className="sm:hidden">Atrás</span>
+          </button>
+          <div className="h-5 w-px bg-border mx-1" />
           <img
             src="/logo.png"
             alt="Kaupaloki"
             className="theme-logo-dark"
-            style={{ height: '32px', maxHeight: '32px', width: 'auto', maxWidth: '160px', objectFit: 'contain' }}
+            style={{ height: '30px', maxHeight: '30px', width: 'auto', maxWidth: '140px', objectFit: 'contain' }}
           />
           <img
             src="/logo-blue.png"
             alt="Kaupaloki"
             className="theme-logo-light"
-            style={{ height: '32px', maxHeight: '32px', width: 'auto', maxWidth: '160px', objectFit: 'contain' }}
+            style={{ height: '30px', maxHeight: '30px', width: 'auto', maxWidth: '140px', objectFit: 'contain' }}
           />
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={toggleTheme}
@@ -405,17 +439,15 @@ export const TwoFactorView: React.FC = () => {
               <i className="ri-moon-line text-sm text-blue-500" />
             )}
           </button>
-          {user && (
-            <button
-              type="button"
-              onClick={logout}
-              title="Cerrar sesión"
-              className="px-3 h-9 rounded-xl border border-border bg-card hover:bg-destructive/10 text-destructive text-xs font-bold flex items-center gap-1.5 transition-colors"
-            >
-              <i className="ri-logout-box-r-line" />
-              <span className="hidden sm:inline">Salir</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleBackToLogin}
+            title="Salir y volver al inicio de sesión"
+            className="px-3 h-9 rounded-xl border border-border bg-card hover:bg-destructive/10 text-destructive text-xs font-bold flex items-center gap-1.5 transition-colors"
+          >
+            <i className="ri-logout-box-r-line" />
+            <span className="hidden sm:inline">Salir</span>
+          </button>
         </div>
       </header>
 
@@ -488,7 +520,7 @@ export const TwoFactorView: React.FC = () => {
             </button>
 
             {/* Alternativas de Acceso */}
-            <div className="pt-3 border-t border-border flex flex-col gap-2 text-center">
+            <div className="pt-3 border-t border-border flex flex-col gap-2.5 text-center">
               <button
                 type="button"
                 onClick={() => {
@@ -514,6 +546,17 @@ export const TwoFactorView: React.FC = () => {
                 <i className="ri-lock-password-line" />
                 <span>¿Perdiste tu autenticador y códigos? Recuperar cuenta</span>
               </button>
+
+              <div className="pt-2 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={handleBackToLogin}
+                  className="w-full py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <i className="ri-arrow-left-line" />
+                  <span>Volver e iniciar sesión con otra cuenta</span>
+                </button>
+              </div>
             </div>
           </form>
         )}
@@ -550,7 +593,7 @@ export const TwoFactorView: React.FC = () => {
               <span>Validar Código de Respaldo</span>
             </button>
 
-            <div className="pt-2 text-center">
+            <div className="pt-2 flex flex-col gap-2 text-center">
               <button
                 type="button"
                 onClick={() => {
@@ -558,9 +601,19 @@ export const TwoFactorView: React.FC = () => {
                   setCode('');
                   setMode('verify');
                 }}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-primary hover:underline transition-colors flex items-center justify-center gap-1 font-medium"
               >
-                ← Volver a código de autenticador
+                <i className="ri-arrow-left-line" />
+                <span>Volver a código de autenticador</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBackToLogin}
+                className="w-full py-2 rounded-xl border border-border text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors mt-1"
+              >
+                <i className="ri-logout-box-r-line" />
+                <span>Volver al inicio de sesión</span>
               </button>
             </div>
           </form>
@@ -611,16 +664,26 @@ export const TwoFactorView: React.FC = () => {
               <span>Validar Contraseña y Enviar Código al Correo</span>
             </button>
 
-            <div className="pt-2 text-center">
+            <div className="pt-2 flex flex-col gap-2 text-center">
               <button
                 type="button"
                 onClick={() => {
                   setError(null);
                   setMode('verify');
                 }}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-primary hover:underline transition-colors flex items-center justify-center gap-1 font-medium"
               >
-                ← Cancelar y volver
+                <i className="ri-arrow-left-line" />
+                <span>Cancelar y volver al código 2FA</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBackToLogin}
+                className="w-full py-2 rounded-xl border border-border text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors mt-1"
+              >
+                <i className="ri-logout-box-r-line" />
+                <span>Volver al inicio de sesión</span>
               </button>
             </div>
           </form>
@@ -774,6 +837,17 @@ export const TwoFactorView: React.FC = () => {
               {loading && <i className="ri-loader-4-line animate-spin" />}
               <span>Validar y Ver Códigos de Respaldo</span>
             </button>
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={handleBackToLogin}
+                className="w-full py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <i className="ri-arrow-left-line" />
+                <span>Volver al inicio de sesión</span>
+              </button>
+            </div>
           </form>
         )}
 

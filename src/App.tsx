@@ -20,6 +20,7 @@ import { DivisasView } from './views/DivisasView';
 import { UsuariosView } from './views/UsuariosView';
 import { PerfilView } from './views/PerfilView';
 import { TwoFactorView } from './views/TwoFactorView';
+import { ResetPasswordView } from './views/ResetPasswordView';
 import { LoginView } from './views/LoginView';
 import { OnboardingView } from './views/OnboardingView';
 import { ClientPublicView } from './views/ClientPublicView';
@@ -34,6 +35,26 @@ import { AddDispersionModal } from './components/modals/AddDispersionModal';
 import { AddEfectivoModal } from './components/modals/AddEfectivoModal';
 import { AddGastoModal } from './components/modals/AddGastoModal';
 import { AddUserModal } from './components/modals/AddUserModal';
+
+const RequireAuthFor2FA: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-black animate-pulse">
+            K
+          </div>
+          <span className="text-xs text-muted-foreground font-semibold">Cargando...</span>
+        </div>
+      </div>
+    );
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -110,6 +131,18 @@ const AppLayout: React.FC<{
 export const App: React.FC = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
+  // Auto-intercept password recovery tokens wherever they land (including old email links)
+  useEffect(() => {
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+    if (
+      (hash.includes('type=recovery') || search.includes('type=recovery')) &&
+      !window.location.pathname.startsWith('/reset-password')
+    ) {
+      window.location.replace(`/reset-password${window.location.search}${window.location.hash}`);
+    }
+  }, []);
+
   const renderWithLayout = (
     component: React.ReactNode,
     allowedRoles?: ('super_admin' | 'administrador' | 'operador' | 'dispersor')[]
@@ -126,8 +159,10 @@ export const App: React.FC = () => {
           <Routes>
             {/* Public and standalone routes */}
             <Route path="/login" element={<LoginView />} />
+            <Route path="/reset-password" element={<ResetPasswordView />} />
+            <Route path="/recuperar-password" element={<Navigate to="/reset-password" replace />} />
             <Route path="/onboarding" element={<OnboardingView />} />
-            <Route path="/2fa" element={<TwoFactorView />} />
+            <Route path="/2fa" element={<RequireAuthFor2FA><TwoFactorView /></RequireAuthFor2FA>} />
             <Route path="/cliente/:id" element={<ClientPublicView />} />
             <Route path="/cliente" element={<ClientPublicView />} />
 
