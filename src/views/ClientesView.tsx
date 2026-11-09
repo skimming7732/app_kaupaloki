@@ -1,4 +1,4 @@
-import { getClientCountryIso } from '../data/clientCountries';
+import { CLIENT_COUNTRIES, findClientCountry, getClientCountryIso } from '../data/clientCountries';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
@@ -7,7 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { formatCOP, formatNumber } from '../utils/formatters';
+import { formatCOP, formatNumber, normalizeSearch } from '../utils/formatters';
 import { AddClienteModal } from '../components/modals/AddClienteModal';
 import { EditClienteModal } from '../components/modals/EditClienteModal';
 import { ShareClientModal } from '../components/modals/ShareClientModal';
@@ -17,6 +17,7 @@ interface ClientesViewProps {
 }
 
 type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'saldoPendienteCOP' | 'porCobrarCOP' | 'totalComisionesCOP' | 'estado';
+const countryKey = (pais?: string) => findClientCountry(pais || 'COLOMBIA')?.value ?? normalizeSearch(pais?.trim() || 'COLOMBIA').toUpperCase();
 
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
   const { data } = useData();
@@ -24,6 +25,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
   const canFilterComisiones = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [search, setSearch] = useState('');
   const [estado, setEstado] = useState('');
+  const [pais, setPais] = useState('');
   const [tieneComisionista, setTieneComisionista] = useState('');
   const [esComisionista, setEsComisionista] = useState('');
   const [sharingClient, setSharingClient] = useState<any | null>(null);
@@ -47,7 +49,15 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
       .filter((id) => typeof id === 'string')
       .map((id) => id.trim().toLowerCase())
   ), [data.comisionistas]);
-  const filtrosActivos = Boolean(search || estado || (canFilterComisiones && (tieneComisionista || esComisionista)));
+  const paises = useMemo(() => {
+    const options = new Map(CLIENT_COUNTRIES.map((country) => [country.value, country.label]));
+    for (const cliente of data.clientes) {
+      const key = countryKey(cliente.pais);
+      if (!options.has(key)) options.set(key, cliente.pais?.trim() || key);
+    }
+    return [...options].sort((left, right) => left[1].localeCompare(right[1], 'es'));
+  }, [data.clientes]);
+  const filtrosActivos = Boolean(search || estado || pais || (canFilterComisiones && (tieneComisionista || esComisionista)));
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -63,12 +73,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
     return data.clientes.filter((c) => {
       if (!c.nombre.toLowerCase().includes(query) && !c.codigo.toLowerCase().includes(query)) return false;
       if (estado && c.estado !== estado) return false;
+      if (pais && countryKey(c.pais) !== pais) return false;
       if (!canFilterComisiones) return true;
       if (esComisionista && c.esComisionista !== (esComisionista === 'si')) return false;
       const tieneAsignado = referidos.has(c.id.toLowerCase()) || referidos.has(c.codigo.toLowerCase());
       return !tieneComisionista || tieneAsignado === (tieneComisionista === 'si');
     });
-  }, [data.clientes, referidos, search, estado, tieneComisionista, esComisionista, canFilterComisiones]);
+  }, [data.clientes, referidos, search, estado, pais, tieneComisionista, esComisionista, canFilterComisiones]);
 
   const sortedClientes = useMemo(() => {
     return [...filteredClientes].sort((a, b) => {
@@ -167,8 +178,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
       </div>
 
       <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
-        <div className={'grid items-end gap-2 sm:grid-cols-2 ' + (canFilterComisiones ? 'lg:grid-cols-5' : 'lg:grid-cols-3')}>
-          <div className={'relative ' + (canFilterComisiones ? 'sm:col-span-2' : 'lg:col-span-2')}>
+        <div className={'grid items-end gap-2 sm:grid-cols-2 ' + (canFilterComisiones ? 'lg:grid-cols-6' : 'lg:grid-cols-4')}>
+          <div className="relative sm:col-span-2">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true" />
             <input
               type="search"
@@ -187,6 +198,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
               <option value="PAGADO">Pagado</option>
               <option value="DEBE">Debe</option>
               <option value="SIN ACTIVIDAD">Sin actividad</option>
+            </TableSelectFilter>
+          </label>
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            País
+            <TableSelectFilter label="País" value={pais} onChange={setPais}>
+              <option value="">Todos</option>
+              {paises.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </TableSelectFilter>
           </label>
           {canFilterComisiones && (
@@ -220,6 +238,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
               onClick={() => {
                 setSearch('');
                 setEstado('');
+                setPais('');
                 setTieneComisionista('');
                 setEsComisionista('');
               }}

@@ -28,10 +28,11 @@ type Form = {
 const dateField: Field = { name: 'fecha', label: 'Fecha de la operación', type: 'date' };
 const today = () => new Date().toISOString().slice(0, 10);
 
-export const AddCatalogButton = ({ table, edit, allowDelete = true }: {
+export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassName }: {
   table: CatalogTable;
   edit?: { id: string; historical?: boolean; fields: Record<string, any> };
   allowDelete?: boolean;
+  buttonClassName?: string;
 }) => {
   const { data, createCatalogRecord, deleteCatalogRecord } = useData();
   const { profile } = useAuth();
@@ -349,7 +350,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true }: {
 
   return (
     <>
-      <button type="button" className={edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass}
+      <button type="button" className={buttonClassName ?? (edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass)}
         onClick={() => {
           setError('');
           const initSource = String(initial[sourceField] ?? '');

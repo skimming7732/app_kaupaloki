@@ -6,7 +6,7 @@ export function getTwoFactorSessionKey(session: Session | null): string | null {
   if (!session?.access_token) return null;
   try {
     const payload = session.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const claims = JSON.parse(atob(payload));
+    const claims = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, '=')));
     return claims.sub === session.user.id && typeof claims.session_id === 'string' && claims.session_id
       ? session.user.id + ':' + claims.session_id
       : null;
@@ -41,17 +41,21 @@ export function connectTwoFactorTabs(key: string | null, onVerified: () => void)
     settle();
   };
 
+  const broadcast = (message: 'verified' | 'request') => {
+    try { channel?.postMessage(message); } catch {}
+  };
+
   if (channel) {
     channel.onmessage = (event) => {
       if (event.data === 'verified') accept();
-      if (event.data === 'request' && verified) channel?.postMessage('verified');
+      if (event.data === 'request' && verified) broadcast('verified');
     };
   }
   if (verified || !channel) {
     settle();
   } else {
     timer = setTimeout(settle, 700);
-    channel.postMessage('request');
+    broadcast('request');
   }
 
   return {
@@ -59,12 +63,12 @@ export function connectTwoFactorTabs(key: string | null, onVerified: () => void)
     verified: () => verified,
     verify() {
       accept();
-      channel?.postMessage('verified');
+      broadcast('verified');
     },
     close() {
       verified = false;
       if (timer !== undefined) clearTimeout(timer);
-      channel?.close();
+      try { channel?.close(); } catch {}
       channel = undefined;
       settle();
     },

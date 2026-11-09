@@ -61,6 +61,7 @@ export const TwoFactorView: React.FC = () => {
       navigate('/login', { replace: true });
       return;
     }
+    if (!profile) return;
 
     if (profile?.two_factor_secret || profile?.two_factor_enabled) {
       setMode('verify');
@@ -71,14 +72,11 @@ export const TwoFactorView: React.FC = () => {
   }, [profile, authLoading, user, navigate]);
 
   const handleBackToLogin = async () => {
-    sessionStorage.removeItem('kaupaloki_2fa_verified');
-    sessionStorage.removeItem('kpl_pending_2fa_secret');
-    await supabase.auth.signOut();
-    if (logout) {
-      await logout();
-    } else {
-      navigate('/login', { replace: true });
-    }
+    try {
+      sessionStorage.removeItem('kpl_pending_2fa_secret');
+      sessionStorage.removeItem('kpl_pending_backup_codes');
+    } catch {}
+    await logout();
   };
 
   // Resend cooldown timer countdown
@@ -124,6 +122,7 @@ export const TwoFactorView: React.FC = () => {
   // -------------------------------------------------------------
   const handleVerifyExisting = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     const activeSecret = profile?.two_factor_secret;
     if (!activeSecret) {
       setError('No se encontró el secreto 2FA en tu perfil.');
@@ -134,15 +133,14 @@ export const TwoFactorView: React.FC = () => {
 
     try {
       const isValid = await verifyTotp(code.trim(), activeSecret);
-      if (isValid) {
-        if (verify2FASession) verify2FASession();
-        navigate('/inicio');
-      } else {
+      if (!isValid) {
         setError('Código incorrecto o expirado. Ingresa el código actual de 6 dígitos.');
-        setLoading(false);
+      } else if (!verify2FASession()) {
+        setError('La sesión cambió mientras verificábamos el código. Ingresa el código actual e inténtalo de nuevo.');
       }
     } catch {
       setError('Error al validar el código 2FA');
+    } finally {
       setLoading(false);
     }
   };
@@ -184,10 +182,10 @@ export const TwoFactorView: React.FC = () => {
         await refreshProfile();
       }
 
-      if (verify2FASession) verify2FASession();
-      navigate('/inicio');
+      if (!verify2FASession()) throw new Error('La sesión cambió durante la verificación. Vuelve a verificarla.');
     } catch (err: any) {
       setError(err?.message || 'Error al validar el código de respaldo');
+    } finally {
       setLoading(false);
     }
   };
@@ -358,10 +356,10 @@ export const TwoFactorView: React.FC = () => {
         await refreshProfile();
       }
 
-      if (verify2FASession) verify2FASession();
-      navigate('/inicio');
+      if (!verify2FASession()) throw new Error('La configuración se guardó. Verifica la sesión con el código del autenticador.');
     } catch (err: any) {
       setError(err?.message || 'Error al guardar la configuración 2FA');
+    } finally {
       setLoading(false);
     }
   };
@@ -392,6 +390,27 @@ export const TwoFactorView: React.FC = () => {
         <div className="flex flex-col items-center gap-3">
           <i className="ri-loader-4-line animate-spin text-3xl text-primary" />
           <span className="text-xs text-muted-foreground font-semibold">Cargando verificación 2FA...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background p-4">
+        <div className="w-full max-w-sm space-y-3 rounded-2xl border border-border bg-card p-5">
+          <p role="alert" className="text-sm font-semibold">No se pudo cargar tu perfil para verificar el acceso.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={loading}
+              className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              onClick={async () => {
+                setLoading(true);
+                try { await refreshProfile(); } catch {} finally { setLoading(false); }
+              }}>
+              {loading ? 'Cargando…' : 'Reintentar'}
+            </button>
+            <button type="button" onClick={handleBackToLogin} className="rounded-lg border border-border px-3 py-2 text-sm">Cerrar sesión</button>
+          </div>
         </div>
       </div>
     );

@@ -30,7 +30,7 @@ interface AuthContextType {
   toggleTheme: () => void;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  verify2FASession: () => void;
+  verify2FASession: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -48,7 +48,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
   const [loading, setLoading] = useState(true);
-  const [is2faVerified, setIs2faVerified] = useState(false);
+  const [sessionIdentity, setSessionIdentity] = useState<string>();
+  const [verifiedIdentity, setVerifiedIdentity] = useState<string>();
+  const is2faVerified = sessionIdentity !== undefined && verifiedIdentity === sessionIdentity;
   const activeSession = useRef<string | undefined>(undefined);
   const loadedUserId = useRef<string | undefined>(undefined);
   const verification = useRef<ReturnType<typeof connectTwoFactorTabs> | undefined>(undefined);
@@ -76,13 +78,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const cleanEmail = email.toLowerCase().trim();
       const isSuper = cleanEmail === SUPER_ADMIN_EMAIL;
 
-      const { data: dbProfile } = await supabase
+      const { data: dbProfile, error } = await supabase
         .from('profiles')
         .select('*')
         .ilike('email', cleanEmail)
         .maybeSingle();
 
       if (!isCurrent()) return;
+      if (error) throw error;
 
       if (dbProfile) {
         if (dbProfile.status && ['invitado', 'invited'].includes(String(dbProfile.status).toLowerCase())) {
@@ -148,8 +151,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshProfile = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.email) {
+      const identity = getTwoFactorSessionKey(session) ?? session.access_token;
+      if (identity !== activeSession.current) return;
       setUser(session.user);
-      await fetchProfile(session.user.email, session.user);
+      await fetchProfile(session.user.email, session.user, () => activeSession.current === identity);
     }
   };
 
@@ -160,7 +165,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadedUserId.current = undefined;
     clearTwoFactorVerification();
     localStorage.removeItem('kaupaloki_user_profile');
-    setIs2faVerified(false);
+    setSessionIdentity(undefined);
+    setVerifiedIdentity(undefined);
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
@@ -178,7 +184,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeSession.current = undefined;
         loadedUserId.current = undefined;
         clearTwoFactorVerification();
-        setIs2faVerified(false);
+        setSessionIdentity(undefined);
+        setVerifiedIdentity(undefined);
         setUser(null);
         setProfile(null);
         setLoading(false);
@@ -193,16 +200,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         verification.current?.close();
         activeSession.current = identity;
         const connection = connectTwoFactorTabs(key, () => {
-          if (mounted && activeSession.current === identity) setIs2faVerified(true);
+          if (mounted && activeSession.current === identity) setVerifiedIdentity(identity);
         });
         verification.current = connection;
-        setIs2faVerified(connection.verified());
+        setSessionIdentity(identity);
+        setVerifiedIdentity(connection.verified() ? identity : undefined);
       }
       // Recovery can issue a new session for the same user. Keep that form mounted
       // while the verification state switches to the new session.
       const needsProfile = loadedUserId.current !== session.user.id;
       if (!needsProfile && event !== 'USER_UPDATED') return;
-      if (needsProfile) setLoading(true);
+      if (needsProfile) {
+        setLoading(true);
+        setProfile((current) => current?.id === session.user.id ? current : null);
+      }
       setUser(session.user);
 
       // Supabase auth callbacks hold the session lock. Query the profile after releasing it.
@@ -231,9 +242,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const renderedSession = activeSession.current;
   const verify2FASession = () => {
-    if (renderedSession && renderedSession === activeSession.current) verification.current?.verify();
+    const connection = verification.current;
+    if (!sessionIdentity || sessionIdentity !== activeSession.current || !connection) return false;
+    connection.verify();
+    return true;
   };
 
   return (

@@ -138,7 +138,8 @@ export const ActivosLiquidosView: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <AddCatalogButton table="activos_liquidos" edit={liquidEdit(selectedActivo)} allowDelete={false} />
+              <AddCatalogButton table="activos_liquidos" edit={liquidEdit(selectedActivo)} allowDelete={false}
+                buttonClassName="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90" />
               <button
                 type="button"
                 onClick={() => handleExportCSV(selectedActivo)}
@@ -555,14 +556,19 @@ export const ActivosLiquidosView: React.FC = () => {
                     </div>
 
                     {/* Bottom Row: Metadata & Extract Prompt */}
-                    <div className="pt-3 border-t border-white/10 flex items-center justify-between relative z-10 text-[11px]">
+                    <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 relative z-10 text-[11px]">
                       <div>
                         <span className="text-slate-300 block text-[10px]">Cuenta</span>
                         <span className="font-mono font-semibold text-white">{a.cuenta || 'Principal'}</span>
                       </div>
-                      <div className="flex items-center gap-1 font-semibold text-indigo-200 group-hover:translate-x-1 transition-transform">
-                        <span>Ver extracto</span>
-                        <i className="ri-arrow-right-line text-xs" />
+                      <div className="flex items-center gap-2">
+                        <div onClick={(event) => event.stopPropagation()}>
+                          <AddCatalogButton table="activos_liquidos" edit={liquidEdit(a)} allowDelete={false}
+                            buttonClassName="inline-flex min-h-10 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 font-semibold text-white hover:bg-white/20" />
+                        </div>
+                        <span className="flex items-center gap-1 font-semibold text-indigo-200">
+                          Ver extracto <i className="ri-arrow-right-line text-xs" aria-hidden="true" />
+                        </span>
                       </div>
                     </div>
                   </div>
