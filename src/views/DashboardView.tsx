@@ -8,8 +8,15 @@ import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 
 const formatUsdt = (amount: number) => formatNumber(amount, 0, 6) + ' USDT';
 
+function estadoCobertura(activos: number, capital: number) {
+  const diferencia = Math.round((activos - capital) * 100) / 100;
+  if (diferencia < 0) return 'Faltan ' + formatCOP(-diferencia);
+  if (diferencia > 0) return 'Sobran ' + formatCOP(diferencia);
+  return 'Capital cubierto';
+}
+
 export const DashboardView: React.FC = () => {
-  const { metrics, data, updateRateUsdt } = useData();
+  const { metrics, data, loading, updateRateUsdt } = useData();
   const [editingRate, setEditingRate] = useState(false);
   const [rateInput, setRateInput] = useState('');
   const [savingRate, setSavingRate] = useState(false);
@@ -21,52 +28,51 @@ export const DashboardView: React.FC = () => {
   const activosLiquidosCOP = sumRows(data.activosLiquidos, (account) => account.saldoCop);
   const activosDigitalesUSDT = sumRows(wallets, (wallet) => wallet.saldoUsdt);
   const activosDigitalesCOP = activosDigitalesUSDT * currentRate;
-  const totalCapitalCOP = activosLiquidosCOP + activosDigitalesCOP;
+  const activosContablesCOP = activosLiquidosCOP + activosDigitalesCOP;
+  const capitalInvertidoCOP = metrics.capitalInvertidoCOP;
 
   const balances = [
-    ...data.activosLiquidos.map((account) => ({
-      contable: Number(account.saldoCop ?? 0),
-      real: typeof account.saldoReal === 'number' ? account.saldoReal : null,
-    })),
+    ...data.activosLiquidos.map((account) => account.saldoReal),
     ...wallets.map((wallet) => {
       const saldoTron = chainBalances[String(wallet.wallet || '').trim()];
-      return {
-        contable: Number(wallet.saldoUsdt ?? 0) * currentRate,
-        real: saldoTron == null ? null : saldoTron * currentRate,
-      };
+      return saldoTron == null ? null : saldoTron * currentRate;
     }),
   ];
-  const verificados = balances.filter((balance) => balance.real !== null && Number.isFinite(balance.real));
-  const realVerificado = sumRows(verificados, (balance) => balance.real ?? 0);
-  const contableComparable = sumRows(verificados, (balance) => balance.contable);
-  const diferenciaCapital = Math.round((realVerificado - contableComparable) * 100) / 100;
-  const estadoCapital = verificados.length ? (
+  const verificados = balances.filter((saldo): saldo is number => typeof saldo === 'number' && Number.isFinite(saldo));
+  const realVerificado = sumRows(verificados, (saldo) => saldo);
+  const verificacionCompleta = verificados.length > 0 && verificados.length === balances.length;
+  const estadoCapital = !loading && capitalInvertidoCOP != null ? (
     <>
-      <span>{diferenciaCapital > 0 ? '+' : ''}{formatCOP(diferenciaCapital)}</span>
-      <span className="mt-1 block text-[11px] font-normal text-muted-foreground">
-        Real {formatCOP(realVerificado)} · Contable {formatCOP(contableComparable)}
-      </span>
-      <span className="block text-[11px] font-normal text-muted-foreground">
-        {verificados.length} de {balances.length} activos verificados
-      </span>
+      <span className="block text-[11px] font-normal text-muted-foreground">Según libros</span>
+      <span className="block">{estadoCobertura(activosContablesCOP, capitalInvertidoCOP)}</span>
+      <div className="mt-2 border-t border-border pt-2">
+        <span className="block text-[11px] font-normal text-muted-foreground">Según saldos reales</span>
+        {verificacionCompleta ? (
+          <span className="block">{estadoCobertura(realVerificado, capitalInvertidoCOP)}</span>
+        ) : (
+          <span className="block text-xs font-normal text-muted-foreground">Faltan saldos por verificar</span>
+        )}
+      </div>
     </>
-  ) : 'Por verificar';
+  ) : 'Por consultar';
   const gastosTransferencia = (divisa: 'COP' | 'USDT') =>
     sumRows(data.transferenciasInternas, (transferencia) => transferencia.divisaCosto === divisa ? transferencia.costo : 0);
   const indicadores = [
     {
-      label: 'Total capital',
+      label: 'Capital invertido',
       featured: true,
       value: (
         <>
-          <span className="block text-[11px] font-normal text-muted-foreground">Contable</span>
-          <span className="block">{formatCOP(totalCapitalCOP)}</span>
+          <span className="block">{capitalInvertidoCOP == null ? 'Por consultar' : formatCOP(capitalInvertidoCOP)}</span>
+          <span className="block text-[11px] font-normal text-muted-foreground">Aportes menos retiros</span>
           <div className="mt-2 border-t border-border pt-2">
-            <span className="block text-[11px] font-normal text-muted-foreground">Capital real</span>
+            <span className="block text-[11px] font-normal text-muted-foreground">Activos contables</span>
+            <span className="block">{loading ? '…' : formatCOP(activosContablesCOP)}</span>
+            <span className="mt-2 block text-[11px] font-normal text-muted-foreground">Activos reales</span>
             {verificados.length > 0 ? (
               <>
                 <span className="block">{formatCOP(realVerificado)}</span>
-                {verificados.length < balances.length && (
+                {!verificacionCompleta && (
                   <span className="block text-[11px] font-normal text-muted-foreground">
                     Parcial · {verificados.length} de {balances.length} activos verificados
                   </span>

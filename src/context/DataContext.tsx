@@ -250,6 +250,7 @@ export interface MetricsSummary {
   totalGastosCOP: number;
   totalCostosDispersionCOP: number;
   interesesSociosCOP: number;
+  capitalInvertidoCOP: number | null;
   dividendosSociosCOP: number;
   gananciaDespuesDividendosCOP: number;
   rateUsdtCop: number;
@@ -1160,6 +1161,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalGastosCOP,
       totalCostosDispersionCOP,
       interesesSociosCOP: capitalTotals.interest,
+      capitalInvertidoCOP: userId && capitalLedger.userId === userId ? capitalTotals.capital : null,
       dividendosSociosCOP: capitalTotals.dividends,
       gananciaDespuesDividendosCOP: gananciaEsperada - capitalTotals.dividends,
       rateUsdtCop: rateUsdt,
