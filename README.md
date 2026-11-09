@@ -68,3 +68,13 @@ En el dashboard, el portal del cliente y los formularios, usa coma para agrupar 
 ## Publicación de cambios en GitHub
 
 Al terminar cada tarea que cambie el proyecto, ejecuta las verificaciones correspondientes, crea un commit con los cambios de la tarea y ejecuta `git push origin <rama>`. Usa `main` por defecto cuando la tarea no indique otra rama. Antes de dar la tarea por terminada, confirma que GitHub recibió el commit e incluye su enlace en la entrega. Si falla el push, informa qué quedó pendiente.
+
+## Reinicio operativo
+
+La función privada de Supabase se ejecuta desde SQL con el rol propietario de la base de datos.
+
+```sql
+SELECT kaupaloki_private.reiniciar_operacion('REINICIAR OPERACION KAUPALOKI');
+```
+
+Vacía los registros de clientes, operaciones, capital, activos e historial financiero. Conserva los usuarios, las instituciones, las divisas y la cuenta `EFECTIVO-CAJA`. Deja la caja y los totales de las divisas en cero. Los archivos del bucket `comprobantes` se gestionan por separado con la API de Storage.

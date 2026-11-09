@@ -50,6 +50,7 @@ export interface ResumenLiquidacion {
   totalNegocioCop: number;
   totalClientesIngresosCop?: number;
   saldoNetoClientesCop?: number;
+  totalCapitalInvertidoCop?: number;
   rateUsdtCop?: number;
   totalVentasUsdtCop: number;
   totalLiquidezEsperadaCop: number;
@@ -602,14 +603,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
 
       const resumenLiquidacion: ResumenLiquidacion | undefined = resumenData ? {
-        totalNegocioCop: Number(resumenData.total_negocio_cop || 645436000),
+        totalNegocioCop: Number(resumenData.total_negocio_cop ?? 0),
         totalVentasUsdtCop: Number(resumenData.total_ventas_usdt_cop ?? 0),
         totalLiquidezEsperadaCop: Number(resumenData.total_liquidez_esperada_cop ?? 0),
         gananciaEsperadaCop: Number(resumenData.ganancia_esperada_cop ?? 0),
         totalActivosDigitalesUsdt: Number(resumenData.total_activos_digitales_usdt ?? 0),
-        totalActivosLiquidosCop: Number(resumenData.total_activos_liquidos_cop || 518008020),
+        totalActivosLiquidosCop: Number(resumenData.total_activos_liquidos_cop ?? 0),
         totalSaldoPendienteClientesCop: Number(resumenData.total_saldo_pendiente_clientes_cop ?? 0),
         saldoNetoClientesCop: resumenData.saldo_neto_clientes_cop == null ? undefined : Number(resumenData.saldo_neto_clientes_cop),
+        totalCapitalInvertidoCop: resumenData.total_capital_invertido_cop == null ? undefined : Number(resumenData.total_capital_invertido_cop),
         totalGastosCop: resumenData.total_gastos_cop == null ? undefined : Number(resumenData.total_gastos_cop),
         totalCostosDispersionCop: resumenData.total_costos_dispersion_cop == null ? undefined : Number(resumenData.total_costos_dispersion_cop),
         rateUsdtCop: Number(resumenData.rate_usdt_cop || 3950),
@@ -1195,6 +1197,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       : totalClientesIngresosFallback;
 
     const rateUsdt = Number(res?.rateUsdtCop || 3950);
+    const totalActivosLiquidos = res?.totalActivosLiquidosCop ?? totalLiqFallback;
     const totalActivosDigitales = res?.totalActivosDigitalesUsdt ?? totalDigFallback;
     const totalVentasUSDT = res?.totalVentasUsdtCop ?? (data.ventasUsdt || []).reduce((acc: number, v: any) => acc + (v.totalCOP || 0), 0);
 
@@ -1203,10 +1206,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Interest is already included in gastos. Dividends are deducted after net profit.
     const capitalTotals = summarizeCapital(capitalLedger.userId === userId ? capitalLedger.rows : []);
-    const gananciaEsperada = totalVentasUSDT + liquidezEsperada - saldoNetoClientesCOP - totalGastosCOP;
+    const capitalInvertidoCOP = res?.totalCapitalInvertidoCop ?? (userId && capitalLedger.userId === userId ? capitalTotals.capital : null);
+    const gananciaEsperada = totalVentasUSDT + totalActivosLiquidos + liquidezEsperada
+      - saldoNetoClientesCOP - totalGastosCOP - (capitalInvertidoCOP ?? 0);
 
     return {
-      totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
+      totalActivosLiquidos,
       totalActivosDigitales,
       saldoPendienteClientes: data.clientes.length ? totalSaldoPendiente : (res?.totalSaldoPendienteClientesCop ?? 0),
       totalPorCobrarClientesCOP,
@@ -1219,7 +1224,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalGastosCOP,
       totalCostosDispersionCOP,
       interesesSociosCOP: capitalTotals.interest,
-      capitalInvertidoCOP: userId && capitalLedger.userId === userId ? capitalTotals.capital : null,
+      capitalInvertidoCOP,
       dividendosSociosCOP: capitalTotals.dividends,
       gananciaDespuesDividendosCOP: gananciaEsperada - capitalTotals.dividends,
       rateUsdtCop: rateUsdt,

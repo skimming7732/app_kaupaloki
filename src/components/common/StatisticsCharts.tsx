@@ -93,7 +93,10 @@ export function SettlementBridge({ steps, net, loading }: { steps: Contribution[
   const max = Math.max(0, ...columns.flatMap((step) => [step.start, step.end]));
   const plotHeight = 116;
   const y = (value: number) => 7 + (max - value) / Math.max(1, max - min) * plotHeight;
-  const x = (index: number) => 28 + index * 58;
+  const plotWidth = 356;
+  const columnSpacing = plotWidth / columns.length;
+  const barWidth = Math.min(30, columnSpacing * 0.54);
+  const x = (index: number) => (index + 0.5) * columnSpacing;
 
   return (
     <ChartCard title="Puente de liquidación" description="Cómo se forma el resultado neto" icon="ri-bar-chart-grouped-line">
@@ -106,18 +109,18 @@ export function SettlementBridge({ steps, net, loading }: { steps: Contribution[
             </div>
             <strong className="tabular-nums" style={{ color: selected.color }}>{formatCOP(selected.value)}</strong>
           </div>
-          <svg viewBox="0 0 356 132" preserveAspectRatio="none" className="h-32 w-full text-muted-foreground"
-            role="img" aria-label="Cascada de ventas, liquidez, saldo neto con clientes, gastos e intereses hasta la ganancia neta">
-            <line x1="0" x2="356" y1={y(0)} y2={y(0)} stroke="currentColor" strokeOpacity=".45" strokeDasharray="3 4" />
+          <svg viewBox={`0 0 ${plotWidth} 132`} preserveAspectRatio="none" className="h-32 w-full text-muted-foreground"
+            role="img" aria-label="Cascada de ventas, activos líquidos, liquidez USDT, saldo neto con clientes, gastos, intereses y capital hasta la ganancia neta">
+            <line x1="0" x2={plotWidth} y1={y(0)} y2={y(0)} stroke="currentColor" strokeOpacity=".45" strokeDasharray="3 4" />
             {columns.map((step, index) => (
               <g key={step.key} opacity={step.key === selected.key ? 1 : 0.72}>
-                {index < steps.length - 1 && <line x1={x(index) + 15} x2={x(index + 1) - 15} y1={y(step.end)} y2={y(step.end)} stroke="currentColor" strokeOpacity=".55" strokeDasharray="3 3" />}
-                <rect className="stats-column" x={x(index) - 15} y={Math.min(y(step.start), y(step.end))}
-                  width="30" height={Math.max(1, Math.abs(y(step.start) - y(step.end)))} rx="3" fill={step.color} />
+                {index < steps.length - 1 && <line x1={x(index) + barWidth / 2} x2={x(index + 1) - barWidth / 2} y1={y(step.end)} y2={y(step.end)} stroke="currentColor" strokeOpacity=".55" strokeDasharray="3 3" />}
+                <rect className="stats-column" x={x(index) - barWidth / 2} y={Math.min(y(step.start), y(step.end))}
+                  width={barWidth} height={Math.max(1, Math.abs(y(step.start) - y(step.end)))} rx="3" fill={step.color} />
               </g>
             ))}
           </svg>
-          <div className="grid grid-cols-3 gap-1.5 min-[1450px]:grid-cols-6" role="group" aria-label="Detalle de liquidación">
+          <div className="grid grid-cols-4 gap-1.5" role="group" aria-label="Detalle de liquidación">
             {columns.map((step) => (
               <button key={step.key} type="button" onClick={() => setSelection(step.key)} aria-pressed={selected.key === step.key}
                 aria-label={step.label} className="flex min-h-8 items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted aria-pressed:bg-muted aria-pressed:text-foreground">
