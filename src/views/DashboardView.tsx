@@ -54,7 +54,31 @@ export const DashboardView: React.FC = () => {
   const gastosTransferencia = (divisa: 'COP' | 'USDT') =>
     sumRows(data.transferenciasInternas, (transferencia) => transferencia.divisaCosto === divisa ? transferencia.costo : 0);
   const indicadores = [
-    { label: 'Total capital', value: formatCOP(totalCapitalCOP), featured: true },
+    {
+      label: 'Total capital',
+      featured: true,
+      value: (
+        <>
+          <span className="block text-[11px] font-normal text-muted-foreground">Contable</span>
+          <span className="block">{formatCOP(totalCapitalCOP)}</span>
+          <div className="mt-2 border-t border-border pt-2">
+            <span className="block text-[11px] font-normal text-muted-foreground">Capital real</span>
+            {verificados.length > 0 ? (
+              <>
+                <span className="block">{formatCOP(realVerificado)}</span>
+                {verificados.length < balances.length && (
+                  <span className="block text-[11px] font-normal text-muted-foreground">
+                    Parcial · {verificados.length} de {balances.length} activos verificados
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="block text-xs font-normal text-muted-foreground">Por verificar</span>
+            )}
+          </div>
+        </>
+      ),
+    },
     { label: 'Activos líquidos', value: formatCOP(activosLiquidosCOP) },
     {
       label: 'Activos digitales',
