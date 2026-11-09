@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { sumRows } from '../components/common/KpiStrip';
 import { normalizeDateToLocalYmd } from '../components/common/DateRangeFilter';
-import { ProfitHistoryChart } from '../components/common/ProfitHistoryChart';
+import { ClientIncomeComparisonChart } from '../components/common/ClientIncomeComparisonChart';
 import { ActivityChart, CapitalMix, ChartCard, ChartEmpty, chartColors, formatUsdt, MetricBars, SettlementBridge } from '../components/common/StatisticsCharts';
 import { formatNumber, todayBogota } from '../utils/formatters';
 
@@ -75,7 +75,7 @@ export function EstadisticasView() {
       </header>
 
       <div className="stats-grid grid gap-4">
-        <div className="stats-profit min-w-0"><ProfitHistoryChart syncedAt={snapshot.syncedAt} profit={loading ? null : metrics.gananciaEsperada} /></div>
+        <div className="stats-profit min-w-0"><ClientIncomeComparisonChart syncedAt={snapshot.syncedAt} profit={loading ? null : metrics.gananciaEsperada} /></div>
         <div className="stats-settlement min-w-0"><SettlementBridge steps={steps} net={metrics.gananciaEsperada} loading={loading} /></div>
         <div className="stats-capital min-w-0">
           <CapitalMix liquid={activosLiquidosCOP} digital={activosDigitalesCOP} usdt={activosDigitalesUSDT} invested={metrics.capitalInvertidoCOP} loading={loading} />

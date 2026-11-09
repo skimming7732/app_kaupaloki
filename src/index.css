@@ -223,12 +223,12 @@ html.dark .auth-surface::after {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .profit-history-path {
+  .client-income-path {
     stroke-dasharray: 1;
-    animation: draw-profit-history 900ms ease-out both;
+    animation: draw-client-income 900ms ease-out both;
   }
 
-  @keyframes draw-profit-history {
+  @keyframes draw-client-income {
     from { stroke-dashoffset: 1; }
     to { stroke-dashoffset: 0; }
   }
@@ -272,11 +272,6 @@ html.dark .auth-surface::after {
   background: var(--bg-card);
   color: var(--brand-primary);
   box-shadow: 0 1px 4px rgb(66 45 145 / .12);
-}
-
-.stats-profit-value {
-  font-size: clamp(1.125rem, 7cqi, 1.5rem);
-  line-height: 1.25;
 }
 
 @container (max-width: 215px) {
