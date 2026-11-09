@@ -820,6 +820,84 @@ export const ClienteDetalleView: React.FC = () => {
       {/* Tab 4: Comisiones y Red */}
       {activeTab === 'comisiones' && (
         <div className="space-y-6">
+          {/* Table of referred clients if applicable — placed above profile cards */}
+          {cliente.esComisionista && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-foreground">
+                Clientes Asignados a su Red de Comisiones ({clientesReferidos.length})
+              </h4>
+              <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
+                      <tr>
+                        <th className="py-3 px-4">Cliente</th>
+                        <th className="py-3 px-4 text-center">País</th>
+                        <th className="py-3 px-4 text-center">Negocios</th>
+                        <th className="py-3 px-4 text-right">Volumen Ingresos</th>
+                        <th className="py-3 px-4 text-right">Total Comisiones</th>
+                        <th className="py-3 px-4 text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {clientesReferidos.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                            No tiene clientes asignados en este momento.
+                          </td>
+                        </tr>
+                      ) : (
+                        clientesReferidos.map((refClient) => {
+                          const pct = Number(comisionistaData?.porcentajeComision || 0);
+                          const pctFactor = pct > 1 ? pct / 100 : pct;
+                          const refNegocios = data.negocios.filter(
+                            (n) => (n.clienteId ? n.clienteId === refClient.id : n.clienteCodigo === refClient.codigo)
+                          );
+                          const refNegociosCount = refNegocios.length > 0 ? refNegocios.length : (refClient.totalNegocios ?? 0);
+                          const refVolumenCOP = refNegocios.length > 0
+                            ? refNegocios.reduce((sum, n) => sum + n.ingresoCOP, 0)
+                            : Math.max(0, (refClient.totalIngresosCOP || 0) - (refClient.totalComisionesCOP || 0));
+                          const refComisionCOP = refVolumenCOP * pctFactor;
+
+                          return (
+                            <tr key={refClient.id} className="hover:bg-muted/30 transition-colors">
+                              <td className="py-3 px-4">
+                                <div className="font-semibold text-foreground">{refClient.nombre}</div>
+                                <div className="font-mono text-[11px] text-muted-foreground">{refClient.codigo}</div>
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-muted-foreground border border-border">
+                                  {getClientCountryIso(refClient.pais)}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-center font-mono font-semibold text-foreground">
+                                {formatNumber(refNegociosCount)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono font-bold text-foreground">
+                                {formatCOP(refVolumenCOP)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono font-bold text-emerald-500">
+                                {formatCOP(refComisionCOP)}
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                <button
+                                  onClick={() => navigate(`/clientes/${refClient.codigo.toLowerCase()}`)}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted hover:bg-primary hover:text-primary-foreground transition-colors"
+                                >
+                                  Ver expediente
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Comisionista Status Card */}
             <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -951,65 +1029,6 @@ export const ClienteDetalleView: React.FC = () => {
               )}
             </div>
           </div>
-
-          {/* Table of referred clients if applicable */}
-          {cliente.esComisionista && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-foreground">
-                Clientes Asignados a su Red de Comisiones ({clientesReferidos.length})
-              </h4>
-              <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
-                    <tr>
-                      <th className="py-3 px-4">Cliente Referido</th>
-                      <th className="py-3 px-4 text-center">País</th>
-                      <th className="py-3 px-4 text-center">Negocios</th>
-                      <th className="py-3 px-4 text-right">Volumen Ingresos</th>
-                      <th className="py-3 px-4 text-center">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {clientesReferidos.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                          No tiene clientes asignados en este momento.
-                        </td>
-                      </tr>
-                    ) : (
-                      clientesReferidos.map((refClient) => (
-                        <tr key={refClient.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="font-semibold text-foreground">{refClient.nombre}</div>
-                            <div className="font-mono text-[11px] text-muted-foreground">{refClient.codigo}</div>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-muted-foreground border border-border">
-                              {getClientCountryIso(refClient.pais)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-center font-mono font-semibold">
-                            {formatNumber(refClient.totalNegocios ?? 0)}
-                          </td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-foreground">
-                            {formatCOP(refClient.totalIngresosCOP)}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <button
-                              onClick={() => navigate(`/clientes/${refClient.codigo.toLowerCase()}`)}
-                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted hover:bg-primary hover:text-primary-foreground transition-colors"
-                            >
-                              Ver expediente
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

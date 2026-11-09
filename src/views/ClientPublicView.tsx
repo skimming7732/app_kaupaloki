@@ -9,11 +9,41 @@ import { supabase } from '../lib/supabase';
 import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 
+type PortalCommissionItem = {
+  id: string;
+  clienteMasked: string;
+  negocios: number;
+  totalComisionesCOP: number;
+};
+
 type PortalData = {
   client: Pick<NormalizedData['clientes'][number], 'codigo' | 'nombre' | 'pais' | 'saldoPendienteCOP' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'estado'>;
   negocios: NormalizedData['negocios'];
   dispersiones: NormalizedData['dispersiones'];
   efectivo: NormalizedData['efectivo'];
+  comisiones?: PortalCommissionItem[];
+};
+
+const maskClientCodeForPortal = (codigo: string, nombre?: string): string => {
+  const rawCode = (codigo || '').trim();
+  const parts = rawCode.split('-').filter(Boolean);
+  let prefix = '';
+  let words: string[] = [];
+
+  if (parts.length >= 2 && /^C\d+$/i.test(parts[0])) {
+    prefix = parts[0].toUpperCase();
+    words = parts.slice(1);
+  } else if (parts.length === 1 && /^C\d+$/i.test(parts[0])) {
+    prefix = parts[0].toUpperCase();
+    words = (nombre || '').trim().split(/\s+/).filter(Boolean);
+  } else {
+    words = (nombre || rawCode).trim().split(/[\s-]+/).filter(Boolean);
+  }
+
+  const maskedWords = words.map((w) => `${w.charAt(0).toUpperCase()}*****`);
+  if (prefix && maskedWords.length > 0) return `${prefix}-${maskedWords.join('-')}`;
+  if (prefix) return prefix;
+  return maskedWords.join('-');
 };
 
 export const ClientPublicView = () => {
@@ -26,7 +56,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const navigate = useNavigate();
   const { data } = useData();
   const { user, profile, is2faVerified } = useAuth();
-  const [activeTab, setActiveTab] = useState<'negocios' | 'pagos' | 'ingresos'>('negocios');
+  const [activeTab, setActiveTab] = useState<'negocios' | 'pagos' | 'ingresos' | 'comisiones'>('negocios');
   const [portal, setPortal] = useState<PortalData | null>(null);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
@@ -106,6 +136,56 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const totalFilteredIngresosMonto = useMemo(() => filteredIngresos.reduce((sum, item) => sum + item.monto, 0), [filteredIngresos]);
 
   const hasFilter = Boolean(fechaDesde || fechaHasta || selectedDivisa);
+
+  // Active commissions for this client (only populated if client has active commissions)
+  const clientComisiones = useMemo<PortalCommissionItem[]>(() => {
+    if (internalClient) {
+      const commRecord = data.comisionistas.find((cm) => {
+        const targetId = cm.comisionistaId || (cm as any).comisionistaClienteId;
+        return targetId === internalClient.id || targetId === internalClient.codigo;
+      });
+      if (!commRecord || !Array.isArray(commRecord.comisionaDeIds) || commRecord.comisionaDeIds.length === 0) {
+        return [];
+      }
+      const pct = Number(commRecord.porcentajeComision || 0);
+      const pctFactor = pct > 1 ? pct / 100 : pct;
+
+      return commRecord.comisionaDeIds
+        .map((refId) => data.clientes.find((c) => c.id === refId || c.codigo === refId))
+        .filter((c): c is NormalizedData['clientes'][number] => Boolean(c))
+        .map((refClient) => {
+          const allRefNegocios = data.negocios.filter(
+            (n) => (n.clienteId ? n.clienteId === refClient.id : n.clienteCodigo === refClient.codigo)
+          );
+          const filteredRefNegocios = allRefNegocios.filter((n) => {
+            const matchFecha = matchesDateRange(n.fecha, fechaDesde, fechaHasta);
+            const matchDivisa = !selectedDivisa || n.divisaCodigo?.toUpperCase() === selectedDivisa.toUpperCase();
+            return matchFecha && matchDivisa;
+          });
+          const negociosCount = hasFilter
+            ? filteredRefNegocios.length
+            : (allRefNegocios.length > 0 ? allRefNegocios.length : (refClient.totalNegocios ?? 0));
+          const refVolumen = hasFilter
+            ? filteredRefNegocios.reduce((sum, n) => sum + n.ingresoCOP, 0)
+            : (allRefNegocios.length > 0
+                ? allRefNegocios.reduce((sum, n) => sum + n.ingresoCOP, 0)
+                : Math.max(0, (refClient.totalIngresosCOP || 0) - (refClient.totalComisionesCOP || 0)));
+          return {
+            id: refClient.id,
+            clienteMasked: maskClientCodeForPortal(refClient.codigo, refClient.nombre),
+            negocios: negociosCount,
+            totalComisionesCOP: refVolumen * pctFactor,
+          };
+        });
+    }
+    return portal?.comisiones || [];
+  }, [internalClient, data.comisionistas, data.clientes, data.negocios, portal?.comisiones, fechaDesde, fechaHasta, selectedDivisa, hasFilter]);
+
+  const hasActiveComisiones = clientComisiones.length > 0;
+  const totalComisionesMonto = useMemo(
+    () => clientComisiones.reduce((sum, item) => sum + item.totalComisionesCOP, 0),
+    [clientComisiones]
+  );
 
   const handleVerifyPin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -258,7 +338,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           label: selectedDivisa ? `Ingresos ${selectedDivisa}` : (hasFilter ? 'Ingresos en período' : 'Total ingresos'),
           value: selectedDivisa
             ? `${formatCurrency(totalFilteredNegociosDivisa, selectedDivisa)} (${formatCOP(totalFilteredNegociosMonto)})`
-            : formatCOP(hasFilter ? (totalFilteredNegociosMonto + totalFilteredIngresosMonto) : (totalNegociosMonto + totalIngresosMonto > 0 ? (totalNegociosMonto + totalIngresosMonto) : (client.totalIngresosCOP || 0))),
+            : formatCOP(hasFilter ? (totalFilteredNegociosMonto + totalFilteredIngresosMonto + totalComisionesMonto) : (totalNegociosMonto + totalIngresosMonto + totalComisionesMonto > 0 ? (totalNegociosMonto + totalIngresosMonto + totalComisionesMonto) : (client.totalIngresosCOP || 0))),
           icon: 'ri-arrow-down-circle-line',
         },
         {
@@ -362,6 +442,20 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           <i className="ri-arrow-down-circle-line" />
           <span>Ingresos ({formatNumber(filteredIngresos.length)})</span>
         </button>
+
+        {hasActiveComisiones && (
+          <button
+            onClick={() => setActiveTab('comisiones')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'comisiones'
+                ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <i className="ri-hand-coin-line" />
+            <span>Comisiones ({formatNumber(clientComisiones.length)})</span>
+          </button>
+        )}
       </div>
 
       {/* Tab 1: NEGOCIOS */}
@@ -500,6 +594,38 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                     </tr>
                   )}</PaginatedRows>
                 )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: COMISIONES (solo si tiene comisiones activas) */}
+      {hasActiveComisiones && activeTab === 'comisiones' && (
+        <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase font-semibold">
+                <tr>
+                  <th className="py-3 px-4">Cliente</th>
+                  <th className="py-3 px-4 text-center">Negocios</th>
+                  <th className="py-3 px-4 text-right">Total Comisiones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y border-border">
+                {clientComisiones.map((item) => (
+                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-foreground">
+                      {item.clienteMasked}
+                    </td>
+                    <td className="py-3 px-4 text-center font-mono font-semibold text-foreground">
+                      {formatNumber(item.negocios)}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatCOP(item.totalComisionesCOP)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
