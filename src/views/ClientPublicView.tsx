@@ -191,6 +191,8 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
     - (client.totalDispersadoCOP ?? totalPagosMonto));
   const porRecibir = Math.max(0, saldo);
   const porPagar = internalClient?.porCobrarCOP ?? Math.max(0, -saldo);
+  const saldoCliente = porRecibir - porPagar;
+  const signo = saldoCliente < 0 ? '−' : saldoCliente > 0 ? '+' : '';
 
   return (
     <div className="min-h-screen bg-background text-foreground py-8 px-4 sm:px-6 max-w-5xl mx-auto space-y-6">
@@ -231,9 +233,17 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
             </p>
           </div>
 
-          <span className="self-start rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
-            {client.estado || 'PENDIENTE'}
-          </span>
+          <div className="min-w-0 md:text-right">
+            <span className="inline-flex rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
+              {client.estado || 'PENDIENTE'}
+            </span>
+            <p className={'mt-2 break-words text-3xl font-black tabular-nums sm:text-4xl ' + (
+              saldoCliente < 0 ? 'text-destructive' : saldoCliente > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
+            )}>
+              <span className="sr-only">Saldo de la cuenta </span>
+              {signo}{formatCOP(Math.abs(saldoCliente))}
+            </p>
+          </div>
         </div>
       </div>
 
