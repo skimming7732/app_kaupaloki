@@ -115,7 +115,9 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
         {visiblePeople.length ? (
           <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {visiblePeople.map((person) => {
-              const summary = summarizeCapital(movementsByPerson.get(person.id) || []);
+              const personMovements = movementsByPerson.get(person.id) || [];
+              const summary = summarizeCapital(personMovements);
+              const contractsWithComments = personMovements.filter((row) => row.tipo === 'CONTRATO' && row.condiciones?.trim());
               const isPartner = person.tipo === 'SOCIO';
               const figures = [
                 { label: 'Capital', amount: summary.capital },
@@ -144,6 +146,24 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
                         </div>
                       ))}
                     </dl>
+                    {contractsWithComments.length > 0 && (
+                      <div className="mt-3 space-y-2 border-t border-border pt-3">
+                        <h3 className="flex items-center gap-1.5 text-xs font-semibold">
+                          <i className="ri-file-text-line text-[var(--brand-primary)]" aria-hidden="true" />
+                          Comentarios de contratos
+                        </h3>
+                        <ul className="space-y-2">
+                          {contractsWithComments.map((contract) => (
+                            <li key={contract.id} className="rounded-xl bg-muted/60 px-2.5 py-2">
+                              <p className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                                {contract.codigo ? contract.codigo + ' · ' : ''}{formatDate(contract.fecha)}
+                              </p>
+                              <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-relaxed">{contract.condiciones?.trim()}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     <span className="mt-3 inline-flex items-center gap-1 self-end text-xs font-semibold text-[var(--brand-primary)]">
                       Ver ficha <i className="ri-arrow-right-line transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                     </span>
