@@ -78,6 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
     ] : [] },
     { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin ? [
+      { to: '/instituciones', label: 'Instituciones', icon: 'ri-building-2-line' },
       { to: '/usuarios', label: 'Usuarios y accesos', icon: 'ri-shield-user-line' },
     ] : [] },
   ].filter((section) => section.items.length > 0);

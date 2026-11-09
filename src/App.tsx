@@ -19,6 +19,7 @@ import { GastosView } from './views/GastosView';
 import { ActivosLiquidosView } from './views/ActivosLiquidosView';
 import { ActivosDigitalesView } from './views/ActivosDigitalesView';
 import { DivisasView } from './views/DivisasView';
+import { InstitucionesView } from './views/InstitucionesView';
 import { UsuariosView } from './views/UsuariosView';
 import { PerfilView } from './views/PerfilView';
 import { TwoFactorView } from './views/TwoFactorView';
@@ -266,6 +267,10 @@ export const App: React.FC = () => {
             <Route
               path="/divsa/:codigo"
               element={renderWithLayout(<DivisasView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/instituciones"
+              element={renderWithLayout(<InstitucionesView />, ['super_admin', 'administrador'])}
             />
             <Route
               path="/usuarios"
