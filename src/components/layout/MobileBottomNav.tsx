@@ -11,7 +11,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMore }) 
     { to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line', activeIcon: 'ri-briefcase-4-fill' },
     { to: '/dispersiones', label: 'Dispersar', icon: 'ri-send-plane-2-line', activeIcon: 'ri-send-plane-2-fill' },
     { to: '/clientes', label: 'Clientes', icon: 'ri-team-line', activeIcon: 'ri-team-fill' },
-    { to: '/perfil', label: 'Perfil', icon: 'ri-user-3-line', activeIcon: 'ri-user-3-fill' },
   ];
 
   return (
