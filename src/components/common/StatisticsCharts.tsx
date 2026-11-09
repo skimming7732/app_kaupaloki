@@ -107,7 +107,7 @@ export function SettlementBridge({ steps, net, loading }: { steps: Contribution[
             <strong className="tabular-nums" style={{ color: selected.color }}>{formatCOP(selected.value)}</strong>
           </div>
           <svg viewBox="0 0 356 132" preserveAspectRatio="none" className="h-32 w-full text-muted-foreground"
-            role="img" aria-label="Cascada de ventas, liquidez, ingresos, gastos e intereses hasta la ganancia neta">
+            role="img" aria-label="Cascada de ventas, liquidez, saldo neto con clientes, gastos e intereses hasta la ganancia neta">
             <line x1="0" x2="356" y1={y(0)} y2={y(0)} stroke="currentColor" strokeOpacity=".45" strokeDasharray="3 4" />
             {columns.map((step, index) => (
               <g key={step.key} opacity={step.key === selected.key ? 1 : 0.72}>

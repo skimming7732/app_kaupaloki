@@ -49,6 +49,8 @@ export interface AppUser extends CreationAudit {
 export interface ResumenLiquidacion {
   totalNegocioCop: number;
   totalClientesIngresosCop?: number;
+  saldoNetoClientesCop?: number;
+  rateUsdtCop?: number;
   totalVentasUsdtCop: number;
   totalLiquidezEsperadaCop: number;
   totalGastosCop?: number;
@@ -255,6 +257,7 @@ export interface MetricsSummary {
   totalActivosDigitales: number;
   saldoPendienteClientes: number;
   totalPorCobrarClientesCOP: number;
+  saldoNetoClientesCOP: number;
   gananciaEsperada: number;
   totalNegocioCOP: number;
   totalClientesIngresosCOP: number;
@@ -594,12 +597,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const resumenLiquidacion: ResumenLiquidacion | undefined = resumenData ? {
         totalNegocioCop: Number(resumenData.total_negocio_cop || 645436000),
-        totalVentasUsdtCop: Number(resumenData.total_ventas_usdt_cop || 624536020),
-        totalLiquidezEsperadaCop: Number(resumenData.total_liquidez_esperada_cop || 35530000),
-        gananciaEsperadaCop: Number(resumenData.ganancia_esperada_cop || 10119380),
-        totalActivosDigitalesUsdt: Number(resumenData.total_activos_digitales_usdt || 11000),
+        totalVentasUsdtCop: Number(resumenData.total_ventas_usdt_cop ?? 0),
+        totalLiquidezEsperadaCop: Number(resumenData.total_liquidez_esperada_cop ?? 0),
+        gananciaEsperadaCop: Number(resumenData.ganancia_esperada_cop ?? 0),
+        totalActivosDigitalesUsdt: Number(resumenData.total_activos_digitales_usdt ?? 0),
         totalActivosLiquidosCop: Number(resumenData.total_activos_liquidos_cop || 518008020),
         totalSaldoPendienteClientesCop: Number(resumenData.total_saldo_pendiente_clientes_cop ?? 0),
+        saldoNetoClientesCop: resumenData.saldo_neto_clientes_cop == null ? undefined : Number(resumenData.saldo_neto_clientes_cop),
         totalGastosCop: resumenData.total_gastos_cop == null ? undefined : Number(resumenData.total_gastos_cop),
         totalCostosDispersionCop: resumenData.total_costos_dispersion_cop == null ? undefined : Number(resumenData.total_costos_dispersion_cop),
         rateUsdtCop: Number(resumenData.rate_usdt_cop || 3950),
@@ -1172,8 +1176,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (total, item) => item.estado.trim().toUpperCase() === 'RECHAZADO' ? total : total + item.costoCop, 0
     );
     const totalLiqFallback = (data.activosLiquidos || []).reduce((acc: number, a: any) => acc + (a.saldoCop || 0), 0);
-    const totalDigFallback = (data.activosDigitales || []).reduce((acc: number, d: any) => acc + (d.saldoUsdt || 0), 0);
+    const totalDigFallback = data.activosDigitales.reduce(
+      (total, wallet) => wallet.activo != null && wallet.activo !== 'TEST' ? total + (wallet.saldoUsdt || 0) : total,
+      0,
+    );
     const totalSaldoPendiente = data.clientes.reduce((total, cliente) => total + cliente.saldoPendienteCOP, 0);
+    const totalPorCobrarClientesCOP = data.clientes.reduce((total, cliente) => total + cliente.porCobrarCOP, 0);
+    const saldoNetoClientesCOP = res?.saldoNetoClientesCop ?? (totalSaldoPendiente - totalPorCobrarClientesCOP);
     const totalClientesIngresosFallback = (data.clientes || []).reduce((acc: number, c: any) => acc + (c.totalIngresosCOP || c.ingresosCop || 0), 0);
     const totalClientesIngresosCOP = (res?.totalClientesIngresosCop && res.totalClientesIngresosCop > 0)
       ? res.totalClientesIngresosCop
@@ -1188,13 +1197,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Interest is already included in gastos. Dividends are deducted after net profit.
     const capitalTotals = summarizeCapital(capitalLedger.userId === userId ? capitalLedger.rows : []);
-    const gananciaEsperada = (totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP;
+    const gananciaEsperada = totalVentasUSDT + liquidezEsperada - saldoNetoClientesCOP - totalGastosCOP;
 
     return {
       totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
       totalActivosDigitales,
       saldoPendienteClientes: data.clientes.length ? totalSaldoPendiente : (res?.totalSaldoPendienteClientesCop ?? 0),
-      totalPorCobrarClientesCOP: data.clientes.reduce((total, cliente) => total + cliente.porCobrarCOP, 0),
+      totalPorCobrarClientesCOP,
+      saldoNetoClientesCOP,
       gananciaEsperada,
       totalNegocioCOP: res?.totalNegocioCop ?? (data.negocios || []).reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0),
       totalClientesIngresosCOP,
@@ -1318,27 +1328,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateRateUsdt = async (rate: number): Promise<boolean> => {
     try {
-      if (!rate || rate <= 0) throw new Error('La tasa debe ser mayor a 0');
-      // Optimistic state update so UI updates immediately
-      setSnapshot((prev) => {
-        if (!prev.resumenLiquidacion) return prev;
-        const currentDigitales = prev.resumenLiquidacion.totalActivosDigitalesUsdt || 0;
-        const currentVentas = prev.resumenLiquidacion.totalVentasUsdtCop || 0;
-        const currentNegocios = prev.resumenLiquidacion.totalNegocioCop || 0;
-        const currentGastos = prev.resumenLiquidacion.totalGastosCop || 0;
-        const newLiquidez = currentDigitales * rate;
-        return {
-          ...prev,
-          resumenLiquidacion: {
-            ...prev.resumenLiquidacion,
-            rateUsdtCop: rate,
-            totalLiquidezEsperadaCop: newLiquidez,
-            gananciaEsperadaCop: (currentVentas + newLiquidez) - currentNegocios - currentGastos,
-          },
-        };
-      });
+      if (!Number.isFinite(rate) || rate <= 0) throw new Error('La tasa debe ser mayor a 0');
       const { error } = await supabase.rpc('actualizar_rate_usdt', { p_rate: rate });
-      if (error) console.warn('Supabase rpc error:', error);
+      if (error) throw error;
       await fetchFromSupabase();
       return true;
     } catch (err) {

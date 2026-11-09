@@ -43,7 +43,7 @@ export function EstadisticasView() {
   const steps = [
     { key: 'sales', abbreviation: 'Ventas', label: 'Total ventas USDT', value: metrics.totalVentasUSDT, color: chartColors.green, detail: `${formatNumber(data.ventasUsdt.length)} ventas monetizadas` },
     { key: 'liquidity', abbreviation: 'Liquidez', label: 'Liquidez esperada USDT', value: metrics.liquidezEsperada, color: chartColors.sky, detail: 'Saldo de billeteras en COP' },
-    { key: 'clients', abbreviation: 'Ingresos', label: 'Total ingresos clientes', value: -(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP), color: chartColors.lavender, detail: `${formatNumber(data.clientes.length)} clientes · se resta de la liquidación` },
+    { key: 'clients', abbreviation: 'Clientes', label: 'Saldo neto con clientes', value: -metrics.saldoNetoClientesCOP, color: chartColors.lavender, detail: 'Saldo por pagar menos saldo por cobrar' },
     { key: 'expenses', abbreviation: 'Gastos', label: 'Gastos operativos', value: -(metrics.totalGastosCOP - metrics.interesesSociosCOP), color: chartColors.coral, detail: 'Sin intereses de socios e inversionistas' },
     { key: 'interest', abbreviation: 'Intereses', label: 'Gastos por interés', value: -metrics.interesesSociosCOP, color: chartColors.amber, detail: 'Intereses de socios e inversionistas' },
   ];
