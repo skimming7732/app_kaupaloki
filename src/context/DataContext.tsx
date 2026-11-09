@@ -685,34 +685,45 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const dynamicNegociosCount = (snapshot.negocios || [])
         .filter((n: any) => (n.clienteId && n.clienteId === cId) || (n.cliente_id && n.cliente_id === cId) || (n.clienteCodigo && n.clienteCodigo === cCode))
         .length;
-      const totalNegocios = Math.max(Number(c.totalNegocios || c.total_negocios || 0), dynamicNegociosCount);
-      const totalIngresos = Math.max(Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0), dynamicIngresos);
-      const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
-      const saldo = Number(c.saldoCop ?? (totalIngresos - totalDispersado));
-      const saldoPendiente = Math.max(0, saldo);
-      const porCobrarCOP = Math.max(0, -saldo);
-      let estado = c.estado || 'SIN ACTIVIDAD';
-      if (typeof estado === 'string') {
-        const up = estado.toUpperCase();
-        if (porCobrarCOP > 0) estado = 'DEBE';
-        else if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = 'SIN ACTIVIDAD';
-        else if (up.includes('PAGADO')) estado = 'PAGADO';
-        else if (up.includes('DEBE')) estado = 'DEBE';
-        else if (totalIngresos === 0 && totalDispersado === 0) estado = 'SIN ACTIVIDAD';
-        else estado = 'PENDIENTE';
-      }
-
-            const comisionistaRecord = (snapshot.comisionistas || []).find(
+      const comisionistaRecord = (snapshot.comisionistas || []).find(
         (cm: any) => (cm.comisionistaClienteId && (cm.comisionistaClienteId === c.id || cm.comisionistaClienteId === c.codigo)) ||
                      (cm.cliente_id && (cm.cliente_id === c.id || cm.cliente_id === c.codigo))
       );
       const comisionaDeIds: string[] = comisionistaRecord
         ? (comisionistaRecord.comisionaDeIds || comisionistaRecord.referidos_ids || [])
         : [];
+      const porcentajeComision: number = comisionistaRecord
+        ? Number(comisionistaRecord.porcentajeComision ?? comisionistaRecord.porcentaje_comision ?? 0)
+        : 0;
+      const dynamicRefIngresos = comisionaDeIds.length > 0
+        ? (snapshot.negocios || [])
+            .filter((n: any) => comisionaDeIds.includes(n.clienteId || n.cliente_id) || (n.clienteCodigo && comisionaDeIds.includes(n.clienteCodigo)))
+            .reduce((sum: number, n: any) => sum + Number(n.ingresoCop ?? n.ingreso_cop ?? (Number(n.montoDivisa ?? n.monto_divisa ?? 0) * Number(n.tasaCambio ?? n.tasa ?? 0))), 0)
+        : 0;
+      const pctFactor = porcentajeComision > 1 ? porcentajeComision / 100 : porcentajeComision;
       const totalComisionesCOP: number = comisionistaRecord
-        ? Number(comisionistaRecord.comisionesCOP ?? comisionistaRecord.comisiones_cop ?? 0)
+        ? Math.max(Number(comisionistaRecord.comisionesCOP ?? comisionistaRecord.comisiones_cop ?? 0), dynamicRefIngresos * pctFactor)
         : 0;
       const esComisionista: boolean = Boolean(comisionistaRecord);
+
+      const totalNegocios = Math.max(Number(c.totalNegocios || c.total_negocios || 0), dynamicNegociosCount);
+      const baseIngresos = Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0);
+      const totalIngresos = Math.max(baseIngresos, dynamicIngresos + totalComisionesCOP);
+      const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
+      const saldo = Number(c.saldoCop ?? (totalIngresos - totalDispersado)) + (totalIngresos - baseIngresos);
+      const saldoPendiente = Math.max(0, saldo);
+      const porCobrarCOP = Math.max(0, -saldo);
+      let estado = c.estado || 'SIN ACTIVIDAD';
+      if (typeof estado === 'string') {
+        const up = estado.toUpperCase();
+        if (porCobrarCOP > 0) estado = 'DEBE';
+        else if (saldoPendiente > 0) estado = 'PENDIENTE';
+        else if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = (totalIngresos > 0 || totalDispersado > 0) ? 'PAGADO' : 'SIN ACTIVIDAD';
+        else if (up.includes('PAGADO')) estado = 'PAGADO';
+        else if (up.includes('DEBE')) estado = 'DEBE';
+        else if (totalIngresos === 0 && totalDispersado === 0) estado = 'SIN ACTIVIDAD';
+        else estado = 'PENDIENTE';
+      }
 
       const fullCode = c.codigo || c.idCliente || c.cliente || c['CLIENTE'] || c.nombre || 'C-000';
 
@@ -954,23 +965,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Comisionistas
     const rawComisionistas = snapshot.comisionistas || [];
-    const comisionistas = rawComisionistas.map((cm: any) => {
-      const comId = Array.isArray(cm.comisionista) ? cm.comisionista[0] : (cm.comisionistaClienteId || cm.comisionista);
-      const comNombre = clientMap.get(comId) || cm.comisionistaNombre || 'Comisionista';
-      const refIds = Array.isArray(cm.comisionaDe) ? cm.comisionaDe : (cm.comisionaDeIds || []);
+    const comisionistas = rawComisionistas.map((cm: any, idx: number) => {
+      const comId = Array.isArray(cm.comisionista) ? cm.comisionista[0] : (cm.comisionistaClienteId || cm.cliente_id || cm.comisionista);
+      const comNombre = clientMap.get(comId) || cm.comisionistaNombre || cm.cliente_nombre || 'Comisionista';
+      const refIds = Array.isArray(cm.comisionaDe) ? cm.comisionaDe : (cm.comisionaDeIds || cm.referidos_ids || []);
       const refNombres = refIds.map((id: string) => clientMap.get(id) || id);
 
       return {
         id: cm.id || cm.codigo,
-        codigo: cm.codigo || cm.Name || 'COM-000',
+        codigo: cm.codigo || cm.Name || `COM-${String(idx + 1).padStart(4, '0')}`,
         comisionistaId: comId,
+        comisionistaClienteId: comId,
         comisionistaNombre: comNombre,
         comisionaDeIds: refIds,
         comisionaDeNombres: refNombres,
-        ingresosCOP: Number(cm.ingresos || cm.ingresosCOP || 0),
-        porcentajeComision: Number(cm.porcentajeComision ?? cm['% COMISIÓN'] ?? 0),
-        comisionesCOP: Number(cm.comisiones || cm.comisionesCOP || 0),
-        fechaCreacion: cm.fechaCreacion || cm.createdTime || '',
+        ingresosCOP: Number(cm.ingresos || cm.ingresosCOP || cm.ingresos_cop || 0),
+        porcentajeComision: Number(cm.porcentajeComision ?? cm.porcentaje_comision ?? cm['% COMISIÓN'] ?? 0),
+        comisionesCOP: Number(cm.comisiones || cm.comisionesCOP || cm.comisiones_cop || 0),
+        fechaCreacion: cm.fechaCreacion || cm.fecha_creacion || cm.createdTime || '',
         ...creationAudit(cm),
         raw: cm,
       };

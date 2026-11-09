@@ -9,11 +9,26 @@ import { AddComisionistaModal } from '../components/modals/AddComisionistaModal'
 export const ComisionistasView: React.FC = () => {
   const { data } = useData();
   const [search, setSearch] = useState('');
+  const [sortField, setSortField] = useState<'comisionesCOP' | 'ingresosCOP' | 'porcentajeComision' | 'comisionistaNombre' | 'codigo' | 'fechaCreacion'>('comisionesCOP');
+  const [sortAsc, setSortAsc] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editing, setEditing] = useState<NormalizedData['comisionistas'][number]>();
 
-  const { filteredComisionistas } = useMemo(() => {
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(field === 'comisionistaNombre' || field === 'codigo');
+    }
+  };
 
+  const renderSortIcon = (field: typeof sortField) => {
+    if (sortField !== field) return <i className="ri-expand-up-down-line text-[11px] opacity-40" />;
+    return <i className={sortAsc ? 'ri-arrow-up-s-fill text-primary text-xs' : 'ri-arrow-down-s-fill text-primary text-xs'} />;
+  };
+
+  const { filteredComisionistas } = useMemo(() => {
     const filtered = data.comisionistas.filter((c) => {
       const q = search.toLowerCase();
       return (
@@ -23,10 +38,29 @@ export const ComisionistasView: React.FC = () => {
       );
     });
 
+    const sorted = [...filtered].sort((a, b) => {
+      const dir = sortAsc ? 1 : -1;
+      switch (sortField) {
+        case 'comisionesCOP':
+          return (a.comisionesCOP - b.comisionesCOP) * dir || a.codigo.localeCompare(b.codigo);
+        case 'ingresosCOP':
+          return (a.ingresosCOP - b.ingresosCOP) * dir || a.codigo.localeCompare(b.codigo);
+        case 'porcentajeComision':
+          return (a.porcentajeComision - b.porcentajeComision) * dir || a.codigo.localeCompare(b.codigo);
+        case 'comisionistaNombre':
+          return a.comisionistaNombre.localeCompare(b.comisionistaNombre, 'es') * dir;
+        case 'fechaCreacion':
+          return String(a.fechaCreacion || '').localeCompare(String(b.fechaCreacion || '')) * dir;
+        case 'codigo':
+        default:
+          return a.codigo.localeCompare(b.codigo, undefined, { numeric: true }) * dir;
+      }
+    });
+
     return {
-      filteredComisionistas: filtered,
+      filteredComisionistas: sorted,
     };
-  }, [data.comisionistas, search]);
+  }, [data.comisionistas, search, sortField, sortAsc]);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -75,13 +109,37 @@ export const ComisionistasView: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
-                <th className="py-3 px-4">Código</th>
-                <th className="py-3 px-4">Comisionista</th>
+                <th className="py-3 px-4">
+                  <button type="button" onClick={() => handleSort('codigo')} className="inline-flex items-center gap-1 uppercase tracking-wider font-semibold hover:text-foreground transition-colors">
+                    <span>Código</span>{renderSortIcon('codigo')}
+                  </button>
+                </th>
+                <th className="py-3 px-4">
+                  <button type="button" onClick={() => handleSort('comisionistaNombre')} className="inline-flex items-center gap-1 uppercase tracking-wider font-semibold hover:text-foreground transition-colors">
+                    <span>Comisionista</span>{renderSortIcon('comisionistaNombre')}
+                  </button>
+                </th>
                 <th className="py-3 px-4">Clientes de los que comisiona</th>
-                <th className="py-3 px-4 text-right">Ingresos Base</th>
-                <th className="py-3 px-4 text-right">% Comisión</th>
-                <th className="py-3 px-4 text-right">Comisiones (COP)</th>
-                <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4 text-right">
+                  <button type="button" onClick={() => handleSort('ingresosCOP')} className="inline-flex items-center justify-end gap-1 uppercase tracking-wider font-semibold hover:text-foreground transition-colors ml-auto">
+                    <span>Ingresos Base</span>{renderSortIcon('ingresosCOP')}
+                  </button>
+                </th>
+                <th className="py-3 px-4 text-right">
+                  <button type="button" onClick={() => handleSort('porcentajeComision')} className="inline-flex items-center justify-end gap-1 uppercase tracking-wider font-semibold hover:text-foreground transition-colors ml-auto">
+                    <span>% Comisión</span>{renderSortIcon('porcentajeComision')}
+                  </button>
+                </th>
+                <th className="py-3 px-4 text-right">
+                  <button type="button" onClick={() => handleSort('comisionesCOP')} className="inline-flex items-center justify-end gap-1 uppercase tracking-wider font-semibold hover:text-foreground transition-colors ml-auto">
+                    <span>Comisiones (COP)</span>{renderSortIcon('comisionesCOP')}
+                  </button>
+                </th>
+                <th className="py-3 px-4">
+                  <button type="button" onClick={() => handleSort('fechaCreacion')} className="inline-flex items-center gap-1 uppercase tracking-wider font-semibold hover:text-foreground transition-colors">
+                    <span>Fecha</span>{renderSortIcon('fechaCreacion')}
+                  </button>
+                </th>
                 <CreatedByHeader />
                 <th className="py-3 px-4">Acciones</th>
               </tr>

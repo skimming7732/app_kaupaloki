@@ -82,20 +82,25 @@ export const ClienteDetalleView: React.FC = () => {
   // Commission info
   const comisionistaData = useMemo(() => {
     if (!cliente) return null;
-    return data.comisionistas.find(
-      (cm) => cm.comisionistaClienteId === cliente.id || cm.comisionistaClienteId === cliente.codigo
-    ) || null;
+    return data.comisionistas.find((cm) => {
+      const targetId = cm.comisionistaId || (cm as any).comisionistaClienteId;
+      return targetId === cliente.id || targetId === cliente.codigo;
+    }) || null;
   }, [data.comisionistas, cliente]);
 
   // If this client is referred by another
-  const referidoPor = useMemo(() => {
+  const referidorComisionista = useMemo(() => {
     if (!cliente) return null;
-    const comm = data.comisionistas.find((cm) =>
+    return data.comisionistas.find((cm) =>
       Array.isArray(cm.comisionaDeIds) && (cm.comisionaDeIds.includes(cliente.id) || cm.comisionaDeIds.includes(cliente.codigo))
-    );
-    if (!comm) return null;
-    return data.clientes.find((c) => c.id === comm.comisionistaClienteId || c.codigo === comm.comisionistaClienteId) || null;
-  }, [data.comisionistas, data.clientes, cliente]);
+    ) || null;
+  }, [data.comisionistas, cliente]);
+
+  const referidoPor = useMemo(() => {
+    if (!referidorComisionista) return null;
+    const targetId = referidorComisionista.comisionistaId || (referidorComisionista as any).comisionistaClienteId;
+    return data.clientes.find((c) => c.id === targetId || c.codigo === targetId) || null;
+  }, [referidorComisionista, data.clientes]);
 
   // Referred clients details if client is a comisionista
   const clientesReferidos = useMemo(() => {
@@ -285,10 +290,14 @@ export const ClienteDetalleView: React.FC = () => {
                   </span>
                 )}
                 {referidoPor && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground border border-border flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/clientes/${referidoPor.codigo.toLowerCase()}`)}
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center gap-1 hover:bg-indigo-500/20 transition-colors"
+                  >
                     <i className="ri-user-shared-line" />
-                    <span>Referido de: {referidoPor.nombre}</span>
-                  </span>
+                    <span>Comisionista: {referidoPor.nombre}</span>
+                  </button>
                 )}
               </div>
 
@@ -402,17 +411,43 @@ export const ClienteDetalleView: React.FC = () => {
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Comisiones</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">
+              {!cliente.esComisionista && referidoPor ? 'Comisionista' : 'Comisiones'}
+            </span>
             <i className="ri-hand-coin-line text-lg text-indigo-500" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
-            {formatCOP(cliente.totalComisionesCOP ?? 0)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {cliente.esComisionista
-              ? `${clientesReferidos.length} referidos asignados`
-              : 'No es comisionista'}
-          </div>
+          {!cliente.esComisionista && referidoPor ? (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate(`/clientes/${referidoPor.codigo.toLowerCase()}`)}
+                className="text-left text-sm sm:text-base font-black text-foreground hover:text-primary transition-colors line-clamp-1"
+                title={referidoPor.nombre}
+              >
+                {referidoPor.nombre}
+              </button>
+              <div className="text-xs text-muted-foreground mt-1">
+                Comisión: <strong className="text-foreground font-mono">
+                  {referidorComisionista
+                    ? `${formatNumber((referidorComisionista.porcentajeComision <= 1 ? referidorComisionista.porcentajeComision * 100 : referidorComisionista.porcentajeComision), 2)}%`
+                    : 'Asignado'}
+                </strong>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
+                {formatCOP(cliente.totalComisionesCOP ?? 0)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 line-clamp-2" title={clientesReferidos.map((c) => c.nombre).join(', ')}>
+                {cliente.esComisionista
+                  ? (clientesReferidos.length > 0
+                      ? `Comisiona de: ${clientesReferidos.map((c) => c.nombre).join(', ')}`
+                      : 'Sin referidos asignados')
+                  : 'No es comisionista'}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -801,22 +836,46 @@ export const ClienteDetalleView: React.FC = () => {
               {cliente.esComisionista ? (
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Código de comisionista:</span>
+                    <span className="font-bold font-mono text-primary">{comisionistaData?.codigo || '—'}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-border">
                     <span className="text-muted-foreground">Estado de comisionista:</span>
                     <span className="font-bold text-emerald-500">Activo</span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-border">
                     <span className="text-muted-foreground">Porcentaje asignado:</span>
                     <span className="font-bold font-mono text-foreground">
-                      {comisionistaData?.porcentajeComision ? `${comisionistaData.porcentajeComision}%` : 'Variable'}
+                      {comisionistaData?.porcentajeComision
+                        ? `${formatNumber((comisionistaData.porcentajeComision <= 1 ? comisionistaData.porcentajeComision * 100 : comisionistaData.porcentajeComision), 2)}%`
+                        : 'Variable'}
                     </span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Clientes referidos activos:</span>
-                    <span className="font-bold font-mono text-foreground">{clientesReferidos.length}</span>
+                  <div className="py-2 border-b border-border space-y-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Comisiona de ({clientesReferidos.length}):</span>
+                    </div>
+                    {clientesReferidos.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {clientesReferidos.map((refClient) => (
+                          <button
+                            key={refClient.id}
+                            type="button"
+                            onClick={() => navigate(`/clientes/${refClient.codigo.toLowerCase()}`)}
+                            className="px-2.5 py-1 rounded-lg bg-muted hover:bg-primary/10 hover:text-primary text-foreground text-[11px] font-semibold border border-border transition-colors flex items-center gap-1"
+                          >
+                            <i className="ri-user-follow-line text-xs" />
+                            <span>{refClient.nombre}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground italic">Sin clientes asignados</span>
+                    )}
                   </div>
                   <div className="flex justify-between py-2">
-                    <span className="text-muted-foreground">Total comisiones liquidadas:</span>
-                    <span className="font-bold font-mono text-foreground text-sm">
+                    <span className="text-muted-foreground">Total comisiones generadas:</span>
+                    <span className="font-bold font-mono text-emerald-500 text-sm">
                       {formatCOP(cliente.totalComisionesCOP ?? 0)}
                     </span>
                   </div>
@@ -859,12 +918,20 @@ export const ClienteDetalleView: React.FC = () => {
               {referidoPor ? (
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Referido por:</span>
+                    <span className="text-muted-foreground">Comisionista asignado:</span>
                     <span className="font-bold text-foreground">{referidoPor.nombre}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Código de comisionista:</span>
-                    <span className="font-mono font-semibold text-primary">{referidoPor.codigo}</span>
+                    <span className="text-muted-foreground">Código comisionista:</span>
+                    <span className="font-mono font-semibold text-primary">{referidorComisionista?.codigo || referidoPor.codigo}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground">Porcentaje de comisión:</span>
+                    <span className="font-mono font-bold text-foreground">
+                      {referidorComisionista
+                        ? `${formatNumber((referidorComisionista.porcentajeComision <= 1 ? referidorComisionista.porcentajeComision * 100 : referidorComisionista.porcentajeComision), 2)}%`
+                        : '—'}
+                    </span>
                   </div>
                   <button
                     onClick={() => navigate(`/clientes/${referidoPor.codigo.toLowerCase()}`)}
