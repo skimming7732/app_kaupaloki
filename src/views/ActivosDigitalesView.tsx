@@ -3,10 +3,11 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { isTronAddress, readTronUsdtBalance } from '../utils/tronUsdtBalance';
+import { isTronAddress } from '../utils/tronUsdtBalance';
+import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
@@ -18,31 +19,10 @@ export const ActivosDigitalesView: React.FC = () => {
   const setSelectedWalletId = (id: string | null) => navigate(id ? '/activos-digitales/' + encodeURIComponent(id) : '/activos-digitales');
 
   const recordedWallets = data.activosDigitales;
-  const [chainBalances, setChainBalances] = useState<Record<string, number | null>>({});
-  const [refreshBalance, setRefreshBalance] = useState(0);
-  const addressKey = [...new Set(recordedWallets
-    .filter((wallet) => !selectedWalletId || wallet.id === selectedWalletId)
-    .map((wallet) => String(wallet.wallet || '').trim())
-    .filter(isTronAddress))].join(',');
-
-  useEffect(() => {
-    if (!addressKey) return;
-    const addresses = addressKey.split(',');
-    const controller = new AbortController();
-    setChainBalances((previous) => {
-      const next = { ...previous };
-      for (const address of addresses) delete next[address];
-      return next;
-    });
-    for (const address of addresses) {
-      void readTronUsdtBalance(address, controller.signal)
-        .catch(() => null)
-        .then((balance) => {
-          if (!controller.signal.aborted) setChainBalances((previous) => ({ ...previous, [address]: balance }));
-        });
-    }
-    return () => controller.abort();
-  }, [addressKey, refreshBalance]);
+  const { balances: chainBalances, refresh: refreshBalances } = useTronUsdtBalances(
+    recordedWallets.filter((wallet) => !selectedWalletId || wallet.id === selectedWalletId)
+      .map((wallet) => String(wallet.wallet || '')),
+  );
 
   const wallets = useMemo(() => recordedWallets.map((wallet) => ({
     ...wallet,
@@ -254,7 +234,7 @@ export const ActivosDigitalesView: React.FC = () => {
               </div>
 
               {isTronAddress(selectedAddress) && (
-                <button type="button" disabled={chainLoading} onClick={() => setRefreshBalance((value) => value + 1)}
+                <button type="button" disabled={chainLoading} onClick={refreshBalances}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 disabled:opacity-50">
                   <i className="ri-refresh-line" aria-hidden="true" /> Actualizar saldo TRON
                 </button>

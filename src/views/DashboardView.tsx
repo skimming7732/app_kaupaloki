@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { formatCOP, formatUSD, formatRate } from '../utils/formatters';
+import { formatCOP, formatNumber, formatRate } from '../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../utils/amountInput';
 import { prepareSuccessSound } from '../utils/confirmationSound';
+import { KpiStrip, sumRows } from '../components/common/KpiStrip';
+import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
+
+const formatUsdt = (amount: number) => formatNumber(amount, 0, 6) + ' USDT';
 
 export const DashboardView: React.FC = () => {
   const { metrics, data, updateRateUsdt } = useData();
@@ -11,6 +15,63 @@ export const DashboardView: React.FC = () => {
   const [savingRate, setSavingRate] = useState(false);
   const [rateMessage, setRateMessage] = useState('');
   const currentRate = metrics.rateUsdtCop || 3950;
+
+  const wallets = data.activosDigitales.filter((wallet) => wallet.activo !== 'TEST');
+  const { balances: chainBalances } = useTronUsdtBalances(wallets.map((wallet) => String(wallet.wallet || '')));
+  const activosLiquidosCOP = sumRows(data.activosLiquidos, (account) => account.saldoCop);
+  const activosDigitalesUSDT = sumRows(wallets, (wallet) => wallet.saldoUsdt);
+  const activosDigitalesCOP = activosDigitalesUSDT * currentRate;
+  const totalCapitalCOP = activosLiquidosCOP + activosDigitalesCOP;
+
+  const balances = [
+    ...data.activosLiquidos.map((account) => ({
+      contable: Number(account.saldoCop ?? 0),
+      real: typeof account.saldoReal === 'number' ? account.saldoReal : null,
+    })),
+    ...wallets.map((wallet) => {
+      const saldoTron = chainBalances[String(wallet.wallet || '').trim()];
+      return {
+        contable: Number(wallet.saldoUsdt ?? 0) * currentRate,
+        real: saldoTron == null ? null : saldoTron * currentRate,
+      };
+    }),
+  ];
+  const verificados = balances.filter((balance) => balance.real !== null && Number.isFinite(balance.real));
+  const realVerificado = sumRows(verificados, (balance) => balance.real ?? 0);
+  const contableComparable = sumRows(verificados, (balance) => balance.contable);
+  const diferenciaCapital = Math.round((realVerificado - contableComparable) * 100) / 100;
+  const estadoCapital = verificados.length ? (
+    <>
+      <span>{diferenciaCapital > 0 ? '+' : ''}{formatCOP(diferenciaCapital)}</span>
+      <span className="mt-1 block text-[11px] font-normal text-muted-foreground">
+        Real {formatCOP(realVerificado)} · Contable {formatCOP(contableComparable)}
+      </span>
+      <span className="block text-[11px] font-normal text-muted-foreground">
+        {verificados.length} de {balances.length} activos verificados
+      </span>
+    </>
+  ) : 'Por verificar';
+  const gastosTransferencia = (divisa: 'COP' | 'USDT') =>
+    sumRows(data.transferenciasInternas, (transferencia) => transferencia.divisaCosto === divisa ? transferencia.costo : 0);
+  const indicadores = [
+    { label: 'Total capital', value: formatCOP(totalCapitalCOP), featured: true },
+    { label: 'Activos líquidos', value: formatCOP(activosLiquidosCOP) },
+    {
+      label: 'Activos digitales',
+      value: <>{formatUsdt(activosDigitalesUSDT)}<span className="mt-1 block text-[11px] font-normal text-muted-foreground">{formatCOP(activosDigitalesCOP)} COP</span></>,
+    },
+    { label: 'Estado del capital', value: estadoCapital },
+    { label: 'Pendiente clientes', value: formatCOP(metrics.saldoPendienteClientes) },
+    { label: 'Por cobrar', value: formatCOP(metrics.totalPorCobrarClientesCOP) },
+    { label: 'Gastos de dispersión', value: formatCOP(metrics.totalCostosDispersionCOP) },
+    { label: 'Gastos ventas USDT', value: formatUsdt(sumRows(data.ventasUsdt, (venta) => venta.feeUsdt)) },
+    { label: 'Gastos transacciones int. USDT', value: formatUsdt(gastosTransferencia('USDT')) },
+    { label: 'Gastos transacciones int. COP', value: formatCOP(gastosTransferencia('COP')) },
+    { label: 'Gastos (COP)', value: formatCOP(sumRows(data.gastos, (gasto) => gasto.divisa === 'COP' ? gasto.monto : 0)) },
+    { label: 'Negocios registrados', value: data.negocios.length },
+    { label: 'Clientes a quienes debemos', value: data.clientes.filter((cliente) => cliente.saldoPendienteCOP > 0).length },
+    { label: 'Clientes que deben', value: data.clientes.filter((cliente) => cliente.porCobrarCOP > 0).length },
+  ];
 
   const openRateEditor = () => {
     setRateInput(formatRate(currentRate));
@@ -48,87 +109,6 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Primary KPI Row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase tracking-wider">Activos Líquidos</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <i className="ri-bank-line" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-foreground">{formatCOP(metrics.totalActivosLiquidos)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">Caja y bancos disponibles</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase tracking-wider">Activos Digitales</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
-              <i className="ri-coin-line" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-foreground">{formatUSD(metrics.totalActivosDigitales)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">USDT en wallets</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase tracking-wider">Pendiente Clientes</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <i className="ri-time-line" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-foreground">{formatCOP(metrics.saldoPendienteClientes)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">Por dispersar a clientes</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase tracking-wider">Por cobrar</span>
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
-              <i className="ri-hand-coin-line" aria-hidden="true" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-foreground">{formatCOP(metrics.totalPorCobrarClientesCOP)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">Saldo que deben los clientes</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase tracking-wider">Gastos de dispersión</span>
-            <div className="w-8 h-8 shrink-0 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
-              <i className="ri-send-plane-line" aria-hidden="true" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-foreground">{formatCOP(metrics.totalCostosDispersionCOP)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">Costos de las dispersiones vigentes</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-muted-foreground mb-3">
-            <span className="text-xs font-semibold uppercase tracking-wider">Ganancia Estimada</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
-              <i className="ri-line-chart-line" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-foreground">{formatCOP(metrics.gananciaEsperada)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">Margen proyectado</span>
-          </div>
-        </div>
-      </div>
-
       <section aria-labelledby="treasury-rate-title" className="rounded-xl border border-border bg-card px-3 py-2 sm:px-4">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
@@ -225,7 +205,7 @@ export const DashboardView: React.FC = () => {
         </div>
         <div className="mt-4 grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
           <div className="p-4 rounded-xl border border-border bg-muted/40">
-            <span className="block text-xs text-muted-foreground">Ingreso por dividendos</span>
+            <span className="block text-xs text-muted-foreground">Dividendos asignados</span>
             <span className="text-xl font-bold">{formatCOP(metrics.dividendosSociosCOP ? -metrics.dividendosSociosCOP : 0)}</span>
             <span className="block text-[11px] text-muted-foreground">Distribución de la ganancia neta a socios</span>
           </div>
@@ -234,6 +214,10 @@ export const DashboardView: React.FC = () => {
             <span className="text-xl font-bold">{formatCOP(metrics.gananciaDespuesDividendosCOP)}</span>
           </div>
         </div>
+      </div>
+      <div className="space-y-3">
+        <h3 className="text-base font-bold">Indicadores generales</h3>
+        <KpiStrip label="Indicadores generales" metrics={indicadores} />
       </div>
     </div>
   );
