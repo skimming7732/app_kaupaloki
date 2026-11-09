@@ -4,7 +4,6 @@ import { formatCOP, formatNumber, formatRate } from '../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../utils/amountInput';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
-import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 
 const formatUsdt = (amount: number) => formatNumber(amount, 0, 6) + ' USDT';
 
@@ -24,35 +23,16 @@ export const DashboardView: React.FC = () => {
   const currentRate = metrics.rateUsdtCop || 3950;
 
   const wallets = data.activosDigitales.filter((wallet) => wallet.activo !== 'TEST');
-  const { balances: chainBalances } = useTronUsdtBalances(wallets.map((wallet) => String(wallet.wallet || '')));
   const activosLiquidosCOP = sumRows(data.activosLiquidos, (account) => account.saldoCop);
   const activosDigitalesUSDT = sumRows(wallets, (wallet) => wallet.saldoUsdt);
   const activosDigitalesCOP = activosDigitalesUSDT * currentRate;
   const activosContablesCOP = activosLiquidosCOP + activosDigitalesCOP;
   const capitalInvertidoCOP = metrics.capitalInvertidoCOP;
 
-  const balances = [
-    ...data.activosLiquidos.map((account) => account.saldoReal),
-    ...wallets.map((wallet) => {
-      const saldoTron = chainBalances[String(wallet.wallet || '').trim()];
-      return saldoTron == null ? null : saldoTron * currentRate;
-    }),
-  ];
-  const verificados = balances.filter((saldo): saldo is number => typeof saldo === 'number' && Number.isFinite(saldo));
-  const realVerificado = sumRows(verificados, (saldo) => saldo);
-  const verificacionCompleta = verificados.length > 0 && verificados.length === balances.length;
   const estadoCapital = !loading && capitalInvertidoCOP != null ? (
     <>
       <span className="block text-[11px] font-normal text-muted-foreground">Según libros</span>
       <span className="block">{estadoCobertura(activosContablesCOP, capitalInvertidoCOP)}</span>
-      <div className="mt-2 border-t border-border pt-2">
-        <span className="block text-[11px] font-normal text-muted-foreground">Según saldos reales</span>
-        {verificacionCompleta ? (
-          <span className="block">{estadoCobertura(realVerificado, capitalInvertidoCOP)}</span>
-        ) : (
-          <span className="block text-xs font-normal text-muted-foreground">Faltan saldos por verificar</span>
-        )}
-      </div>
     </>
   ) : 'Por consultar';
   const gastosTransferencia = (divisa: 'COP' | 'USDT') =>
@@ -68,19 +48,6 @@ export const DashboardView: React.FC = () => {
           <div className="mt-2 border-t border-border pt-2">
             <span className="block text-[11px] font-normal text-muted-foreground">Activos contables</span>
             <span className="block">{loading ? '…' : formatCOP(activosContablesCOP)}</span>
-            <span className="mt-2 block text-[11px] font-normal text-muted-foreground">Activos reales</span>
-            {verificados.length > 0 ? (
-              <>
-                <span className="block">{formatCOP(realVerificado)}</span>
-                {!verificacionCompleta && (
-                  <span className="block text-[11px] font-normal text-muted-foreground">
-                    Parcial · {verificados.length} de {balances.length} activos verificados
-                  </span>
-                )}
-              </>
-            ) : (
-              <span className="block text-xs font-normal text-muted-foreground">Por verificar</span>
-            )}
           </div>
         </>
       ),
