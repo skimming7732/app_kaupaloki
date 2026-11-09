@@ -77,7 +77,7 @@ export const LoginView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="auth-surface flex flex-col">
       <PublicHeader />
 
       {/* Main Login Card */}

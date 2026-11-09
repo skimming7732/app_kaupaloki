@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { clearTwoFactorVerification, connectTwoFactorTabs, getTwoFactorSessionKey } from '../utils/twoFactorTabs';
+import { normalizeBiometricCredentials, type BiometricCredentialRecord } from '../utils/biometricAuth';
 import { supabase } from '../lib/supabase';
 
 export interface UserProfile {
@@ -17,6 +18,7 @@ export interface UserProfile {
   two_factor_enabled?: boolean;
   two_factor_secret?: string;
   two_factor_backup_codes?: string[];
+  biometric_credentials?: BiometricCredentialRecord[];
   onboarding_completed?: boolean;
   status?: string;
 }
@@ -119,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           rol: readableRole,
           codigo: dbProfile.operator_code || '',
           authorized_currencies: Array.isArray(dbProfile.authorized_currencies) ? dbProfile.authorized_currencies : [],
+          biometric_credentials: normalizeBiometricCredentials(dbProfile.biometric_credentials),
         };
 
         setProfile(normalizedProfile);

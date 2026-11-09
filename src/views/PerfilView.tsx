@@ -8,6 +8,13 @@ import {
   verifyTotp,
   generateBackupCodes,
 } from '../utils/totp';
+import {
+  isMobileBiometricSupported,
+  isCurrentDeviceEnrolled,
+  normalizeBiometricCredentials,
+  registerMobileBiometric,
+  setLocalBiometricCredentialId,
+} from '../utils/biometricAuth';
 
 export const PerfilView: React.FC = () => {
   const { user, profile, refreshProfile } = useAuth();
@@ -49,6 +56,82 @@ export const PerfilView: React.FC = () => {
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [copiedCodes, setCopiedCodes] = useState(false);
   const [mfaMessage, setMfaMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // --- TAB 3: FACE ID / BIOMETRÍA MÓVIL STATE ---
+  const [mobileBiometricSupported, setMobileBiometricSupported] = useState(false);
+  const [savingBiometric, setSavingBiometric] = useState(false);
+  const [biometricMessage, setBiometricMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const biometricCredentials = normalizeBiometricCredentials(profile?.biometric_credentials);
+  const isThisDeviceEnrolled = isCurrentDeviceEnrolled(user?.id, biometricCredentials);
+
+  useEffect(() => {
+    let active = true;
+    void isMobileBiometricSupported().then((supported) => {
+      if (active) setMobileBiometricSupported(supported);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleRegisterBiometricProfile = async () => {
+    if (!user) return;
+    setBiometricMessage(null);
+    setSavingBiometric(true);
+    try {
+      const cred = await registerMobileBiometric({
+        id: user.id,
+        email: user.email || profile?.email || 'operador@kaupaloki.co',
+        name: profile?.full_name || profile?.nombre || user.email,
+      });
+      // Replace with the new phone credential so the active phone is cleanly linked
+      const updatedList = [cred];
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ biometric_credentials: updatedList })
+        .eq('id', user.id);
+      if (dbErr) throw dbErr;
+      await refreshProfile();
+      setBiometricMessage({
+        text: '¡Face ID / Biometría configurado con éxito en este teléfono! Tus próximos inicios de sesión desde el móvil usarán Face ID.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      setBiometricMessage({
+        text: err?.message || 'No se pudo configurar Face ID en este teléfono.',
+        type: 'error',
+      });
+    } finally {
+      setSavingBiometric(false);
+    }
+  };
+
+  const handleRemoveBiometricProfile = async () => {
+    if (!user) return;
+    setBiometricMessage(null);
+    setSavingBiometric(true);
+    try {
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ biometric_credentials: [] })
+        .eq('id', user.id);
+      if (dbErr) throw dbErr;
+      setLocalBiometricCredentialId(user.id, null);
+      await refreshProfile();
+      setBiometricMessage({
+        text: 'Face ID desvinculado. En tus inicios de sesión móviles se solicitará el código 2FA o podrás vincular un teléfono nuevo.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      setBiometricMessage({
+        text: err?.message || 'No se pudo desvincular Face ID.',
+        type: 'error',
+      });
+    } finally {
+      setSavingBiometric(false);
+    }
+  };
 
   useEffect(() => {
     if (profile) {
@@ -443,6 +526,20 @@ export const PerfilView: React.FC = () => {
                   </div>
                   <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
                     Segura
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-foreground block">Face ID / Biometría Móvil</span>
+                    <span className="text-[11px] text-muted-foreground block">Inicio rápido exclusivo en teléfonos</span>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                    biometricCredentials.length > 0
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : 'bg-muted text-muted-foreground border-border'
+                  }`}>
+                    {biometricCredentials.length > 0 ? 'Vinculado' : 'Disponible en Móvil'}
                   </span>
                 </div>
 
@@ -938,6 +1035,130 @@ export const PerfilView: React.FC = () => {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: Face ID / Biometría en Teléfono (Solo Móvil) */}
+          <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <i className="ri-fingerprint-line text-primary text-base" />
+                  <span>Face ID / Biometría en Teléfono (Solo Móvil)</span>
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Usa Face ID o tu huella en tu celular en lugar del código 2FA. Si cambias de teléfono, siempre podrás entrar con tu código 2FA y volver a configurar Face ID aquí.
+                </p>
+              </div>
+
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-extrabold border ${
+                  biometricCredentials.length > 0
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : 'bg-muted text-muted-foreground border-border'
+                }`}
+              >
+                {biometricCredentials.length > 0 ? '✓ Teléfono Vinculado' : 'No vinculado'}
+              </span>
+            </div>
+
+            {biometricMessage && (
+              <div
+                className={`p-3.5 rounded-xl text-xs flex items-center gap-2.5 ${
+                  biometricMessage.type === 'success'
+                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-500'
+                    : 'bg-destructive/10 border border-destructive/20 text-destructive'
+                }`}
+              >
+                <i
+                  className={`text-base ${
+                    biometricMessage.type === 'success'
+                      ? 'ri-checkbox-circle-fill'
+                      : 'ri-error-warning-fill'
+                  }`}
+                />
+                <span className="font-semibold">{biometricMessage.text}</span>
+              </div>
+            )}
+
+            {biometricCredentials.length > 0 && (
+              <div className="space-y-2">
+                {biometricCredentials.map((cred) => (
+                  <div
+                    key={cred.id}
+                    className="p-3.5 rounded-xl bg-muted/40 border border-border flex flex-wrap items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-base">
+                        <i className="ri-smartphone-line" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-foreground">{cred.deviceLabel}</span>
+                          {isThisDeviceEnrolled && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                              Este teléfono
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground block">
+                          Vinculado el {new Date(cred.createdAt).toLocaleDateString('es-CO')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={savingBiometric}
+                      onClick={() => void handleRemoveBiometricProfile()}
+                      className="px-3 py-1.5 rounded-xl border border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      <i className="ri-delete-bin-line" />
+                      <span>Desvincular</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {mobileBiometricSupported ? (
+              <div className="p-4 rounded-xl bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xs font-bold text-foreground">
+                    {biometricCredentials.length > 0
+                      ? '¿Cambiaste de teléfono o deseas actualizar tu Face ID?'
+                      : 'Activar Face ID en este teléfono'}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {biometricCredentials.length > 0
+                      ? 'Reemplaza la vinculación anterior y autoriza este teléfono para iniciar sesión con Face ID.'
+                      : 'Vincula este teléfono para desbloquear tu sesión con tu rostro o huella sin abrir la app de códigos.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={savingBiometric}
+                  onClick={() => void handleRegisterBiometricProfile()}
+                  className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-primary/20 hover:opacity-95 transition-all whitespace-nowrap disabled:opacity-50"
+                >
+                  <i className={savingBiometric ? 'ri-loader-4-line animate-spin' : 'ri-fingerprint-line text-sm'} />
+                  <span>
+                    {savingBiometric
+                      ? 'Vinculando...'
+                      : biometricCredentials.length > 0
+                      ? 'Volver a configurar Face ID'
+                      : 'Configurar Face ID en este teléfono'}
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-muted/30 border border-border flex items-start gap-3">
+                <i className="ri-smartphone-line text-primary text-base mt-0.5 shrink-0" />
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  <strong className="text-foreground block mb-0.5">Configuración exclusiva desde tu teléfono móvil</strong>
+                  Para vincular o volver a configurar Face ID en un teléfono nuevo, abre <strong>app.kaupaloki.co</strong> desde el navegador de tu celular, inicia sesión con tu código 2FA y entra a esta sección de <strong>Seguridad &amp; 2FA</strong>. En computador siempre se solicitará tu código 2FA de 6 dígitos.
                 </div>
               </div>
             )}

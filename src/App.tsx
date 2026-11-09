@@ -44,7 +44,7 @@ const RequireAuthFor2FA: React.FC<{ children: React.ReactNode }> = ({ children }
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+      <div className="auth-surface flex items-center justify-center text-foreground">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-black animate-pulse">
             K

@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { generateTotpSecret, generateTotpUri, verifyTotp, generateBackupCodes } from '../utils/totp';
+import {
+  isMobileBiometricSupported,
+  isCurrentDeviceEnrolled,
+  normalizeBiometricCredentials,
+  registerMobileBiometric,
+  verifyMobileBiometric,
+} from '../utils/biometricAuth';
 
 export const TwoFactorView: React.FC = () => {
   const { user, profile, loading: authLoading, is2faVerified, verify2FASession, refreshProfile, theme, toggleTheme, logout } = useAuth();
@@ -16,8 +23,27 @@ export const TwoFactorView: React.FC = () => {
   // - 'setup_step1': Scan QR code & test 6-digit OTP
   // - 'setup_step2': Display & download backup codes .txt
   const [mode, setMode] = useState<
-    'verify' | 'verify_backup' | 'recovery_password' | 'recovery_email' | 'setup_step1' | 'setup_step2'
+    'verify' | 'verify_backup' | 'recovery_password' | 'recovery_email' | 'setup_step1' | 'setup_step2' | 'enroll_biometric'
   >('verify');
+  const modeInitialized = useRef(false);
+  const autoBiometricTriggered = useRef(false);
+  const [mobileBiometricSupported, setMobileBiometricSupported] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [showManualCodeOnMobile, setShowManualCodeOnMobile] = useState(false);
+
+  const biometricCredentials = normalizeBiometricCredentials(profile?.biometric_credentials);
+  const hasRegisteredBiometrics = mobileBiometricSupported && biometricCredentials.length > 0;
+  const isThisDeviceEnrolled = isCurrentDeviceEnrolled(user?.id, biometricCredentials);
+
+  useEffect(() => {
+    let active = true;
+    void isMobileBiometricSupported().then((supported) => {
+      if (active) setMobileBiometricSupported(supported);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Standard TOTP Verification & Setup states
   const [secret, setSecret] = useState('');
@@ -62,6 +88,8 @@ export const TwoFactorView: React.FC = () => {
       return;
     }
     if (!profile) return;
+    if (modeInitialized.current) return;
+    modeInitialized.current = true;
 
     if (profile?.two_factor_secret || profile?.two_factor_enabled) {
       setMode('verify');
@@ -118,6 +146,73 @@ export const TwoFactorView: React.FC = () => {
   };
 
   // -------------------------------------------------------------
+  // 0. VERIFICACIÓN Y REGISTRO CON FACE ID / BIOMETRÍA (SOLO MÓVIL)
+  // -------------------------------------------------------------
+  const handleVerifyBiometric = async () => {
+    if (!user?.id || biometricLoading || !biometricCredentials.length) return;
+    setError(null);
+    setBiometricLoading(true);
+    try {
+      await verifyMobileBiometric(user.id, biometricCredentials);
+      if (!verify2FASession()) {
+        setError('La sesión cambió. Intenta nuevamente o ingresa tu código 2FA.');
+      }
+    } catch {
+      setShowManualCodeOnMobile(true);
+      setError('No se completó Face ID. Puedes reintentar o ingresar tu código 2FA de 6 dígitos.');
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      mode === 'verify' &&
+      hasRegisteredBiometrics &&
+      isThisDeviceEnrolled &&
+      !showManualCodeOnMobile &&
+      !autoBiometricTriggered.current
+    ) {
+      autoBiometricTriggered.current = true;
+      void handleVerifyBiometric();
+    }
+  }, [mode, hasRegisteredBiometrics, isThisDeviceEnrolled, showManualCodeOnMobile]);
+
+  const handleEnrollBiometricOnLogin = async () => {
+    if (!user) return;
+    setBiometricLoading(true);
+    setError(null);
+    try {
+      const cred = await registerMobileBiometric({
+        id: user.id,
+        email: user.email || profile?.email || 'operador@kaupaloki.co',
+        name: profile?.full_name || profile?.nombre || user.email,
+      });
+      const updatedList = [...biometricCredentials.filter((c) => c.id !== cred.id), cred];
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ biometric_credentials: updatedList })
+        .eq('id', user.id);
+      if (dbErr) throw dbErr;
+      if (refreshProfile) await refreshProfile();
+      if (!verify2FASession()) {
+        throw new Error('Face ID vinculado. Verifica la sesión para continuar.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'No se pudo activar Face ID. Puedes continuar al inicio o configurarlo después en tu perfil.');
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
+  const handleSkipBiometricEnroll = () => {
+    if (!verify2FASession()) {
+      setError('La sesión cambió. Ingresa el código actual para continuar.');
+      setMode('verify');
+    }
+  };
+
+  // -------------------------------------------------------------
   // 1. VERIFICACIÓN NORMAL: CÓDIGO DE APP AUTENTICADORA (6 dígitos)
   // -------------------------------------------------------------
   const handleVerifyExisting = async (e: React.FormEvent) => {
@@ -135,6 +230,11 @@ export const TwoFactorView: React.FC = () => {
       const isValid = await verifyTotp(code.trim(), activeSecret);
       if (!isValid) {
         setError('Código incorrecto o expirado. Ingresa el código actual de 6 dígitos.');
+      } else if (mobileBiometricSupported && !isThisDeviceEnrolled) {
+        // Ofrecer vincular Face ID en este teléfono móvil (nuevo o cambiado)
+        setError(null);
+        setSuccessMsg('Código 2FA verificado correctamente.');
+        setMode('enroll_biometric');
       } else if (!verify2FASession()) {
         setError('La sesión cambió mientras verificábamos el código. Ingresa el código actual e inténtalo de nuevo.');
       }
@@ -356,6 +456,12 @@ export const TwoFactorView: React.FC = () => {
         await refreshProfile();
       }
 
+      if (mobileBiometricSupported && !isThisDeviceEnrolled) {
+        setSuccessMsg('Autenticador 2FA configurado con éxito.');
+        setMode('enroll_biometric');
+        return;
+      }
+
       if (!verify2FASession()) throw new Error('La configuración se guardó. Verifica la sesión con el código del autenticador.');
     } catch (err: any) {
       setError(err?.message || 'Error al guardar la configuración 2FA');
@@ -386,7 +492,7 @@ export const TwoFactorView: React.FC = () => {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+      <div className="auth-surface flex items-center justify-center text-foreground">
         <div className="flex flex-col items-center gap-3">
           <i className="ri-loader-4-line animate-spin text-3xl text-primary" />
           <span className="text-xs text-muted-foreground font-semibold">Cargando verificación 2FA...</span>
@@ -397,7 +503,7 @@ export const TwoFactorView: React.FC = () => {
 
   if (!profile) {
     return (
-      <div className="grid min-h-screen place-items-center bg-background p-4">
+      <div className="auth-surface grid place-items-center p-4">
         <div className="w-full max-w-sm space-y-3 rounded-2xl border border-border bg-card p-5">
           <p role="alert" className="text-sm font-semibold">No se pudo cargar tu perfil para verificar el acceso.</p>
           <div className="flex flex-wrap gap-2">
@@ -417,7 +523,7 @@ export const TwoFactorView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="auth-surface flex flex-col">
       {/* Top Standalone Header */}
       <header className="w-full flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -476,10 +582,11 @@ export const TwoFactorView: React.FC = () => {
         {/* Brand Header */}
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
-            <i className="ri-shield-keyhole-line" />
+            <i className={mode === 'enroll_biometric' || (mode === 'verify' && hasRegisteredBiometrics && !showManualCodeOnMobile) ? 'ri-fingerprint-line' : 'ri-shield-keyhole-line'} />
           </div>
           <h2 className="text-xl font-bold text-foreground">
-            {mode === 'verify' && 'Verificación de Seguridad (2FA)'}
+            {mode === 'verify' && (hasRegisteredBiometrics && !showManualCodeOnMobile ? 'Verificación con Face ID' : 'Verificación de Seguridad (2FA)')}
+            {mode === 'enroll_biometric' && 'Activar Face ID en este Teléfono'}
             {mode === 'verify_backup' && 'Código de Respaldo (Backup Code)'}
             {mode === 'recovery_password' && 'Recuperación 2FA: Contraseña'}
             {mode === 'recovery_email' && 'Recuperación 2FA: Código al Correo'}
@@ -487,7 +594,10 @@ export const TwoFactorView: React.FC = () => {
             {mode === 'setup_step2' && 'Códigos de Respaldo (Paso 2 de 2)'}
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            {mode === 'verify' && 'Ingresa el código de 6 dígitos de tu aplicación autenticadora'}
+            {mode === 'verify' && (hasRegisteredBiometrics && !showManualCodeOnMobile
+              ? 'Confirma tu identidad con el Face ID / Biometría de tu teléfono o usa tu código 2FA'
+              : 'Ingresa el código de 6 dígitos de tu aplicación autenticadora')}
+            {mode === 'enroll_biometric' && 'En tus próximos inicios de sesión desde el celular podrás entrar con Face ID sin abrir el autenticador'}
             {mode === 'verify_backup' && 'Ingresa uno de tus códigos de 8 caracteres descargados en tu archivo .txt'}
             {mode === 'recovery_password' && 'Confirma tu contraseña actual para autorizar el restablecimiento'}
             {mode === 'recovery_email' && 'Ingresa el código OTP enviado a tu correo electrónico'}
@@ -513,30 +623,95 @@ export const TwoFactorView: React.FC = () => {
         )}
 
         {/* ============================================================== */}
-        {/* 1. MODO: VERIFICACIÓN TOTP NORMAL (6 dígitos)                  */}
+        {/* 1. MODO: VERIFICACIÓN TOTP NORMAL O FACE ID MÓVIL              */}
         {/* ============================================================== */}
         {mode === 'verify' && (
-          <form onSubmit={handleVerifyExisting} className="space-y-4">
-            <div>
-              <input
-                type="text"
-                maxLength={6}
-                autoFocus
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="000000"
-                className="w-full text-center text-3xl tracking-[0.3em] font-mono font-bold py-3 px-4 rounded-2xl border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-              />
-            </div>
+          <div className="space-y-4">
+            {hasRegisteredBiometrics && !showManualCodeOnMobile ? (
+              <div className="space-y-4">
+                <div className="p-5 rounded-2xl border border-primary/25 bg-primary/5 flex flex-col items-center text-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/15 text-primary flex items-center justify-center text-3xl shadow-inner">
+                    <i className={biometricLoading ? 'ri-loader-4-line animate-spin' : 'ri-fingerprint-line'} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Acceso Rápido en Teléfono</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Usa Face ID o tu huella registrada para desbloquear tu sesión sin código.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={biometricLoading || loading}
+                    onClick={() => void handleVerifyBiometric()}
+                    className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    {biometricLoading ? (
+                      <>
+                        <i className="ri-loader-4-line animate-spin" />
+                        <span>Esperando Face ID...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="ri-fingerprint-line text-base" />
+                        <span>Verificar con Face ID / Biometría</span>
+                      </>
+                    )}
+                  </button>
+                </div>
 
-            <button
-              type="submit"
-              disabled={loading || code.length !== 6}
-              className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-            >
-              {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>Verificar y Continuar</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setShowManualCodeOnMobile(true);
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl border border-border bg-background hover:bg-muted text-foreground text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <i className="ri-shield-keyhole-line text-primary" />
+                  <span>Usar código 2FA de 6 dígitos (Autenticador)</span>
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleVerifyExisting} className="space-y-4">
+                {hasRegisteredBiometrics && (
+                  <button
+                    type="button"
+                    disabled={biometricLoading || loading}
+                    onClick={() => {
+                      setError(null);
+                      setShowManualCodeOnMobile(false);
+                      void handleVerifyBiometric();
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/15 text-primary text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <i className="ri-fingerprint-line text-sm" />
+                    <span>Usar Face ID / Biometría de este teléfono</span>
+                  </button>
+                )}
+
+                <div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    autoFocus
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full text-center text-3xl tracking-[0.3em] font-mono font-bold py-3 px-4 rounded-2xl border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || code.length !== 6}
+                  className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                >
+                  {loading && <i className="ri-loader-4-line animate-spin" />}
+                  <span>Verificar y Continuar</span>
+                </button>
+              </form>
+            )}
 
             {/* Alternativas de Acceso */}
             <div className="pt-3 border-t border-border flex flex-col gap-2.5 text-center">
@@ -550,7 +725,7 @@ export const TwoFactorView: React.FC = () => {
                 className="text-xs font-semibold text-primary hover:underline flex items-center justify-center gap-1.5"
               >
                 <i className="ri-key-2-line" />
-                <span>¿No tienes tu teléfono? Usar código de respaldo</span>
+                <span>¿No tienes tu autenticador? Usar código de respaldo</span>
               </button>
 
               <button
@@ -577,7 +752,52 @@ export const TwoFactorView: React.FC = () => {
                 </button>
               </div>
             </div>
-          </form>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* 1B. MODO: VINCULAR FACE ID EN ESTE TELÉFONO TRAS 2FA           */}
+        {/* ============================================================== */}
+        {mode === 'enroll_biometric' && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 text-xs text-muted-foreground space-y-2">
+              <p className="font-semibold text-foreground flex items-center gap-2">
+                <i className="ri-smartphone-line text-primary text-sm" />
+                <span>Detectamos que ingresaste desde tu teléfono móvil</span>
+              </p>
+              <p className="leading-relaxed">
+                Puedes vincular <strong>Face ID / Biometría</strong> en este dispositivo para no tener que digitar el código de 6 dígitos cada vez que entres desde tu celular. Si cambias de teléfono, siempre podrás entrar con tu código 2FA y volver a configurar Face ID en tu perfil.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={biometricLoading}
+              onClick={() => void handleEnrollBiometricOnLogin()}
+              className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            >
+              {biometricLoading ? (
+                <>
+                  <i className="ri-loader-4-line animate-spin" />
+                  <span>Vinculando Face ID...</span>
+                </>
+              ) : (
+                <>
+                  <i className="ri-fingerprint-line text-base" />
+                  <span>Activar Face ID en este teléfono</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              disabled={biometricLoading}
+              onClick={handleSkipBiometricEnroll}
+              className="w-full py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-muted hover:text-foreground text-xs font-semibold transition-colors"
+            >
+              Ahora no, continuar al inicio
+            </button>
+          </div>
         )}
 
         {/* ============================================================== */}

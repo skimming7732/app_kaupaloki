@@ -96,7 +96,7 @@ export const ResetPasswordView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="auth-surface flex flex-col">
       <PublicHeader />
 
       <div className="flex-1 flex items-center justify-center p-4">

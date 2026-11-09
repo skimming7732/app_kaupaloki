@@ -62,7 +62,7 @@ export const OnboardingView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="auth-surface flex flex-col">
       {/* Top Standalone Header */}
       <header className="w-full flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
