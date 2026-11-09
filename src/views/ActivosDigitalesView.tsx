@@ -12,7 +12,7 @@ import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
-  const { metrics, data } = useData();
+  const { data } = useData();
   const { theme } = useAuth();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
@@ -67,14 +67,19 @@ export const ActivosDigitalesView: React.FC = () => {
     });
   }, [selectedWallet?.movimientos, movSearch, fechaDesde, fechaHasta, tipoFilter]);
 
-  const verifiedWalletsWithReal = useMemo(() => {
-    return wallets.filter((w: any) => w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal));
-  }, [wallets]);
-
-  const totalSaldoRealUsdt = useMemo(() => {
-    if (verifiedWalletsWithReal.length === 0) return null;
-    return verifiedWalletsWithReal.reduce((acc: number, w: any) => acc + Number(w.saldoReal), 0);
-  }, [verifiedWalletsWithReal]);
+  const { totalIngresos, totalEgresos } = useMemo(() => {
+    let totalIngresos = 0;
+    let totalEgresos = 0;
+    for (const wallet of recordedWallets) {
+      for (const movement of wallet.movimientos ?? []) {
+        const amount = Number(movement.monto);
+        if (!Number.isFinite(amount)) continue;
+        if (amount > 0) totalIngresos += amount;
+        else totalEgresos -= amount;
+      }
+    }
+    return { totalIngresos, totalEgresos };
+  }, [recordedWallets]);
 
   const handleExportCSV = (wallet: any) => {
     const movements = wallet.movimientos || [];
@@ -130,7 +135,6 @@ export const ActivosDigitalesView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {!selectedWalletId && <div className="flex justify-end"><AssetCatalogButton table="activos_digitales" /></div>}
       {/* ============================================================== */}
       {/* VISTA DETALLE: EXTRACTO DE LA BILLETERA CRIPTO SELECCIONADA    */}
       {/* ============================================================== */}
@@ -496,59 +500,36 @@ export const ActivosDigitalesView: React.FC = () => {
         /* VISTA GENERAL: RESUMEN CONSOLIDADO + TARJETAS HORIZON UI + TABLA */
         /* ============================================================== */
         <div className="space-y-6">
-          {/* Consolidated Summary Banner */}
-          <div
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Activos Digitales</h1>
+              <p className="text-xs text-muted-foreground">Gestión de billeteras y movimientos en USDT.</p>
+            </div>
+            <AssetCatalogButton table="activos_digitales" />
+          </div>
+
+          <section aria-label="Movimientos consolidados en USDT"
             style={{
-              background: 'linear-gradient(135deg, #064e3b 0%, #0f172a 100%)',
+              background: 'linear-gradient(135deg, #0b1437 0%, #1b254b 100%)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
             }}
             className="rounded-3xl p-6 sm:p-7 text-white shadow-xl flex flex-wrap justify-between items-center gap-4"
           >
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-300 mb-1 flex items-center gap-1.5">
-                <i className="ri-coin-line text-emerald-400" />
-                <span>Custodia y Balances Cripto</span>
-              </div>
-              <div className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tight text-white">
-                {formatUSD(metrics.totalActivosDigitales)} <span className="text-xl sm:text-2xl font-bold text-emerald-300">USDT</span>
-              </div>
-              <p className="text-xs text-slate-300 mt-1">
-                Total contable en billeteras USDT
-              </p>
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-300">
+              <i className="ri-wallet-3-line text-indigo-400" aria-hidden="true" />
+              Movimientos consolidados en USDT
             </div>
-
-            <div className="flex items-center gap-3">
-              <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block">
-                  Billeteras
-                </span>
-                <span className="text-base sm:text-lg font-extrabold font-mono text-white">
-                  {formatNumber(wallets.length)}
-                </span>
+            <dl className="grid min-w-0 grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-right backdrop-blur-md sm:px-4">
+                <dt className="block text-[10px] font-bold uppercase tracking-wider text-slate-300">Total ingresos</dt>
+                <dd className="break-words font-mono text-base font-extrabold text-emerald-400 sm:text-lg">{formatNumber(totalIngresos, 2, 6)} USDT</dd>
               </div>
-
-              <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block">
-                  Saldo real verificado
-                </span>
-                <span className="text-base sm:text-lg font-extrabold font-mono text-cyan-300">
-                  {totalSaldoRealUsdt !== null ? formatUSD(totalSaldoRealUsdt) : '—'}
-                </span>
-                <span className="block text-[10px] text-slate-300">
-                  {verifiedWalletsWithReal.length} de {wallets.length} billeteras
-                </span>
+              <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-right backdrop-blur-md sm:px-4">
+                <dt className="block text-[10px] font-bold uppercase tracking-wider text-slate-300">Total egresos</dt>
+                <dd className="break-words font-mono text-base font-extrabold text-rose-400 sm:text-lg">{formatNumber(totalEgresos, 2, 6)} USDT</dd>
               </div>
-
-              <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block">
-                  Red Principal
-                </span>
-                <span className="text-base sm:text-lg font-extrabold font-mono text-emerald-400">
-                  {wallets.every((wallet) => isTronNetwork(wallet.red)) ? 'TRC20' : 'Varias'}
-                </span>
-              </div>
-            </div>
-          </div>
+            </dl>
+          </section>
 
           {/* GRID TIPO TARJETAS (HORIZON UI CRYPTO WALLET CARDS) */}
           <div>
