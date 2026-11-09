@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useData } from '../context/DataContext';
 import { KpiStrip } from '../components/common/KpiStrip';
@@ -168,13 +168,8 @@ export const InstitucionesView: React.FC = () => {
   const [currencyFilter, setCurrencyFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-
-  // Quick-add bar state (for fast adding by currency)
-  const [quickName, setQuickName] = useState('');
-  const [quickWebsite, setQuickWebsite] = useState('');
-  const [quickType, setQuickType] = useState<InstitutionType>('bank');
-  const [quickCurrency, setQuickCurrency] = useState<string>('COP');
-  const [quickSaving, setQuickSaving] = useState(false);
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
+  const currencyDropdownRef = useRef<HTMLDivElement>(null);
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -190,6 +185,24 @@ export const InstitucionesView: React.FC = () => {
   const [modalBusy, setModalBusy] = useState(false);
   const [modalDeleting, setModalDeleting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+
+  // Close custom currency dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        currencyDropdownRef.current &&
+        !currencyDropdownRef.current.contains(event.target as Node)
+      ) {
+        setCurrencyDropdownOpen(false);
+      }
+    };
+    if (currencyDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [currencyDropdownOpen]);
 
   const activeDivisas = useMemo(() => {
     return [...data.divisas].sort((a, b) => a.codigo.localeCompare(b.codigo));
@@ -222,13 +235,6 @@ export const InstitucionesView: React.FC = () => {
   useEffect(() => {
     fetchInstitutions();
   }, [fetchInstitutions]);
-
-  // Keep quickCurrency synced when user clicks a specific currency tab
-  useEffect(() => {
-    if (currencyFilter !== 'ALL') {
-      setQuickCurrency(currencyFilter);
-    }
-  }, [currencyFilter]);
 
   const countsByCurrency = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -406,41 +412,6 @@ export const InstitucionesView: React.FC = () => {
     }
   };
 
-  const handleQuickAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedName = quickName.trim();
-    if (!trimmedName) return;
-
-    setQuickSaving(true);
-    setErrorMessage(null);
-
-    const code = quickCurrency.toUpperCase();
-    const matchedDivisa = divisaMap.get(code);
-    const country = cleanCountryFromDivisa(matchedDivisa?.pais, code);
-    const autoLogo = buildAutoLogoUrl(quickWebsite);
-
-    try {
-      const { error } = await supabase.from('instituciones').insert({
-        name: trimmedName,
-        type: quickType,
-        currency: code,
-        divisa_id: matchedDivisa?.id || null,
-        country,
-        website_url: quickWebsite.trim() || null,
-        logo_url: autoLogo || null,
-        status: 'active',
-      });
-      if (error) throw error;
-      setQuickName('');
-      setQuickWebsite('');
-      await fetchInstitutions();
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Error al agregar la institución rápida.');
-    } finally {
-      setQuickSaving(false);
-    }
-  };
-
   const handleInlineStatusChange = async (id: string, newStatus: InstitutionStatus) => {
     setInstitutions((prev) =>
       prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
@@ -484,6 +455,13 @@ export const InstitucionesView: React.FC = () => {
     const set = new Set(institutions.map((i) => i.currency.toUpperCase()));
     return set.size;
   }, [institutions]);
+
+  const selectedCurrencyObj =
+    currencyFilter !== 'ALL' ? divisaMap.get(currencyFilter.toUpperCase()) : undefined;
+  const selectedCurrencyFlag =
+    currencyFilter !== 'ALL'
+      ? fallbackBanderaUrl[currencyFilter.toUpperCase()] || selectedCurrencyObj?.banderaUrl
+      : undefined;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -546,168 +524,6 @@ export const InstitucionesView: React.FC = () => {
         ]}
       />
 
-      {/* Active Currencies Quick Selector Strip */}
-      <div className="p-3.5 rounded-2xl bg-card border border-border space-y-2.5 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <i className="ri-global-line text-primary" />
-            Divisas Activas ({activeDivisas.length}) — Filtra o agrega rápido por divisa
-          </span>
-          {currencyFilter !== 'ALL' && (
-            <button
-              type="button"
-              onClick={() => setCurrencyFilter('ALL')}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              Ver todas ({institutions.length})
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <button
-            type="button"
-            onClick={() => setCurrencyFilter('ALL')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap inline-flex items-center gap-2 border transition-all ${
-              currencyFilter === 'ALL'
-                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                : 'bg-background text-muted-foreground border-border hover:text-foreground hover:bg-muted/50'
-            }`}
-          >
-            <span>Todas</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-                currencyFilter === 'ALL'
-                  ? 'bg-white/20 text-white'
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {institutions.length}
-            </span>
-          </button>
-
-          {activeDivisas.map((d) => {
-            const code = d.codigo.toUpperCase();
-            const count = countsByCurrency[code] || 0;
-            const isSelected = currencyFilter.toUpperCase() === code;
-            const flagUrl = fallbackBanderaUrl[code] || d.banderaUrl;
-            return (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => setCurrencyFilter(isSelected ? 'ALL' : code)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap inline-flex items-center gap-2 border transition-all ${
-                  isSelected
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'bg-background text-foreground border-border hover:bg-muted/50'
-                }`}
-              >
-                {flagUrl && (
-                  <img
-                    src={flagUrl}
-                    alt=""
-                    className="w-4 h-3 rounded-xs object-cover shrink-0"
-                    onError={(ev) => {
-                      ev.currentTarget.hidden = true;
-                    }}
-                  />
-                )}
-                <span>{code}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-                    isSelected
-                      ? 'bg-white/20 text-white'
-                      : count > 0
-                      ? 'bg-primary/10 text-primary'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Fast-Add Bar by Currency */}
-      <form
-        onSubmit={handleQuickAdd}
-        className="p-3.5 rounded-2xl bg-card border border-border flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5 shadow-sm"
-      >
-        <div className="flex items-center gap-2 text-xs font-bold text-foreground shrink-0 pr-1">
-          <span className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-            <i className="ri-flashlight-line text-sm" />
-          </span>
-          <span>Agregar rápido:</span>
-        </div>
-
-        <select
-          value={quickCurrency}
-          onChange={(e) => setQuickCurrency(e.target.value)}
-          aria-label="Divisa para agregar rápido"
-          className="h-9 px-3 rounded-xl border border-input bg-background text-xs font-bold text-foreground outline-none focus:border-primary lg:w-36"
-        >
-          {activeDivisas.map((d) => (
-            <option key={d.id} value={d.codigo.toUpperCase()}>
-              {d.codigo.toUpperCase()} · {cleanCountryFromDivisa(d.pais, d.codigo)}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={quickType}
-          onChange={(e) => setQuickType(e.target.value as InstitutionType)}
-          aria-label="Tipo de institución"
-          className="h-9 px-3 rounded-xl border border-input bg-background text-xs font-medium text-foreground outline-none focus:border-primary lg:w-40"
-        >
-          {(Object.keys(TYPE_LABELS) as InstitutionType[]).map((t) => (
-            <option key={t} value={t}>
-              {TYPE_LABELS[t]}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="text"
-          value={quickName}
-          onChange={(e) => setQuickName(e.target.value)}
-          placeholder="Nombre de la institución (ej. Bancolombia, Nequi, PIX...)"
-          className="h-9 px-3 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary flex-1 min-w-[180px]"
-        />
-
-        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-          <input
-            type="text"
-            value={quickWebsite}
-            onChange={(e) => setQuickWebsite(e.target.value)}
-            placeholder="Dominio web para logo auto (ej. bancolombia.com)"
-            className="h-9 px-3 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary flex-1"
-          />
-          {quickWebsite.trim() && (
-            <InstitutionLogo
-              name={quickName || 'Preview'}
-              logoUrl={buildAutoLogoUrl(quickWebsite)}
-              websiteUrl={quickWebsite}
-              sizeClass="w-8 h-8"
-            />
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={quickSaving || !quickName.trim()}
-          className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 shrink-0 transition-colors"
-        >
-          {quickSaving ? (
-            <i className="ri-loader-4-line animate-spin" />
-          ) : (
-            <i className="ri-add-circle-line text-sm" />
-          )}
-          <span>Agregar a {quickCurrency}</span>
-        </button>
-      </form>
-
       {errorMessage && (
         <div
           role="alert"
@@ -724,7 +540,7 @@ export const InstitucionesView: React.FC = () => {
         </div>
       )}
 
-      {/* Search & Secondary Filters Toolbar */}
+      {/* Search & Filters Toolbar (with Styled Active Currencies Dropdown) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-card border border-border shadow-sm">
         <div className="relative flex-1 max-w-md">
           <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
@@ -738,6 +554,150 @@ export const InstitucionesView: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Custom Styled Dropdown for Divisas Activas */}
+          <div ref={currencyDropdownRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setCurrencyDropdownOpen((prev) => !prev)}
+              aria-haspopup="listbox"
+              aria-expanded={currencyDropdownOpen}
+              className={`h-9 px-3 rounded-xl text-xs font-bold whitespace-nowrap inline-flex items-center gap-2 border transition-all ${
+                currencyFilter !== 'ALL'
+                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  : 'bg-background text-foreground border-input hover:bg-muted/50'
+              }`}
+            >
+              {currencyFilter === 'ALL' ? (
+                <>
+                  <i className="ri-global-line text-primary text-sm" />
+                  <span>Divisas Activas ({activeDivisas.length})</span>
+                  <span className="px-1.5 py-0.2 rounded-md text-[10px] font-mono bg-muted text-muted-foreground">
+                    {institutions.length}
+                  </span>
+                </>
+              ) : (
+                <>
+                  {selectedCurrencyFlag && (
+                    <img
+                      src={selectedCurrencyFlag}
+                      alt=""
+                      className="w-4 h-3 rounded-xs object-cover shrink-0"
+                      onError={(ev) => {
+                        ev.currentTarget.hidden = true;
+                      }}
+                    />
+                  )}
+                  <span>{currencyFilter}</span>
+                  <span className="px-1.5 py-0.2 rounded-md text-[10px] font-mono bg-white/20 text-white">
+                    {countsByCurrency[currencyFilter.toUpperCase()] || 0}
+                  </span>
+                </>
+              )}
+              <i
+                className={`ri-arrow-down-s-line text-sm transition-transform ${
+                  currencyDropdownOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {currencyDropdownOpen && (
+              <div
+                role="listbox"
+                className="absolute right-0 sm:left-0 mt-1.5 w-64 max-h-80 overflow-y-auto rounded-2xl border border-border bg-card p-1.5 shadow-xl z-30 space-y-1 animate-fade-in"
+              >
+                <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                  <span>Divisas Activas ({activeDivisas.length})</span>
+                  <span>Instituciones</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrencyFilter('ALL');
+                    setCurrencyDropdownOpen(false);
+                  }}
+                  className={`w-full px-2.5 py-2 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition-colors ${
+                    currencyFilter === 'ALL'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <i
+                      className={`ri-global-line text-sm ${
+                        currencyFilter === 'ALL' ? 'text-white' : 'text-primary'
+                      }`}
+                    />
+                    <span>Todas las divisas</span>
+                  </div>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+                      currencyFilter === 'ALL'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {institutions.length}
+                  </span>
+                </button>
+
+                {activeDivisas.map((d) => {
+                  const code = d.codigo.toUpperCase();
+                  const count = countsByCurrency[code] || 0;
+                  const isSelected = currencyFilter.toUpperCase() === code;
+                  const flagUrl = fallbackBanderaUrl[code] || d.banderaUrl;
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => {
+                        setCurrencyFilter(code);
+                        setCurrencyDropdownOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition-colors ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-foreground hover:bg-muted/60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {flagUrl && (
+                          <img
+                            src={flagUrl}
+                            alt=""
+                            className="w-4 h-3 rounded-xs object-cover shrink-0"
+                            onError={(ev) => {
+                              ev.currentTarget.hidden = true;
+                            }}
+                          />
+                        )}
+                        <span className="font-mono">{code}</span>
+                        <span
+                          className={`text-[11px] font-normal truncate ${
+                            isSelected ? 'text-white/80' : 'text-muted-foreground'
+                          }`}
+                        >
+                          {cleanCountryFromDivisa(d.pais, code)}
+                        </span>
+                      </div>
+                      <span
+                        className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono shrink-0 ${
+                          isSelected
+                            ? 'bg-white/20 text-white'
+                            : count > 0
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
