@@ -110,6 +110,10 @@ export const Header: React.FC<HeaderProps> = ({
         title = 'Divisas';
         subtitle = 'Monedas habilitadas y saldo en custodia';
         break;
+      case '/estadisticas':
+        title = 'Estadísticas';
+        subtitle = 'Liquidación, ganancia diaria e indicadores generales';
+        break;
       case '/instituciones':
         title = 'Instituciones';
         subtitle = 'Bancos, billeteras, exchanges y sistemas de pago por divisa';

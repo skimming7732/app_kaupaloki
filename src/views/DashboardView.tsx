@@ -1,74 +1,16 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { formatCOP, formatNumber, formatRate } from '../utils/formatters';
+import { formatCOP, formatRate } from '../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../utils/amountInput';
 import { prepareSuccessSound } from '../utils/confirmationSound';
-import { KpiStrip, sumRows } from '../components/common/KpiStrip';
-
-const formatUsdt = (amount: number) => formatNumber(amount, 0, 6) + ' USDT';
-
-function estadoCobertura(activos: number, capital: number) {
-  const diferencia = Math.round((activos - capital) * 100) / 100;
-  if (diferencia < 0) return 'Faltan ' + formatCOP(-diferencia);
-  if (diferencia > 0) return 'Sobran ' + formatCOP(diferencia);
-  return 'Capital cubierto';
-}
 
 export const DashboardView: React.FC = () => {
-  const { metrics, data, loading, updateRateUsdt } = useData();
+  const { metrics, data, updateRateUsdt } = useData();
   const [editingRate, setEditingRate] = useState(false);
   const [rateInput, setRateInput] = useState('');
   const [savingRate, setSavingRate] = useState(false);
   const [rateMessage, setRateMessage] = useState('');
   const currentRate = metrics.rateUsdtCop || 3950;
-
-  const wallets = data.activosDigitales.filter((wallet) => wallet.activo !== 'TEST');
-  const activosLiquidosCOP = sumRows(data.activosLiquidos, (account) => account.saldoCop);
-  const activosDigitalesUSDT = sumRows(wallets, (wallet) => wallet.saldoUsdt);
-  const activosDigitalesCOP = activosDigitalesUSDT * currentRate;
-  const activosContablesCOP = activosLiquidosCOP + activosDigitalesCOP;
-  const capitalInvertidoCOP = metrics.capitalInvertidoCOP;
-
-  const estadoCapital = !loading && capitalInvertidoCOP != null ? (
-    <>
-      <span className="block text-[11px] font-normal text-muted-foreground">Según libros</span>
-      <span className="block">{estadoCobertura(activosContablesCOP, capitalInvertidoCOP)}</span>
-    </>
-  ) : 'Por consultar';
-  const gastosTransferencia = (divisa: 'COP' | 'USDT') =>
-    sumRows(data.transferenciasInternas, (transferencia) => transferencia.divisaCosto === divisa ? transferencia.costo : 0);
-  const indicadores = [
-    {
-      label: 'Capital invertido',
-      featured: true,
-      value: (
-        <>
-          <span className="block">{capitalInvertidoCOP == null ? 'Por consultar' : formatCOP(capitalInvertidoCOP)}</span>
-          <span className="block text-[11px] font-normal text-muted-foreground">Aportes menos retiros</span>
-          <div className="mt-2 border-t border-border pt-2">
-            <span className="block text-[11px] font-normal text-muted-foreground">Activos contables</span>
-            <span className="block">{loading ? '…' : formatCOP(activosContablesCOP)}</span>
-          </div>
-        </>
-      ),
-    },
-    { label: 'Activos líquidos', value: formatCOP(activosLiquidosCOP) },
-    {
-      label: 'Activos digitales',
-      value: <>{formatUsdt(activosDigitalesUSDT)}<span className="mt-1 block text-[11px] font-normal text-muted-foreground">{formatCOP(activosDigitalesCOP)} COP</span></>,
-    },
-    { label: 'Estado del capital', value: estadoCapital },
-    { label: 'Pendiente clientes', value: formatCOP(metrics.saldoPendienteClientes) },
-    { label: 'Por cobrar', value: formatCOP(metrics.totalPorCobrarClientesCOP) },
-    { label: 'Gastos de dispersión', value: formatCOP(metrics.totalCostosDispersionCOP) },
-    { label: 'Gastos ventas USDT', value: formatUsdt(sumRows(data.ventasUsdt, (venta) => venta.feeUsdt)) },
-    { label: 'Gastos transacciones int. USDT', value: formatUsdt(gastosTransferencia('USDT')) },
-    { label: 'Gastos transacciones int. COP', value: formatCOP(gastosTransferencia('COP')) },
-    { label: 'Gastos (COP)', value: formatCOP(sumRows(data.gastos, (gasto) => gasto.divisa === 'COP' ? gasto.monto : 0)) },
-    { label: 'Negocios registrados', value: data.negocios.length },
-    { label: 'Clientes a quienes debemos', value: data.clientes.filter((cliente) => cliente.saldoPendienteCOP > 0).length },
-    { label: 'Clientes que deben', value: data.clientes.filter((cliente) => cliente.porCobrarCOP > 0).length },
-  ];
 
   const openRateEditor = () => {
     setRateInput(formatRate(currentRate));
@@ -211,10 +153,6 @@ export const DashboardView: React.FC = () => {
             <span className="text-xl font-bold">{formatCOP(metrics.gananciaDespuesDividendosCOP)}</span>
           </div>
         </div>
-      </div>
-      <div className="space-y-3">
-        <h3 className="text-base font-bold">Indicadores generales</h3>
-        <KpiStrip label="Indicadores generales" metrics={indicadores} />
       </div>
     </div>
   );

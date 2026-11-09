@@ -10,6 +10,7 @@ import { MobileBottomNav } from './components/layout/MobileBottomNav';
 // Views
 import { InicioView } from './views/InicioView';
 import { DashboardView } from './views/DashboardView';
+import { EstadisticasView } from './views/EstadisticasView';
 import { NegociosView } from './views/NegociosView';
 import { ClientesView } from './views/ClientesView';
 import { ClienteDetalleView } from './views/ClienteDetalleView';
@@ -267,6 +268,10 @@ export const App: React.FC = () => {
             <Route
               path="/divsa/:codigo"
               element={renderWithLayout(<DivisasView />, ['super_admin', 'administrador'])}
+            />
+            <Route
+              path="/estadisticas"
+              element={renderWithLayout(<EstadisticasView />, ['super_admin', 'administrador'])}
             />
             <Route
               path="/instituciones"

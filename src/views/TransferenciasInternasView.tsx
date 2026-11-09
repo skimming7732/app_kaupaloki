@@ -187,12 +187,10 @@ export const TransferenciasInternasView: React.FC = () => {
           {/* Date range filter */}
           <div className="flex items-center gap-2">
             <DateRangeFilter
-              startDate={fechaDesde}
-              endDate={fechaHasta}
-              onRangeChange={(start, end) => {
-                setFechaDesde(start);
-                setFechaHasta(end);
-              }}
+              from={fechaDesde}
+              to={fechaHasta}
+              setFrom={setFechaDesde}
+              setTo={setFechaHasta}
             />
           </div>
         </div>

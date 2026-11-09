@@ -24,8 +24,8 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
   const [tipoActivo, setTipoActivo] = useState<'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL'>(
     edit?.tipoOrigen || 'ACTIVO_LIQUIDO'
   );
-  const [origenId, setOrigenId] = useState(edit?.origenId || '');
-  const [destinoId, setDestinoId] = useState(edit?.destinoId || '');
+  const [preferredOrigin, setOrigenId] = useState(edit?.origenId || '');
+  const [preferredDestination, setDestinoId] = useState(edit?.destinoId || '');
   
   const [monto, setMonto] = useState(edit ? formatAmountInput(String(edit.monto)) : '');
   const [costo, setCosto] = useState(edit?.costo ? formatAmountInput(String(edit.costo)) : '0');
@@ -37,8 +37,11 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
   const accounts = isDigital ? (data.activosDigitales || []) : (data.activosLiquidos || []);
   const currency = isDigital ? 'USDT' : 'COP';
 
-  const selectedSource = accounts.find((a: any) => a.id === origenId) || accounts[0];
-  const selectedDest = accounts.find((a: any) => a.id === destinoId) || (accounts.length > 1 ? accounts[1] : accounts[0]);
+  const selectedSource = accounts.find((account) => account.id === preferredOrigin) || accounts[0];
+  const origenId = selectedSource?.id || '';
+  const destinations = accounts.filter((account) => account.id !== origenId);
+  const selectedDest = destinations.find((account) => account.id === preferredDestination) || destinations[0];
+  const destinoId = selectedDest?.id || '';
 
   const currentSourceBalance = isDigital
     ? Number(selectedSource?.saldoUsdt || 0)
@@ -53,19 +56,14 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
   const totalDebit = numericMonto + (numericCosto > 0 ? numericCosto : 0);
   const availableCredit = currentSourceBalance + (edit && edit.origenId === origenId ? Number(edit.monto) + Number(edit.costo || 0) : 0);
   const exceedsBalance = numericMonto > 0 && totalDebit > availableCredit;
-  const isSameAccount = origenId && destinoId && origenId === destinoId;
 
   const openModal = () => {
     setError('');
     const initTipo = edit?.tipoOrigen || 'ACTIVO_LIQUIDO';
     setTipoActivo(initTipo);
 
-    const targetAccounts = initTipo === 'ACTIVO_DIGITAL' ? (data.activosDigitales || []) : (data.activosLiquidos || []);
-    const defaultSrc = edit?.origenId || targetAccounts[0]?.id || '';
-    const defaultDst = edit?.destinoId || (targetAccounts.length > 1 ? targetAccounts[1]?.id : targetAccounts[0]?.id) || '';
-
-    setOrigenId(defaultSrc);
-    setDestinoId(defaultDst);
+    setOrigenId(edit?.origenId || '');
+    setDestinoId(edit?.destinoId || '');
     setMonto(edit ? formatAmountInput(String(edit.monto)) : '');
     setCosto(edit?.costo ? formatAmountInput(String(edit.costo)) : '0');
     setConcepto(edit?.concepto || '');
@@ -76,9 +74,14 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
 
   const handleTipoChange = (type: 'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL') => {
     setTipoActivo(type);
-    const targetAccounts = type === 'ACTIVO_DIGITAL' ? (data.activosDigitales || []) : (data.activosLiquidos || []);
-    setOrigenId(targetAccounts[0]?.id || '');
-    setDestinoId(targetAccounts.length > 1 ? targetAccounts[1]?.id || '' : targetAccounts[0]?.id || '');
+    setOrigenId('');
+    setDestinoId('');
+    setError('');
+  };
+
+  const handleOriginChange = (nextOrigin: string) => {
+    setOrigenId(nextOrigin);
+    setDestinoId(nextOrigin === destinoId ? origenId : destinoId);
     setError('');
   };
 
@@ -92,10 +95,6 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
     }
     if (!destinoId) {
       setError(isDigital ? 'Selecciona la billetera de destino.' : 'Selecciona la cuenta de destino.');
-      return;
-    }
-    if (isSameAccount) {
-      setError('El origen y el destino deben ser diferentes.');
       return;
     }
     if (numericMonto <= 0) {
@@ -256,10 +255,11 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
                     <span>Seleccionar {isDigital ? 'Billetera' : 'Cuenta'}</span>
                     <select
                       value={origenId}
-                      onChange={(e) => setOrigenId(e.target.value)}
+                      onChange={(e) => handleOriginChange(e.target.value)}
                       className={recordFieldClass}
                       required
                     >
+                      {!origenId && <option value="">Sin fondos disponibles</option>}
                       {accounts.map((a: any) => (
                         <option key={a.id} value={a.id}>
                           {a.activo} {a.institucion ? `(${a.institucion})` : ''} · Saldo: {isDigital ? `${formatNumber(a.saldoUsdt || 0, 2, 2)} USDT` : formatCOP(a.saldoCop || 0)}
@@ -296,9 +296,10 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
                       className={recordFieldClass}
                       required
                     >
-                      {accounts.map((a: any) => (
-                        <option key={a.id} value={a.id} disabled={a.id === origenId}>
-                          {a.activo} {a.institucion ? `(${a.institucion})` : ''} {a.id === origenId ? '(Misma que origen)' : `· Saldo: ${isDigital ? `${formatNumber(a.saldoUsdt || 0, 2, 2)} USDT` : formatCOP(a.saldoCop || 0)}`}
+                      {!destinoId && <option value="">Sin fondos disponibles</option>}
+                      {destinations.map((a: any) => (
+                        <option key={a.id} value={a.id}>
+                          {a.activo} {a.institucion ? `(${a.institucion})` : ''} · Saldo: {isDigital ? `${formatNumber(a.saldoUsdt || 0, 2, 2)} USDT` : formatCOP(a.saldoCop || 0)}
                         </option>
                       ))}
                     </select>
@@ -313,9 +314,9 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
                 </div>
               </div>
 
-              {isSameAccount && (
+              {!destinoId && (
                 <p role="alert" className="text-xs text-destructive font-semibold">
-                  El origen y el destino no pueden ser la misma cuenta.
+                  Se necesitan dos fondos del mismo tipo para transferir.
                 </p>
               )}
 
@@ -409,7 +410,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
             </fieldset>
 
             <RecordActions
-              submitDisabled={Boolean(isSameAccount) || Boolean(exceedsBalance) || numericMonto <= 0}
+              submitDisabled={!destinoId || exceedsBalance || numericMonto <= 0}
               busy={busy}
               label={edit ? 'Guardar cambios' : 'Registrar transferencia'}
               onClose={() => setOpen(false)}

@@ -42,7 +42,7 @@ export const ClientSearchSelect = ({
     value={selected?.id || ''}
     options={clients.map((client) => ({
       id: client.id,
-      label: client.codigo ? client.codigo + ' · ' + client.nombre : client.nombre,
+      label: client.codigo || client.nombre,
       search: client.codigo + ' ' + client.nombre,
       details: <ClientDetails client={client} />,
     }))}

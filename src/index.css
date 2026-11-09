@@ -221,3 +221,15 @@ html.dark .auth-surface::after {
     to { stroke-dashoffset: 0; }
   }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .profit-history-path {
+    stroke-dasharray: 1;
+    animation: draw-profit-history 900ms ease-out both;
+  }
+
+  @keyframes draw-profit-history {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+}
