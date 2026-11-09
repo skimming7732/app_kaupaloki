@@ -27,7 +27,8 @@ export const InstitutionLogo: React.FC<{
   logoUrl?: string | null;
   websiteUrl?: string | null;
   sizeClass?: string;
-}> = ({ name, logoUrl, websiteUrl, sizeClass = 'w-8 h-8' }) => {
+  fallbackIcon?: string;
+}> = ({ name, logoUrl, websiteUrl, fallbackIcon, sizeClass = 'w-8 h-8' }) => {
   const [failedPrimary, setFailedPrimary] = useState(false);
   const [failedFallback, setFailedFallback] = useState(false);
 
@@ -49,7 +50,7 @@ export const InstitutionLogo: React.FC<{
         className={`${sizeClass} rounded-xl bg-muted/60 border border-border flex items-center justify-center text-muted-foreground shrink-0 font-bold text-xs`}
         title={name}
       >
-        {name ? name.slice(0, 2).toUpperCase() : <i className="ri-bank-line text-sm" />}
+        {fallbackIcon || !name ? <i className={(fallbackIcon || 'ri-bank-line') + ' text-sm'} aria-hidden="true" /> : name.slice(0, 2).toUpperCase()}
       </div>
     );
   }

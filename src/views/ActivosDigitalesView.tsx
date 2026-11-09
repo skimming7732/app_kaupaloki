@@ -2,7 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { AssetCatalogButton } from '../components/modals/AssetCatalogButton';
-import { AssetInstitutionLogo } from '../components/common/InstitutionLogo';
+import { InstitutionLogo } from '../components/common/InstitutionLogo';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
@@ -149,7 +149,8 @@ export const ActivosDigitalesView: React.FC = () => {
               </button>
               <div className="min-w-0">
                 <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <AssetInstitutionLogo institution={selectedWallet.institution} name={selectedWallet.activo} sizeClass="size-6" />
+                  <InstitutionLogo name={selectedWallet.institution?.name || 'Institución sin vincular'} logoUrl={selectedWallet.institution?.logo_url}
+                    fallbackIcon="ri-wallet-3-line" sizeClass="size-6" />
                   <span className="truncate" title={selectedWallet.activo}>Extracto: {selectedWallet.activo}</span>
                   <span className="max-w-24 shrink-0 truncate text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     {selectedWallet.red || 'TRON (TRC20)'}
@@ -577,7 +578,8 @@ export const ActivosDigitalesView: React.FC = () => {
 
                     <div className="flex justify-between items-start gap-2 relative z-10">
                       <div className="flex min-w-0 items-center gap-2">
-                        <AssetInstitutionLogo institution={w.institution} name={w.activo} sizeClass="size-8" />
+                        <InstitutionLogo name={w.institution?.name || 'Institución sin vincular'} logoUrl={w.institution?.logo_url}
+                            fallbackIcon="ri-wallet-3-line" sizeClass="size-8" />
                         <div className="min-w-0">
                           <span className="block truncate text-[10px] font-extrabold uppercase tracking-wider text-white/80">
                             {w.institution ? w.institution.name + ' · ' : ''}{w.red || 'TRC20'}
@@ -669,7 +671,8 @@ export const ActivosDigitalesView: React.FC = () => {
                       >
                         <td className="py-3 px-4 font-bold text-foreground">
                           <span className="flex items-center gap-2 whitespace-nowrap">
-                            <AssetInstitutionLogo institution={w.institution} name={w.activo} sizeClass="size-5" />
+                            <InstitutionLogo name={w.institution?.name || 'Institución sin vincular'} logoUrl={w.institution?.logo_url}
+                            fallbackIcon="ri-wallet-3-line" sizeClass="size-5" />
                             {w.activo}
                           </span>
                         </td>
