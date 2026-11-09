@@ -240,6 +240,7 @@ export interface MetricsSummary {
   totalActivosLiquidos: number;
   totalActivosDigitales: number;
   saldoPendienteClientes: number;
+  totalPorCobrarClientesCOP: number;
   gananciaEsperada: number;
   totalNegocioCOP: number;
   totalClientesIngresosCOP: number;
@@ -388,7 +389,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ingresosCop: Number(c.ingresos_cop || 0),
         pagadoCop: Number(c.pagado_cop || 0),
         pendienteCop: Number(c.pendiente_cop || 0),
-        saldoCop: Number(c.saldo_cop || 0),
+        saldoCop: c.saldo_cop == null ? undefined : Number(c.saldo_cop),
         estado: c.estado,
         fechaCreacion: c.fecha_creacion,
       }));
@@ -582,7 +583,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         gananciaEsperadaCop: Number(resumenData.ganancia_esperada_cop || 10119380),
         totalActivosDigitalesUsdt: Number(resumenData.total_activos_digitales_usdt || 11000),
         totalActivosLiquidosCop: Number(resumenData.total_activos_liquidos_cop || 518008020),
-        totalSaldoPendienteClientesCop: Number(resumenData.total_saldo_pendiente_clientes_cop || 543418640),
+        totalSaldoPendienteClientesCop: Number(resumenData.total_saldo_pendiente_clientes_cop ?? 0),
         totalGastosCop: resumenData.total_gastos_cop == null ? undefined : Number(resumenData.total_gastos_cop),
         totalCostosDispersionCop: resumenData.total_costos_dispersion_cop == null ? undefined : Number(resumenData.total_costos_dispersion_cop),
         rateUsdtCop: Number(resumenData.rate_usdt_cop || 3950),
@@ -671,9 +672,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const totalNegocios = Math.max(Number(c.totalNegocios || c.total_negocios || 0), dynamicNegociosCount);
       const totalIngresos = Math.max(Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0), dynamicIngresos);
       const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
-      const saldoPendiente = Number(c.pendienteCop ?? c.pendientePorPagarCop ?? c.saldoCop ?? (totalIngresos - totalDispersado));
-      
-      const porCobrarCOP = Math.max(0, -Number(c.saldoCop ?? (totalIngresos - totalDispersado)));
+      const saldo = Number(c.saldoCop ?? (totalIngresos - totalDispersado));
+      const saldoPendiente = Math.max(0, saldo);
+      const porCobrarCOP = Math.max(0, -saldo);
       let estado = c.estado || 'SIN ACTIVIDAD';
       if (typeof estado === 'string') {
         const up = estado.toUpperCase();
@@ -1118,7 +1119,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
     const totalLiqFallback = (data.activosLiquidos || []).reduce((acc: number, a: any) => acc + (a.saldoCop || 0), 0);
     const totalDigFallback = (data.activosDigitales || []).reduce((acc: number, d: any) => acc + (d.saldoUsdt || 0), 0);
-    const totalSaldoPendienteFallback = (data.clientes || []).reduce((acc: number, c: any) => acc + (c.saldoPendienteCOP ?? c.pendienteCop ?? 0), 0);
+    const totalSaldoPendiente = data.clientes.reduce((total, cliente) => total + cliente.saldoPendienteCOP, 0);
     const totalClientesIngresosFallback = (data.clientes || []).reduce((acc: number, c: any) => acc + (c.totalIngresosCOP || c.ingresosCop || 0), 0);
     const totalClientesIngresosCOP = (res?.totalClientesIngresosCop && res.totalClientesIngresosCop > 0)
       ? res.totalClientesIngresosCop
@@ -1138,7 +1139,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {
       totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
       totalActivosDigitales,
-      saldoPendienteClientes: totalSaldoPendienteFallback > 0 ? totalSaldoPendienteFallback : (res?.totalSaldoPendienteClientesCop ?? 0),
+      saldoPendienteClientes: data.clientes.length ? totalSaldoPendiente : (res?.totalSaldoPendienteClientesCop ?? 0),
+      totalPorCobrarClientesCOP: data.clientes.reduce((total, cliente) => total + cliente.porCobrarCOP, 0),
       gananciaEsperada,
       totalNegocioCOP: res?.totalNegocioCop ?? (data.negocios || []).reduce((acc: number, n: any) => acc + (n.ingresoCop || 0), 0),
       totalClientesIngresosCOP,

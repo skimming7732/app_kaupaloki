@@ -49,7 +49,7 @@ export const DashboardView: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Primary KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-muted-foreground mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider">Activos Líquidos</span>
@@ -86,6 +86,19 @@ export const DashboardView: React.FC = () => {
           <div>
             <span className="text-2xl font-black text-foreground">{formatCOP(metrics.saldoPendienteClientes)}</span>
             <span className="text-[11px] text-muted-foreground block mt-1">Por dispersar a clientes</span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-muted-foreground mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider">Por cobrar</span>
+            <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
+              <i className="ri-hand-coin-line" aria-hidden="true" />
+            </div>
+          </div>
+          <div>
+            <span className="text-2xl font-black text-foreground">{formatCOP(metrics.totalPorCobrarClientesCOP)}</span>
+            <span className="text-[11px] text-muted-foreground block mt-1">Saldo que deben los clientes</span>
           </div>
         </div>
 

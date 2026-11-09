@@ -186,6 +186,12 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
     );
   }
 
+  // The PIN endpoint returns the signed balance. Internal previews have it split already.
+  const saldo = client.saldoPendienteCOP ?? ((client.totalIngresosCOP ?? totalNegociosMonto + totalIngresosMonto)
+    - (client.totalDispersadoCOP ?? totalPagosMonto));
+  const porRecibir = Math.max(0, saldo);
+  const porPagar = internalClient?.porCobrarCOP ?? Math.max(0, -saldo);
+
   return (
     <div className="min-h-screen bg-background text-foreground py-8 px-4 sm:px-6 max-w-5xl mx-auto space-y-6">
       {isFromDashboard && (
@@ -233,10 +239,16 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
 
       <KpiStrip label="Resumen de cuenta" metrics={[
         {
-          label: 'Saldo pendiente (cuenta)',
-          value: formatCOP(client.saldoPendienteCOP ?? (totalNegociosMonto + totalIngresosMonto - totalPagosMonto)),
+          label: 'Por recibir',
+          value: formatCOP(porRecibir),
           icon: 'ri-wallet-3-line',
-          featured: true,
+          featured: porPagar === 0,
+        },
+        {
+          label: 'Por pagar',
+          value: formatCOP(porPagar),
+          icon: 'ri-money-dollar-circle-line',
+          featured: porPagar > 0,
         },
         {
           label: selectedDivisa ? `Ingresos ${selectedDivisa}` : (hasFilter ? 'Ingresos en período' : 'Total ingresos'),

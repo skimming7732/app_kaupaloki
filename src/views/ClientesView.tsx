@@ -13,7 +13,7 @@ interface ClientesViewProps {
   onOpenAddCliente?: () => void;
 }
 
-type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'saldoPendienteCOP' | 'totalComisionesCOP' | 'estado';
+type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'saldoPendienteCOP' | 'porCobrarCOP' | 'totalComisionesCOP' | 'estado';
 
 const getCountryIso = (pais?: string): string => {
   if (!pais) return 'COL';
@@ -200,8 +200,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
         ['Clientes', sortedClientes.length],
         ['Total Negocios', formatNumber(sumRows(sortedClientes, (c) => c.totalNegocios ?? 0))],
         ['Total Pagado', formatCOP(sumRows(sortedClientes, (c) => c.totalDispersadoCOP))],
-        ['Pendiente COP', formatCOP(sumRows(sortedClientes, (c) => c.saldoPendienteCOP))],
-        ['Total por cobrar', formatCOP(sumRows(sortedClientes, (c) => c.porCobrarCOP))],
+        ['Por pagar', formatCOP(sumRows(sortedClientes, (c) => c.saldoPendienteCOP))],
+        ['Por cobrar', formatCOP(sumRows(sortedClientes, (c) => c.porCobrarCOP))],
         ['Total Comisiones', formatCOP(sumRows(sortedClientes, (c) => c.totalComisionesCOP ?? 0))],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
@@ -215,7 +215,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                 {renderSortTh('NEG.', 'totalNegocios', 'center')}
                 {renderSortTh('Total Ingresos', 'totalIngresosCOP', 'right')}
                 {renderSortTh('Total Pagado', 'totalDispersadoCOP', 'right')}
-                {renderSortTh('Saldo Pendiente', 'saldoPendienteCOP', 'right')}
+                {renderSortTh('Por pagar', 'saldoPendienteCOP', 'right')}
+                {renderSortTh('Por cobrar', 'porCobrarCOP', 'right')}
                 <th className="py-3 px-4 text-center">Comisiona de</th>
                 {renderSortTh('Total Comisiones', 'totalComisionesCOP', 'right')}
                 {renderSortTh('Estado', 'estado', 'center')}
@@ -226,12 +227,12 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
             <tbody className="divide-y divide-border">
               {sortedClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
                     No se encontraron clientes
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={sortedClientes}>{(c) => (
+                <PaginatedRows columns={11} rows={sortedClientes}>{(c) => (
                   <tr 
                     key={c.id} 
                     onClick={() => navigate(`/clientes/${c.codigo.toLowerCase()}`)}
@@ -270,6 +271,9 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                     
                     <td className="py-3 px-4 text-right font-bold text-foreground whitespace-nowrap">
                       {formatCOP(c.saldoPendienteCOP)}
+                    </td>
+                    <td className={'py-3 px-4 text-right font-bold tabular-nums whitespace-nowrap ' + (c.porCobrarCOP > 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                      {formatCOP(c.porCobrarCOP)}
                     </td>
 
                     {/* Comisiona de: Compact count badge with full names tooltip */}
