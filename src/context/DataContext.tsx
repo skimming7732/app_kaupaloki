@@ -49,8 +49,11 @@ export interface ResumenLiquidacion {
   totalSaldoPendienteClientesCop: number;
 }
 
+export type IngresoMensual = { mes: string; montoCop: number };
+
 export interface DataSnapshot {
   syncedAt?: string;
+  ingresosMensuales?: IngresoMensual[];
   clientes: any[];
   negocios: any[];
   dispersiones: any[];
@@ -116,6 +119,7 @@ export interface NormalizedData {
     totalIngresosCOP: number;
     totalDispersadoCOP: number;
     saldoPendienteCOP: number;
+    porCobrarCOP: number;
     estado: string;
     dispersionesIds?: string[];
     negociosIds?: string[];
@@ -204,6 +208,7 @@ export interface NormalizedData {
     fecha: string;
     concepto: string;
     usdtVendido: number;
+    feeUsdt: number;
     tasa: number;
     totalCOP: number;
     destinoFondosNombre?: string;
@@ -358,6 +363,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('resumen_liquidacion').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.rpc('listar_perfiles_dashboard'),
         supabase.rpc('listar_comisionistas_dashboard'),
+        supabase.rpc('ingresos_mensuales_inicio').then(({ data, error }) => {
+          if (error) console.error('Error loading monthly customer income:', error);
+          return { data, error: null };
+        }),
       ]);
       if (request !== latestFetch.current) return;
       for (const { error } of results) {
@@ -366,7 +375,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const [
         clientesData, divisasData, negociosData, dispersionesData, comprasUsdtData,
         ventasUsdtData, activosLiquidosData, activosDigitalesData, efectivoData,
-        gastosData, transferenciasInternasData, resumenData, profilesData, comisionistasData,
+        gastosData, transferenciasInternasData, resumenData, profilesData, comisionistasData, ingresosMensualesData,
       ] = results.map((result) => result.data);
 
       const clientes = (clientesData || []).map((c: any) => ({
@@ -462,6 +471,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fecha: v.fecha,
         concepto: v.concepto,
         usdtVendido: Number(v.usdt_vendido || 0),
+        feeUsdt: Number(v.fee_usdt ?? 0),
         tasa: Number(v.tasa || 0),
         totalCop: Number(v.total_cop || 0),
         walletOrigen: v.wallet_origen,
@@ -580,6 +590,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const newSnapshot: DataSnapshot = {
         syncedAt: new Date().toISOString(),
+        ingresosMensuales: (ingresosMensualesData || []).map((row: { mes: string; monto_cop: number | string }) => ({
+          mes: row.mes, montoCop: Number(row.monto_cop),
+        })),
         clientes,
         divisas,
         negocios,
@@ -660,10 +673,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
       const saldoPendiente = Number(c.pendienteCop ?? c.pendientePorPagarCop ?? c.saldoCop ?? (totalIngresos - totalDispersado));
       
+      const porCobrarCOP = Math.max(0, -Number(c.saldoCop ?? (totalIngresos - totalDispersado)));
       let estado = c.estado || 'SIN ACTIVIDAD';
       if (typeof estado === 'string') {
         const up = estado.toUpperCase();
-        if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = 'SIN ACTIVIDAD';
+        if (porCobrarCOP > 0) estado = 'DEBE';
+        else if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = 'SIN ACTIVIDAD';
         else if (up.includes('PAGADO')) estado = 'PAGADO';
         else if (up.includes('DEBE')) estado = 'DEBE';
         else if (totalIngresos === 0 && totalDispersado === 0) estado = 'SIN ACTIVIDAD';
@@ -701,6 +716,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalIngresosCOP: totalIngresos,
         totalDispersadoCOP: totalDispersado,
         saldoPendienteCOP: saldoPendiente,
+        porCobrarCOP,
         estado,
         dispersionesIds: Array.isArray(rawDispersionesIds) ? rawDispersionesIds : [rawDispersionesIds],
         negociosIds: Array.isArray(rawNegociosIds) ? rawNegociosIds : [rawNegociosIds],
@@ -907,6 +923,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fecha: v.fecha || '',
       concepto: v.concepto || 'Venta USDT',
       usdtVendido: Number(v.usdtVendido ?? v.cantidadUsdt ?? 0),
+      feeUsdt: Number(v.feeUsdt ?? 0),
       tasa: Number(v.tasa ?? v.tasaVentaCop ?? 0),
       totalCOP: Number(v.totalCop ?? v.totalCOP ?? 0),
       destinoFondosNombre: v.destinoFondosNombre || v.cuentaDestinoNombre,
@@ -1053,7 +1070,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...comprasUsdt.filter((c) => c.walletDestinoId === account.id)
           .map((c) => movement(c, 'Compra USDT en ' + c.divisaCodigo, c.usdtComprado)),
         ...ventasUsdt.filter((v) => v.walletOrigenId === account.id)
-          .map((v) => movement(v, 'Venta USDT: ' + v.concepto, -v.usdtVendido)),
+          .flatMap((v) => [
+            movement(v, 'Venta USDT: ' + v.concepto, -v.usdtVendido),
+            ...(v.feeUsdt > 0 ? [{
+              ...movement(v, 'Fee de envío · Venta USDT', -v.feeUsdt),
+              origen: v.codigo + '-FEE',
+            }] : []),
+          ]),
         ...transferenciasInternas.filter((t) => t.tipoOrigen === 'ACTIVO_DIGITAL' && t.origenId === account.id)
           .flatMap((t) => [
             movement(t, 'Transferencia a ' + (t.destinoNombre || 'billetera') + (t.concepto ? ': ' + t.concepto : ''), -t.monto),
@@ -1067,7 +1090,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ]),
         ...transferenciasInternas.filter((t) => t.tipoDestino === 'ACTIVO_DIGITAL' && t.destinoId === account.id)
           .map((t) => movement(t, 'Transferencia desde ' + (t.origenNombre || 'billetera') + (t.concepto ? ': ' + t.concepto : ''), t.montoDestino)),
-      ], new Set(ventasUsdt.filter((v) => v.walletOrigenId && v.walletOrigenId !== account.id).map((v) => v.codigo))),
+      ], new Set(ventasUsdt.filter((v) => v.walletOrigenId && v.walletOrigenId !== account.id).flatMap((v) => [v.codigo, v.codigo + '-FEE']))),
     }));
 
     return {

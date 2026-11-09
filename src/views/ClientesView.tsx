@@ -111,7 +111,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
     if (norm.includes('DEBE')) {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500">
-          DEBE
+          NOS DEBE
         </span>
       );
     }
@@ -201,6 +201,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
         ['Total Negocios', formatNumber(sumRows(sortedClientes, (c) => c.totalNegocios ?? 0))],
         ['Total Pagado', formatCOP(sumRows(sortedClientes, (c) => c.totalDispersadoCOP))],
         ['Pendiente COP', formatCOP(sumRows(sortedClientes, (c) => c.saldoPendienteCOP))],
+        ['Total por cobrar', formatCOP(sumRows(sortedClientes, (c) => c.porCobrarCOP))],
         ['Total Comisiones', formatCOP(sumRows(sortedClientes, (c) => c.totalComisionesCOP ?? 0))],
       ] as const).map(([label, value]) => ({ label, value }))} />
 

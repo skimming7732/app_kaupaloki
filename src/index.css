@@ -136,3 +136,15 @@ html:not(.dark) .theme-logo-light {
 .animate-spin {
   animation: spin 0.8s linear infinite;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .inicio-income-path {
+    stroke-dasharray: 1;
+    animation: inicio-income-draw 800ms ease-out both;
+  }
+
+  @keyframes inicio-income-draw {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+}

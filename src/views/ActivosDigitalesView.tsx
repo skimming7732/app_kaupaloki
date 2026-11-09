@@ -496,10 +496,10 @@ export const ActivosDigitalesView: React.FC = () => {
                               isPositive ? 'text-emerald-500' : 'text-rose-500'
                             }`}
                           >
-                            {isPositive ? `+${formatUSD(m.monto)}` : formatUSD(m.monto)}
+                            {isPositive ? '+' : ''}{formatNumber(m.monto, 2, 6)}
                           </td>
                           <td className="py-3 px-4 text-right font-mono font-semibold text-foreground whitespace-nowrap">
-                            {formatUSD(m.balance)}
+                            {formatNumber(m.balance, 2, 6)}
                           </td>
                           <CreatedByCell name={m.createdByName} />
                         </tr>

@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useData, type NormalizedData } from '../context/DataContext';
-import { formatNumber, formatCOP, fallbackBanderaUrl, formatDate } from '../utils/formatters';
+import { useData, type IngresoMensual } from '../context/DataContext';
+import { formatNumber, formatCOP, fallbackBanderaUrl } from '../utils/formatters';
 
-const weekMs = 7 * 86400000;
-const bogotaDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' });
-const dayLabel = (time: number) => formatDate(new Date(time).toISOString().slice(0, 10)).slice(0, 5);
+const monthLabel = new Intl.DateTimeFormat('es-CO', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 const buildSmoothPath = (points: { x: number; y: number }[]) => {
   if (points.length < 2) return '';
@@ -18,16 +16,17 @@ const buildSmoothPath = (points: { x: number; y: number }[]) => {
     const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
 
     const cp1x = p1.x + (p2.x - p0.x) / 5.5;
-    const cp1y = p1.y + (p2.y - p0.y) / 5.5;
+    const cp1y = p1.y;
     const cp2x = p2.x - (p3.x - p1.x) / 5.5;
-    const cp2y = p2.y - (p3.y - p1.y) / 5.5;
+    const cp2y = p2.y;
 
     d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
   }
   return d;
 };
 
-const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios']; loading?: boolean }) => {
+const GrowthChart = ({ meses, loading }: { meses: IngresoMensual[]; loading: boolean }) => {
+  const [selectedMonth, setSelectedMonth] = useState<string>();
   if (loading) {
     return (
       <section className="h-full min-h-[280px] rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm flex flex-col items-center justify-center gap-3">
@@ -36,27 +35,11 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
       </section>
     );
   }
-  const end = Date.parse(bogotaDay.format(new Date())) + 86400000;
-  const start = end - weekMs * 8;
-  const amounts = Array<number>(8).fill(0);
-  const counts = Array<number>(8).fill(0);
-
-  for (const negocio of negocios) {
-    const createdAt = Date.parse(negocio.createdAtAudit || '');
-    const day = Number.isFinite(createdAt) ? bogotaDay.format(createdAt) : negocio.fecha?.slice(0, 10) || '';
-    const index = Math.floor((Date.parse(day) - start) / weekMs);
-    if (index >= 0 && index < amounts.length) {
-      amounts[index] += Number(negocio.ingresoCOP || 0);
-      counts[index]++;
-    }
-  }
-
+  const amounts = meses.map((month) => month.montoCop);
   const max = Math.max(1, ...amounts);
-  const total = amounts.reduce((sum, val) => sum + val, 0);
-
-  // Default active point is the latest or highest
-  const defaultIdx = amounts.lastIndexOf(max) >= 0 ? amounts.lastIndexOf(max) : amounts.length - 1;
-  const [activeIdx, setActiveIdx] = useState(defaultIdx);
+  const total = amounts.reduce((sum, amount) => sum + amount, 0);
+  const selectedIndex = meses.findIndex((month) => month.mes === selectedMonth);
+  const activeIdx = selectedIndex < 0 ? meses.length - 1 : selectedIndex;
 
   // SVG dimensions
   const width = 640;
@@ -68,7 +51,7 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
   const plotHeight = height - padTop - padBottom;
 
   const points = amounts.map((amount, i) => ({
-    x: padX + (i * plotWidth) / (amounts.length - 1),
+    x: padX + (i * plotWidth) / Math.max(1, amounts.length - 1),
     y: padTop + (1 - amount / max) * plotHeight,
   }));
 
@@ -88,22 +71,25 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/60 text-xs font-semibold text-foreground border border-border/50">
               <i className="ri-calendar-line text-muted-foreground text-xs" />
-              <span>Últimas 8 semanas</span>
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500">
-              <i className="ri-checkbox-circle-fill text-xs" /> En curso
+              <span>Últimos 3 meses</span>
             </span>
           </div>
           <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
             <i className="ri-bar-chart-2-fill" />
           </div>
         </div>
+        <h2 id="growth-heading" className="mt-2 text-sm font-semibold text-muted-foreground">Ingresos de clientes</h2>
+        {meses.length > 0 && <p className="text-2xl font-bold tabular-nums">{formatCOP(total)}</p>}
       </div>
 
-      {/* Curved Spline Chart */}
+      {meses.length === 0 ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">Los ingresos del período no están disponibles.</p>
+      ) : (
+      <div>
       <div className="relative w-full pt-1">
         <svg
           viewBox={`0 0 ${width} ${height}`}
+          aria-hidden="true"
           className="w-full h-44 sm:h-52 select-none"
         >
           <defs>
@@ -117,6 +103,8 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
           {/* Glow shadow line (safe across all mobile GPUs) */}
           <path
             d={linePath}
+            pathLength={1}
+            className="inicio-income-path"
             fill="none"
             stroke="#6366f1"
             strokeWidth="7"
@@ -128,6 +116,8 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
           {/* Smooth Single Spline Line */}
           <path
             d={linePath}
+            pathLength={1}
+            className="inicio-income-path"
             fill="none"
             stroke="url(#curveStrokeGrad)"
             strokeWidth="3.5"
@@ -144,9 +134,9 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
                 r="20"
                 fill="transparent"
                 className="cursor-pointer"
-                onMouseEnter={() => setActiveIdx(i)}
-                onClick={() => setActiveIdx(i)}
-                onTouchStart={() => setActiveIdx(i)}
+                onMouseEnter={() => setSelectedMonth(meses[i].mes)}
+                onClick={() => setSelectedMonth(meses[i].mes)}
+                onTouchStart={() => setSelectedMonth(meses[i].mes)}
               />
             </g>
           ))}
@@ -177,31 +167,30 @@ const GrowthChart = ({ negocios, loading }: { negocios: NormalizedData['negocios
           )}
         </svg>
 
-        {/* Horizontal Dates Axis (Responsive: 4 on mobile, all 8 on desktop) */}
-        <div className="flex justify-between items-center px-1 sm:px-4 pt-3 mt-1">
-          {amounts.map((_, i) => (
+        <div className="flex justify-between gap-2 px-1 pt-2 sm:px-4">
+          {meses.map((month, i) => (
             <button
-              key={i}
+              key={month.mes}
               type="button"
-              onClick={() => setActiveIdx(i)}
-              className={`text-[10px] sm:text-[11px] uppercase tracking-wider font-medium transition-colors ${
-                i % 2 !== 0 && i !== amounts.length - 1 ? 'hidden sm:inline-block' : 'inline-block'
-              } ${
-                i === activeIdx ? 'text-primary font-bold' : 'text-muted-foreground/70 hover:text-foreground'
-              }`}
+              aria-pressed={i === activeIdx}
+              onClick={() => setSelectedMonth(month.mes)}
+              className="flex min-w-0 flex-col gap-0.5 rounded-lg px-1.5 py-1 text-left text-[10px] text-muted-foreground hover:bg-muted aria-pressed:bg-primary/10 aria-pressed:text-primary sm:px-2 sm:text-xs"
             >
-              {dayLabel(start + weekMs * i)}
+              <span className="capitalize">{monthLabel.format(new Date(month.mes + 'T00:00:00Z'))}</span>
+              <strong className="break-all tabular-nums">{formatCOP(month.montoCop)}</strong>
             </button>
           ))}
         </div>
       </div>
+      </div>
+      )}
     </section>
   );
 };
 
 export const InicioView = () => {
   const { user, profile } = useAuth();
-  const { data, loading, metrics } = useData();
+  const { data, loading, metrics, snapshot } = useData();
   const admin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const canSeeNegocios = admin || profile?.role === 'operador';
   const authorized = profile?.authorized_currencies || [];
@@ -230,7 +219,7 @@ export const InicioView = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
         {/* Chart takes 75% of width */}
         <div className="lg:col-span-3">
-          <GrowthChart negocios={data.negocios} loading={loading} />
+          <GrowthChart meses={snapshot.ingresosMensuales || []} loading={loading} />
         </div>
 
         {/* KPIs stacked vertically taking 25% of width */}

@@ -42,6 +42,7 @@ export const VentasUsdtView: React.FC = () => {
   }, [data.ventasUsdt, search, filterDestino, fechaDesde, fechaHasta]);
 
   const totalUsdtVendidos = sumRows(filteredVentas, (v) => v.usdtVendido);
+  const totalFeeUsdt = sumRows(filteredVentas, (v) => v.feeUsdt);
   const totalCopRecibidos = sumRows(filteredVentas, (v) => v.totalCOP);
   const tasaPromedioVenta = totalUsdtVendidos > 0 ? (totalCopRecibidos / totalUsdtVendidos) : 0;
 
@@ -96,6 +97,7 @@ export const VentasUsdtView: React.FC = () => {
         ['USDT vendidos', formatCurrency(totalUsdtVendidos, 'USDT')],
         ['Tasa promedio', tasaPromedioVenta > 0 ? '$' + formatRate(tasaPromedioVenta) + ' COP' : '—'],
         ['COP recibidos', formatCOP(totalCopRecibidos)],
+        ['Fee de envío', formatNumber(totalFeeUsdt, 0, 6) + ' USDT'],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Ventas Table */}
@@ -109,6 +111,7 @@ export const VentasUsdtView: React.FC = () => {
                 <th className="py-3 px-4">Concepto</th>
                 <th className="py-3 px-4">Origen Fondos</th>
                 <th className="py-3 px-4 text-right">USDT Vendido</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">Fee (USDT)</th>
                 <th className="py-3 px-4 text-right">Tasa Venta (COP)</th>
                 <th className="py-3 px-4 text-right">Total (COP)</th>
                 <th className="py-3 px-4">Destino Fondos</th>
@@ -119,12 +122,12 @@ export const VentasUsdtView: React.FC = () => {
             <tbody className="divide-y divide-border">
               {filteredVentas.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
                     No hay registros de ventas USDT coincidentes con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={filteredVentas}>{(v) => (
+                <PaginatedRows columns={11} rows={filteredVentas}>{(v) => (
                   <tr key={v.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{v.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(v.fecha)}</td>
@@ -137,6 +140,7 @@ export const VentasUsdtView: React.FC = () => {
                     <td className="py-3 px-4 text-right font-mono font-bold text-rose-500">
                       -{formatNumber(v.usdtVendido, 0, 2)} USDT
                     </td>
+                    <td className="py-3 px-4 text-right font-mono tabular-nums">{formatNumber(v.feeUsdt, 0, 6)}</td>
                     <td className="py-3 px-4 text-right font-mono text-muted-foreground">
                       ${formatRate(v.tasa)}
                     </td>
@@ -149,7 +153,7 @@ export const VentasUsdtView: React.FC = () => {
                       </span>
                     </td>
                     <CreatedByCell name={v.createdByName} />
-                    <td className="px-4"><AddCatalogButton table="ventas_usdt" edit={{ id: v.id, historical: !v.walletOrigenId || !v.destinoFondosId, fields: { fecha: v.fecha?.slice(0, 10) || '', concepto: v.concepto, usdt_vendido: v.usdtVendido, tasa: v.tasa, wallet_origen_id: v.walletOrigenId || '', destino_fondos_id: v.destinoFondosId || '' } }} /></td>
+                    <td className="px-4"><AddCatalogButton table="ventas_usdt" edit={{ id: v.id, historical: !v.walletOrigenId || !v.destinoFondosId, fields: { fecha: v.fecha?.slice(0, 10) || '', concepto: v.concepto, usdt_vendido: v.usdtVendido, fee_usdt: v.feeUsdt, tasa: v.tasa, wallet_origen_id: v.walletOrigenId || '', destino_fondos_id: v.destinoFondosId || '' } }} /></td>
                   </tr>
                 )}</PaginatedRows>
               )}

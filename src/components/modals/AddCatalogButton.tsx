@@ -39,6 +39,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const [currency, setCurrency] = useState('');
   const [amount, setAmount] = useState('');
   const [rateInput, setRateInput] = useState('');
+  const [feeInput, setFeeInput] = useState('');
 
   const isPurchase = table === 'compras_usdt';
   const isSale = table === 'ventas_usdt';
@@ -54,14 +55,19 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
 
   const source = data.activosDigitales.find((item) => item.id === sourceId);
   const previousDebit = source && edit?.fields[sourceField] === sourceId &&
-    (!isPurchase || edit.fields.divisa_codigo === currency) ? Number(edit.fields[amountField]) : 0;
+    (!isPurchase || edit.fields.divisa_codigo === currency)
+    ? Number(edit.fields[amountField]) + (isSale ? Number(edit.fields.fee_usdt ?? 0) : 0) : 0;
 
   // For purchase, funds ALWAYS come from the currency balance. For sales, from the wallet.
   const balance = isPurchase ? pendingBalance : Number(source?.saldoReal ?? source?.saldoCop ?? source?.saldoUsdt ?? 0) + previousDebit;
   const hasSource = isPurchase ? Boolean(selectedCurrency) : Boolean(source);
 
   const numericAmount = parseAmountInput(amount);
-  const exceedsBalance = !edit?.historical && hasSource && numericAmount > balance;
+  const saleFee = isSale && feeInput ? parseAmountInput(feeInput) : 0;
+  const validFee = Number.isFinite(saleFee) && saleFee >= 0 && !/\.\d{7,}$/.test(feeInput);
+  const walletOut = Number((numericAmount + saleFee).toFixed(12));
+  const availableAmount = isSale ? Math.max(0, Number((balance - saleFee).toFixed(12))) : balance;
+  const exceedsBalance = !edit?.historical && hasSource && (isSale ? walletOut : numericAmount) > balance;
   const previousRate = edit && edit.fields.tasa !== undefined && edit.fields.tasa !== null
     ? Number(edit.fields.tasa) : null;
   const initialRate = previousRate !== null
@@ -102,6 +108,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         dateField, { name: 'concepto', label: 'Concepto' },
         { name: 'wallet_origen_id', label: 'Billetera de origen', accounts: wallets },
         { name: 'usdt_vendido', label: 'USDT vendidos', type: 'number' },
+        { name: 'fee_usdt', label: 'Fee de envío (USDT)', type: 'number', optional: true },
         { name: 'tasa', label: 'Tasa de venta (COP por USDT)', type: 'number' },
         { name: 'destino_fondos_id', label: 'Cuenta de destino en COP', accounts: liquidAccounts },
       ],
@@ -140,7 +147,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
 
   const showBalance = isUsdt && !edit?.historical;
   const sameWallet = isSale && showBalance && Boolean(sourceId) && sourceId === destinationId;
-  const missingAccounts = isPurchase ? !destinationId : (!sourceId || !destinationId);
+  const missingAccounts = isPurchase ? !destinationId : !edit?.historical && (!sourceId || !destinationId);
   const onClose = () => setOpen(false);
 
   const handleDelete = async () => {
@@ -182,16 +189,23 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
     }
 
     if (isSale) {
-      if (!sourceId || !destinationId) {
+      if (!validFee || exceedsBalance) {
+        setError(!validFee ? 'Ingresa un fee válido con hasta seis decimales.' : 'El monto y el fee superan el saldo de la billetera.');
+        return;
+      }
+      if (missingAccounts) {
         setError('Selecciona la billetera de origen y la cuenta de destino.');
         return;
       }
-      record.wallet_origen_id = sourceId;
-      record.destino_fondos_id = destinationId;
+      if (!edit?.historical) {
+        record.wallet_origen_id = sourceId;
+        record.destino_fondos_id = destinationId;
+      }
     }
 
     for (const field of form.fields) {
       if (isUsdt && field.accounts) continue;
+      if (isSale && edit?.historical && field.name === 'fee_usdt') continue;
       if (isPurchase && (field.name === 'usdt_comprado' || field.name === 'divisa_codigo')) continue;
       const value = String(values.get(field.name) || '').trim();
       const allowsZero = isPurchase && field.name === 'tasa';
@@ -259,6 +273,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
 
     const isAmount = isUsdt && field.name === amountField;
     const isRate = isUsdt && field.name === 'tasa';
+    const isFee = isSale && field.name === 'fee_usdt';
     const unit = isAmount ? sourceCurrency : isRate && isPurchase && currency ? currency + ' por USDT' : '';
     return (
       <div className="min-w-0 space-y-1.5" key={field.name}>
@@ -271,8 +286,8 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
             </select>
           ) : (
             <input
-              value={isAmount ? amount : isRate ? rateInput : undefined}
-              defaultValue={isAmount || isRate ? undefined : field.type === 'number'
+              value={isAmount ? amount : isRate ? rateInput : isFee ? feeInput : undefined}
+              defaultValue={isAmount || isRate || isFee ? undefined : field.type === 'number'
                 ? formatAmountInput(String(initial[field.name] ?? ''))
                 : initial[field.name] ?? (field.type === 'date' ? today() : undefined)}
               onChange={field.type === 'number' ? (event) => {
@@ -280,12 +295,13 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
                 if (value === undefined) return;
                 if (isAmount) setAmount(value);
                 if (isRate) setRateInput(value);
+                if (isFee) setFeeInput(value);
               } : undefined}
-              aria-invalid={isAmount && exceedsBalance || undefined}
+              aria-invalid={(isAmount && exceedsBalance) || (isFee && !validFee) || undefined}
               name={field.name}
               type={field.type === 'date' ? 'date' : 'text'}
               inputMode={field.type === 'number' ? 'decimal' : undefined}
-              placeholder={isRate ? '0.0000' : isAmount ? '0.00' : field.name === 'proveedor' ? 'Nombre o empresa del proveedor' : undefined}
+              placeholder={isRate ? '0.0000' : isAmount || isFee ? '0.00' : field.name === 'proveedor' ? 'Nombre o empresa del proveedor' : undefined}
               required={!field.optional}
               className={recordFieldClass}
             />
@@ -296,13 +312,14 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
             <span>{hasSource ? (
               <>{isPurchase ? 'Pendiente por comprar' : 'Saldo disponible'} <strong className="text-foreground">{formatNumber(balance, 0, 6)} {sourceCurrency}</strong></>
             ) : (isPurchase ? 'Selecciona la divisa para ver el saldo pendiente.' : 'Selecciona el origen para ver el saldo.')}</span>
-            {hasSource && balance > 0 && (
-              <button type="button" onClick={() => setAmount(formatNumber(balance, 0, 20))}
+            {hasSource && availableAmount > 0 && (
+              <button type="button" onClick={() => setAmount(formatNumber(availableAmount, 0, 20))}
                 className="min-h-8 shrink-0 rounded-lg bg-primary/10 px-2.5 font-semibold text-primary hover:bg-primary/20">Máx.</button>
             )}
           </div>
         )}
-        {isAmount && exceedsBalance && <p role="alert" className="text-xs text-destructive">El monto supera el saldo disponible.</p>}
+        {isAmount && exceedsBalance && <p role="alert" className="text-xs text-destructive">{isSale ? 'El monto y el fee superan el saldo de la billetera.' : 'El monto supera el saldo disponible.'}</p>}
+        {isFee && !validFee && <p role="alert" className="text-xs text-destructive">Ingresa un fee válido con hasta seis decimales.</p>}
       </div>
     );
   };
@@ -326,6 +343,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
           const fallbackCurrency = isPurchase && !edit ? (data.divisas[0]?.codigo || '') : String(initial.divisa_codigo ?? '');
           setCurrency(fallbackCurrency);
           setRateInput(initialRate);
+          setFeeInput(isSale && initial.fee_usdt ? formatNumber(Number(initial.fee_usdt), 0, 6) : '');
           setOpen(true);
         }}>
         <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
@@ -353,6 +371,15 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
                     <div className="grid items-start gap-4 sm:grid-cols-2">
                       {renderFields(amountField, 'tasa')}
                     </div>
+                    {isSale && !edit?.historical && (
+                      <div className="grid items-end gap-2 sm:grid-cols-2 sm:gap-4">
+                        {renderFields('fee_usdt')}
+                        <p className="rounded-xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                          Salida total de la billetera{' '}
+                          <strong className="text-foreground">{numericAmount > 0 && validFee ? formatNumber(walletOut, 2, 6) + ' USDT' : '—'}</strong>
+                        </p>
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
                       <div>
                         <p className="text-sm font-semibold">{isPurchase ? 'USDT a recibir' : 'COP a recibir'}</p>
@@ -374,7 +401,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
                 <div className="grid gap-4 sm:grid-cols-2">{form.fields.map(renderField)}</div>
               )}
             </fieldset>
-            <RecordActions submitDisabled={exceedsBalance || sameWallet || (isPurchase && (!validPurchaseQuote || !currency || missingAccounts)) || (isSale && (!validSaleQuote || missingAccounts))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && isAdmin ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
+            <RecordActions submitDisabled={exceedsBalance || sameWallet || (isPurchase && (!validPurchaseQuote || !currency || missingAccounts)) || (isSale && (!validSaleQuote || !validFee || missingAccounts))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && isAdmin ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
           </form>
         </RecordDialog>
       )}
