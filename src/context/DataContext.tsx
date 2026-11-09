@@ -1045,14 +1045,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const capitalPeople = new Map(capitalLedger.people.map((person) => [person.id, person.nombre]));
     const capitalEntries = (accountId: string, digital: boolean): LinkedMovement[] => capitalRows
       .filter((row) => (digital ? row.cuenta_digital_id : row.cuenta_liquida_id) === accountId)
-      .map((row) => ({
-        ...creationAudit(row),
-        fecha: row.fecha,
-        origen: row.codigo,
-        concepto: 'Capital & Socios · ' + capitalLabels[row.tipo],
-        tercero: capitalPeople.get(row.socio_id),
-        monto: Number(row.monto) * (row.tipo === 'CONTRATO' ? 1 : -1),
-      }));
+      .map((row) => {
+        const socioNombre = capitalPeople.get(row.socio_id);
+        return {
+          ...creationAudit(row),
+          fecha: row.fecha,
+          origen: row.codigo,
+          concepto: 'Capital & Socios · ' + capitalLabels[row.tipo] + (socioNombre ? ' · ' + socioNombre : ''),
+          tercero: socioNombre,
+          monto: Number(row.monto) * (row.tipo === 'CONTRATO' ? 1 : -1),
+        };
+      });
 
     const enrichedActivosLiquidos = (snapshot.activosLiquidos || []).map((account) => ({
       ...account,

@@ -576,7 +576,7 @@ export const ClienteDetalleView: React.FC = () => {
                             {n.estado || 'REGISTRADO'}
                           </span>
                         </td>
-                        <CreatedByCell createdBy={n.createdBy} createdAt={n.createdAt} />
+                        <CreatedByCell name={n.createdByName} createdBy={n.createdBy} createdAt={n.createdAtAudit} />
                         <td className="py-3 px-4 text-center">
                           {isAdmin && (
                             <button
@@ -684,7 +684,7 @@ export const ClienteDetalleView: React.FC = () => {
                             {d.estado || 'DISPERSADO'}
                           </span>
                         </td>
-                        <CreatedByCell createdBy={d.createdBy} createdAt={d.createdAt} />
+                        <CreatedByCell name={d.createdByName} createdBy={d.createdBy} createdAt={d.createdAtAudit} />
                         <td className="py-3 px-4 text-center">
                           <button
                             onClick={() => {
@@ -771,7 +771,7 @@ export const ClienteDetalleView: React.FC = () => {
                         <td className="py-3 px-4 text-foreground max-w-sm truncate">
                           {e.referencia || 'Movimiento de efectivo'}
                         </td>
-                        <CreatedByCell createdBy={e.createdBy} createdAt={e.createdAt} />
+                        <CreatedByCell name={e.createdByName} createdBy={e.createdBy} createdAt={e.createdAtAudit} />
                       </tr>
                     ))
                   )}

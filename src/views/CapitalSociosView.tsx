@@ -16,7 +16,7 @@ const actionLabels: Record<Action, string> = {
   persona: 'Agregar socio o inversionista', contrato: 'Nuevo contrato', liquidar: 'Liquidar',
   adelanto: 'Adelantar', rendimiento: 'Registrar rendimiento',
 };
-const headings = ['Fecha', 'Nombre', 'Tipo', 'Capital aportado', 'Ingreso por dividendo', 'Ingreso por interés', 'Egreso', 'Retiro de capital', 'Total capital', 'Total saldo'];
+const headings = ['Fecha', 'Nombre', 'Tipo', 'Capital aportado', 'Ingreso por dividendo', 'Ingreso por interés', 'Egreso', 'Retiro de capital', 'Total capital', 'Total saldo', 'Creado por'];
 const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
 const isCash = (account: Account) => account.institucion?.toUpperCase() === 'EFECTIVO' || (account.activo || '').toUpperCase().includes('EFECTIVO');
 
@@ -175,7 +175,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-left text-xs">
           <thead className="border-b border-border bg-muted/40 text-muted-foreground">
-            <tr>{headings.map((name, index) => <th key={name} scope="col" className={'whitespace-nowrap px-3 py-3 font-semibold ' + (index > 2 ? 'text-right' : '')}>{name}</th>)}</tr>
+            <tr>{headings.map((name, index) => <th key={name} scope="col" className={'whitespace-nowrap px-3 py-3 font-semibold ' + (index > 2 && index < 10 ? 'text-right' : '')}>{name}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-border">
             <PaginatedRows rows={rows} columns={headings.length} resetKey={activePerson}>{(row) => {
@@ -196,6 +196,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
                       {value || index > 4 ? formatCOP(value) : '—'}
                     </td>
                   )}
+                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{row.created_by_name || 'Sin registro'}</td>
                 </tr>
               );
             }}</PaginatedRows>
@@ -219,6 +220,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
           {detail.contrato_id && <div><dt className="font-semibold">Contrato</dt><dd>
             {formatDate(movements.find((row) => row.id === detail.contrato_id)?.fecha)}
           </dd></div>}
+          <div><dt className="font-semibold">Creado por</dt><dd>{detail.created_by_name || 'Sin registro'}</dd></div>
         </dl>
       </RecordDialog>}
     </div>

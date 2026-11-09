@@ -1,6 +1,13 @@
 import { supabase } from '../lib/supabase';
 
-export type CapitalPerson = { id: string; nombre: string; tipo: 'SOCIO' | 'INVERSIONISTA' };
+export type CapitalPerson = {
+  id: string;
+  nombre: string;
+  tipo: 'SOCIO' | 'INVERSIONISTA';
+  created_by?: string | null;
+  created_by_name?: string | null;
+  created_at_audit?: string | null;
+};
 export type CapitalKind = 'CONTRATO' | 'DIVIDENDO' | 'INTERES' | 'LIQUIDACION' | 'ADELANTO' | 'RETIRO';
 export type CapitalMethod = 'EFECTIVO' | 'CUENTA' | 'USDT';
 export type CapitalMovement = {
@@ -18,6 +25,9 @@ export type CapitalMovement = {
   contrato_id: string | null;
   condiciones: string | null;
   created_at?: string | null;
+  created_by?: string | null;
+  created_by_name?: string | null;
+  created_at_audit?: string | null;
   numero?: number | null;
 };
 
@@ -58,6 +68,7 @@ export async function loadCapitalRows<T>(table: 'capital_socios' | 'capital_movi
     if (table === 'capital_movimientos') {
       query = query
         .order('fecha', { ascending: false })
+        .order('created_at_audit', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false, nullsFirst: false })
         .order('numero', { ascending: false, nullsFirst: false })
         .order('id');
