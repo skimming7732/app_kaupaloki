@@ -4,7 +4,7 @@ import { todayBogota } from '../../utils/formatters';
 import React, { useId, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
-import { AccountSelect, accountLabel } from './AccountSelect';
+import { accountLabel } from './AccountSelect';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
 
 interface AddEfectivoModalProps {
@@ -21,11 +21,13 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
   const id = useId();
   const [tipo, setTipo] = useState<'Ingreso' | 'Pago'>('Pago');
   const [clienteId, setClienteId] = useState(initialClienteId || '');
-  const [accountId, setAccountId] = useState('');
   const [name, setName] = useState('');
   const [addingClient, setAddingClient] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const cashAccount = data.activosLiquidos.find((account) =>
+    account.activo?.trim().toUpperCase() === 'EFECTIVO-CAJA' && (account.divisa || 'COP').toUpperCase() === 'COP',
+  );
 
   const back = () => {
     setAddingClient(false);
@@ -63,9 +65,12 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
       setError('Ingresa una referencia o PIN.');
       return;
     }
-    const account = data.activosLiquidos.find((item) => item.id === accountId);
-    if (!account || (tipo === 'Pago' && !clienteId) || !Number.isFinite(montoCop) || montoCop <= 0) {
-      setError('Selecciona una cuenta, completa el cliente si es un pago e ingresa un monto mayor que cero.');
+    if (!cashAccount) {
+      setError('La cuenta EFECTIVO-CAJA no está disponible.');
+      return;
+    }
+    if ((tipo === 'Pago' && !clienteId) || !Number.isFinite(montoCop) || montoCop <= 0) {
+      setError('Completa el cliente si es un pago e ingresa un monto mayor que cero.');
       return;
     }
 
@@ -74,7 +79,7 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
     const finishSound = prepareSuccessSound();
     try {
       const success = await createMovimientoEfectivo({
-        tipo, montoCop, clienteId, origenFondosId: account.id, origenFondos: accountLabel(account),
+        tipo, montoCop, clienteId, origenFondosId: cashAccount.id, origenFondos: accountLabel(cashAccount),
         fecha: fields.get('fecha'), referencia,
       });
       if (!success) throw new Error();
@@ -91,7 +96,7 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
   return (
     <RecordDialog
       title={addingClient ? 'Agregar cliente' : 'Registrar movimiento de efectivo'}
-      description={addingClient ? 'El cliente quedará asignado al movimiento.' : 'Registra un ingreso o un pago y elige la cuenta de caja.'}
+      description={addingClient ? 'El cliente quedará asignado al movimiento.' : 'Registra un ingreso o un pago en la caja de efectivo.'}
       icon={addingClient ? 'ri-user-add-line' : 'ri-money-dollar-circle-line'}
       busy={busy} error={error} onClose={addingClient ? back : onClose}
     >
@@ -152,7 +157,19 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
               }}
             />
           </div>
-          <AccountSelect label="Cuenta de caja" accounts={data.activosLiquidos} value={accountId} onChange={setAccountId} />
+          <div className="space-y-1.5">
+            <p className={recordLabelClass}>Cuenta de caja</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs">
+              <span className="flex items-center gap-2 font-semibold text-foreground">
+                <i className="ri-safe-2-line text-base text-emerald-500" aria-hidden="true" />
+                Efectivo (Caja)
+              </span>
+              <span className="inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+                <i className="ri-lock-line" aria-hidden="true" /> EFECTIVO-CAJA
+              </span>
+            </div>
+            {!cashAccount && <p className="text-xs text-destructive">La cuenta EFECTIVO-CAJA no está disponible.</p>}
+          </div>
           <label className={recordLabelClass}>
             <span>Monto (COP)</span>
             <input name="monto" type="text" inputMode="decimal" pattern="[0-9,]+([.][0-9]*)?|[.][0-9]+" required placeholder="1,250.00" onChange={(event) => { const input = event.currentTarget; if (formatAmountField(input) === undefined) input.value = input.value.replace(/[^0-9,.]/g, ''); }} className={recordFieldClass} />
@@ -162,7 +179,7 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
             <input name="referencia" required className={recordFieldClass} />
           </label>
         </fieldset>
-        <RecordActions busy={busy} label={tipo === 'Pago' ? 'Registrar pago' : 'Registrar ingreso'} onClose={onClose} />
+        <RecordActions busy={busy} submitDisabled={!cashAccount} label={tipo === 'Pago' ? 'Registrar pago' : 'Registrar ingreso'} onClose={onClose} />
       </form>
     </RecordDialog>
   );
