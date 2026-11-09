@@ -6,7 +6,7 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
-import { getCategoryIcon } from '../components/common/CategorySearchSelect';
+import { getCategoryIcon, GASTO_CATEGORIES } from '../components/common/CategorySearchSelect';
 import { uploadReceipt, receiptAccept } from '../utils/receipts';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { supabase } from '../lib/supabase';
@@ -89,17 +89,23 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
-  const categorias = [
-    'Arrendamiento',
-    'Nómina y Salarios',
-    'Combustible y Transporte',
-    'Servicios Públicos (Agua, Luz, Gas)',
-    'Logística y Envíos (Ligas, Encomiendas)',
-    'Mantenimiento y Operación',
-    'Gastos Financieros y Bancarios',
-    'Alimentación y Viáticos',
-    'Otros Gastos Operativos',
-  ];
+  const categorias = useMemo(() => {
+    const base = [
+      'Nómina y Sueldos',
+      ...GASTO_CATEGORIES.map((c) => c.name),
+      'Arrendamiento',
+      'Nómina y Salarios',
+      'Combustible y Transporte',
+      'Servicios Públicos (Agua, Luz, Gas)',
+      'Logística y Envíos (Ligas, Encomiendas)',
+      'Mantenimiento y Operación',
+      'Gastos Financieros y Bancarios',
+      'Alimentación y Viáticos',
+      'Otros Gastos Operativos',
+      ...data.gastos.map((g) => g.categoria).filter(Boolean),
+    ];
+    return Array.from(new Set(base));
+  }, [data.gastos]);
 
   const filteredGastos = useMemo(() => {
     return data.gastos.filter((g) => {

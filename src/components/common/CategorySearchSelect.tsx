@@ -18,6 +18,7 @@ export const GASTO_CATEGORIES: CategoryOption[] = [
   { name: 'Internet, Telefonía y Comunicaciones', icon: 'ri-wifi-line', group: 'Instalaciones y Servicios' },
   { name: 'Mantenimiento y Reparaciones Locativas', icon: 'ri-tools-line', group: 'Instalaciones y Servicios' },
   { name: 'Seguridad y Vigilancia Privada', icon: 'ri-shield-keyhole-line', group: 'Instalaciones y Servicios' },
+  { name: 'Nómina y Sueldos', icon: 'ri-user-star-line', group: 'Personal y Talento' },
   { name: 'Nómina, Salarios y Prestaciones', icon: 'ri-user-star-line', group: 'Personal y Talento' },
   { name: 'Seguridad Social y Aportes', icon: 'ri-shield-user-line', group: 'Personal y Talento' },
   { name: 'Alimentación, Refrigerios y Cafetería', icon: 'ri-restaurant-line', group: 'Personal y Talento' },
@@ -78,10 +79,13 @@ export const CategorySearchSelect: React.FC<CategorySearchSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const normalizeText = (text: string) =>
+    text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
   const filtered = GASTO_CATEGORIES.filter((cat) => {
-    const q = query.toLowerCase().trim();
+    const q = normalizeText(query.trim());
     if (!q) return true;
-    return cat.name.toLowerCase().includes(q) || (cat.group && cat.group.toLowerCase().includes(q));
+    return normalizeText(cat.name).includes(q) || (cat.group && normalizeText(cat.group).includes(q));
   });
 
   const selectedCategory = GASTO_CATEGORIES.find((c) => c.name === value) || (value ? { name: value, icon: getCategoryIcon(value) } : null);
