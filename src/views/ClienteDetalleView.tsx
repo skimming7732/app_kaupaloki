@@ -1,3 +1,4 @@
+import { getClientCountryIso } from '../data/clientCountries';
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData, type NormalizedData } from '../context/DataContext';
@@ -12,23 +13,6 @@ import { AddNegocioModal, type EditableNegocio } from '../components/modals/AddN
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
-
-const getCountryIso = (pais?: string): string => {
-  if (!pais) return 'COL';
-  const p = pais.trim().toUpperCase();
-  if (p.includes('COLOMBIA') || p === 'COL') return 'COL';
-  if (p.includes('VENEZUELA') || p === 'VEN') return 'VEN';
-  if (p.includes('ESTADOS UNIDOS') || p.includes('USA') || p.includes('EEUU')) return 'USA';
-  if (p.includes('PANAM') || p === 'PAN') return 'PAN';
-  if (p.includes('ESPA') || p === 'ESP') return 'ESP';
-  if (p.includes('PER') || p === 'PER') return 'PER';
-  if (p.includes('MÉX') || p.includes('MEX') || p === 'MEX') return 'MEX';
-  if (p.includes('ECUADOR') || p === 'ECU') return 'ECU';
-  if (p.includes('CHILE') || p === 'CHL') return 'CHL';
-  if (p.includes('ARGENTINA') || p === 'ARG') return 'ARG';
-  if (p.includes('BRASIL') || p.includes('BRAZIL') || p === 'BRA') return 'BRA';
-  return p.slice(0, 3);
-};
 
 export const ClienteDetalleView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -284,7 +268,7 @@ export const ClienteDetalleView: React.FC = () => {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-muted text-muted-foreground border border-border">
-                  {getCountryIso(cliente.pais)}
+                  {getClientCountryIso(cliente.pais)}
                 </span>
                 <span className="text-xs font-medium text-muted-foreground">
                   {cliente.pais || 'Colombia'}
@@ -922,7 +906,7 @@ export const ClienteDetalleView: React.FC = () => {
                           </td>
                           <td className="py-3 px-4 text-center">
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-muted-foreground border border-border">
-                              {getCountryIso(refClient.pais)}
+                              {getClientCountryIso(refClient.pais)}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-center font-mono font-semibold">

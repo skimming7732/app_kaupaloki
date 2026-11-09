@@ -1,3 +1,4 @@
+import { getClientCountryIso } from '../data/clientCountries';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
@@ -16,23 +17,6 @@ interface ClientesViewProps {
 }
 
 type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'saldoPendienteCOP' | 'porCobrarCOP' | 'totalComisionesCOP' | 'estado';
-
-const getCountryIso = (pais?: string): string => {
-  if (!pais) return 'COL';
-  const p = pais.trim().toUpperCase();
-  if (p.includes('COLOMBIA') || p === 'COL') return 'COL';
-  if (p.includes('VENEZUELA') || p === 'VEN') return 'VEN';
-  if (p.includes('ESTADOS UNIDOS') || p.includes('USA') || p.includes('EEUU')) return 'USA';
-  if (p.includes('PANAM') || p === 'PAN') return 'PAN';
-  if (p.includes('ESPA') || p === 'ESP') return 'ESP';
-  if (p.includes('PER') || p === 'PER') return 'PER';
-  if (p.includes('MÉX') || p.includes('MEX') || p === 'MEX') return 'MEX';
-  if (p.includes('ECUADOR') || p === 'ECU') return 'ECU';
-  if (p.includes('CHILE') || p === 'CHL') return 'CHL';
-  if (p.includes('ARGENTINA') || p === 'ARG') return 'ARG';
-  if (p.includes('BRASIL') || p.includes('BRAZIL') || p === 'BRA') return 'BRA';
-  return p.slice(0, 3);
-};
 
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
   const { data } = useData();
@@ -305,7 +289,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                     <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-muted-foreground border border-border shrink-0">
-                          {getCountryIso(c.pais)}
+                          {getClientCountryIso(c.pais)}
                         </span>
                         <div className="min-w-0">
                           <div className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">

@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { formatCOP, formatNumber, normalizeSearch } from '../../utils/formatters';
 import { CurrencySelect } from './CurrencySelect';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
+import { ClientCountrySelect } from '../common/ClientCountrySelect';
 
 export type EditableNegocio = NormalizedData['negocios'][number];
 
@@ -214,10 +215,10 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
           </div>
           <div>
             <label htmlFor={id + '-country'} className={labelClass}>País</label>
-            <input
+            <ClientCountrySelect
               id={id + '-country'}
               value={newClientPais}
-              onChange={(event) => setNewClientPais(event.target.value)}
+              onChange={setNewClientPais}
               className={fieldClass}
             />
           </div>

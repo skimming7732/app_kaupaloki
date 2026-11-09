@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
+import { ClientCountrySelect } from '../common/ClientCountrySelect';
 
 interface EditClienteModalProps {
   cliente: NormalizedData['clientes'][number] | null;
@@ -15,6 +16,7 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [nombre, setNombre] = useState(() => cliente?.nombre || '');
   const [pais, setPais] = useState(() => cliente?.pais || 'COLOMBIA');
+  const countryId = useId();
   const [authorId, setAuthorId] = useState(() => cliente?.createdBy || '');
   const [authorSearch, setAuthorSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -139,23 +141,16 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">
+            <label htmlFor={countryId} className="block text-xs font-semibold text-muted-foreground mb-1">
               País
             </label>
-            <select
+            <ClientCountrySelect
+              id={countryId}
               value={pais}
-              onChange={(e) => setPais(e.target.value)}
+              onChange={setPais}
+              keepLegacy
               className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-            >
-              <option value="COLOMBIA">Colombia (COL)</option>
-              <option value="VENEZUELA">Venezuela (VEN)</option>
-              <option value="PANAMA">Panamá (PAN)</option>
-              <option value="ESTADOS UNIDOS">Estados Unidos (USA)</option>
-              <option value="CHILE">Chile (CHL)</option>
-              <option value="PERU">Perú (PER)</option>
-              <option value="ESPANA">España (ESP)</option>
-              <option value="MEXICO">México (MEX)</option>
-            </select>
+            />
           </div>
 
           <div>
