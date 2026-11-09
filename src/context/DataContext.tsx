@@ -1538,7 +1538,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           break;
         }
         record = {
-          ...record, codigo: 'CMP-' + id.slice(0, 8).toUpperCase(),
+          ...record, codigo: 'AUTO',
           wallet_destino: accountLabel(data.activosDigitales, fields.wallet_destino_id),
         };
         break;
@@ -1549,7 +1549,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           break;
         }
         record = {
-          ...record, codigo: 'VNT-' + id.slice(0, 8).toUpperCase(),
+          ...record, codigo: 'AUTO',
           total_cop: Number(fields.usdt_vendido) * Number(fields.tasa),
           wallet_origen: accountLabel(data.activosDigitales, fields.wallet_origen_id),
           destino_fondos_nombre: accountLabel(data.activosLiquidos, fields.destino_fondos_id),
