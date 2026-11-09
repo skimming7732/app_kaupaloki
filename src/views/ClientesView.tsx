@@ -111,7 +111,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
     if (norm.includes('DEBE')) {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500">
-          NOS DEBE
+          DEBE
         </span>
       );
     }

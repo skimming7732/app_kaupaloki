@@ -152,6 +152,7 @@ export interface NormalizedData {
     clienteNombre: string;
     monto: number;
     costoCop: number;
+    costoOrigenAplicado: boolean;
     origenFondos: string;
     origenFondosId?: string;
     referencia?: string;
@@ -440,6 +441,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         monto: Number(d.monto || d.monto_cop || 0),
         montoCop: Number(d.monto_cop || d.monto || 0),
         costoCop: Number(d.costo_cop ?? 0),
+        costoOrigenAplicado: d.costo_origen_aplicado === true,
         origenFondos: d.origen_fondos,
         origenFondosId: d.origen_fondos_id,
         referencia: d.referencia,
@@ -791,6 +793,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clienteNombre,
         monto: Number(d.monto ?? d.montoCop ?? d.valorTotalDispersion ?? 0),
         costoCop: Number(d.costoCop ?? 0),
+        costoOrigenAplicado: d.costoOrigenAplicado === true,
         origenFondos: d.origenFondos || d.medioPagoNombre || 'Sin especificar',
         origenFondosId: d.origenFondosId,
         referencia: d.referencia || d.concepto || '',
@@ -1040,7 +1043,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...efectivo.filter((e) => matchesAccount(e, account))
           .map((e) => movement(e, e.tipo + ' de efectivo', e.tipo === 'Ingreso' ? e.monto : -e.monto)),
         ...dispersiones.filter((d) => d.origenFondosId === account.id && d.estado.trim().toUpperCase() !== 'RECHAZADO')
-          .map((d) => movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto)),
+          .flatMap((d) => [
+            movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto),
+            ...(d.costoOrigenAplicado && d.costoCop > 0 ? [{
+              ...movement(d, 'Costo de dispersión · ' + d.clienteNombre, -d.costoCop),
+              origen: d.codigo + '-FEE',
+            }] : []),
+          ]),
         ...ventasUsdt.filter((v) => v.destinoFondosId === account.id)
           .map((v) => movement(v, 'Venta USDT: ' + v.concepto, v.totalCOP)),
         ...transferenciasInternas.filter((t) => t.tipoOrigen === 'ACTIVO_LIQUIDO' && t.origenId === account.id)
@@ -1058,7 +1067,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((t) => movement(t, 'Transferencia desde ' + (t.origenNombre || 'cuenta') + (t.concepto ? ': ' + t.concepto : ''), t.montoDestino)),
       ], new Set([
         ...ventasUsdt.filter((v) => v.destinoFondosId && v.destinoFondosId !== account.id).map((v) => v.codigo),
-        ...dispersiones.filter((d) => d.estado.trim().toUpperCase() === 'RECHAZADO').map((d) => d.codigo),
+        ...dispersiones
+          .filter((d) => d.estado.trim().toUpperCase() === 'RECHAZADO' || (d.origenFondosId && d.origenFondosId !== account.id))
+          .flatMap((d) => [d.codigo, d.codigo + '-FEE']),
       ])),
     }));
 
@@ -1134,7 +1145,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Interest is already included in gastos. Dividends are deducted after net profit.
     const capitalTotals = summarizeCapital(capitalLedger.userId === userId ? capitalLedger.rows : []);
-    const gananciaEsperada = (totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP - totalCostosDispersionCOP;
+    const gananciaEsperada = (totalVentasUSDT + liquidezEsperada) - (totalClientesIngresosCOP || (res?.totalNegocioCop ?? 0)) - totalGastosCOP;
 
     return {
       totalActivosLiquidos: res?.totalActivosLiquidosCop ?? totalLiqFallback,
@@ -1212,7 +1223,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteDispersion = async (id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('dispersiones').delete().eq('id', id);
+      const { error } = await supabase.from('dispersiones').delete().eq('id', id).select('id').single();
       if (error) throw error;
       await fetchFromSupabase();
       return true;
@@ -1271,7 +1282,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currentVentas = prev.resumenLiquidacion.totalVentasUsdtCop || 0;
         const currentNegocios = prev.resumenLiquidacion.totalNegocioCop || 0;
         const currentGastos = prev.resumenLiquidacion.totalGastosCop || 0;
-        const currentCostosDispersion = prev.resumenLiquidacion.totalCostosDispersionCop || 0;
         const newLiquidez = currentDigitales * rate;
         return {
           ...prev,
@@ -1279,7 +1289,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...prev.resumenLiquidacion,
             rateUsdtCop: rate,
             totalLiquidezEsperadaCop: newLiquidez,
-            gananciaEsperadaCop: (currentVentas + newLiquidez) - currentNegocios - currentGastos - currentCostosDispersion,
+            gananciaEsperadaCop: (currentVentas + newLiquidez) - currentNegocios - currentGastos,
           },
         };
       });
