@@ -7,7 +7,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useData, type NormalizedData } from '../context/DataContext';
-import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
+import { formatNumber, formatCOP, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
 
@@ -63,6 +63,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             origenFondos: account.activo || account.institucion,
             referencia: entry.concepto,
             createdByName: entry.createdByName,
+            createdAtAudit: entry.createdAtAudit,
             raw: entry,
           });
         }
@@ -71,7 +72,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
     }
 
     rows.push(...data.efectivo.filter((row) => !included.has(row.codigo)));
-    return rows.sort((left, right) => right.fecha.slice(0, 10).localeCompare(left.fecha.slice(0, 10)));
+    return rows.sort(compareChronologicalDesc);
   }, [data.activosLiquidos, data.efectivo]);
 
   const filteredMovimientos = useMemo(() => {

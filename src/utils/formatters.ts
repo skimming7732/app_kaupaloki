@@ -45,6 +45,73 @@ export function formatDate(val: string | number | Date | undefined | null): stri
   }
 }
 
+const extractTimestampMs = (item: any): number | null => {
+  if (!item) return null;
+  const rawTs =
+    item.createdAtAudit ||
+    item.created_at_audit ||
+    item.raw?.created_at_audit ||
+    item.raw?.createdAtAudit ||
+    item.createdAt ||
+    item.created_at ||
+    item.raw?.created_at ||
+    item.raw?.createdAt ||
+    (typeof item.fecha === 'string' && item.fecha.length > 10 && !item.fecha.includes('00:00:00') ? item.fecha : null);
+  if (!rawTs) return null;
+  const s = String(rawTs);
+  if (s.startsWith('2026-11-06 17:27:41') || s.startsWith('2026-11-06T17:27:41')) {
+    return null;
+  }
+  const ms = Date.parse(s);
+  return Number.isFinite(ms) ? ms : null;
+};
+
+const extractCodeSequence = (item: any): number | null => {
+  if (!item) return null;
+  const num = item.numero ?? item.raw?.numero;
+  if (num !== undefined && num !== null && Number.isFinite(Number(num))) {
+    return Number(num);
+  }
+  const code = String(item.codigo || item.origen || '');
+  const match = code.match(/(\d+)(?:-FEE|-PAGO|-INGRESO)?$/i);
+  return match ? Number(match[1]) : null;
+};
+
+export function compareChronologicalAsc(a: any, b: any, useSequenceFallback = false): number {
+  const dateA = String(a?.fecha || '').slice(0, 10);
+  const dateB = String(b?.fecha || '').slice(0, 10);
+  const dateCmp = dateA.localeCompare(dateB);
+  if (dateCmp !== 0) return dateCmp;
+
+  const tsA = extractTimestampMs(a);
+  const tsB = extractTimestampMs(b);
+  if (tsA !== null && tsB !== null && tsA !== tsB) {
+    return tsA - tsB;
+  }
+  if (tsA !== null && tsB === null) return 1;
+  if (tsA === null && tsB !== null) return -1;
+
+  const codeA = String(a?.origen || a?.codigo || '');
+  const codeB = String(b?.origen || b?.codigo || '');
+  if (codeA && codeB) {
+    if (codeB === codeA + '-FEE') return -1;
+    if (codeA === codeB + '-FEE') return 1;
+  }
+
+  if (useSequenceFallback) {
+    const seqA = extractCodeSequence(a);
+    const seqB = extractCodeSequence(b);
+    if (seqA !== null && seqB !== null && seqA !== seqB) {
+      return seqA - seqB;
+    }
+  }
+  return 0;
+}
+
+export function compareChronologicalDesc(a: any, b: any): number {
+  return -compareChronologicalAsc(a, b, true);
+}
+
 export function computeUserCode(name: string, role: string, country: string, num: number = 1): string {
   let rolePrefix = 'OP';
   const r = (role || '').toUpperCase();

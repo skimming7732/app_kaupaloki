@@ -17,6 +17,8 @@ export type CapitalMovement = {
   cuenta_digital_id: string | null;
   contrato_id: string | null;
   condiciones: string | null;
+  created_at?: string | null;
+  numero?: number | null;
 };
 
 export const capitalLabels: Record<CapitalKind, string> = {
@@ -52,10 +54,17 @@ export function summarizeCapital(rows: CapitalMovement[]) {
 export async function loadCapitalRows<T>(table: 'capital_socios' | 'capital_movimientos'): Promise<T[]> {
   const rows: T[] = [];
   for (let offset = 0; ; offset += 500) {
-    const order = table === 'capital_movimientos' ? 'fecha' : 'nombre';
-    const { data, error } = await supabase.from(table).select('*')
-      .order(order, { ascending: table === 'capital_socios' }).order('id')
-      .range(offset, offset + 499);
+    let query = supabase.from(table).select('*');
+    if (table === 'capital_movimientos') {
+      query = query
+        .order('fecha', { ascending: false })
+        .order('created_at', { ascending: false, nullsFirst: false })
+        .order('numero', { ascending: false, nullsFirst: false })
+        .order('id');
+    } else {
+      query = query.order('nombre', { ascending: true }).order('id');
+    }
+    const { data, error } = await query.range(offset, offset + 499);
     if (error) throw error;
     const batch = (data || []) as T[];
     rows.push(...batch);

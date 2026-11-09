@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { formatCOP, formatNumber, formatDate, formatCurrency, formatRate } from '../utils/formatters';
+import { formatCOP, formatNumber, formatDate, formatCurrency, formatRate, compareChronologicalDesc } from '../utils/formatters';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
@@ -64,19 +64,19 @@ export const ClienteDetalleView: React.FC = () => {
   const clientNegocios = useMemo(() => {
     return data.negocios
       .filter((n) => matchesClient(n) && matchesDateRange(n.fecha, fechaDesde, fechaHasta))
-      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+      .sort(compareChronologicalDesc);
   }, [data.negocios, cliente, fechaDesde, fechaHasta]);
 
   const clientDispersiones = useMemo(() => {
     return data.dispersiones
       .filter((d) => matchesClient(d) && matchesDateRange(d.fecha, fechaDesde, fechaHasta))
-      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+      .sort(compareChronologicalDesc);
   }, [data.dispersiones, cliente, fechaDesde, fechaHasta]);
 
   const clientEfectivo = useMemo(() => {
     return data.efectivo
       .filter((e) => matchesClient(e) && matchesDateRange(e.fecha, fechaDesde, fechaHasta))
-      .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+      .sort(compareChronologicalDesc);
   }, [data.efectivo, cliente, fechaDesde, fechaHasta]);
 
   // Commission info

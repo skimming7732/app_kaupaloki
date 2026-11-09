@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { dashboardWriteError, writeDashboardRecord } from '../utils/dashboardWrites';
+import { compareChronologicalAsc, compareChronologicalDesc } from '../utils/formatters';
 
 const createCode = (prefix: string, id: string) => prefix + '-' + id.replaceAll('-', '').slice(0, 12).toUpperCase();
 
@@ -19,11 +20,20 @@ interface CreationAudit {
   createdAtAudit?: string | null;
 }
 
-const creationAudit = (record: any): CreationAudit => ({
-  createdBy: record.created_by ?? record.createdBy,
-  createdByName: record.created_by_name ?? record.createdByName,
-  createdAtAudit: record.created_at_audit ?? record.createdAtAudit,
-});
+const creationAudit = (record: any): CreationAudit => {
+  const rawCreated = record?.created_at ?? record?.createdAt;
+  const fallbackCreated =
+    rawCreated &&
+    !String(rawCreated).startsWith('2026-11-06 17:27:41') &&
+    !String(rawCreated).startsWith('2026-11-06T17:27:41')
+      ? rawCreated
+      : null;
+  return {
+    createdBy: record?.created_by ?? record?.createdBy,
+    createdByName: record?.created_by_name ?? record?.createdByName,
+    createdAtAudit: record?.created_at_audit ?? record?.createdAtAudit ?? fallbackCreated,
+  };
+};
 
 export interface AppUser extends CreationAudit {
   id: string;
@@ -357,15 +367,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const results = await Promise.all([
         supabase.from('clientes').select('*').order('numero', { ascending: false }),
         supabase.from('divisas').select('*'),
-        supabase.from('negocios').select('*').order('fecha', { ascending: false }),
-        supabase.from('dispersiones').select('*').order('fecha', { ascending: false }),
-        supabase.from('compras_usdt').select('*').order('fecha', { ascending: false }),
-        supabase.from('ventas_usdt').select('*').order('fecha', { ascending: false }),
+        supabase.from('negocios').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
+        supabase.from('dispersiones').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
+        supabase.from('compras_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
+        supabase.from('ventas_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
         supabase.from('activos_liquidos').select('*'),
         supabase.from('activos_digitales').select('*'),
-        supabase.from('efectivo').select('*').order('fecha', { ascending: false }),
-        supabase.from('gastos').select('*').order('fecha', { ascending: false }),
-        supabase.from('transferencias_internas').select('*').order('fecha', { ascending: false }),
+        supabase.from('efectivo').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
+        supabase.from('gastos').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
+        supabase.from('transferencias_internas').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
         supabase.from('resumen_liquidacion').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.rpc('listar_perfiles_dashboard'),
         supabase.rpc('listar_comisionistas_dashboard'),
@@ -1002,11 +1012,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const index = existing.findIndex((entry) => entry.origen === movement.origen || entry.concepto?.includes(movement.origen));
         if (index < 0) existing.push(movement);
         else {
-          const audit = movement.createdByName && !existing[index].createdByName ? creationAudit(movement) : {};
-          existing[index] = { ...existing[index], monto: movement.monto, ...audit };
+          existing[index] = {
+            ...existing[index],
+            monto: movement.monto,
+            createdBy: existing[index].createdBy ?? movement.createdBy,
+            createdByName: existing[index].createdByName ?? movement.createdByName,
+            createdAtAudit: existing[index].createdAtAudit ?? movement.createdAtAudit,
+          };
         }
       }
-      existing.sort((a, b) => (a.fecha || '').slice(0, 10).localeCompare((b.fecha || '').slice(0, 10)));
+      existing.sort((a, b) => compareChronologicalAsc(a, b, false));
       const net = existing.reduce((total, entry) => total + Number(entry.monto || 0), 0);
       const closing = account.saldoCop ?? account.saldoUsdt;
       let balance = closing == null ? Number(account.saldoInicial ?? 0) : Number(closing) - net;
@@ -1031,6 +1046,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const capitalEntries = (accountId: string, digital: boolean): LinkedMovement[] => capitalRows
       .filter((row) => (digital ? row.cuenta_digital_id : row.cuenta_liquida_id) === accountId)
       .map((row) => ({
+        ...creationAudit(row),
         fecha: row.fecha,
         origen: row.codigo,
         concepto: 'Capital & Socios · ' + capitalLabels[row.tipo],
@@ -1108,6 +1124,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map((t) => movement(t, 'Transferencia desde ' + (t.origenNombre || 'billetera') + (t.concepto ? ': ' + t.concepto : ''), t.montoDestino)),
       ], new Set(ventasUsdt.filter((v) => v.walletOrigenId && v.walletOrigenId !== account.id).flatMap((v) => [v.codigo, v.codigo + '-FEE']))),
     }));
+
+    negocios.sort(compareChronologicalDesc);
+    dispersiones.sort(compareChronologicalDesc);
+    efectivo.sort(compareChronologicalDesc);
+    gastos.sort(compareChronologicalDesc);
+    comprasUsdt.sort(compareChronologicalDesc);
+    ventasUsdt.sort(compareChronologicalDesc);
+    transferenciasInternas.sort(compareChronologicalDesc);
 
     return {
       clientes,

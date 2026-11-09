@@ -6,7 +6,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
-import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate } from '../utils/formatters';
+import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 
 type PortalData = {
@@ -56,11 +56,11 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
     ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({
       ...item, tipo: 'Pago en efectivo', origen: item.origenFondos, comprobanteUrl: undefined,
     })),
-  ].sort((a, b) => b.fecha.localeCompare(a.fecha)), [dispersiones, efectivo]);
+  ].sort(compareChronologicalDesc), [dispersiones, efectivo]);
 
   const clientIngresos = useMemo(() => efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
     ...item, concepto: item.referencia || 'Ingreso en efectivo', origen: item.origenFondos,
-  })).sort((a, b) => b.fecha.localeCompare(a.fecha)), [efectivo]);
+  })).sort(compareChronologicalDesc), [efectivo]);
 
   // Available currencies from the client's transactions
   const divisasUnicas = useMemo(() => {

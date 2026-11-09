@@ -5,7 +5,7 @@ import { formatNumber, fallbackBanderaUrl } from '../utils/formatters';
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData, type NormalizedData } from '../context/DataContext';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 
 const formatAmount = (value: number) => formatNumber(value, 0, 8);
@@ -31,7 +31,7 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
       ...item, tipo: 'Venta USDT', detalle: item.concepto,
       entrada: codigo === 'COP' ? item.totalCOP : 0, salida: codigo === 'USDT' ? item.usdtVendido : 0,
     })),
-  ].sort((a, b) => b.fecha.localeCompare(a.fecha) || a.codigo.localeCompare(b.codigo)), [data, codigo]);
+  ].sort(compareChronologicalDesc), [data, codigo]);
 
   const movimientos = useMemo(() => {
     return rawMovimientos.filter((m) => matchesDateRange(m.fecha, fechaDesde, fechaHasta));
