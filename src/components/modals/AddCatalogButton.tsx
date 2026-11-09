@@ -7,7 +7,6 @@ import { AccountSelect, type Account } from './AccountSelect';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 import { useAuth } from '../../context/AuthContext';
 import { useData, type CatalogTable } from '../../context/DataContext';
-import { isTronAddress } from '../../utils/tronUsdtBalance';
 import { AmountEntryMode, type AmountMode } from '../common/AmountEntryMode';
 
 type Field = {
@@ -30,7 +29,7 @@ const dateField: Field = { name: 'fecha', label: 'Fecha de la operación', type:
 const today = () => todayBogota();
 
 export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassName }: {
-  table: CatalogTable;
+  table: Exclude<CatalogTable, 'activos_liquidos' | 'activos_digitales'>;
   edit?: { id: string; historical?: boolean; fields: Record<string, any> };
   allowDelete?: boolean;
   buttonClassName?: string;
@@ -53,7 +52,6 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
   const isPurchase = table === 'compras_usdt';
   const isSale = table === 'ventas_usdt';
   const isUsdt = isPurchase || isSale;
-  const isAsset = table === 'activos_liquidos' || table === 'activos_digitales';
   const sourceField = 'wallet_origen_id';
   const amountField = isPurchase ? 'valor_comprado' : 'usdt_vendido';
   const sourceCurrency = isPurchase ? currency : 'USDT';
@@ -124,7 +122,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
   const wallets = data.activosDigitales;
   const currencies = data.divisas.map((d) => ({ value: d.codigo, label: d.codigo + ' · ' + d.nombre }));
 
-  const forms: Record<CatalogTable, Form> = {
+  const forms: Record<typeof table, Form> = {
     compras_usdt: {
       title: 'Registrar compra USDT', description: 'Indica la divisa entregada, el proveedor y la billetera que recibe los USDT.', icon: 'ri-shopping-cart-2-line',
       fields: [
@@ -148,24 +146,6 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
         { name: 'destino_fondos_id', label: 'Cuenta de destino en COP', accounts: liquidAccounts },
       ],
     },
-    activos_liquidos: {
-      title: 'Agregar activo líquido', description: 'Configura una cuenta operativa en COP.', icon: 'ri-bank-line',
-      fields: [
-        { name: 'activo', label: 'Nombre de la cuenta' }, { name: 'institucion', label: 'Institución' },
-        { name: 'titular', label: 'Titular' }, { name: 'empresa', label: 'Empresa', optional: true },
-        { name: 'cuenta', label: 'Número o referencia de cuenta', optional: true },
-        { name: 'tarifas', label: 'Descripción de tarifas', optional: true },
-      ],
-    },
-    activos_digitales: {
-      title: 'Agregar billetera USDT', description: 'Registra una dirección USDT.', icon: 'ri-wallet-3-line',
-      fields: [
-        { name: 'activo', label: 'Nombre de la billetera' }, { name: 'red', label: 'Red' },
-        { name: 'wallet', label: 'Dirección de la billetera' },
-        { name: 'titular', label: 'Titular', optional: true },
-        { name: 'tarifas', label: 'Descripción de tarifas', optional: true },
-      ],
-    },
     divisas: {
       title: 'Agregar divisa', description: 'Registra el código, el nombre y la región de la divisa.', icon: 'ri-global-line',
       fields: [{ name: 'codigo', label: 'Código ISO' }, { name: 'nombre_divisa', label: 'Nombre de la divisa' }, { name: 'pais', label: 'País o región' }],
@@ -174,11 +154,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
 
   const initial = edit?.fields || {};
   const base = forms[table];
-  const form = edit && isAsset ? {
-    ...base,
-    title: table === 'activos_liquidos' ? 'Editar datos de la cuenta' : 'Editar datos de la billetera',
-    description: 'Actualiza los datos de identificación del activo. Los saldos se gestionan con movimientos.',
-  } : edit ? {
+  const form = edit ? {
     ...base,
     title: isPurchase ? 'Editar compra USDT' : 'Editar venta USDT',
     description: 'Modifica los datos, montos o billetera de la operación.',
@@ -292,11 +268,6 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
       record.codigo = code;
     }
 
-    if (table === 'activos_digitales' && record.wallet !== initial.wallet && !isTronAddress(String(record.wallet))) {
-      setError('Ingresa una dirección pública válida de la red TRON.');
-      return;
-    }
-
     setBusy(true);
     setError('');
     const finishSound = prepareSuccessSound();
@@ -394,8 +365,6 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     return field ? renderField(field) : null;
   });
 
-  if (isAsset && !isAdmin) return null;
-
   return (
     <>
       <button type="button" className={buttonClassName ?? (edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass)}
@@ -415,7 +384,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
           setFeeInput(isSale && initial.fee_usdt ? formatNumber(Number(initial.fee_usdt), 0, 6) : '');
           setOpen(true);
         }}>
-        <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? (isAsset ? 'Editar datos' : 'Editar') : form.title}
+        <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
       </button>
       {open && (
         <RecordDialog {...form} wide={isUsdt} busy={busy} error={error} onClose={onClose}>

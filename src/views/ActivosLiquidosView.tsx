@@ -2,23 +2,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
-import { AddCatalogButton } from '../components/modals/AddCatalogButton';
+import { AssetCatalogButton } from '../components/modals/AssetCatalogButton';
+import { AssetInstitutionLogo } from '../components/common/InstitutionLogo';
 import React, { useMemo } from 'react';
-import { useData, type NormalizedData } from '../context/DataContext';
+import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
-
-const liquidEdit = (account: NormalizedData['activosLiquidos'][number]) => ({
-  id: account.id,
-  fields: {
-    activo: account.activo || '',
-    institucion: account.institucion || '',
-    titular: account.titular || '',
-    empresa: account.empresa || '',
-    cuenta: account.cuenta || '',
-    tarifas: account.tarifas || '',
-  },
-});
 
 export const ActivosLiquidosView: React.FC = () => {
   const { metrics, data } = useData();
@@ -117,7 +106,7 @@ export const ActivosLiquidosView: React.FC = () => {
         <div className="space-y-6">
           {/* Top Bar with Back Button and Export Action */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setSelectedActivoId(null)}
@@ -126,10 +115,11 @@ export const ActivosLiquidosView: React.FC = () => {
                 <i className="ri-arrow-left-line text-sm" />
                 <span>Volver a Instituciones</span>
               </button>
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <span>Extracto: {selectedActivo.activo}</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  <AssetInstitutionLogo institution={selectedActivo.institution} name={selectedActivo.institucion} sizeClass="size-6" />
+                  <span className="truncate" title={selectedActivo.activo}>Extracto: {selectedActivo.activo}</span>
+                  <span className="max-w-24 shrink-0 truncate text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                     {selectedActivo.institucion}
                   </span>
                 </h2>
@@ -138,7 +128,7 @@ export const ActivosLiquidosView: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <AddCatalogButton table="activos_liquidos" edit={liquidEdit(selectedActivo)} allowDelete={false}
+              <AssetCatalogButton table="activos_liquidos" asset={selectedActivo} allowDelete={false}
                 buttonClassName="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90" />
               <button
                 type="button"
@@ -462,7 +452,7 @@ export const ActivosLiquidosView: React.FC = () => {
               <h1 className="text-xl font-bold text-foreground">Activos Líquidos</h1>
               <p className="text-xs text-muted-foreground">Gestión de cuentas bancarias operativas y efectivo en custodia.</p>
             </div>
-            <AddCatalogButton table="activos_liquidos" />
+            <AssetCatalogButton table="activos_liquidos" />
           </div>
 
           {/* Consolidated Summary Banner */}
@@ -531,14 +521,13 @@ export const ActivosLiquidosView: React.FC = () => {
                     <div className="absolute right-[-20px] top-[-20px] w-36 h-36 rounded-full bg-white/10 pointer-events-none group-hover:scale-110 transition-transform duration-300" />
 
                     {/* Top Row: Institution badge & Currency */}
-                    <div className="flex justify-between items-start relative z-10">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-sm border border-white/20">
-                          {a.institucion}
-                        </span>
-                        <h4 className="text-base font-bold text-white mt-2.5 tracking-tight group-hover:text-indigo-200 transition-colors">
-                          {a.activo}
-                        </h4>
+                    <div className="flex justify-between items-start gap-2 relative z-10">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <AssetInstitutionLogo institution={a.institution} name={a.institucion} sizeClass="size-8" />
+                        <div className="min-w-0">
+                          <span className="block truncate text-[10px] font-extrabold uppercase tracking-wider text-white/80">{a.institution?.name || a.institucion}</span>
+                          <h4 title={a.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-indigo-200 transition-colors">{a.activo}</h4>
+                        </div>
                       </div>
                       <span className="text-[11px] font-mono font-bold text-white/80 bg-black/20 px-2 py-0.5 rounded">
                         COP
@@ -563,7 +552,7 @@ export const ActivosLiquidosView: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <div onClick={(event) => event.stopPropagation()}>
-                          <AddCatalogButton table="activos_liquidos" edit={liquidEdit(a)} allowDelete={false}
+                          <AssetCatalogButton table="activos_liquidos" asset={a} allowDelete={false}
                             buttonClassName="inline-flex min-h-10 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 font-semibold text-white hover:bg-white/20" />
                         </div>
                         <span className="flex items-center gap-1 font-semibold text-indigo-200">
@@ -584,7 +573,7 @@ export const ActivosLiquidosView: React.FC = () => {
                 <h3 className="text-sm font-bold text-foreground">Detalle de Instituciones</h3>
                 <p className="text-xs text-muted-foreground">Listado de balances y acceso directo a movimientos</p>
               </div>
-              <AddCatalogButton table="activos_liquidos" />
+              <AssetCatalogButton table="activos_liquidos" />
             </div>
 
             <div className="overflow-x-auto">
@@ -609,7 +598,10 @@ export const ActivosLiquidosView: React.FC = () => {
                       className="hover:bg-muted/40 transition-colors cursor-pointer"
                     >
                       <td className="py-3 px-4 font-bold text-foreground uppercase">
-                        {a.institucion}
+                        <span className="flex items-center gap-2 whitespace-nowrap">
+                          <AssetInstitutionLogo institution={a.institution} name={a.institucion} sizeClass="size-5" />
+                          {a.institution?.name || a.institucion}
+                        </span>
                       </td>
                       <td className="py-3 px-4 font-medium text-foreground">
                         {a.activo}
@@ -636,7 +628,7 @@ export const ActivosLiquidosView: React.FC = () => {
                             <span>Extracto</span>
                             <i className="ri-arrow-right-line" />
                           </button>
-                          <AddCatalogButton table="activos_liquidos" edit={liquidEdit(a)} />
+                          <AssetCatalogButton table="activos_liquidos" asset={a} allowDelete />
                         </div>
                       </td>
                       <CreatedByCell name={a.createdByName} />

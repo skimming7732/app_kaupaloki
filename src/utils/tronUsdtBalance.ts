@@ -1,6 +1,10 @@
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const USDT_TRC20 = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
+export function isTronNetwork(network?: string | null) {
+  return /^(TRC20|TRON(?:\(?TRC20\)?)?)$/i.test((network || 'TRC20').replace(/[\s-]+/g, ''));
+}
+
 export function isTronAddress(value: string) {
   return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(value);
 }

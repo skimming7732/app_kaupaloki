@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { InstitutionLogo, buildAutoLogoUrl, extractDomain } from '../components/common/InstitutionLogo';
+import { TYPE_LABELS, type InstitucionRecord, type InstitutionStatus, type InstitutionType } from '../utils/institutions';
 import { useData } from '../context/DataContext';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -12,44 +14,6 @@ import {
   recordLabelClass,
 } from '../components/modals/RecordDialog';
 import { fallbackBanderaUrl, formatNumber } from '../utils/formatters';
-
-export type InstitutionType =
-  | 'bank'
-  | 'exchange'
-  | 'wallet'
-  | 'otc'
-  | 'psp'
-  | 'fintech'
-  | 'payment_system';
-
-export type InstitutionStatus = 'active' | 'inactive' | 'review';
-
-export interface InstitucionRecord {
-  id: string;
-  name: string;
-  type: InstitutionType;
-  currency: string;
-  divisa_id: string | null;
-  country: string;
-  website_url: string | null;
-  logo_url: string | null;
-  status: InstitutionStatus;
-  created_at: string;
-  updated_at: string;
-  created_by: string | null;
-  created_by_name: string | null;
-  created_at_audit: string | null;
-}
-
-const TYPE_LABELS: Record<InstitutionType, string> = {
-  bank: 'Banco',
-  exchange: 'Exchange',
-  wallet: 'Billetera',
-  otc: 'OTC',
-  psp: 'PSP',
-  fintech: 'Fintech',
-  payment_system: 'Sistema de Pagos',
-};
 
 const TYPE_BADGE_CLASSES: Record<InstitutionType, string> = {
   bank: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -85,81 +49,8 @@ const cleanCountryFromDivisa = (pais?: string, codigo?: string): string => {
   return pais.replace(/\s*\([^)]*\)\s*$/, '').trim() || 'Colombia';
 };
 
-const extractDomain = (rawUrl?: string | null): string => {
-  if (!rawUrl) return '';
-  const trimmed = rawUrl.trim();
-  if (!trimmed) return '';
-  try {
-    const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    const urlObj = new URL(withProtocol);
-    return urlObj.hostname.replace(/^www\./i, '');
-  } catch {
-    return trimmed
-      .replace(/^(?:https?:\/\/)?(?:www\.)?/i, '')
-      .split('/')[0]
-      .trim();
-  }
-};
-
-const buildAutoLogoUrl = (website?: string | null): string => {
-  const domain = extractDomain(website);
-  return domain ? `https://icon.horse/icon/${domain}` : '';
-};
-
-const InstitutionLogo: React.FC<{
-  name: string;
-  logoUrl?: string | null;
-  websiteUrl?: string | null;
-  sizeClass?: string;
-}> = ({ name, logoUrl, websiteUrl, sizeClass = 'w-8 h-8' }) => {
-  const [failedPrimary, setFailedPrimary] = useState(false);
-  const [failedFallback, setFailedFallback] = useState(false);
-
-  const domain = extractDomain(websiteUrl);
-  const googleFallback = domain
-    ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`
-    : '';
-
-  const src = !failedPrimary && logoUrl ? logoUrl : !failedFallback && googleFallback ? googleFallback : '';
-
-  useEffect(() => {
-    setFailedPrimary(false);
-    setFailedFallback(false);
-  }, [logoUrl, websiteUrl]);
-
-  if (!src) {
-    return (
-      <div
-        className={`${sizeClass} rounded-xl bg-muted/60 border border-border flex items-center justify-center text-muted-foreground shrink-0 font-bold text-xs`}
-        title={name}
-      >
-        {name ? name.slice(0, 2).toUpperCase() : <i className="ri-bank-line text-sm" />}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`${sizeClass} rounded-xl bg-white p-1 border border-border/80 flex items-center justify-center overflow-hidden shrink-0 shadow-xs`}
-    >
-      <img
-        src={src}
-        alt={name}
-        className="w-full h-full object-contain"
-        onError={() => {
-          if (!failedPrimary && logoUrl) {
-            setFailedPrimary(true);
-          } else {
-            setFailedFallback(true);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
 export const InstitucionesView: React.FC = () => {
-  const { data } = useData();
+  const { data, syncData } = useData();
   const [institutions, setInstitutions] = useState<InstitucionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -365,7 +256,7 @@ export const InstitucionesView: React.FC = () => {
         const { error } = await supabase.from('instituciones').insert(payload);
         if (error) throw error;
       }
-      await fetchInstitutions();
+      await Promise.all([fetchInstitutions(), syncData()]);
       setIsModalOpen(false);
     } catch (err: any) {
       setModalError(err?.message || 'No se pudo guardar la institución.');
@@ -384,7 +275,7 @@ export const InstitucionesView: React.FC = () => {
     try {
       const { error } = await supabase.from('instituciones').delete().eq('id', editing.id);
       if (error) throw error;
-      await fetchInstitutions();
+      await Promise.all([fetchInstitutions(), syncData()]);
       setIsModalOpen(false);
     } catch (err: any) {
       setModalError(err?.message || 'No se pudo eliminar la institución.');

@@ -1,12 +1,13 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
-import { AddCatalogButton } from '../components/modals/AddCatalogButton';
+import { AssetCatalogButton } from '../components/modals/AssetCatalogButton';
+import { AssetInstitutionLogo } from '../components/common/InstitutionLogo';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { isTronAddress } from '../utils/tronUsdtBalance';
+import { isTronAddress, isTronNetwork } from '../utils/tronUsdtBalance';
 import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
@@ -20,13 +21,13 @@ export const ActivosDigitalesView: React.FC = () => {
 
   const recordedWallets = data.activosDigitales;
   const { balances: chainBalances, refresh: refreshBalances } = useTronUsdtBalances(
-    recordedWallets.filter((wallet) => !selectedWalletId || wallet.id === selectedWalletId)
+    recordedWallets.filter((wallet) => isTronNetwork(wallet.red) && (!selectedWalletId || wallet.id === selectedWalletId))
       .map((wallet) => String(wallet.wallet || '')),
   );
 
   const wallets = useMemo(() => recordedWallets.map((wallet) => ({
     ...wallet,
-    saldoReal: chainBalances[String(wallet.wallet || '').trim()] ?? null,
+    saldoReal: isTronNetwork(wallet.red) ? chainBalances[String(wallet.wallet || '').trim()] ?? null : null,
   })), [recordedWallets, chainBalances]);
 
   // Statement (Extracto) mode and filters state
@@ -42,9 +43,11 @@ export const ActivosDigitalesView: React.FC = () => {
   }, [wallets, selectedWalletId]);
 
   const selectedAddress = String(selectedWallet?.wallet || '').trim();
-  const chainLoading = isTronAddress(selectedAddress) && chainBalances[selectedAddress] === undefined;
+  const selectedTronAddress = isTronNetwork(selectedWallet?.red) && isTronAddress(selectedAddress);
+  const chainLoading = selectedTronAddress && chainBalances[selectedAddress] === undefined;
   const chainMessage = chainLoading ? 'Consultando TRON…'
-    : !isTronAddress(selectedAddress) ? 'Dirección TRON no disponible'
+    : !selectedAddress ? 'Sin dirección registrada'
+    : !selectedTronAddress ? 'Verificación TRON no disponible'
     : 'No se pudo consultar TRON';
 
   // Filtered movements for statement with filters BEFORE table
@@ -98,8 +101,6 @@ export const ActivosDigitalesView: React.FC = () => {
   };
 
   const getTronscanUrl = (address: string) => {
-    if (!address) return '#';
-    // Clean whitespace
     const clean = address.trim();
     return `https://tronscan.org/#/address/${encodeURIComponent(clean)}`;
   };
@@ -129,7 +130,7 @@ export const ActivosDigitalesView: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {!selectedWalletId && <div className="flex justify-end"><AddCatalogButton table="activos_digitales" /></div>}
+      {!selectedWalletId && <div className="flex justify-end"><AssetCatalogButton table="activos_digitales" /></div>}
       {/* ============================================================== */}
       {/* VISTA DETALLE: EXTRACTO DE LA BILLETERA CRIPTO SELECCIONADA    */}
       {/* ============================================================== */}
@@ -137,7 +138,7 @@ export const ActivosDigitalesView: React.FC = () => {
         <div className="space-y-6">
           {/* Top Bar with Back Button and Export Action */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setSelectedWalletId(null)}
@@ -146,10 +147,11 @@ export const ActivosDigitalesView: React.FC = () => {
                 <i className="ri-arrow-left-line text-sm" />
                 <span>Volver a Billeteras</span>
               </button>
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                  <span>Extracto: {selectedWallet.activo}</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <AssetInstitutionLogo institution={selectedWallet.institution} name={selectedWallet.activo} sizeClass="size-6" />
+                  <span className="truncate" title={selectedWallet.activo}>Extracto: {selectedWallet.activo}</span>
+                  <span className="max-w-24 shrink-0 truncate text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     {selectedWallet.red || 'TRON (TRC20)'}
                   </span>
                 </h2>
@@ -158,26 +160,14 @@ export const ActivosDigitalesView: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <AddCatalogButton table="activos_digitales" allowDelete={false}
-                edit={{
-                  id: selectedWallet.id,
-                  fields: {
-                    activo: selectedWallet.activo || '',
-                    wallet: selectedWallet.wallet || '',
-                    red: selectedWallet.red || 'TRON (TRC20)',
-                    titular: selectedWallet.titular || '',
-                    tarifas: selectedWallet.tarifas || '',
-                  },
-                }} />
-              <a
-                href={getTronscanUrl(selectedWallet.wallet)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3.5 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-600/30 text-emerald-600 font-bold text-xs flex items-center gap-1.5 transition-all"
-              >
-                <i className="ri-external-link-line text-sm" />
-                <span>Ver en Tronscan</span>
-              </a>
+              <AssetCatalogButton table="activos_digitales" asset={selectedWallet} />
+              {selectedTronAddress && (
+                <a href={getTronscanUrl(selectedAddress)} target="_blank" rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-600/30 text-emerald-600 font-bold text-xs flex items-center gap-1.5 transition-all">
+                  <i className="ri-external-link-line text-sm" />
+                  <span>Ver en Tronscan</span>
+                </a>
+              )}
               <button
                 type="button"
                 onClick={() => handleExportCSV(selectedWallet)}
@@ -244,7 +234,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 </button>
               </div>
 
-              {isTronAddress(selectedAddress) && (
+              {selectedTronAddress && (
                 <button type="button" disabled={chainLoading} onClick={refreshBalances}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 disabled:opacity-50">
                   <i className="ri-refresh-line" aria-hidden="true" /> Actualizar saldo TRON
@@ -361,18 +351,16 @@ export const ActivosDigitalesView: React.FC = () => {
 
               <div className="sm:col-span-2 lg:col-span-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70 block mb-1">
-                  Dirección Pública (Tronscan)
+                  Dirección pública
                 </span>
-                <a
-                  href={getTronscanUrl(selectedWallet.wallet)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-mono font-semibold text-cyan-300 hover:text-cyan-200 hover:underline flex items-center gap-1 break-all"
-                  title="Abrir balances en Tronscan"
-                >
-                  <span className="truncate">{selectedWallet.wallet || '—'}</span>
-                  <i className="ri-external-link-line text-xs shrink-0" />
-                </a>
+                {selectedTronAddress ? (
+                  <a href={getTronscanUrl(selectedAddress)} target="_blank" rel="noopener noreferrer"
+                    className="text-xs font-mono font-semibold text-cyan-300 hover:text-cyan-200 hover:underline flex items-center gap-1"
+                    title="Abrir balances en Tronscan">
+                    <span className="truncate">{selectedAddress}</span>
+                    <i className="ri-external-link-line text-xs shrink-0" />
+                  </a>
+                ) : <span className="block truncate text-xs font-mono text-white">{selectedAddress || '—'}</span>}
               </div>
 
               <div>
@@ -380,7 +368,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   Tarifas de Red
                 </span>
                 <span className="inline-block px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-white/10 text-emerald-300 border border-white/10">
-                  {selectedWallet.tarifas || 'RED TRON • 1 USDT'}
+                  {selectedWallet.tarifas || '—'}
                 </span>
               </div>
             </div>
@@ -524,7 +512,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 {formatUSD(metrics.totalActivosDigitales)} <span className="text-xl sm:text-2xl font-bold text-emerald-300">USDT</span>
               </div>
               <p className="text-xs text-slate-300 mt-1">
-                Total contable en billeteras USDT (Red TRON TRC-20)
+                Total contable en billeteras USDT
               </p>
             </div>
 
@@ -555,7 +543,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   Red Principal
                 </span>
                 <span className="text-base sm:text-lg font-extrabold font-mono text-emerald-400">
-                  TRC20
+                  {wallets.every((wallet) => isTronNetwork(wallet.red)) ? 'TRC20' : 'Varias'}
                 </span>
               </div>
             </div>
@@ -574,6 +562,8 @@ export const ActivosDigitalesView: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {wallets.map((w: any, idx: number) => {
                 const bgGradient = getCardGradient(idx);
+                const address = String(w.wallet || '').trim();
+                const tronAddress = isTronNetwork(w.red) && isTronAddress(address);
                 const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
 
                 return (
@@ -585,29 +575,24 @@ export const ActivosDigitalesView: React.FC = () => {
                   >
                     <div className="absolute right-[-20px] top-[-20px] w-36 h-36 rounded-full bg-white/10 pointer-events-none group-hover:scale-110 transition-transform duration-300" />
 
-                    {/* Top Row: Network badge & Tronscan External Link */}
-                    <div className="flex justify-between items-start relative z-10">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20">
-                          {w.red || 'TRC20'}
-                        </span>
-                        <h4 className="text-base font-bold text-white mt-2.5 tracking-tight group-hover:text-emerald-200 transition-colors">
-                          {w.activo}
-                        </h4>
+                    <div className="flex justify-between items-start gap-2 relative z-10">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <AssetInstitutionLogo institution={w.institution} name={w.activo} sizeClass="size-8" />
+                        <div className="min-w-0">
+                          <span className="block truncate text-[10px] font-extrabold uppercase tracking-wider text-white/80">
+                            {w.institution ? w.institution.name + ' · ' : ''}{w.red || 'TRC20'}
+                          </span>
+                          <h4 title={w.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-emerald-200 transition-colors">{w.activo}</h4>
+                        </div>
                       </div>
-
-                      {/* Clickable Wallet Link leading to Tronscan Balance View */}
-                      <a
-                        href={getTronscanUrl(w.wallet)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-cyan-300 text-[11px] font-mono font-semibold flex items-center gap-1 transition-colors border border-white/10 shadow-sm"
-                        title="Ver balances en Tronscan"
-                      >
-                        <span>{formatShortWallet(w.wallet)}</span>
-                        <i className="ri-external-link-line text-xs" />
-                      </a>
+                      {tronAddress && (
+                        <a href={getTronscanUrl(address)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                          className="shrink-0 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-cyan-300 text-[11px] font-mono font-semibold flex items-center gap-1 transition-colors border border-white/10 shadow-sm"
+                          aria-label="Ver dirección en Tronscan" title={address}>
+                          <span className="hidden sm:inline">{formatShortWallet(address)}</span>
+                          <i className="ri-external-link-line text-xs" aria-hidden="true" />
+                        </a>
+                      )}
                     </div>
 
                     {/* Middle Row: Saldo Contable & Saldo Real */}
@@ -663,7 +648,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   <tr>
                     <th className="py-3 px-4">Billetera / Activo</th>
                     <th className="py-3 px-4">Red</th>
-                    <th className="py-3 px-4">Dirección Pública (Tronscan)</th>
+                    <th className="py-3 px-4">Dirección pública</th>
                     <th className="py-3 px-4 text-right">Saldo Contable (USDT)</th>
                     <th className="py-3 px-4 text-right">Saldo Real (USDT)</th>
                     <th className="py-3 px-4 text-right">Tasa / Rate</th>
@@ -672,7 +657,9 @@ export const ActivosDigitalesView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {<PaginatedRows columns={7} rows={wallets}>{(w: any) => {
+                  {<PaginatedRows columns={8} rows={wallets}>{(w: any) => {
+                    const address = String(w.wallet || '').trim();
+                    const tronAddress = isTronNetwork(w.red) && isTronAddress(address);
                     const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
                     return (
                       <tr
@@ -681,7 +668,10 @@ export const ActivosDigitalesView: React.FC = () => {
                         className="hover:bg-muted/40 transition-colors cursor-pointer"
                       >
                         <td className="py-3 px-4 font-bold text-foreground">
-                          {w.activo}
+                          <span className="flex items-center gap-2 whitespace-nowrap">
+                            <AssetInstitutionLogo institution={w.institution} name={w.activo} sizeClass="size-5" />
+                            {w.activo}
+                          </span>
                         </td>
                         <td className="py-3 px-4">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
@@ -689,17 +679,14 @@ export const ActivosDigitalesView: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <a
-                            href={getTronscanUrl(w.wallet)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="font-mono text-xs text-primary hover:underline inline-flex items-center gap-1"
-                            title="Abrir balance en Tronscan"
-                          >
-                            <span>{w.wallet || '—'}</span>
-                            <i className="ri-external-link-line text-xs" />
-                          </a>
+                          {tronAddress ? (
+                            <a href={getTronscanUrl(address)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                              className="font-mono text-xs text-primary hover:underline inline-flex items-center gap-1"
+                              title="Abrir balance en Tronscan">
+                              <span>{address}</span>
+                              <i className="ri-external-link-line text-xs" />
+                            </a>
+                          ) : <span className="font-mono text-xs text-muted-foreground">{address || '—'}</span>}
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-foreground">
                           {formatUSD(w.saldoUsdt || 0)}

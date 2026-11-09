@@ -374,8 +374,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('dispersiones').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
         supabase.from('compras_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
         supabase.from('ventas_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
-        supabase.from('activos_liquidos').select('*'),
-        supabase.from('activos_digitales').select('*'),
+        supabase.from('activos_liquidos').select('*, institution:instituciones(id,name,type,currency,website_url,logo_url,status)'),
+        supabase.from('activos_digitales').select('*, institution:instituciones(id,name,type,currency,website_url,logo_url,status)'),
         supabase.from('efectivo').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }),
         supabase.from('gastos').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }),
         supabase.from('transferencias_internas').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }),
@@ -505,6 +505,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: a.id,
         activo: a.activo,
         institucion: a.institucion,
+        institucionId: a.institucion_id,
+        institution: a.institution,
+        tipo: a.tipo,
         titular: a.titular,
         empresa: a.empresa,
         cuenta: a.cuenta,
@@ -525,6 +528,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: d.id,
         activo: d.activo,
         idWallet: d.id_wallet,
+        institucionId: d.institucion_id,
+        institution: d.institution,
+        tipo: d.tipo,
         wallet: d.wallet,
         red: d.red,
         titular: d.titular,
@@ -1591,16 +1597,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (account) {
           const isCash = (name: unknown, institution: unknown) =>
             String(institution ?? '').toUpperCase() === 'EFECTIVO' || String(name ?? '').toUpperCase().includes('EFECTIVO');
-          if (isCash(account.activo, account.institucion) !== isCash(fields.activo ?? account.activo, fields.institucion ?? account.institucion)) {
+          const remainsCash = fields.institucion_id
+            ? isCash('', fields.institucion)
+            : isCash(fields.activo ?? account.activo, fields.institucion ?? account.institucion);
+          if (isCash(account.activo, account.institucion) !== remainsCash) {
             throw new Error('La cuenta debe conservar su tipo de origen, Caja o cuenta bancaria.');
           }
         }
         break;
       }
       case 'activos_digitales':
-        if (!editId) {
-          record = { ...record, id_wallet: fields.wallet };
-        }
+        if (!editId && fields.wallet) record.id_wallet = fields.wallet;
         break;
       case 'divisas':
         record = { ...record, divisa: fields.codigo, total_recibido: 0, total_comprado: 0, total_pendiente: 0 };
