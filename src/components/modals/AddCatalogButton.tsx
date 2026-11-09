@@ -7,6 +7,7 @@ import { AccountSelect, type Account } from './AccountSelect';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 import { useAuth } from '../../context/AuthContext';
 import { useData, type CatalogTable } from '../../context/DataContext';
+import { isTronAddress } from '../../utils/tronUsdtBalance';
 
 type Field = {
   name: string;
@@ -27,7 +28,11 @@ type Form = {
 const dateField: Field = { name: 'fecha', label: 'Fecha de la operación', type: 'date' };
 const today = () => new Date().toISOString().slice(0, 10);
 
-export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: { id: string; historical?: boolean; fields: Record<string, any> } }) => {
+export const AddCatalogButton = ({ table, edit, allowDelete = true }: {
+  table: CatalogTable;
+  edit?: { id: string; historical?: boolean; fields: Record<string, any> };
+  allowDelete?: boolean;
+}) => {
   const { data, createCatalogRecord, deleteCatalogRecord } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
@@ -44,6 +49,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
   const isPurchase = table === 'compras_usdt';
   const isSale = table === 'ventas_usdt';
   const isUsdt = isPurchase || isSale;
+  const isAsset = table === 'activos_liquidos' || table === 'activos_digitales';
   const sourceField = 'wallet_origen_id';
   const amountField = isPurchase ? 'valor_comprado' : 'usdt_vendido';
   const sourceCurrency = isPurchase ? currency : 'USDT';
@@ -119,7 +125,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
         { name: 'activo', label: 'Nombre de la cuenta' }, { name: 'institucion', label: 'Institución' },
         { name: 'titular', label: 'Titular' }, { name: 'empresa', label: 'Empresa', optional: true },
         { name: 'cuenta', label: 'Número o referencia de cuenta', optional: true },
-        { name: 'saldo_cop', label: 'Saldo inicial (COP)', type: 'number', optional: true },
+        { name: 'tarifas', label: 'Descripción de tarifas', optional: true },
       ],
     },
     activos_digitales: {
@@ -127,7 +133,8 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
       fields: [
         { name: 'activo', label: 'Nombre de la billetera' }, { name: 'red', label: 'Red' },
         { name: 'wallet', label: 'Dirección de la billetera' },
-        { name: 'saldo_usdt', label: 'Saldo inicial (USDT)', type: 'number', optional: true },
+        { name: 'titular', label: 'Titular', optional: true },
+        { name: 'tarifas', label: 'Descripción de tarifas', optional: true },
       ],
     },
     divisas: {
@@ -138,7 +145,11 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
 
   const initial = edit?.fields || {};
   const base = forms[table];
-  const form = edit ? {
+  const form = edit && isAsset ? {
+    ...base,
+    title: table === 'activos_liquidos' ? 'Editar datos de la cuenta' : 'Editar datos de la billetera',
+    description: 'Actualiza los datos de identificación del activo. Los saldos se gestionan con movimientos.',
+  } : edit ? {
     ...base,
     title: isPurchase ? 'Editar compra USDT' : 'Editar venta USDT',
     description: 'Modifica los datos, montos o billetera de la operación.',
@@ -236,6 +247,11 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
       record.codigo = code;
     }
 
+    if (table === 'activos_digitales' && record.wallet !== initial.wallet && !isTronAddress(String(record.wallet))) {
+      setError('Ingresa una dirección pública válida de la red TRON.');
+      return;
+    }
+
     setBusy(true);
     setError('');
     const finishSound = prepareSuccessSound();
@@ -329,6 +345,8 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
     return field ? renderField(field) : null;
   });
 
+  if (isAsset && !isAdmin) return null;
+
   return (
     <>
       <button type="button" className={edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass}
@@ -346,7 +364,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
           setFeeInput(isSale && initial.fee_usdt ? formatNumber(Number(initial.fee_usdt), 0, 6) : '');
           setOpen(true);
         }}>
-        <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
+        <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? (isAsset ? 'Editar datos' : 'Editar') : form.title}
       </button>
       {open && (
         <RecordDialog {...form} wide={isUsdt} busy={busy} error={error} onClose={onClose}>
@@ -401,7 +419,7 @@ export const AddCatalogButton = ({ table, edit }: { table: CatalogTable; edit?: 
                 <div className="grid gap-4 sm:grid-cols-2">{form.fields.map(renderField)}</div>
               )}
             </fieldset>
-            <RecordActions submitDisabled={exceedsBalance || sameWallet || (isPurchase && (!validPurchaseQuote || !currency || missingAccounts)) || (isSale && (!validSaleQuote || !validFee || missingAccounts))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && isAdmin ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
+            <RecordActions submitDisabled={exceedsBalance || sameWallet || (isPurchase && (!validPurchaseQuote || !currency || missingAccounts)) || (isSale && (!validSaleQuote || !validFee || missingAccounts))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && isAdmin && allowDelete ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
           </form>
         </RecordDialog>
       )}

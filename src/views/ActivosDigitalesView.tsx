@@ -157,7 +157,18 @@ export const ActivosDigitalesView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <AddCatalogButton table="activos_digitales" allowDelete={false}
+                edit={{
+                  id: selectedWallet.id,
+                  fields: {
+                    activo: selectedWallet.activo || '',
+                    wallet: selectedWallet.wallet || '',
+                    red: selectedWallet.red || 'TRON (TRC20)',
+                    titular: selectedWallet.titular || '',
+                    tarifas: selectedWallet.tarifas || '',
+                  },
+                }} />
               <a
                 href={getTronscanUrl(selectedWallet.wallet)}
                 target="_blank"

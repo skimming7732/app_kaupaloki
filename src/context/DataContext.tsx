@@ -1555,14 +1555,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           destino_fondos_nombre: accountLabel(data.activosLiquidos, fields.destino_fondos_id),
         };
         break;
-      case 'activos_liquidos':
-        if (!editId) {
-          record = { ...record, divisa: 'COP', saldo_inicial: fields.saldo_cop, saldo_real: null, ingresos_cop: 0, egresos_cop: 0 };
+      case 'activos_liquidos': {
+        const account = data.activosLiquidos.find((item) => item.id === editId);
+        if (account) {
+          const isCash = (name: unknown, institution: unknown) =>
+            String(institution ?? '').toUpperCase() === 'EFECTIVO' || String(name ?? '').toUpperCase().includes('EFECTIVO');
+          if (isCash(account.activo, account.institucion) !== isCash(fields.activo ?? account.activo, fields.institucion ?? account.institucion)) {
+            throw new Error('La cuenta debe conservar su tipo de origen, Caja o cuenta bancaria.');
+          }
         }
         break;
+      }
       case 'activos_digitales':
         if (!editId) {
-          record = { ...record, id_wallet: fields.wallet, saldo_inicial: fields.saldo_usdt, saldo_real: null, ingresos_usdt: 0, egresos_usdt: 0 };
+          record = { ...record, id_wallet: fields.wallet };
         }
         break;
       case 'divisas':
@@ -1573,10 +1579,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (Object.values(record).some((value) => typeof value === 'number' && !Number.isFinite(value))) {
       throw new Error('El resultado de la operación no es un número válido.');
     }
-    const optionalColumns = ['saldo_inicial'];
     const { error } = editId
       ? await supabase.from(table).update(record).eq('id', editId).select('id').single()
-      : await writeDashboardRecord(record, (fields) => supabase.from(table).insert(fields), { optionalColumns });
+      : await writeDashboardRecord(record, (fields) => supabase.from(table).insert(fields));
     if (error?.code === 'P0001' && /^(El monto supera|Selecciona un origen|La cuenta de destino|El ajuste supera|Ingresa montos|Las cuentas de un registro)/.test(error.message)) throw new Error(error.message);
     if (error) throw dashboardWriteError(error, 'No se pudo guardar el registro.');
     await fetchFromSupabase();

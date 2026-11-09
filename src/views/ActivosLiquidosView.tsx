@@ -4,9 +4,21 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import React, { useMemo } from 'react';
-import { useData } from '../context/DataContext';
+import { useData, type NormalizedData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
+
+const liquidEdit = (account: NormalizedData['activosLiquidos'][number]) => ({
+  id: account.id,
+  fields: {
+    activo: account.activo || '',
+    institucion: account.institucion || '',
+    titular: account.titular || '',
+    empresa: account.empresa || '',
+    cuenta: account.cuenta || '',
+    tarifas: account.tarifas || '',
+  },
+});
 
 export const ActivosLiquidosView: React.FC = () => {
   const { metrics, data } = useData();
@@ -125,14 +137,17 @@ export const ActivosLiquidosView: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => handleExportCSV(selectedActivo)}
-              className="px-3.5 py-2 rounded-xl bg-card border border-border hover:bg-muted font-bold text-xs text-foreground flex items-center justify-center gap-1.5 shadow-sm transition-all"
-            >
-              <i className="ri-download-2-line text-sm text-primary" />
-              <span>Exportar Extracto (CSV)</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <AddCatalogButton table="activos_liquidos" edit={liquidEdit(selectedActivo)} allowDelete={false} />
+              <button
+                type="button"
+                onClick={() => handleExportCSV(selectedActivo)}
+                className="px-3.5 py-2 rounded-xl bg-card border border-border hover:bg-muted font-bold text-xs text-foreground flex items-center justify-center gap-1.5 shadow-sm transition-all"
+              >
+                <i className="ri-download-2-line text-sm text-primary" />
+                <span>Exportar Extracto (CSV)</span>
+              </button>
+            </div>
           </div>
 
           {/* Master Horizon Bank Statement Card */}
@@ -615,22 +630,7 @@ export const ActivosLiquidosView: React.FC = () => {
                             <span>Extracto</span>
                             <i className="ri-arrow-right-line" />
                           </button>
-                          <AddCatalogButton
-                            table="activos_liquidos"
-                            edit={{
-                              id: a.id,
-                              historical: false,
-                              fields: {
-                                activo: a.activo || '',
-                                institucion: a.institucion || '',
-                                titular: a.titular || '',
-                                empresa: a.empresa || '',
-                                cuenta: a.cuenta || '',
-                                tarifas: a.tarifas || '',
-                                saldo_cop: a.saldoCop || 0,
-                              },
-                            }}
-                          />
+                          <AddCatalogButton table="activos_liquidos" edit={liquidEdit(a)} />
                         </div>
                       </td>
                       <CreatedByCell name={a.createdByName} />
