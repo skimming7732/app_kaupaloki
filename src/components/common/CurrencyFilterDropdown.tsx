@@ -71,6 +71,16 @@ export const CurrencyFilterDropdown: React.FC<CurrencyFilterDropdownProps> = ({
       });
     }
 
+    if (map.size === 0) {
+      for (const [code, pais] of Object.entries(DEFAULT_CURRENCY_COUNTRIES)) {
+        map.set(code, {
+          codigo: code,
+          pais,
+          banderaUrl: fallbackBanderaUrl[code],
+        });
+      }
+    }
+
     if (currencies && currencies.length > 0) {
       return currencies
         .map((raw) => raw.toUpperCase())

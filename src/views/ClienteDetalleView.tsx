@@ -13,6 +13,7 @@ import { AddNegocioModal, type EditableNegocio } from '../components/modals/AddN
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 
 export const ClienteDetalleView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,7 @@ export const ClienteDetalleView: React.FC = () => {
   const [copiedCode, setCopiedCode] = useState(false);
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [selectedDivisa, setSelectedDivisa] = useState('');
 
   // Modals state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -61,11 +63,23 @@ export const ClienteDetalleView: React.FC = () => {
   };
 
   // Associated records
+  const divisasCliente = useMemo(() => {
+    const set = new Set<string>();
+    data.negocios.forEach((n) => {
+      if (matchesClient(n) && n.divisaCodigo) set.add(n.divisaCodigo.toUpperCase());
+    });
+    return Array.from(set).sort();
+  }, [data.negocios, cliente]);
+
   const clientNegocios = useMemo(() => {
     return data.negocios
-      .filter((n) => matchesClient(n) && matchesDateRange(n.fecha, fechaDesde, fechaHasta))
+      .filter((n) =>
+        matchesClient(n) &&
+        matchesDateRange(n.fecha, fechaDesde, fechaHasta) &&
+        (!selectedDivisa || (n.divisaCodigo || '').toUpperCase() === selectedDivisa.toUpperCase())
+      )
       .sort(compareChronologicalDesc);
-  }, [data.negocios, cliente, fechaDesde, fechaHasta]);
+  }, [data.negocios, cliente, fechaDesde, fechaHasta, selectedDivisa]);
 
   const clientDispersiones = useMemo(() => {
     return data.dispersiones
@@ -516,22 +530,38 @@ export const ClienteDetalleView: React.FC = () => {
         </button>
       </div>
 
-      {/* Date Range Filter for Tabs */}
+      {/* Date Range & Currency Filter for Tabs */}
       {activeTab !== 'comisiones' && (
-        <div className="p-3 rounded-2xl bg-card border border-border flex flex-wrap items-center justify-between gap-3">
-          <DateRangeFilter
-            from={fechaDesde}
-            to={fechaHasta}
-            setFrom={setFechaDesde}
-            setTo={setFechaHasta}
-            className="w-full sm:w-auto"
-          />
-          {(fechaDesde || fechaHasta) && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Filtrando por fecha</span>
+        <div className="p-3 rounded-2xl bg-card border border-border flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-wrap items-end gap-3 flex-1">
+            <div className="flex flex-col gap-1.5 w-full sm:w-48">
+              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                <i className="ri-money-dollar-circle-line text-xs" />
+                <span>Divisa</span>
+              </span>
+              <CurrencyFilterDropdown
+                value={selectedDivisa}
+                onChange={setSelectedDivisa}
+                currencies={divisasCliente.length > 0 ? divisasCliente : undefined}
+                className="w-full"
+              />
+            </div>
+
+            <DateRangeFilter
+              from={fechaDesde}
+              to={fechaHasta}
+              setFrom={setFechaDesde}
+              setTo={setFechaHasta}
+              className="w-full sm:w-auto"
+            />
+          </div>
+
+          {(fechaDesde || fechaHasta || selectedDivisa) && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground pb-0.5">
+              <span>Filtro activo</span>
               <button
                 type="button"
-                onClick={() => { setFechaDesde(''); setFechaHasta(''); }}
+                onClick={() => { setFechaDesde(''); setFechaHasta(''); setSelectedDivisa(''); }}
                 className="text-primary hover:underline font-semibold"
               >
                 Ver todo el histórico

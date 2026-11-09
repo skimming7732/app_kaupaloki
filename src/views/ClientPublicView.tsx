@@ -8,6 +8,7 @@ import { useData, type NormalizedData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
 import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 
 type PortalCommissionItem = {
   id: string;
@@ -357,22 +358,17 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       <div className="p-3.5 sm:p-4 rounded-2xl bg-card border border-border shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex flex-wrap items-end gap-3 flex-1">
           {/* Divisa Filter */}
-          <div className="flex flex-col gap-1.5 w-full sm:w-44">
+          <div className="flex flex-col gap-1.5 w-full sm:w-48">
             <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
               <i className="ri-money-dollar-circle-line text-xs" />
               <span>Divisa</span>
             </span>
-            <select
-              aria-label="Filtrar por Divisa"
+            <CurrencyFilterDropdown
               value={selectedDivisa}
-              onChange={(e) => setSelectedDivisa(e.target.value)}
-              className="h-8 rounded-lg border border-input bg-background px-2.5 py-1 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-            >
-              <option value="">Todas las divisas {divisasUnicas.length ? `(${divisasUnicas.length})` : ''}</option>
-              {divisasUnicas.map((div) => (
-                <option key={div} value={div}>{div}</option>
-              ))}
-            </select>
+              onChange={setSelectedDivisa}
+              currencies={divisasUnicas.length > 0 ? divisasUnicas : undefined}
+              className="w-full"
+            />
           </div>
 
           {/* Date Range Filter with default Máximo */}
