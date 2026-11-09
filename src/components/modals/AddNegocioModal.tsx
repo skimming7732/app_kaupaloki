@@ -225,8 +225,9 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
               id={id + '-name'}
               autoFocus
               required
+              autoCapitalize="characters"
               value={newClientName}
-              onChange={(event) => setNewClientName(event.target.value)}
+              onChange={(event) => setNewClientName(event.currentTarget.value.toUpperCase())}
               className={fieldClass}
             />
           </div>
@@ -280,7 +281,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
               value={clienteId}
               onChange={setClienteId}
               onAddNewClient={(query) => {
-                setNewClientName(clienteId ? '' : (query || '').trim());
+                setNewClientName(clienteId ? '' : (query || '').trim().toUpperCase());
                 setNewClientPais('COLOMBIA');
                 setIsCreatingClient(true);
                 setError('');

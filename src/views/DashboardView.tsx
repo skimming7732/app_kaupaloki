@@ -102,17 +102,11 @@ export const DashboardView: React.FC = () => {
             <span>Resumen de Liquidación y Negocios</span>
           </h3>
           <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1 rounded-lg border border-border">
-            Ventas USDT + Activos líquidos + Liquidez USDT − Saldo neto con clientes − Gastos operativos − Intereses − Capital invertido
+            Activos líquidos + Liquidez USDT − Saldo neto con clientes − Gastos operativos − Intereses − Capital invertido
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          <div className="p-4 rounded-xl bg-muted/40 border border-border">
-            <span className="text-xs text-muted-foreground block mb-1">Total Ventas USDT</span>
-            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCOP(metrics.totalVentasUSDT)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">{data.ventasUsdt.length} ventas monetizadas</span>
-          </div>
-
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="p-4 rounded-xl bg-muted/40 border border-border">
             <span className="text-xs text-muted-foreground block mb-1">Liquidez de activos líquidos</span>
             <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatCOP(metrics.totalActivosLiquidos)}</span>

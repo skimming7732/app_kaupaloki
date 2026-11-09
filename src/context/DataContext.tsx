@@ -1207,7 +1207,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Interest is already included in gastos. Dividends are deducted after net profit.
     const capitalTotals = summarizeCapital(capitalLedger.userId === userId ? capitalLedger.rows : []);
     const capitalInvertidoCOP = res?.totalCapitalInvertidoCop ?? (userId && capitalLedger.userId === userId ? capitalTotals.capital : null);
-    const gananciaEsperada = totalVentasUSDT + totalActivosLiquidos + liquidezEsperada
+    const gananciaEsperada = totalActivosLiquidos + liquidezEsperada
       - saldoNetoClientesCOP - totalGastosCOP - (capitalInvertidoCOP ?? 0);
 
     return {
@@ -1515,7 +1515,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const author = authorId ? data.usuarios.find((u) => u.id === authorId) : null;
       const { data: inserted, error } = await writeDashboardRecord({
         id,
-        nombre: nombre.toUpperCase(),
+        nombre: nombre.trim().toUpperCase(),
         pais: pais || 'COLOMBIA',
         ingresos_cop: 0,
         pagado_cop: 0,

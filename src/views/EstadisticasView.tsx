@@ -41,7 +41,6 @@ export function EstadisticasView() {
     { label: 'Transferencias internas', value: transferFees('USDT'), color: chartColors.sky },
   ];
   const steps = [
-    { key: 'sales', abbreviation: 'Ventas', label: 'Total ventas USDT', value: metrics.totalVentasUSDT, color: chartColors.green, detail: `${formatNumber(data.ventasUsdt.length)} ventas monetizadas` },
     { key: 'liquid', abbreviation: 'Cuentas', label: 'Liquidez de activos líquidos', value: metrics.totalActivosLiquidos, color: chartColors.green, detail: 'Saldos contables de cuentas y caja en COP' },
     { key: 'liquidity', abbreviation: 'USDT', label: 'Liquidez esperada USDT', value: metrics.liquidezEsperada, color: chartColors.sky, detail: 'Saldo de billeteras en COP' },
     { key: 'clients', abbreviation: 'Clientes', label: 'Saldo neto con clientes', value: -metrics.saldoNetoClientesCOP, color: chartColors.lavender, detail: 'Saldo por pagar menos saldo por cobrar' },

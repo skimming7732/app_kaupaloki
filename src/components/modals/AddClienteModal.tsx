@@ -15,6 +15,7 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
   const [nombre, setNombre] = useState('');
   const [pais, setPais] = useState('COLOMBIA');
   const countryId = useId();
+  const nameId = useId();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,13 +75,15 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground mb-1">Nombre Completo o Empresa *</label>
+            <label htmlFor={nameId} className="block text-xs font-semibold text-muted-foreground mb-1">Nombre Completo o Empresa *</label>
             <input
+              id={nameId}
               type="text"
+              autoCapitalize="characters"
               required
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej: Daniel Ramírez o Inversiones SAS"
+              onChange={(e) => setNombre(e.currentTarget.value.toUpperCase())}
+              placeholder="Ej: DANIEL RAMÍREZ o INVERSIONES SAS"
               className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
           </div>

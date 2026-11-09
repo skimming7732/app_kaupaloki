@@ -100,7 +100,7 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
           <fieldset disabled={busy} className="space-y-4">
             <label className={recordLabelClass}>
               <span>Nombre completo o empresa</span>
-              <input autoFocus required value={name} onChange={(event) => setName(event.target.value)} className={recordFieldClass} />
+              <input autoFocus required autoCapitalize="characters" value={name} onChange={(event) => setName(event.currentTarget.value.toUpperCase())} className={recordFieldClass} />
             </label>
             <label className={recordLabelClass}>
               <span>País</span>
@@ -146,7 +146,7 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
               required={tipo === 'Pago'}
               inputClassName="min-h-11"
               onAddNewClient={(query) => {
-                setName(clienteId ? '' : (query || '').trim());
+                setName(clienteId ? '' : (query || '').trim().toUpperCase());
                 setError('');
                 setAddingClient(true);
               }}

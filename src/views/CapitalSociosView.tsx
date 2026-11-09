@@ -6,7 +6,7 @@ import { AccountSelect, accountLabel, type Account } from '../components/modals/
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from '../components/modals/RecordDialog';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import { formatCOP, formatDate, formatCurrency, formatRate } from '../utils/formatters';
+import { formatCOP, formatDate, formatCurrency, formatRate, normalizeSearch } from '../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../utils/amountInput';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { capitalAmounts, capitalLabels, loadCapitalRows, summarizeCapital, type CapitalKind, type CapitalMethod, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
@@ -29,6 +29,12 @@ const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota
 const isCash = (account: Account) => account.institucion?.toUpperCase() === 'EFECTIVO' || (account.activo || '').toUpperCase().includes('EFECTIVO');
 
 const directoryPath = '/socios-inversionistas';
+
+function personInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return Array.from(parts[0] || '').slice(0, 2).join('').toUpperCase();
+  return (Array.from(parts[0])[0] + Array.from(parts[parts.length - 1])[0]).toUpperCase();
+}
 
 export function SociosInversionistasView() {
   const { socioId } = useParams();
@@ -96,7 +102,8 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
       if (list) list.push(movement);
       else movementsByPerson.set(movement.socio_id, [movement]);
     }
-    const visiblePeople = people.filter((person) => person.nombre.toLowerCase().includes(search.trim().toLowerCase()));
+    const query = normalizeSearch(search.trim());
+    const visiblePeople = people.filter((person) => normalizeSearch(person.nombre).includes(query));
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -106,32 +113,40 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
         </div>
         {loadError}
         {visiblePeople.length ? (
-          <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {visiblePeople.map((person) => {
               const summary = summarizeCapital(movementsByPerson.get(person.id) || []);
+              const isPartner = person.tipo === 'SOCIO';
               const figures = [
                 { label: 'Capital', amount: summary.capital },
                 { label: 'Saldo por liquidar', amount: summary.balance },
                 { label: 'Intereses', amount: summary.interest },
-                { label: 'Dividendos', amount: person.tipo === 'SOCIO' ? summary.dividends : null },
+                ...(isPartner ? [{ label: 'Dividendos', amount: summary.dividends }] : []),
               ];
               return (
-                <li key={person.id}>
+                <li key={person.id} className="min-w-0">
                   <Link to={directoryPath + '/' + person.id}
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 hover:bg-muted/50 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
-                    <div className="min-w-0">
-                      <span className="block break-words text-sm font-semibold">{person.nombre}</span>
-                      <span className="text-xs text-muted-foreground">{person.tipo === 'SOCIO' ? 'Socio' : 'Inversionista'}</span>
+                    className="group flex h-full min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:border-primary/40 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span aria-hidden="true" className={`grid size-11 shrink-0 place-items-center rounded-full text-sm font-bold ${isPartner ? 'bg-primary/10 text-[var(--brand-primary)]' : 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'}`}>
+                        {personInitials(person.nombre)}
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="break-words text-sm font-bold">{person.nombre}</h2>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{isPartner ? 'Socio' : 'Inversionista'}</p>
+                      </div>
                     </div>
-                    <dl className="col-span-2 row-start-2 grid grid-cols-2 gap-2 border-t border-border pt-2 text-xs sm:col-span-1 sm:row-start-auto sm:grid-cols-4 sm:border-0 sm:pt-0">
+                    <dl className="mt-4 grid flex-1 grid-cols-2 gap-2">
                       {figures.map(({ label, amount }) => (
-                        <div key={label} className="min-w-0">
-                          <dt className="text-muted-foreground">{label}</dt>
-                          <dd className={'break-words font-semibold tabular-nums ' + (amount !== null && amount < 0 ? 'text-destructive' : '')}>{amount === null ? '—' : formatCOP(amount)}</dd>
+                        <div key={label} className="min-w-0 rounded-xl bg-muted/60 px-2.5 py-2">
+                          <dt className="text-[11px] text-muted-foreground">{label}</dt>
+                          <dd className={`mt-1 break-words text-xs font-bold tabular-nums ${amount < 0 ? 'text-destructive' : ''}`}>{formatCOP(amount)}</dd>
                         </div>
                       ))}
                     </dl>
-                    <i className="ri-arrow-right-s-line col-start-2 row-start-1 text-lg text-muted-foreground sm:col-start-auto sm:row-start-auto" aria-hidden="true" />
+                    <span className="mt-3 inline-flex items-center gap-1 self-end text-xs font-semibold text-[var(--brand-primary)]">
+                      Ver ficha <i className="ri-arrow-right-line transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                    </span>
                   </Link>
                 </li>
               );
