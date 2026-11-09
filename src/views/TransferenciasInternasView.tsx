@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useData, type TransferenciaInterna } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddTransferenciaModal } from '../components/modals/AddTransferenciaModal';
@@ -11,6 +12,7 @@ export const TransferenciasInternasView: React.FC = () => {
   const transferencias = data.transferenciasInternas || [];
 
   const [search, setSearch] = useState('');
+  const [filterDivisa, setFilterDivisa] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [filterTipo, setFilterTipo] = useState<string>('TODOS');
@@ -26,6 +28,11 @@ export const TransferenciasInternasView: React.FC = () => {
         t.destinoNombre?.toLowerCase().includes(search.toLowerCase()) ||
         t.createdByName?.toLowerCase().includes(search.toLowerCase());
 
+      const matchDivisa =
+        !filterDivisa ||
+        (t.divisaOrigen || '').toUpperCase() === filterDivisa.toUpperCase() ||
+        (t.divisaDestino || '').toUpperCase() === filterDivisa.toUpperCase();
+
       const matchDate = matchesDateRange(t.fecha, fechaDesde, fechaHasta);
 
       let matchTipo = true;
@@ -35,9 +42,9 @@ export const TransferenciasInternasView: React.FC = () => {
         matchTipo = t.tipoOrigen === 'ACTIVO_DIGITAL';
       }
 
-      return matchSearch && matchDate && matchTipo;
+      return matchSearch && matchDivisa && matchDate && matchTipo;
     });
-  }, [transferencias, search, fechaDesde, fechaHasta, filterTipo]);
+  }, [transferencias, search, filterDivisa, fechaDesde, fechaHasta, filterTipo]);
 
   // Aggregate KPIs
   const totalCount = transferencias.length;
@@ -126,7 +133,9 @@ export const TransferenciasInternasView: React.FC = () => {
               <i className="ri-coin-line text-lg" />
             </span>
           </div>
-          <div className="mt-2 text-2xl font-extrabold font-mono text-foreground">{formatNumber(totalEnviadoUSDT, 2, 2)} USDT</div>
+          <div className="mt-2 text-2xl font-extrabold font-mono text-foreground">
+            {formatNumber(totalEnviadoUSDT, 2, 2)} USDT
+          </div>
           <span className="text-[11px] text-muted-foreground">Total transferido desde billeteras USDT</span>
         </div>
 
@@ -139,7 +148,11 @@ export const TransferenciasInternasView: React.FC = () => {
           </div>
           <div className="mt-2 text-lg font-extrabold font-mono text-foreground">
             {formatCOP(totalCostosCOP)}
-            {totalCostosUSDT > 0 && <span className="block text-xs font-bold text-amber-500">+ {formatNumber(totalCostosUSDT, 2, 2)} USDT</span>}
+            {totalCostosUSDT > 0 && (
+              <span className="block text-xs font-bold text-amber-500">
+                + {formatNumber(totalCostosUSDT, 2, 2)} USDT
+              </span>
+            )}
           </div>
           <span className="text-[11px] text-muted-foreground">Fees bancarios y comisiones de red asumidos</span>
         </div>
@@ -152,9 +165,26 @@ export const TransferenciasInternasView: React.FC = () => {
             <h3 className="text-sm font-bold text-foreground">Historial de Transferencias Internas</h3>
             <p className="text-xs text-muted-foreground">Listado cronológico de movimientos con impacto en extractos</p>
           </div>
-          <span className="text-xs font-mono text-muted-foreground">
-            {filtered.length} de {transferencias.length} registros
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono text-muted-foreground">
+              {filtered.length} de {transferencias.length} registros
+            </span>
+            {(search || filterDivisa || filterTipo !== 'TODOS' || fechaDesde || fechaHasta) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setFilterDivisa('');
+                  setFilterTipo('TODOS');
+                  setFechaDesde('');
+                  setFechaHasta('');
+                }}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Toolbar: Search and Filters placed BEFORE the table */}
@@ -168,15 +198,22 @@ export const TransferenciasInternasView: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por concepto o cuenta..."
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+                className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
               />
             </div>
+
+            {/* Divisa Selector */}
+            <CurrencyFilterDropdown
+              value={filterDivisa}
+              onChange={setFilterDivisa}
+              className="w-full sm:w-48"
+            />
 
             {/* Tipo Selector */}
             <select
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-input bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary outline-none"
+              className="h-8 px-3 rounded-lg border border-input bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary outline-none"
             >
               <option value="TODOS">Todos los tipos</option>
               <option value="ACTIVO_LIQUIDO">Entre Activos Líquidos (COP)</option>
@@ -219,47 +256,53 @@ export const TransferenciasInternasView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filtered}>{(t: TransferenciaInterna) => (
-                  <tr key={t.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
-                      {formatDate(t.fecha)}
-                    </td>
-                    <td className="py-3 px-4 font-mono font-semibold text-foreground whitespace-nowrap">
-                      {t.codigo}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        {getTipoBadge(t.tipoOrigen)}
-                        <span className="font-semibold text-foreground truncate max-w-[150px]">
-                          {t.origenNombre || 'Cuenta Origen'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        {getTipoBadge(t.tipoDestino)}
-                        <span className="font-semibold text-foreground truncate max-w-[150px]">
-                          {t.destinoNombre || 'Cuenta Destino'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-foreground whitespace-nowrap">
-                      {t.divisaOrigen === 'COP' ? formatCOP(t.monto) : `${formatNumber(t.monto, 2, 6)} USDT`}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-medium text-muted-foreground whitespace-nowrap">
-                      {t.costo > 0
-                        ? (t.divisaCosto === 'COP' ? formatCOP(t.costo) : `${formatNumber(t.costo, 2, 2)} USDT`)
-                        : 'Exento'}
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground max-w-[200px] truncate" title={t.concepto}>
-                      {t.concepto || '—'}
-                    </td>
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      <AddTransferenciaModal edit={t} />
-                    </td>
-                    <CreatedByCell name={t.createdByName} />
-                  </tr>
-                )}</PaginatedRows>
+                <PaginatedRows columns={9} rows={filtered}>
+                  {(t: TransferenciaInterna) => (
+                    <tr key={t.id} className="hover:bg-muted/40 transition-colors">
+                      <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
+                        {formatDate(t.fecha)}
+                      </td>
+                      <td className="py-3 px-4 font-mono font-semibold text-foreground whitespace-nowrap">
+                        {t.codigo}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          {getTipoBadge(t.tipoOrigen)}
+                          <span className="font-semibold text-foreground truncate max-w-[150px]">
+                            {t.origenNombre || 'Cuenta Origen'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          {getTipoBadge(t.tipoDestino)}
+                          <span className="font-semibold text-foreground truncate max-w-[150px]">
+                            {t.destinoNombre || 'Cuenta Destino'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-foreground whitespace-nowrap">
+                        {t.divisaOrigen === 'COP'
+                          ? formatCOP(t.monto)
+                          : `${formatNumber(t.monto, 2, 6)} USDT`}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-medium text-muted-foreground whitespace-nowrap">
+                        {t.costo > 0
+                          ? t.divisaCosto === 'COP'
+                            ? formatCOP(t.costo)
+                            : `${formatNumber(t.costo, 2, 2)} USDT`
+                          : 'Exento'}
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground max-w-[200px] truncate" title={t.concepto}>
+                        {t.concepto || '—'}
+                      </td>
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <AddTransferenciaModal edit={t} />
+                      </td>
+                      <CreatedByCell name={t.createdByName} />
+                    </tr>
+                  )}
+                </PaginatedRows>
               )}
             </tbody>
           </table>

@@ -1,6 +1,7 @@
 import { recordButtonClass } from '../components/modals/RecordDialog';
 import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
@@ -180,11 +181,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
             </TableSelectFilter>
           </div>
 
-          <TableSelectFilter label="Divisa" value={selectedDivisa} onChange={setSelectedDivisa} className="w-full">
-            <option value="">Todas las divisas</option>
-            {[...new Set(data.gastos.map((g) => g.divisa))].filter(Boolean).sort().map((code) =>
-              <option key={code} value={code}>{code}</option>)}
-          </TableSelectFilter>
+          <CurrencyFilterDropdown value={selectedDivisa} onChange={setSelectedDivisa} className="w-full" />
           {/* Fecha Desde */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>

@@ -1,13 +1,13 @@
 import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
-import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate } from '../utils/formatters';
+import { formatNumber, formatRate, formatCOP, formatDate } from '../utils/formatters';
 import { EditNegocioModal } from '../components/modals/EditNegocioModal';
 import { AddNegocioModal } from '../components/modals/AddNegocioModal';
 
@@ -41,7 +41,11 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
   // Selected negocio for editing
   const [editingNegocio, setEditingNegocio] = useState<any | null>(null);
 
-  const totalVisible = isOperador && authorizedCurrencies.length ? data.negocios.filter((n) => authorizedCurrencies.includes(n.divisaCodigo)).length : data.negocios.length;
+  const totalVisible =
+    isOperador && authorizedCurrencies.length
+      ? data.negocios.filter((n) => authorizedCurrencies.includes(n.divisaCodigo)).length
+      : data.negocios.length;
+
   const filteredNegocios = useMemo(() => {
     return data.negocios.filter((n) => {
       // Currency restriction for Operador
@@ -101,17 +105,15 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
 
           {/* Divisa */}
           <div>
-            <TableSelectFilter label="Divisa" value={selectedDivisa} onChange={setSelectedDivisa} className="w-full">
-              <option value="">Todas las divisas</option>
-              {availableDivisas.map((d) => (
-                <option key={d.id} value={d.codigo}>
-                  {d.codigo}
-                </option>
-              ))}
-            </TableSelectFilter>
+            <CurrencyFilterDropdown
+              value={selectedDivisa}
+              onChange={setSelectedDivisa}
+              currencies={availableDivisas.map((d) => d.codigo)}
+              className="w-full"
+            />
           </div>
 
-            <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
+          <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
           {/* Fecha Desde */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
@@ -128,7 +130,8 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                   setFechaDesde('');
                   setFechaHasta('');
                 }}
-                type="button" className="text-primary hover:underline font-semibold text-xs"
+                type="button"
+                className="text-primary hover:underline font-semibold text-xs"
               >
                 Limpiar filtros
               </button>
@@ -137,11 +140,15 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
         </div>
       </div>
 
-      <KpiStrip metrics={([
-        ['Negocios', filteredNegocios.length],
-        ['Total Monto', totalsByCurrency(filteredNegocios, (n) => n.divisaCodigo, (n) => n.montoDivisa)],
-        ['Total Ingreso (COP)', formatCOP(sumRows(filteredNegocios, (n) => n.ingresoCOP))],
-      ] as const).map(([label, value]) => ({ label, value }))} />
+      <KpiStrip
+        metrics={(
+          [
+            ['Negocios', filteredNegocios.length],
+            ['Total Monto', totalsByCurrency(filteredNegocios, (n) => n.divisaCodigo, (n) => n.montoDivisa)],
+            ['Total Ingreso (COP)', formatCOP(sumRows(filteredNegocios, (n) => n.ingresoCOP))],
+          ] as const
+        ).map(([label, value]) => ({ label, value }))}
+      />
 
       {/* Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -169,43 +176,45 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={filteredNegocios}>{(n) => (
-                  <tr key={n.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-mono font-medium text-foreground">{n.codigo}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{formatDate(n.fecha)}</td>
-                    <td className="py-3 px-4 font-semibold text-foreground">{n.clienteNombre}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold text-[11px]">
-                        {n.divisaCodigo}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right font-semibold text-foreground">
-                      {formatNumber(n.montoDivisa, 2)}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono text-muted-foreground">
-                      ${formatRate(n.tasaCambio)}
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-foreground">
-                      {formatCOP(n.ingresoCOP)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">
-                        {n.estado || 'Completado'}
-                      </span>
-                    </td>
-                    {/* Action: Edit */}
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => setEditingNegocio(n)}
-                        title="Editar negocio"
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                      >
-                        <i className="ri-edit-line text-sm" />
-                      </button>
-                    </td>
-                    <CreatedByCell name={n.createdByName} />
-                  </tr>
-                )}</PaginatedRows>
+                <PaginatedRows columns={10} rows={filteredNegocios}>
+                  {(n) => (
+                    <tr key={n.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-4 font-mono font-medium text-foreground">{n.codigo}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{formatDate(n.fecha)}</td>
+                      <td className="py-3 px-4 font-semibold text-foreground">{n.clienteNombre}</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold text-[11px]">
+                          {n.divisaCodigo}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold text-foreground">
+                        {formatNumber(n.montoDivisa, 2)}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                        ${formatRate(n.tasaCambio)}
+                      </td>
+                      <td className="py-3 px-4 text-right font-bold text-foreground">
+                        {formatCOP(n.ingresoCOP)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500">
+                          {n.estado || 'Completado'}
+                        </span>
+                      </td>
+                      {/* Action: Edit */}
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => setEditingNegocio(n)}
+                          title="Editar negocio"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                          <i className="ri-edit-line text-sm" />
+                        </button>
+                      </td>
+                      <CreatedByCell name={n.createdByName} />
+                    </tr>
+                  )}
+                </PaginatedRows>
               )}
             </tbody>
           </table>
@@ -213,10 +222,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
       </div>
 
       {/* Modals */}
-      <AddNegocioModal
-        isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-      />
+      <AddNegocioModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
 
       <EditNegocioModal
         isOpen={Boolean(editingNegocio)}

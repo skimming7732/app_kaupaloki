@@ -1,6 +1,6 @@
 import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
 import { formatNumber, formatRate, formatCurrency } from '../utils/formatters';
-import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
@@ -82,14 +82,7 @@ export const ComprasUsdtView: React.FC = () => {
 
           {/* Divisa Filter */}
           <div>
-            <TableSelectFilter label="Divisa" value={filterDivisa} onChange={setFilterDivisa} className="w-full">
-              <option value="">Todas las divisas</option>
-              {divisasUnicas.map((div) => (
-                <option key={div} value={div}>
-                  {div}
-                </option>
-              ))}
-            </TableSelectFilter>
+            <CurrencyFilterDropdown value={filterDivisa} onChange={setFilterDivisa} className="w-full" />
           </div>
 
           {/* Date range shortcut */}
