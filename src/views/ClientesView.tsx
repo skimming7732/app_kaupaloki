@@ -1,9 +1,11 @@
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
+import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { formatCOP, formatNumber } from '../utils/formatters';
 import { AddClienteModal } from '../components/modals/AddClienteModal';
 import { EditClienteModal } from '../components/modals/EditClienteModal';
@@ -34,7 +36,12 @@ const getCountryIso = (pais?: string): string => {
 
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
   const { data } = useData();
+  const { profile } = useAuth();
+  const canFilterComisiones = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [search, setSearch] = useState('');
+  const [estado, setEstado] = useState('');
+  const [tieneComisionista, setTieneComisionista] = useState('');
+  const [esComisionista, setEsComisionista] = useState('');
   const [sharingClient, setSharingClient] = useState<any | null>(null);
   const [editingClient, setEditingClient] = useState<any | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -51,6 +58,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
     return map;
   }, [data.clientes]);
 
+  const referidos = useMemo(() => new Set(
+    data.comisionistas.flatMap((comisionista) => comisionista.comisionaDeIds)
+      .filter((id) => typeof id === 'string')
+      .map((id) => id.trim().toLowerCase())
+  ), [data.comisionistas]);
+  const filtrosActivos = Boolean(search || estado || (canFilterComisiones && (tieneComisionista || esComisionista)));
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortAsc(!sortAsc);
@@ -61,13 +75,16 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
   };
 
   const filteredClientes = useMemo(() => {
+    const query = search.trim().toLowerCase();
     return data.clientes.filter((c) => {
-      const match =
-        c.nombre.toLowerCase().includes(search.toLowerCase()) ||
-        c.codigo.toLowerCase().includes(search.toLowerCase());
-      return match;
+      if (!c.nombre.toLowerCase().includes(query) && !c.codigo.toLowerCase().includes(query)) return false;
+      if (estado && c.estado !== estado) return false;
+      if (!canFilterComisiones) return true;
+      if (esComisionista && c.esComisionista !== (esComisionista === 'si')) return false;
+      const tieneAsignado = referidos.has(c.id.toLowerCase()) || referidos.has(c.codigo.toLowerCase());
+      return !tieneComisionista || tieneAsignado === (tieneComisionista === 'si');
     });
-  }, [data.clientes, search]);
+  }, [data.clientes, referidos, search, estado, tieneComisionista, esComisionista, canFilterComisiones]);
 
   const sortedClientes = useMemo(() => {
     return [...filteredClientes].sort((a, b) => {
@@ -165,22 +182,68 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
         </button>
       </div>
 
-      {/* Search and count */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border">
-        <div className="relative w-full sm:w-80">
-          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nombre o código..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-          />
+      <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
+        <div className={'grid items-end gap-2 sm:grid-cols-2 ' + (canFilterComisiones ? 'lg:grid-cols-5' : 'lg:grid-cols-3')}>
+          <div className={'relative ' + (canFilterComisiones ? 'sm:col-span-2' : 'lg:col-span-2')}>
+            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Buscar clientes"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar por nombre o código..."
+              className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+            />
+          </div>
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            Estado
+            <TableSelectFilter label="Estado" value={estado} onChange={setEstado}>
+              <option value="">Todos</option>
+              <option value="PENDIENTE">Pendiente</option>
+              <option value="PAGADO">Pagado</option>
+              <option value="DEBE">Debe</option>
+              <option value="SIN ACTIVIDAD">Sin actividad</option>
+            </TableSelectFilter>
+          </label>
+          {canFilterComisiones && (
+            <>
+              <label className="grid gap-1 text-xs text-muted-foreground">
+                Tiene comisionista
+                <TableSelectFilter label="Tiene comisionista" value={tieneComisionista} onChange={setTieneComisionista}>
+                  <option value="">Todos</option>
+                  <option value="si">Sí</option>
+                  <option value="no">No</option>
+                </TableSelectFilter>
+              </label>
+              <label className="grid gap-1 text-xs text-muted-foreground">
+                Es comisionista
+                <TableSelectFilter label="Es comisionista" value={esComisionista} onChange={setEsComisionista}>
+                  <option value="">Todos</option>
+                  <option value="si">Sí</option>
+                  <option value="no">No</option>
+                </TableSelectFilter>
+              </label>
+            </>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground font-medium">
-            {sortedClientes.length} clientes registrados
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-xs">
+          <span className="mr-auto font-medium text-muted-foreground" aria-live="polite">
+            {formatNumber(sortedClientes.length)} de {formatNumber(data.clientes.length)} clientes
           </span>
+          {filtrosActivos && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setEstado('');
+                setTieneComisionista('');
+                setEsComisionista('');
+              }}
+              className="font-semibold text-primary hover:underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
           {sortField !== 'saldoPendienteCOP' || sortAsc !== false ? (
             <button
               type="button"
@@ -190,7 +253,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
               }}
               className="text-xs text-primary font-semibold hover:underline"
             >
-              Reestablecer orden
+              Restablecer orden
             </button>
           ) : null}
         </div>

@@ -5,6 +5,7 @@ export type CapitalKind = 'CONTRATO' | 'DIVIDENDO' | 'INTERES' | 'LIQUIDACION' |
 export type CapitalMethod = 'EFECTIVO' | 'CUENTA' | 'USDT';
 export type CapitalMovement = {
   id: string;
+  codigo: string;
   socio_id: string;
   fecha: string;
   tipo: CapitalKind;

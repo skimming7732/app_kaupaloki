@@ -120,6 +120,9 @@ export interface NormalizedData {
     totalDispersadoCOP: number;
     saldoPendienteCOP: number;
     porCobrarCOP: number;
+    esComisionista: boolean;
+    comisionaDeIds: string[];
+    totalComisionesCOP: number;
     estado: string;
     dispersionesIds?: string[];
     negociosIds?: string[];
@@ -1029,7 +1032,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .filter((row) => (digital ? row.cuenta_digital_id : row.cuenta_liquida_id) === accountId)
       .map((row) => ({
         fecha: row.fecha,
-        origen: 'CAP-' + row.id,
+        origen: row.codigo,
         concepto: 'Capital & Socios · ' + capitalLabels[row.tipo],
         tercero: capitalPeople.get(row.socio_id),
         monto: Number(row.monto) * (row.tipo === 'CONTRATO' ? 1 : -1),
