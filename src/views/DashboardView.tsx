@@ -5,13 +5,12 @@ import { formatAmountField, parseAmountInput } from '../utils/amountInput';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 
 export const DashboardView: React.FC = () => {
-  const { metrics, data, updateRateUsdt } = useData();
+  const { metrics, updateRateUsdt } = useData();
   const [editingRate, setEditingRate] = useState(false);
   const [rateInput, setRateInput] = useState('');
   const [savingRate, setSavingRate] = useState(false);
   const [rateMessage, setRateMessage] = useState('');
   const currentRate = metrics.rateUsdtCop || 3950;
-  const wallets = data.activosDigitales.filter((wallet) => wallet.activo != null && wallet.activo !== 'TEST');
 
   const openRateEditor = () => {
     setRateInput(formatRate(currentRate));
@@ -143,26 +142,6 @@ export const DashboardView: React.FC = () => {
             <span className="text-[11px] text-muted-foreground block mt-1">Aportes menos retiros de Capital</span>
           </div>
         </div>
-        <section aria-labelledby="liquidity-breakdown-title" className="mt-4 space-y-3 border-t border-border pt-4">
-          <div>
-            <h4 id="liquidity-breakdown-title" className="text-sm font-bold">Composición de la liquidez USDT</h4>
-            <p className="text-xs text-muted-foreground">Aporte de cada billetera USDT al total, convertido con la tasa manual.</p>
-          </div>
-          {wallets.length ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {wallets.map((wallet) => (
-                <div key={wallet.id} className="min-w-0 rounded-xl border border-border bg-muted/40 p-3">
-                  <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                    <i className="ri-wallet-3-line" aria-hidden="true" />
-                    <span className="break-words">{wallet.activo}</span>
-                  </p>
-                  <p className="mt-1 break-words text-base font-bold tabular-nums">{formatCOP(wallet.saldoUsdt * currentRate)}</p>
-                  <p className="text-[11px] text-muted-foreground">{formatNumber(wallet.saldoUsdt, 0, 6)} USDT</p>
-                </div>
-              ))}
-            </div>
-          ) : <p className="text-xs text-muted-foreground">Sin billeteras incluidas en la liquidación.</p>}
-        </section>
         <section aria-label="Resultados de liquidación" className="mt-4 grid gap-4 border-t border-border pt-4 sm:grid-cols-3">
           <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
             <span className="text-xs text-purple-600 dark:text-purple-400 font-semibold block mb-1">Ganancia Estimada Neta</span>
