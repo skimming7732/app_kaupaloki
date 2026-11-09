@@ -3,6 +3,11 @@ export const parseAmountInput = (value: string) => {
   return /^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(normalized) ? Number(normalized) : NaN;
 };
 
+export const parseFinalAmount = (value: string, decimals: number) => {
+  const amount = parseAmountInput(value);
+  return Number.isFinite(amount) && amount > 0 && amount === Number(amount.toFixed(decimals)) ? amount : NaN;
+};
+
 export const formatAmountInput = (value: string) => {
   const [integer, decimal] = value.replace(/,/g, '').split('.');
   const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');

@@ -1,4 +1,4 @@
-import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
+import { formatAmountField, formatAmountInput, parseAmountInput, parseFinalAmount } from '../../utils/amountInput';
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { useData, type NormalizedData } from '../../context/DataContext';
@@ -7,6 +7,7 @@ import { formatCOP, formatNumber, normalizeSearch } from '../../utils/formatters
 import { CurrencySelect } from './CurrencySelect';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 import { ClientCountrySelect } from '../common/ClientCountrySelect';
+import { AmountEntryMode, type AmountMode } from '../common/AmountEntryMode';
 
 export type EditableNegocio = NormalizedData['negocios'][number];
 
@@ -41,6 +42,8 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
   );
   const [divisaCode, setDivisaCode] = useState(negocio?.divisaCodigo || '');
   const [monto, setMonto] = useState(() => negocio ? formatAmountInput(String(negocio.montoDivisa)) : '');
+  const [montoFinal, setMontoFinal] = useState('');
+  const [amountMode, setAmountMode] = useState<AmountMode>('initial');
   const [tasa, setTasa] = useState(negocio ? formatAmountInput(String(negocio.tasaCambio)) : '');
   const getBogotaToday = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
   const [fecha, setFecha] = useState(() => negocio ? negocio.fecha.slice(0, 10) : getBogotaToday());
@@ -75,11 +78,25 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
     (negocio?.createdBy && (data.usuarios.find((user) => user.id === negocio.createdBy)?.nombre || negocio.createdBy));
   const canAssignAuthor = Boolean(negocio && !authorName &&
     (profile?.role === 'administrador' || profile?.role === 'super_admin'));
-  const parsedMonto = parseAmountInput(monto);
+  const fromFinal = amountMode === 'final';
   const parsedTasa = parseAmountInput(tasa);
+  const parsedFinal = parseFinalAmount(montoFinal, 2);
+  const parsedMonto = fromFinal
+    ? (Number.isFinite(parsedTasa) && parsedTasa > 0 ? parsedFinal / parsedTasa : NaN)
+    : parseAmountInput(monto);
   const ingresoCOP = parsedMonto * parsedTasa;
   const canSubmit = Boolean(clienteId && selectedCurrency && fecha &&
     parsedMonto > 0 && parsedTasa > 0 && Number.isFinite(ingresoCOP));
+
+  const changeAmountMode = (mode: AmountMode) => {
+    if (mode === amountMode) return;
+    if (mode === 'final' && ingresoCOP > 0 && Number.isFinite(ingresoCOP)) {
+      setMontoFinal(formatNumber(ingresoCOP, 0, 2));
+    } else if (mode === 'initial' && parsedMonto > 0 && Number.isFinite(parsedMonto)) {
+      setMonto(formatNumber(parsedMonto, 0, 20));
+    }
+    setAmountMode(mode);
+  };
 
     const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
 
@@ -283,21 +300,35 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
             </div>
           </div>
 
+          <AmountEntryMode mode={amountMode} onChange={changeAmountMode} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor={id + '-amount'} className={labelClass}>Monto en divisa</label>
-              <input id={id + '-amount'} type="text" inputMode="decimal" required value={monto} onChange={(event) => { const amount = formatAmountField(event.currentTarget); if (amount !== undefined) setMonto(amount); }} placeholder="Ej. 5,000.50" className={fieldClass} />
+              <label htmlFor={id + '-amount'} className={labelClass}>{fromFinal ? 'Monto final en COP' : 'Monto en divisa'}</label>
+              <input id={id + '-amount'} type="text" inputMode="decimal" required value={fromFinal ? montoFinal : monto}
+                onChange={(event) => {
+                  const amount = formatAmountField(event.currentTarget);
+                  if (amount !== undefined) (fromFinal ? setMontoFinal : setMonto)(amount);
+                }}
+                placeholder="Ej. 5,000.50" className={fieldClass} />
+              {fromFinal && montoFinal && !Number.isFinite(parsedFinal) && (
+                <p className="mt-1 text-xs text-destructive">Ingresa un monto positivo con hasta dos decimales.</p>
+              )}
             </div>
             <div>
               <label htmlFor={id + '-rate'} className={labelClass}>Tasa de cambio en COP</label>
               <input id={id + '-rate'} type="text" inputMode="decimal" required value={tasa} onChange={(event) => { const rate = formatAmountField(event.currentTarget); if (rate !== undefined) setTasa(rate); }} placeholder="Ej. 3,950.0000" className={fieldClass} />
+              {fromFinal && parsedTasa === 0 && (
+                <p className="mt-1 text-xs text-destructive">Usa una tasa mayor que cero para calcular el monto inicial.</p>
+              )}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
-            <span className="text-sm font-medium">Ingreso estimado en COP</span>
+            <span className="text-sm font-medium">{fromFinal ? 'Monto inicial calculado' : 'Ingreso estimado en COP'}</span>
             <output htmlFor={id + '-amount ' + id + '-rate'} className="font-mono text-lg font-bold tabular-nums text-primary">
-              {formatCOP(ingresoCOP)}
+              {fromFinal
+                ? (Number.isFinite(parsedMonto) ? formatNumber(parsedMonto, 0, 12) + (divisaCode ? ' ' + divisaCode : '') : '—')
+                : formatCOP(ingresoCOP)}
             </output>
           </div>
 

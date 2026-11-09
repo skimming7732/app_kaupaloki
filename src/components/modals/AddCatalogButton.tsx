@@ -1,4 +1,4 @@
-import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
+import { formatAmountField, formatAmountInput, parseAmountInput, parseFinalAmount } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { formatNumber, formatRate, todayBogota } from '../../utils/formatters';
@@ -8,6 +8,7 @@ import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recor
 import { useAuth } from '../../context/AuthContext';
 import { useData, type CatalogTable } from '../../context/DataContext';
 import { isTronAddress } from '../../utils/tronUsdtBalance';
+import { AmountEntryMode, type AmountMode } from '../common/AmountEntryMode';
 
 type Field = {
   name: string;
@@ -44,6 +45,8 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
   const [destinationId, setDestinationId] = useState('');
   const [currency, setCurrency] = useState('');
   const [amount, setAmount] = useState('');
+  const [finalAmount, setFinalAmount] = useState('');
+  const [amountMode, setAmountMode] = useState<AmountMode>('initial');
   const [rateInput, setRateInput] = useState('');
   const [feeInput, setFeeInput] = useState('');
 
@@ -69,12 +72,6 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
   const balance = isPurchase ? pendingBalance : Number(source?.saldoReal ?? source?.saldoCop ?? source?.saldoUsdt ?? 0) + previousDebit;
   const hasSource = isPurchase ? Boolean(selectedCurrency) : Boolean(source);
 
-  const numericAmount = parseAmountInput(amount);
-  const saleFee = isSale && feeInput ? parseAmountInput(feeInput) : 0;
-  const validFee = Number.isFinite(saleFee) && saleFee >= 0 && !/\.\d{7,}$/.test(feeInput);
-  const walletOut = Number((numericAmount + saleFee).toFixed(12));
-  const availableAmount = isSale ? Math.max(0, Number((balance - saleFee).toFixed(12))) : balance;
-  const exceedsBalance = !edit?.historical && hasSource && (isSale ? walletOut : numericAmount) > balance;
   const previousRate = edit && edit.fields.tasa !== undefined && edit.fields.tasa !== null
     ? Number(edit.fields.tasa) : null;
   const initialRate = previousRate !== null
@@ -82,16 +79,47 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     : '';
   const rateUnchanged = !!edit && rateInput === initialRate;
   const rate = rateUnchanged && previousRate !== null ? previousRate : parseAmountInput(rateInput);
+  const fromFinal = isUsdt && amountMode === 'final';
+  const finalDecimals = isPurchase ? 6 : 2;
+  const parsedFinal = parseFinalAmount(finalAmount, finalDecimals);
+  const numericAmount = !fromFinal ? parseAmountInput(amount) : Number.isFinite(rate) && rate > 0
+    ? (isPurchase ? parsedFinal * rate : parsedFinal / rate) : NaN;
+  const saleFee = isSale && feeInput ? parseAmountInput(feeInput) : 0;
+  const validFee = Number.isFinite(saleFee) && saleFee >= 0 && !/\.\d{7,}$/.test(feeInput);
+  const walletOut = Number((numericAmount + saleFee).toFixed(12));
+  const availableAmount = isSale ? Math.max(0, Number((balance - saleFee).toFixed(12))) : balance;
+  const exceedsBalance = !edit?.historical && hasSource && (isSale ? walletOut : numericAmount) > balance;
   const received = isPurchase && rate === 0
     ? 0
-    : rateUnchanged && numericAmount === Number(edit?.fields.valor_comprado)
+    : !fromFinal && rateUnchanged && numericAmount === Number(edit?.fields.valor_comprado)
     ? Number(edit?.fields.usdt_comprado)
     : (rate > 0 ? Number((numericAmount / rate).toFixed(6)) : 0);
   const copReceived = numericAmount * rate;
   const validPurchaseQuote = isPurchase
-    ? (rate >= 0 && Number.isFinite(received) && received >= 0 && numericAmount > 0)
+    ? (Number.isFinite(rate) && rate >= 0 && Number.isFinite(received) && (fromFinal ? received > 0 : received >= 0)
+      && Number.isFinite(numericAmount) && numericAmount > 0)
     : false;
   const validSaleQuote = rate > 0 && Number.isFinite(copReceived) && copReceived > 0;
+  const finalUnit = isPurchase ? 'USDT' : 'COP';
+  const changeAmountMode = (mode: AmountMode) => {
+    if (mode === amountMode) return;
+    const outputAmount = isPurchase ? received : copReceived;
+    if (mode === 'final' && outputAmount > 0 && Number.isFinite(outputAmount)) {
+      setFinalAmount(formatNumber(outputAmount, 0, finalDecimals));
+    } else if (mode === 'initial' && numericAmount > 0 && Number.isFinite(numericAmount)) {
+      setAmount(formatNumber(numericAmount, 0, 20));
+    }
+    setAmountMode(mode);
+  };
+  const useMaximum = () => {
+    if (!fromFinal) {
+      setAmount(formatNumber(availableAmount, 0, 20));
+      return;
+    }
+    const factor = 10 ** finalDecimals;
+    const maximum = isPurchase ? availableAmount / rate : availableAmount * rate;
+    setFinalAmount(formatNumber(Math.floor(maximum * factor) / factor, 0, finalDecimals));
+  };
   const liquidAccounts = data.activosLiquidos.filter((a) => (a.divisa || 'COP') === 'COP');
   const wallets = data.activosDigitales;
   const currencies = data.divisas.map((d) => ({ value: d.codigo, label: d.codigo + ' · ' + d.nombre }));
@@ -185,6 +213,15 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     const values = new FormData(event.currentTarget);
     const record: Record<string, string | number> = {};
 
+    if (isUsdt && !(isPurchase ? validPurchaseQuote : validSaleQuote)) {
+      setError('Ingresa un monto y una tasa válidos.');
+      return;
+    }
+    if (isPurchase && exceedsBalance) {
+      setError('El monto inicial supera el saldo pendiente de la divisa.');
+      return;
+    }
+
     if (isPurchase) {
       if (!currency) {
         setError('Selecciona la divisa entregada.');
@@ -219,15 +256,22 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
       if (isUsdt && field.accounts) continue;
       if (isSale && edit?.historical && field.name === 'fee_usdt') continue;
       if (isPurchase && (field.name === 'usdt_comprado' || field.name === 'divisa_codigo')) continue;
+      if (isUsdt && field.name === amountField) {
+        record[amountField] = numericAmount;
+        continue;
+      }
+      if (isUsdt && field.name === 'tasa') {
+        record.tasa = rate;
+        continue;
+      }
       const value = String(values.get(field.name) || '').trim();
-      const allowsZero = isPurchase && field.name === 'tasa';
-      if (!value && !field.optional && (!allowsZero || value === '')) {
+      if (!value && !field.optional) {
         setError('Completa el campo ' + field.label + '.');
         return;
       }
       if (field.type === 'number') {
         const number = !value && field.optional ? 0 : parseAmountInput(value);
-        if (!Number.isFinite(number) || (allowsZero || field.optional ? number < 0 : number <= 0)) {
+        if (!Number.isFinite(number) || (field.optional ? number < 0 : number <= 0)) {
           setError('Revisa el valor de ' + field.label + '.');
           return;
         }
@@ -291,11 +335,11 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     const isAmount = isUsdt && field.name === amountField;
     const isRate = isUsdt && field.name === 'tasa';
     const isFee = isSale && field.name === 'fee_usdt';
-    const unit = isAmount ? sourceCurrency : isRate && isPurchase && currency ? currency + ' por USDT' : '';
+    const unit = isAmount ? (fromFinal ? finalUnit : sourceCurrency) : isRate && isPurchase && currency ? currency + ' por USDT' : '';
     return (
       <div className="min-w-0 space-y-1.5" key={field.name}>
         <label className={recordLabelClass}>
-          <span>{field.label}{unit && <small className="ml-1 whitespace-nowrap text-muted-foreground">({unit})</small>}{field.optional && <small className="ml-1 text-muted-foreground">(opcional)</small>}</span>
+          <span>{isAmount && fromFinal ? 'Monto final' : field.label}{unit && <small className="ml-1 whitespace-nowrap text-muted-foreground">({unit})</small>}{field.optional && <small className="ml-1 text-muted-foreground">(opcional)</small>}</span>
           {field.options ? (
             <select name={field.name} required className={recordFieldClass} defaultValue={initial[field.name]}>
               <option value="">Seleccionar</option>
@@ -303,19 +347,19 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
             </select>
           ) : (
             <input
-              value={isAmount ? amount : isRate ? rateInput : isFee ? feeInput : undefined}
+              value={isAmount ? (fromFinal ? finalAmount : amount) : isRate ? rateInput : isFee ? feeInput : undefined}
               defaultValue={isAmount || isRate || isFee ? undefined : field.type === 'number'
                 ? formatAmountInput(String(initial[field.name] ?? ''))
                 : initial[field.name] ?? (field.type === 'date' ? today() : undefined)}
               onChange={field.type === 'number' ? (event) => {
                 const value = formatAmountField(event.currentTarget);
                 if (value === undefined) return;
-                if (isAmount) setAmount(value);
+                if (isAmount) (fromFinal ? setFinalAmount : setAmount)(value);
                 if (isRate) setRateInput(value);
                 if (isFee) setFeeInput(value);
               } : undefined}
-              aria-invalid={(isAmount && exceedsBalance) || (isFee && !validFee) || undefined}
-              name={field.name}
+              aria-invalid={(isAmount && (exceedsBalance || (fromFinal && Boolean(finalAmount) && !Number.isFinite(parsedFinal)))) || (isFee && !validFee) || undefined}
+              name={isAmount && fromFinal ? 'monto_final' : field.name}
               type={field.type === 'date' ? 'date' : 'text'}
               inputMode={field.type === 'number' ? 'decimal' : undefined}
               placeholder={isRate ? '0.0000' : isAmount || isFee ? '0.00' : field.name === 'proveedor' ? 'Nombre o empresa del proveedor' : undefined}
@@ -329,13 +373,17 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
             <span>{hasSource ? (
               <>{isPurchase ? 'Pendiente por comprar' : 'Saldo disponible'} <strong className="text-foreground">{formatNumber(balance, 0, 6)} {sourceCurrency}</strong></>
             ) : (isPurchase ? 'Selecciona la divisa para ver el saldo pendiente.' : 'Selecciona el origen para ver el saldo.')}</span>
-            {hasSource && availableAmount > 0 && (
-              <button type="button" onClick={() => setAmount(formatNumber(availableAmount, 0, 20))}
+            {hasSource && availableAmount > 0 && (!fromFinal || (Number.isFinite(rate) && rate > 0)) && (
+              <button type="button" onClick={useMaximum}
                 className="min-h-8 shrink-0 rounded-lg bg-primary/10 px-2.5 font-semibold text-primary hover:bg-primary/20">Máx.</button>
             )}
           </div>
         )}
         {isAmount && exceedsBalance && <p role="alert" className="text-xs text-destructive">{isSale ? 'El monto y el fee superan el saldo de la billetera.' : 'El monto supera el saldo disponible.'}</p>}
+        {isAmount && fromFinal && finalAmount && !Number.isFinite(parsedFinal) && (
+          <p className="text-xs text-destructive">Ingresa un monto positivo con hasta {finalDecimals} decimales.</p>
+        )}
+        {isRate && fromFinal && rate === 0 && <p className="text-xs text-destructive">Usa una tasa mayor que cero para calcular el monto inicial.</p>}
         {isFee && !validFee && <p role="alert" className="text-xs text-destructive">Ingresa un fee válido con hasta seis decimales.</p>}
       </div>
     );
@@ -359,6 +407,8 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
           const fallbackDest = isPurchase && !edit ? wallets[0]?.id || '' : String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? '');
           setDestinationId(fallbackDest);
           setAmount(formatAmountInput(String(initial[amountField] ?? '')));
+          setFinalAmount('');
+          setAmountMode('initial');
           const fallbackCurrency = isPurchase && !edit ? (data.divisas[0]?.codigo || '') : String(initial.divisa_codigo ?? '');
           setCurrency(fallbackCurrency);
           setRateInput(initialRate);
@@ -387,6 +437,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
                   </section>
 
                   <section aria-label="Monto y tasa" className="space-y-3 border-t border-border pt-4">
+                    <AmountEntryMode mode={amountMode} onChange={changeAmountMode} />
                     <div className="grid items-start gap-4 sm:grid-cols-2">
                       {renderFields(amountField, 'tasa')}
                     </div>
@@ -401,13 +452,17 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
                     )}
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
                       <div>
-                        <p className="text-sm font-semibold">{isPurchase ? 'USDT a recibir' : 'COP a recibir'}</p>
-                        <p className="text-xs text-muted-foreground">{isPurchase ? 'Monto entregado ÷ tasa' : 'USDT vendidos × tasa'}</p>
+                        <p className="text-sm font-semibold">{fromFinal ? 'Monto inicial calculado' : isPurchase ? 'USDT a recibir' : 'COP a recibir'}</p>
+                        <p className="text-xs text-muted-foreground">{fromFinal
+                          ? (isPurchase ? 'USDT a recibir × tasa' : 'COP a recibir ÷ tasa')
+                          : (isPurchase ? 'Monto entregado ÷ tasa' : 'USDT vendidos × tasa')}</p>
                       </div>
                       <output className="break-all text-xl font-bold tabular-nums text-primary" aria-live="polite">
-                        {isPurchase
-                          ? (validPurchaseQuote ? (rate === 0 ? '0.00 USDT' : formatNumber(received, 2, 6) + ' USDT') : '—')
-                          : (validSaleQuote ? formatNumber(copReceived, 0, 2) + ' COP' : '—')}
+                        {fromFinal
+                          ? (Number.isFinite(numericAmount) ? formatNumber(numericAmount, 0, 12) + (sourceCurrency ? ' ' + sourceCurrency : '') : '—')
+                          : isPurchase
+                            ? (validPurchaseQuote ? formatNumber(received, 2, 6) + ' USDT' : '—')
+                            : (validSaleQuote ? formatNumber(copReceived, 0, 2) + ' COP' : '—')}
                       </output>
                     </div>
                   </section>
