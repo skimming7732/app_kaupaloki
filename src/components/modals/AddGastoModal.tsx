@@ -2,6 +2,7 @@ import { formatAmountField, formatAmountInput, parseAmountInput } from '../../ut
 import { ReceiptInput } from './ReceiptInput';
 import { uploadReceipt } from '../../utils/receipts';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
+import { todayBogota } from '../../utils/formatters';
 import React, { useState } from 'react';
 import { useData, type GastoItem } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -147,7 +148,7 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
           )}
           <label className={recordLabelClass}>
             <span>Fecha</span>
-            <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
+            <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || todayBogota()} className={recordFieldClass} />
           </label>
           {!record && <ReceiptInput />}
         </fieldset>

@@ -1,7 +1,7 @@
 import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
-import { formatNumber, formatRate } from '../../utils/formatters';
+import { formatNumber, formatRate, todayBogota } from '../../utils/formatters';
 import { CurrencySelect } from './CurrencySelect';
 import { AccountSelect, type Account } from './AccountSelect';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
@@ -26,7 +26,7 @@ type Form = {
 };
 
 const dateField: Field = { name: 'fecha', label: 'Fecha de la operación', type: 'date' };
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayBogota();
 
 export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassName }: {
   table: CatalogTable;

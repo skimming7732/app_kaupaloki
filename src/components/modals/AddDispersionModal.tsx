@@ -5,7 +5,7 @@ import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useEffect, useId, useState } from 'react';
 import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { formatCOP } from '../../utils/formatters';
+import { formatCOP, todayBogota } from '../../utils/formatters';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 import { supabase } from '../../lib/supabase';
 import { AccountSelect, accountLabel, type Account } from './AccountSelect';
@@ -129,7 +129,7 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={recordLabelClass}>
               <span>Fecha</span>
-              <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
+              <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || todayBogota()} className={recordFieldClass} />
             </label>
             <label className={recordLabelClass}>
               <span>Referencia (opcional)</span>

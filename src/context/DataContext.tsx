@@ -448,7 +448,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: d.id,
         codigo: d.codigo,
         numero: d.numero,
-        fecha: d.fecha,
+        fecha: d.fecha ? String(d.fecha).slice(0, 10) : '',
         clienteId: d.cliente_id,
         clienteCodigo: d.cliente_codigo,
         clienteNombre: d.cliente_nombre,
@@ -800,7 +800,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return {
         id: d.id || d.codigo,
         codigo: d.codigo || d.idDispersion || 'DISP-000',
-        fecha: d.fecha || d.fechaCreacion || '',
+        fecha: (d.fecha || d.fechaCreacion) ? String(d.fecha || d.fechaCreacion).slice(0, 10) : '',
         clienteId,
         clienteRecordId: d.clienteRecordId || clienteId,
         clienteCodigo,

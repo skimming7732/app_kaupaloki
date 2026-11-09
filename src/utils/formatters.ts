@@ -25,14 +25,19 @@ export function formatCurrency(amount: number | undefined | null, currencyCode =
   return currencyCode === 'COP' ? formatCOP(amount) : currencyCode + ' ' + formatNumber(amount, 2);
 }
 
+export const todayBogota = (): string =>
+  new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
+
 export function formatDate(val: string | number | Date | undefined | null): string {
   if (!val) return '-';
   try {
-    // If it's a string like "2026-11-05" without time, parse parts directly to avoid timezone shift
-    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
-      const [yyyy, mm, dd] = val.trim().split('-');
-      const yy = yyyy.slice(-2);
-      return `${dd}/${mm}/${yy}`;
+    // Extract calendar YYYY-MM-DD directly from any ISO date/timestamp string to avoid UTC-to-local day shift
+    if (typeof val === 'string') {
+      const match = val.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        const [, yyyy, mm, dd] = match;
+        return `${dd}/${mm}/${yyyy.slice(-2)}`;
+      }
     }
     const d = new Date(val);
     if (isNaN(d.getTime())) return String(val);

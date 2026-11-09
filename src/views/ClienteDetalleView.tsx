@@ -189,6 +189,11 @@ export const ClienteDetalleView: React.FC = () => {
     );
   };
 
+  const porPagar = cliente.saldoPendienteCOP || 0;
+  const porCobrar = cliente.porCobrarCOP || 0;
+  const saldoCliente = porPagar - porCobrar;
+  const signoSaldo = saldoCliente < 0 ? '−' : saldoCliente > 0 ? '+' : '';
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Top Breadcrumb & Quick Actions */}
@@ -273,7 +278,6 @@ export const ClienteDetalleView: React.FC = () => {
                 <span className="text-xs font-medium text-muted-foreground">
                   {cliente.pais || 'Colombia'}
                 </span>
-                {getStatusBadge(cliente.estado)}
                 {cliente.esComisionista && (
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
                     <i className="ri-hand-coin-line" />
@@ -319,25 +323,20 @@ export const ClienteDetalleView: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Balance Status Widget */}
-          <div className="flex flex-col sm:items-end justify-center bg-muted/30 p-4 rounded-xl border border-border min-w-[220px]">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Saldo Pendiente (COP)
-            </span>
-            <div className={`text-2xl font-black mt-1 font-mono ${
-              cliente.saldoPendienteCOP > 0 
-                ? 'text-amber-500' 
-                : cliente.saldoPendienteCOP < 0 
-                ? 'text-rose-500' 
-                : 'text-emerald-500'
-            }`}>
-              {formatCOP(cliente.saldoPendienteCOP)}
-            </div>
+          {/* Quick Balance Status Widget (matching shared client portal style) */}
+          <div className="min-w-0 md:text-right flex flex-col md:items-end justify-center">
+            <div className="inline-flex">{getStatusBadge(cliente.estado)}</div>
+            <p className={'mt-2 break-words text-3xl font-black tabular-nums sm:text-4xl font-mono ' + (
+              saldoCliente < 0 ? 'text-destructive' : saldoCliente > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
+            )}>
+              <span className="sr-only">Saldo de la cuenta </span>
+              {signoSaldo}{formatCOP(Math.abs(saldoCliente))}
+            </p>
             <span className="text-[11px] text-muted-foreground mt-0.5">
-              {cliente.saldoPendienteCOP > 0
-                ? 'Pendiente de dispersar al cliente'
-                : cliente.saldoPendienteCOP < 0
-                ? 'El cliente tiene saldo deudor'
+              {saldoCliente > 0
+                ? 'Pendiente por pagar al cliente'
+                : saldoCliente < 0
+                ? 'El cliente debe al sistema'
                 : 'Cuentas perfectamente al día'}
             </span>
           </div>
@@ -345,7 +344,7 @@ export const ClienteDetalleView: React.FC = () => {
       </div>
 
       {/* Financial KPIs Dossier */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider">Total Negocios</span>
@@ -374,18 +373,31 @@ export const ClienteDetalleView: React.FC = () => {
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Saldo Por Pagar</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider">Por Pagar</span>
             <i className="ri-time-line text-lg text-amber-500" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
-            {formatCOP(cliente.saldoPendienteCOP)}
+            {formatCOP(porPagar)}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            Ingresos registrados menos pagos efectivos
+            Pendiente por dispersar al cliente
           </div>
           {rejectedTotal > 0 && (
             <p className="mt-1 text-xs text-destructive">Dispersiones rechazadas: {formatCOP(rejectedTotal)}</p>
           )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Por Cobrar</span>
+            <i className="ri-money-dollar-circle-line text-lg text-rose-500" />
+          </div>
+          <div className={`text-xl sm:text-2xl font-black font-mono ${porCobrar > 0 ? 'text-destructive' : 'text-foreground'}`}>
+            {formatCOP(porCobrar)}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Saldo que debe el cliente
+          </div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">

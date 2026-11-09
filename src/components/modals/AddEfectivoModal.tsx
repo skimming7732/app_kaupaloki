@@ -1,5 +1,6 @@
 import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
+import { todayBogota } from '../../utils/formatters';
 import React, { useId, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
@@ -133,7 +134,7 @@ const EfectivoForm = ({ initialClienteId, onClose }: Omit<AddEfectivoModalProps,
             </fieldset>
             <label className={recordLabelClass}>
               <span>Fecha</span>
-              <input name="fecha" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={recordFieldClass} />
+              <input name="fecha" type="date" required defaultValue={todayBogota()} className={recordFieldClass} />
             </label>
           </div>
           <div className="space-y-1.5">

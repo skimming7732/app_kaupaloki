@@ -252,13 +252,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           label: 'Por recibir',
           value: formatCOP(porRecibir),
           icon: 'ri-wallet-3-line',
-          featured: porPagar === 0,
-        },
-        {
-          label: 'Por pagar',
-          value: formatCOP(porPagar),
-          icon: 'ri-money-dollar-circle-line',
-          featured: porPagar > 0,
+          featured: true,
         },
         {
           label: selectedDivisa ? `Ingresos ${selectedDivisa}` : (hasFilter ? 'Ingresos en período' : 'Total ingresos'),
