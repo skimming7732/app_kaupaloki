@@ -1,116 +1,112 @@
+import { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { KpiStrip, sumRows } from '../components/common/KpiStrip';
+import { sumRows } from '../components/common/KpiStrip';
+import { normalizeDateToLocalYmd } from '../components/common/DateRangeFilter';
 import { ProfitHistoryChart } from '../components/common/ProfitHistoryChart';
-import { formatCOP, formatNumber } from '../utils/formatters';
+import { ActivityChart, CapitalMix, ChartCard, ChartEmpty, chartColors, formatUsdt, MetricBars, SettlementBridge } from '../components/common/StatisticsCharts';
+import { formatNumber, todayBogota } from '../utils/formatters';
 
-const formatUsdt = (amount: number) => formatNumber(amount, 0, 6) + ' USDT';
-
-function estadoCobertura(activos: number, capital: number) {
-  const diferencia = Math.round((activos - capital) * 100) / 100;
-  if (diferencia < 0) return 'Faltan ' + formatCOP(-diferencia);
-  if (diferencia > 0) return 'Sobran ' + formatCOP(diferencia);
-  return 'Capital cubierto';
+function activityByDay(deals: { fecha: string }[], sales: { fecha: string }[]) {
+  const today = Date.parse(todayBogota() + 'T00:00:00Z');
+  const days = Array.from({ length: 14 }, (_, index) => ({
+    date: new Date(today - (13 - index) * 86_400_000).toISOString().slice(0, 10),
+    deals: 0,
+    sales: 0,
+  }));
+  const byDate = new Map(days.map((day) => [day.date, day]));
+  for (const [rows, field] of [[deals, 'deals'], [sales, 'sales']] as const) {
+    for (const row of rows) {
+      const day = byDate.get(normalizeDateToLocalYmd(row.fecha) ?? '');
+      if (day) day[field]++;
+    }
+  }
+  return days;
 }
 
 export function EstadisticasView() {
   const { metrics, data, loading, snapshot, syncData, syncStatus } = useData();
-  const currentRate = metrics.rateUsdtCop || 3950;
-  const wallets = data.activosDigitales.filter((wallet) => wallet.activo !== 'TEST');
+  const [costCurrency, setCostCurrency] = useState<'COP' | 'USDT'>('COP');
   const activosLiquidosCOP = sumRows(data.activosLiquidos, (account) => account.saldoCop);
-  const activosDigitalesUSDT = sumRows(wallets, (wallet) => wallet.saldoUsdt);
-  const activosDigitalesCOP = activosDigitalesUSDT * currentRate;
-  const activosContablesCOP = activosLiquidosCOP + activosDigitalesCOP;
-  const capitalInvertidoCOP = metrics.capitalInvertidoCOP;
-
-  const estadoCapital = !loading && capitalInvertidoCOP != null ? (
-    <>
-      <span className="block text-[11px] font-normal text-muted-foreground">Según libros</span>
-      <span className="block">{estadoCobertura(activosContablesCOP, capitalInvertidoCOP)}</span>
-    </>
-  ) : 'Por consultar';
-  const gastosTransferencia = (divisa: 'COP' | 'USDT') =>
-    sumRows(data.transferenciasInternas, (transferencia) => transferencia.divisaCosto === divisa ? transferencia.costo : 0);
-  const indicadores = [
-    {
-      label: 'Capital invertido',
-      featured: true,
-      value: (
-        <>
-          <span className="block">{capitalInvertidoCOP == null ? 'Por consultar' : formatCOP(capitalInvertidoCOP)}</span>
-          <span className="block text-[11px] font-normal text-muted-foreground">Aportes menos retiros</span>
-          <div className="mt-2 border-t border-border pt-2">
-            <span className="block text-[11px] font-normal text-muted-foreground">Activos contables</span>
-            <span className="block">{loading ? '…' : formatCOP(activosContablesCOP)}</span>
-          </div>
-        </>
-      ),
-    },
-    { label: 'Activos líquidos', value: formatCOP(activosLiquidosCOP) },
-    {
-      label: 'Activos digitales',
-      value: <>{formatUsdt(activosDigitalesUSDT)}<span className="mt-1 block text-[11px] font-normal text-muted-foreground">{formatCOP(activosDigitalesCOP)} COP</span></>,
-    },
-    { label: 'Estado del capital', value: estadoCapital },
-    { label: 'Pendiente clientes', value: formatCOP(metrics.saldoPendienteClientes) },
-    { label: 'Por cobrar', value: formatCOP(metrics.totalPorCobrarClientesCOP) },
-    { label: 'Gastos de dispersión', value: formatCOP(metrics.totalCostosDispersionCOP) },
-    { label: 'Gastos ventas USDT', value: formatUsdt(sumRows(data.ventasUsdt, (venta) => venta.feeUsdt)) },
-    { label: 'Gastos transacciones int. USDT', value: formatUsdt(gastosTransferencia('USDT')) },
-    { label: 'Gastos transacciones int. COP', value: formatCOP(gastosTransferencia('COP')) },
-    { label: 'Gastos (COP)', value: formatCOP(sumRows(data.gastos, (gasto) => gasto.divisa === 'COP' ? gasto.monto : 0)) },
-    { label: 'Negocios registrados', value: data.negocios.length },
-    { label: 'Clientes a quienes debemos', value: data.clientes.filter((cliente) => cliente.saldoPendienteCOP > 0).length },
-    { label: 'Clientes que deben', value: data.clientes.filter((cliente) => cliente.porCobrarCOP > 0).length },
+  const activosDigitalesUSDT = sumRows(data.activosDigitales, (wallet) => wallet.activo !== 'TEST' ? wallet.saldoUsdt : 0);
+  const activosDigitalesCOP = activosDigitalesUSDT * (metrics.rateUsdtCop || 3950);
+  const clientsToPay = data.clientes.filter((client) => client.saldoPendienteCOP > 0).length;
+  const clientsOwing = data.clientes.filter((client) => client.porCobrarCOP > 0).length;
+  const transferFees = (currency: 'COP' | 'USDT') => sumRows(data.transferenciasInternas, (item) => item.divisaCosto === currency ? item.costo : 0);
+  const costs = costCurrency === 'COP' ? [
+    { label: 'Gastos registrados', value: sumRows(data.gastos, (item) => item.divisa === 'COP' ? item.monto : 0), color: chartColors.violet },
+    { label: 'Costos de dispersión', value: metrics.totalCostosDispersionCOP, color: chartColors.sky },
+    { label: 'Transferencias internas', value: transferFees('COP'), color: chartColors.lavender },
+  ] : [
+    { label: 'Comisiones de venta', value: sumRows(data.ventasUsdt, (item) => item.feeUsdt), color: chartColors.violet },
+    { label: 'Transferencias internas', value: transferFees('USDT'), color: chartColors.sky },
   ];
-
-  const settlement = [
-    { label: 'Total ingresos clientes', value: metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP, detail: `${formatNumber(data.clientes.length)} clientes`, icon: 'ri-team-line', tone: 'bg-primary/10 text-primary' },
-    { label: 'Total ventas USDT', value: metrics.totalVentasUSDT, detail: `${formatNumber(data.ventasUsdt.length)} ventas monetizadas`, icon: 'ri-exchange-dollar-line', tone: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300' },
-    { label: 'Liquidez esperada USDT', value: metrics.liquidezEsperada, detail: 'Saldo de billeteras en COP', icon: 'ri-wallet-3-line', tone: 'bg-blue-500/10 text-blue-700 dark:text-blue-300' },
-    { label: 'Gastos operativos', value: -(metrics.totalGastosCOP - metrics.interesesSociosCOP), detail: 'Sin intereses de socios e inversionistas', icon: 'ri-receipt-line', tone: 'bg-rose-500/10 text-rose-700 dark:text-rose-300' },
-    { label: 'Gastos por interés', value: -metrics.interesesSociosCOP, detail: 'Intereses de socios e inversionistas', icon: 'ri-percent-line', tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-300' },
+  const steps = [
+    { key: 'sales', abbreviation: 'Ventas', label: 'Total ventas USDT', value: metrics.totalVentasUSDT, color: chartColors.green, detail: `${formatNumber(data.ventasUsdt.length)} ventas monetizadas` },
+    { key: 'liquidity', abbreviation: 'Liquidez', label: 'Liquidez esperada USDT', value: metrics.liquidezEsperada, color: chartColors.sky, detail: 'Saldo de billeteras en COP' },
+    { key: 'clients', abbreviation: 'Ingresos', label: 'Total ingresos clientes', value: -(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP), color: chartColors.lavender, detail: `${formatNumber(data.clientes.length)} clientes · se resta de la liquidación` },
+    { key: 'expenses', abbreviation: 'Gastos', label: 'Gastos operativos', value: -(metrics.totalGastosCOP - metrics.interesesSociosCOP), color: chartColors.coral, detail: 'Sin intereses de socios e inversionistas' },
+    { key: 'interest', abbreviation: 'Intereses', label: 'Gastos por interés', value: -metrics.interesesSociosCOP, color: chartColors.amber, detail: 'Intereses de socios e inversionistas' },
   ];
   const updatedAt = snapshot.syncedAt && new Date(snapshot.syncedAt).toLocaleTimeString('es-CO', {
     timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit',
   });
+  const statusLabel = syncStatus === 'error' ? 'Sin conexión' : syncStatus === 'syncing' ? 'Actualizando' : updatedAt ? 'Datos en vivo' : 'Conectando';
 
   return (
-    <div className="space-y-6 motion-safe:animate-fade-in">
-      <section aria-label="Resumen de liquidación" className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold">Resumen de liquidación</h2>
-            <p className="text-xs text-muted-foreground">
-              {updatedAt ? `Última actualización ${updatedAt} (Bogotá)` : 'Consultando datos de tesorería'}
-            </p>
+    <div className="space-y-5 motion-safe:animate-fade-in">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="stats-icon shrink-0" aria-hidden="true"><i className="ri-dashboard-3-line" /></span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Tesorería y operaciones</p>
+            <h2 className="text-xl font-black tracking-tight sm:text-2xl">Panorama financiero</h2>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span role="status" className="inline-flex flex-wrap items-center gap-x-2 rounded-full bg-card px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+            <span className={`size-2 rounded-full ${syncStatus === 'error' ? 'bg-destructive' : 'bg-emerald-500'}`} aria-hidden="true" />
+            {statusLabel}{updatedAt && <span className="font-normal">· {updatedAt} Bogotá</span>}
+          </span>
           <button type="button" onClick={() => void syncData(true)} disabled={loading || syncStatus === 'syncing'}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-xs font-semibold hover:bg-muted disabled:opacity-50">
-            <i className="ri-refresh-line" aria-hidden="true" /> Actualizar
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-card px-3 text-[11px] font-bold text-[var(--brand-primary)] hover:bg-muted disabled:opacity-50">
+            <i className="ri-refresh-line text-sm" aria-hidden="true" /> Actualizar
           </button>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-          {settlement.map((item) => (
-            <article key={item.label} className="flex min-w-0 items-start gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
-              <span className={`grid size-10 shrink-0 place-items-center rounded-full text-lg ${item.tone}`}>
-                <i className={item.icon} aria-hidden="true" />
-              </span>
-              <div className="min-w-0 space-y-1">
-                <h3 className="text-xs font-medium text-muted-foreground">{item.label}</h3>
-                <p className="break-words text-lg font-bold tabular-nums">{loading ? '…' : formatCOP(item.value)}</p>
-                <p className="text-xs text-muted-foreground">{item.detail}</p>
-              </div>
-            </article>
-          ))}
+      </header>
+
+      <div className="stats-grid grid gap-4">
+        <div className="stats-profit min-w-0"><ProfitHistoryChart syncedAt={snapshot.syncedAt} profit={loading ? null : metrics.gananciaEsperada} /></div>
+        <div className="stats-settlement min-w-0"><SettlementBridge steps={steps} net={metrics.gananciaEsperada} loading={loading} /></div>
+        <div className="stats-capital min-w-0">
+          <CapitalMix liquid={activosLiquidosCOP} digital={activosDigitalesCOP} usdt={activosDigitalesUSDT} invested={metrics.capitalInvertidoCOP} loading={loading} />
         </div>
-      </section>
 
-      <ProfitHistoryChart syncedAt={snapshot.syncedAt} profit={loading ? null : metrics.gananciaEsperada} />
+        <div className="stats-secondary min-w-0">
+          <ChartCard title="Saldos de clientes" description={`${formatNumber(data.clientes.length)} clientes registrados · COP`} icon="ri-team-line">
+            {loading ? <ChartEmpty>Consultando clientes…</ChartEmpty> : <MetricBars rows={[
+              { label: 'Por pagar', value: metrics.saldoPendienteClientes, color: chartColors.lavender, detail: `Clientes con saldo por pagar · ${formatNumber(clientsToPay)}` },
+              { label: 'Por cobrar', value: metrics.totalPorCobrarClientesCOP, color: chartColors.green, detail: `Clientes con saldo por cobrar · ${formatNumber(clientsOwing)}` },
+            ]} />}
+          </ChartCard>
+        </div>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold">Indicadores generales</h2>
-        <KpiStrip label="Indicadores generales" metrics={indicadores} />
-      </section>
+        <div className="stats-secondary min-w-0">
+          <ChartCard title="Costos registrados" description="Comparación por moneda" icon="ri-receipt-line" action={
+            <div role="group" aria-label="Moneda de los costos" className="stats-toggle">
+              {(['COP', 'USDT'] as const).map((currency) => (
+                <button key={currency} type="button" aria-pressed={currency === costCurrency} onClick={() => setCostCurrency(currency)}>{currency}</button>
+              ))}
+            </div>
+          }>
+            {loading ? <ChartEmpty>Consultando costos…</ChartEmpty> : <MetricBars key={costCurrency} rows={costs} format={costCurrency === 'USDT' ? formatUsdt : undefined} />}
+          </ChartCard>
+        </div>
+
+        <div className="stats-secondary min-w-0">
+          {loading ? <ChartCard title="Ritmo operativo" description="Últimos 14 días" icon="ri-pulse-line"><ChartEmpty>Consultando actividad…</ChartEmpty></ChartCard> :
+            <ActivityChart days={activityByDay(data.negocios, data.ventasUsdt)} totalDeals={data.negocios.length} totalSales={data.ventasUsdt.length} />}
+        </div>
+      </div>
     </div>
   );
 }
