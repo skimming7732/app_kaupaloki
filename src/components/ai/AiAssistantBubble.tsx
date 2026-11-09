@@ -10,6 +10,7 @@ import {
 } from '../../services/groqService';
 
 const MAX_SESSIONS = 10;
+const SIX_HOURS_MS = 6 * 60 * 60 * 1000; // 6 horas en milisegundos
 
 // Custom Markdown Formatter Component
 const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
@@ -240,7 +241,22 @@ export const AiAssistantBubble: React.FC = () => {
   });
 
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(() => {
-    if (sessions.length > 0) return sessions[0].id;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const latest = parsed[0];
+          const lastActivity = latest.updatedAt || latest.createdAt || 0;
+          // Si han pasado más de 6 horas, empezar con chat vacío (null)
+          if (Date.now() - lastActivity <= SIX_HOURS_MS) {
+            return latest.id;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error al cargar sesiones de IA:', e);
+    }
     return null;
   });
 
@@ -273,11 +289,13 @@ export const AiAssistantBubble: React.FC = () => {
       return {
         title: 'Inicio / Resumen Operativo',
         records: (data.clientes || []).map((c) => ({
+          codigo: c.codigo,
           cliente: c.nombre,
-          saldoPendienteCOP: c.saldoPendienteCOP,
-          totalIngresosCOP: c.totalIngresosCOP,
-          totalDispersadoCOP: c.totalDispersadoCOP,
-          totalNegocios: c.totalNegocios,
+          porCobrarCOP: Number(c.porCobrarCOP || 0),
+          porPagarCOP: Number(c.saldoPendienteCOP || 0),
+          totalIngresosCOP: Number(c.totalIngresosCOP || 0),
+          totalDispersadoCOP: Number(c.totalDispersadoCOP || 0),
+          totalNegocios: c.totalNegocios || 0,
           estado: c.estado,
         })),
       };
@@ -342,10 +360,11 @@ export const AiAssistantBubble: React.FC = () => {
           codigo: c.codigo,
           nombre: c.nombre,
           pais: c.pais,
-          totalNegocios: c.totalNegocios,
-          totalIngresosCOP: c.totalIngresosCOP,
-          totalDispersadoCOP: c.totalDispersadoCOP,
-          saldoPendienteCOP: c.saldoPendienteCOP,
+          totalNegocios: c.totalNegocios || 0,
+          totalIngresosCOP: Number(c.totalIngresosCOP || 0),
+          totalDispersadoCOP: Number(c.totalDispersadoCOP || 0),
+          porCobrarCOP: Number(c.porCobrarCOP || 0),
+          porPagarCOP: Number(c.saldoPendienteCOP || 0),
           estado: c.estado,
         })),
       };
@@ -583,12 +602,14 @@ export const AiAssistantBubble: React.FC = () => {
         recordsSummary: currentViewDetails.records,
         globalSnapshot: {
           clientes: (data.clientes || []).map((c) => ({
+            codigo: c.codigo,
             nombre: c.nombre,
-            ingresosCOP: c.totalIngresosCOP,
-            dispersadoCOP: c.totalDispersadoCOP,
-            saldoPendienteCOP: c.saldoPendienteCOP,
-            totalNegocios: c.totalNegocios,
-            estado: c.estado,
+            porCobrarCOP: Number(c.porCobrarCOP || 0),
+            porPagarCOP: Number(c.saldoPendienteCOP || 0),
+            ingresosCOP: Number(c.totalIngresosCOP || 0),
+            dispersadoCOP: Number(c.totalDispersadoCOP || 0),
+            totalNegocios: c.totalNegocios || 0,
+            estado: c.estado || 'SIN ACTIVIDAD',
           })),
           ultimosNegocios: (data.negocios || []).slice(0, 30).map((n) => ({
             cliente: n.clienteNombre,
@@ -669,23 +690,41 @@ export const AiAssistantBubble: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleOpenChat = () => {
+    setIsOpen(true);
+    const now = Date.now();
+    const sessionToUse = activeSession || (sessions.length > 0 ? sessions[0] : null);
+    const lastActivity = sessionToUse?.updatedAt || sessionToUse?.createdAt || 0;
+    const isExpired = !sessionToUse || (now - lastActivity > SIX_HOURS_MS);
+
+    if (isExpired) {
+      handleStartNewChat();
+    } else if (!currentSessionId && sessionToUse) {
+      setCurrentSessionId(sessionToUse.id);
+    }
+  };
+
   // Quick prompt presets
   const quickPrompts = [
     {
-      label: '💰 ¿A qué clientes le debo?',
-      query: '¿A qué clientes le debo dinero actualmente? Revisa los saldos pendientes y muéstrame la lista con los valores exactos.',
+      label: '🔴 ¿Quién nos debe? (Por cobrar)',
+      query: '¿Qué clientes le deben dinero a Kaupaloki actualmente (cartera por cobrar / saldo en contra)? Muéstrame el listado detallado con código, cliente y valor por cobrar.',
+    },
+    {
+      label: '🟢 ¿A quién le debemos? (Por pagar)',
+      query: '¿A qué clientes les debemos dinero (saldos pendientes por pagar a favor del cliente)?',
     },
     {
       label: '🏆 Cliente más rentable',
       query: '¿Cuál es el cliente que más ha facturado o que tiene mayor volumen de ingresos acumulado?',
     },
     {
-      label: '🔍 Detectar duplicados',
-      query: `Revisa minuciosamente los registros de esta pestaña ("${currentViewDetails.title}") y busca si hay registros duplicados o sospechosos (mismo cliente, monto idéntico en fecha cercana o referencias repetidas).`,
-    },
-    {
       label: '📊 Explicar Ganancia Esperada',
       query: 'Explícame paso a paso con la fórmula oficial de Kaupaloki cómo se calcula la Ganancia Esperada con los números actuales.',
+    },
+    {
+      label: '🔍 Detectar duplicados',
+      query: `Revisa minuciosamente los registros de esta pestaña ("${currentViewDetails.title}") y busca si hay registros duplicados o sospechosos (mismo cliente, monto idéntico en fecha cercana o referencias repetidas).`,
     },
   ];
 
@@ -695,12 +734,7 @@ export const AiAssistantBubble: React.FC = () => {
       <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50">
         {!isOpen && (
           <button
-            onClick={() => {
-              setIsOpen(true);
-              if (!activeSession) {
-                handleStartNewChat();
-              }
-            }}
+            onClick={handleOpenChat}
             className="group relative w-12 h-12 rounded-full bg-slate-900/95 hover:bg-slate-800 text-white flex items-center justify-center shadow-lg shadow-black/40 hover:shadow-emerald-500/25 hover:scale-105 active:scale-95 transition-all duration-200 border border-emerald-500/30 hover:border-emerald-400/70 backdrop-blur-md"
             title="Auditor Financiero IA"
             aria-label="Auditor Financiero IA"
