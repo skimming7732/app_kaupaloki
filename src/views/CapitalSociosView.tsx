@@ -329,7 +329,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
 function CapitalForm({ action, editMovement, initialPerson, people, movements, onClose, onSaved }: {
   action: Action; editMovement?: CapitalMovement; initialPerson: string; people: CapitalPerson[]; movements: CapitalMovement[]; onClose: () => void; onSaved: () => void;
 }) {
-  const { data } = useData();
+  const { data, metrics } = useData();
   const [id] = useState(() => editMovement?.id || crypto.randomUUID());
   const [personId, setPersonId] = useState(editMovement?.socio_id || initialPerson || people[0]?.id || '');
   const [kind, setKind] = useState<CapitalKind>(
@@ -342,6 +342,7 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const manualRate = metrics.rateUsdtCop || 3950;
   const person = people.find((row) => row.id === personId);
   const contracts = movements.filter((row) => row.socio_id === personId && row.tipo === 'CONTRATO' && row.id !== editMovement?.id);
   const needsAccount = !['DIVIDENDO', 'INTERES'].includes(kind) || (kind === 'INTERES' && payInterest);
@@ -375,7 +376,7 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
     const form = new FormData(event.currentTarget);
     const field = (name: string) => String(form.get(name) || '').trim();
     const amount = parseAmountInput(field('monto'));
-    const rate = needsAccount && method === 'USDT' ? parseAmountInput(field('tasa')) : null;
+    const rate = needsAccount && method === 'USDT' ? (kind === 'CONTRATO' ? manualRate : (parseAmountInput(field('tasa')) || manualRate)) : null;
     if (action === 'persona' && !editMovement ? !field('nombre')
       : !personId || !Number.isFinite(amount) || amount <= 0 || (rate !== null && (!Number.isFinite(rate) || rate <= 0))
         || (needsAccount && !accounts.some((item) => item.id === account)) || (needsContract && !contracts.some((item) => item.id === contract))) {
@@ -492,9 +493,23 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
               <input name="monto" inputMode="decimal" defaultValue={editMovement ? String(editMovement.monto) : ''} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
             </label>
           </div>
-          {needsAccount && method === 'USDT' && <label className={recordLabelClass}>Tasa del día (COP por USDT)
-            <input name="tasa" inputMode="decimal" defaultValue={editMovement?.tasa != null ? String(editMovement.tasa) : ''} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
-          </label>}
+          {needsAccount && method === 'USDT' && (
+            kind === 'CONTRATO' ? (
+              <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs flex items-center justify-between">
+                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                  <i className="ri-exchange-dollar-line text-blue-500 text-base" />
+                  <span>Tasa USDT / COP (manual de tesorería):</span>
+                </span>
+                <span className="font-mono font-bold text-foreground bg-background px-2.5 py-1 rounded-lg border border-border">
+                  ${formatRate(manualRate)} COP
+                </span>
+              </div>
+            ) : (
+              <label className={recordLabelClass}>Tasa del día (COP por USDT)
+                <input name="tasa" inputMode="decimal" defaultValue={editMovement?.tasa != null ? String(editMovement.tasa) : String(manualRate)} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
+              </label>
+            )
+          )}
           {kind === 'CONTRATO' && <label className={recordLabelClass}>Condiciones
             <textarea name="condiciones" defaultValue={editMovement?.condiciones || ''} placeholder="Tasa acordada, plazo y condiciones de retiro" maxLength={4000} rows={3} required className={recordFieldClass} />
           </label>}
