@@ -7,6 +7,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useData, type NormalizedData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatCOP, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
@@ -21,8 +22,11 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   onOpenAddGasto,
 }) => {
   const { data } = useData();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [isAddMovOpen, setIsAddMovOpen] = useState(false);
   const [isAddGastoOpen, setIsAddGastoOpen] = useState(false);
+  const [editingMovimiento, setEditingMovimiento] = useState<NormalizedData['efectivo'][number] | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -191,17 +195,18 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <th className="py-3 px-4">Institución</th>
                 <th className="py-3 px-4">Referencia / Detalle</th>
                 <CreatedByHeader />
+                <th className="py-3 px-4 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredMovimientos.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     No hay movimientos de efectivo que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={8} rows={filteredMovimientos}>{(m) => (
+                <PaginatedRows columns={9} rows={filteredMovimientos}>{(m) => (
                   <tr key={m.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{m.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(m.fecha)}</td>
@@ -234,6 +239,17 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{m.referencia || '—'}</td>
                     <CreatedByCell name={m.createdByName} />
+                    <td className="py-2.5 px-4 text-center whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => setEditingMovimiento(m)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                        title={isAdmin ? 'Editar o eliminar movimiento' : 'Editar movimiento'}
+                      >
+                        <i className="ri-edit-line text-xs" />
+                        <span>Editar</span>
+                      </button>
+                    </td>
                   </tr>
                 )}</PaginatedRows>
               )}
@@ -244,8 +260,12 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
       {/* Modals */}
       <AddEfectivoModal
-        isOpen={isAddMovOpen}
-        onClose={() => setIsAddMovOpen(false)}
+        isOpen={isAddMovOpen || Boolean(editingMovimiento)}
+        record={editingMovimiento}
+        onClose={() => {
+          setIsAddMovOpen(false);
+          setEditingMovimiento(null);
+        }}
       />
       <AddGastoModal
         isOpen={isAddGastoOpen}

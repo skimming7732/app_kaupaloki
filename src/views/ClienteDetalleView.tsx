@@ -45,6 +45,7 @@ export const ClienteDetalleView: React.FC = () => {
   const [isAddDispersionOpen, setIsAddDispersionOpen] = useState(false);
   const [editingDispersion, setEditingDispersion] = useState<NormalizedData['dispersiones'][number] | undefined>(undefined);
   const [isAddEfectivoOpen, setIsAddEfectivoOpen] = useState(false);
+  const [editingEfectivo, setEditingEfectivo] = useState<NormalizedData['efectivo'][number] | undefined>(undefined);
 
   // Lightbox for receipts
   const [lightboxState, setLightboxState] = useState<{ isOpen: boolean; index: number; items: LightboxItem[] }>({
@@ -829,12 +830,13 @@ export const ClienteDetalleView: React.FC = () => {
                     <th className="py-3 px-4">Caja / Origen</th>
                     <th className="py-3 px-4">Concepto / Detalle</th>
                     <CreatedByHeader />
+                    <th className="py-3 px-4 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {clientEfectivo.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                      <td colSpan={8} className="py-12 text-center text-muted-foreground">
                         No hay movimientos de efectivo vinculados a este cliente.
                       </td>
                     </tr>
@@ -866,6 +868,20 @@ export const ClienteDetalleView: React.FC = () => {
                           {e.referencia || 'Movimiento de efectivo'}
                         </td>
                         <CreatedByCell name={e.createdByName} createdBy={e.createdBy} createdAt={e.createdAtAudit} />
+                        <td className="py-2.5 px-4 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingEfectivo(e);
+                              setIsAddEfectivoOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                            title={isAdmin ? 'Editar o eliminar movimiento' : 'Editar movimiento'}
+                          >
+                            <i className="ri-edit-line text-xs" />
+                            <span>Editar</span>
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -1144,12 +1160,16 @@ export const ClienteDetalleView: React.FC = () => {
         />
       )}
 
-      {/* Add Efectivo Modal */}
+      {/* Add / Edit Efectivo Modal */}
       {isAddEfectivoOpen && (
         <AddEfectivoModal
           isOpen={isAddEfectivoOpen}
+          record={editingEfectivo}
           initialClienteId={cliente.id}
-          onClose={() => setIsAddEfectivoOpen(false)}
+          onClose={() => {
+            setIsAddEfectivoOpen(false);
+            setEditingEfectivo(undefined);
+          }}
         />
       )}
     </div>

@@ -297,6 +297,8 @@ interface DataContextType {
   updateDispersion: (payload: any) => Promise<boolean>;
   updateGasto: (payload: any) => Promise<boolean>;
   createMovimientoEfectivo: (payload: any) => Promise<boolean>;
+  updateMovimientoEfectivo: (payload: any) => Promise<boolean>;
+  deleteMovimientoEfectivo: (id: string) => Promise<boolean>;
   createGasto: (payload: any) => Promise<boolean>;
   createCliente: (nombre: string, pais?: string, authorId?: string) => Promise<any>;
   updateCliente: (payload: { id: string; nombre?: string; pais?: string; authorId?: string }) => Promise<boolean>;
@@ -1477,6 +1479,56 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateMovimientoEfectivo = async (payload: any): Promise<boolean> => {
+    try {
+      const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
+      const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
+      const montoNum = Number(payload.montoCop ?? payload.monto ?? payload['Monto'] ?? 0);
+      const tipoStr = String(payload.tipo || payload['Tipo'] || 'PAGO').toUpperCase();
+      const referencia = String(payload.referencia ?? payload['Referencia'] ?? '').trim();
+      if (!referencia) throw new Error('Ingresa una referencia o PIN.');
+
+      const updateData: any = {
+        fecha: payload.fecha || payload['Fecha'],
+        tipo: tipoStr,
+        cliente_id: clientObj?.id || clientRaw || null,
+        cliente_codigo: clientObj?.codigo || null,
+        cliente_nombre: clientObj?.nombre || (tipoStr === 'INGRESO' ? 'Ingreso a Caja' : 'Movimiento Interno'),
+        monto: montoNum,
+        origen_fondos: payload.origenFondos || 'EFECTIVO-CAJA',
+        origen_fondos_id: payload.origenFondosId || null,
+        referencia,
+      };
+
+      const targetId = String(payload.id).startsWith('caja:')
+        ? (data.efectivo.find((e) => e.codigo === payload.codigo)?.id || payload.id)
+        : payload.id;
+
+      const { error } = await supabase.from('efectivo').update(updateData).eq('id', targetId);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error('Error updating efectivo in Supabase:', err);
+      throw dashboardWriteError(err, 'No se pudo actualizar el movimiento de efectivo.');
+    }
+  };
+
+  const deleteMovimientoEfectivo = async (id: string): Promise<boolean> => {
+    try {
+      const targetId = id.startsWith('caja:')
+        ? (data.efectivo.find((e) => e.codigo === id.replace('caja:', ''))?.id || id)
+        : id;
+      const { error } = await supabase.from('efectivo').delete().eq('id', targetId);
+      if (error) throw error;
+      await fetchFromSupabase();
+      return true;
+    } catch (err) {
+      console.error('Error deleting efectivo in Supabase:', err);
+      throw dashboardWriteError(err, 'No se pudo eliminar el movimiento de efectivo.');
+    }
+  };
+
   const createGasto = async (payload: any): Promise<boolean> => {
     try {
       const montoNum = Number(payload.monto || payload['Monto'] || 0);
@@ -1885,6 +1937,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateDispersion,
         updateGasto,
         createMovimientoEfectivo,
+        updateMovimientoEfectivo,
+        deleteMovimientoEfectivo,
         createGasto,
         createCliente,
         updateCliente,
