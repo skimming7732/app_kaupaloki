@@ -105,28 +105,14 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setMovementMode('pago')} className={recordButtonClass}>
-            <i className="ri-arrow-up-circle-line" aria-hidden="true" /> Pagar a cliente
+            <i className="ri-arrow-up-circle-line" aria-hidden="true" /> Pago en efectivo
           </button>
           <button type="button" onClick={() => setMovementMode('ingreso')} className={secondaryAction}>
             <i className="ri-arrow-down-circle-line" aria-hidden="true" /> Ingreso a caja
           </button>
-          <details className="relative">
-            <summary className={secondaryAction + ' cursor-pointer list-none'}>
-              <i className="ri-add-line" aria-hidden="true" /> Registrar movimiento
-              <i className="ri-arrow-down-s-line" aria-hidden="true" />
-            </summary>
-            <div className="absolute right-0 z-20 mt-1 grid min-w-48 rounded-xl border border-border bg-card p-1 shadow-md">
-              <button type="button" className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={(event) => {
-                event.currentTarget.closest('details')?.removeAttribute('open');
-                setMovementMode('movimiento');
-              }}>Movimiento de caja</button>
-              <button type="button" className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={(event) => {
-                event.currentTarget.closest('details')?.removeAttribute('open');
-                if (onOpenAddGasto) onOpenAddGasto();
-                else setIsAddGastoOpen(true);
-              }}>Registrar gasto</button>
-            </div>
-          </details>
+          <button type="button" onClick={onOpenAddGasto ?? (() => setIsAddGastoOpen(true))} className={secondaryAction}>
+            <i className="ri-receipt-line" aria-hidden="true" /> Registrar gasto
+          </button>
         </div>
       </div>
 
@@ -263,7 +249,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       {/* Modals */}
       <AddEfectivoModal
         isOpen={Boolean(movementMode || editingMovimiento)}
-        mode={movementMode ?? (editingMovimiento?.tipo === 'Pago' && !editingMovimiento.clienteId && !editingMovimiento.clienteCodigo ? 'movimiento' : undefined)}
+        mode={movementMode ?? (editingMovimiento?.tipo === 'Pago' ? 'pago' : 'ingreso')}
         commissionEnabled
         record={editingMovimiento}
         onClose={() => {

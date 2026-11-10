@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { dashboardWriteError, writeDashboardRecord } from '../utils/dashboardWrites';
-import { compareChronologicalAsc, compareChronologicalDesc } from '../utils/formatters';
+import { compareChronologicalAsc, compareChronologicalDesc, formatCOP } from '../utils/formatters';
 
 const createCode = (prefix: string, id: string) => prefix + '-' + id.replaceAll('-', '').slice(0, 12).toUpperCase();
 
@@ -1031,7 +1031,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
 
     // Combine stored movements and transactions linked to this specific account.
-    type LinkedMovement = CreationAudit & { fecha: string; origen: string; concepto: string; monto: number; tercero?: string };
+    type LinkedMovement = CreationAudit & { fecha: string; origen: string; concepto: string; monto: number; tercero?: string; replaceConcept?: boolean };
     const mergeMovements = (account: any, linked: LinkedMovement[], excludedOrigins: Set<string>) => {
       // Imported statements are newest first, including entries on the same day.
       const existing = Array.isArray(account.movimientos)
@@ -1044,6 +1044,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           existing[index] = {
             ...existing[index],
             monto: movement.monto,
+            concepto: movement.replaceConcept ? movement.concepto : existing[index].concepto,
             createdBy: existing[index].createdBy ?? movement.createdBy,
             createdByName: existing[index].createdByName ?? movement.createdByName,
             createdAtAudit: existing[index].createdAtAudit ?? movement.createdAtAudit,
@@ -1093,7 +1094,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...gastos.filter((g) => g.divisa === 'COP' && matchesAccount(g, account))
           .map((g) => movement(g, 'Gasto: ' + g.concepto, -Math.abs(g.monto))),
         ...efectivo.filter((e) => matchesAccount(e, account))
-          .map((e) => movement(e, e.tipo + ' de efectivo', (e.tipo || '').trim().toUpperCase() === 'INGRESO' ? e.monto : -(e.monto - e.comisionCop))),
+          .map((e) => {
+            if (e.tipo === 'Ingreso') return movement(e, 'Ingreso de efectivo', e.monto);
+            const clientName = e.clienteId || e.clienteCodigo ? e.clienteNombre : '';
+            const client = clientName ? ' a ' + clientName : '';
+            const fee = clientName || e.comisionCop ? ' + Comisión ' + formatCOP(e.comisionCop) : '';
+            return { ...movement(e, 'Pago en efectivo' + client + fee, -(e.monto - e.comisionCop)), replaceConcept: true };
+          }),
         ...dispersiones.filter((d) => d.origenFondosId === account.id && d.estado.trim().toUpperCase() !== 'RECHAZADO')
           .flatMap((d) => [
             movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto),

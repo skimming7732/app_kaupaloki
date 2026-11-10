@@ -38,7 +38,6 @@ import { TransferenciasInternasView } from './views/TransferenciasInternasView';
 import { AddNegocioModal } from './components/modals/AddNegocioModal';
 import { AddClienteModal } from './components/modals/AddClienteModal';
 import { AddDispersionModal } from './components/modals/AddDispersionModal';
-import { AddEfectivoModal } from './components/modals/AddEfectivoModal';
 import { AddGastoModal } from './components/modals/AddGastoModal';
 import { AddUserModal } from './components/modals/AddUserModal';
 import { AiAssistantBubble } from './components/ai/AiAssistantBubble';
@@ -146,7 +145,6 @@ const AppLayout: React.FC<{
       <AddNegocioModal isOpen={activeModal === 'add-negocio'} onClose={() => setActiveModal(null)} />
       <AddClienteModal isOpen={activeModal === 'add-cliente'} onClose={() => setActiveModal(null)} />
       <AddDispersionModal isOpen={activeModal === 'add-dispersion'} onClose={() => setActiveModal(null)} />
-      <AddEfectivoModal isOpen={activeModal === 'add-efectivo'} onClose={() => setActiveModal(null)} />
       <AddGastoModal isOpen={activeModal === 'add-gasto' || activeModal === 'add-gasto-efectivo'} isCashContext={activeModal === 'add-gasto-efectivo'} onClose={() => setActiveModal(null)} />
       <AddUserModal isOpen={activeModal === 'add-user'} onClose={() => setActiveModal(null)} />
 

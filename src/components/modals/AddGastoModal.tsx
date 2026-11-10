@@ -133,23 +133,24 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
               <input type="text" inputMode="decimal" name="monto" defaultValue={record ? formatAmountInput(String(record.monto)) : undefined} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
             </label>
           </div>
-          {!isCashContext ? (
+          {!isCashContext && (
             <AccountSelect label={divisa === 'COP' ? 'Cuenta de origen' : 'Billetera de origen'} accounts={accounts} value={accountId || accounts.find((item) => accountLabel(item) === record?.origenFondos)?.id || ''} onChange={setAccountId} />
-          ) : (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 flex items-center justify-between text-xs">
-              <span className="font-semibold text-foreground flex items-center gap-2">
-                <i className="ri-safe-2-line text-emerald-500 text-base" />
-                <span>Origen de fondos: <strong>Efectivo (Caja)</strong></span>
-              </span>
-              <span className="font-mono text-muted-foreground text-[11px] px-2 py-0.5 rounded bg-muted border border-border">
-                {cashAccount ? accountLabel(cashAccount) : 'EFECTIVO-CAJA'}
-              </span>
-            </div>
           )}
-          <label className={recordLabelClass}>
-            <span>Fecha</span>
-            <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || todayBogota()} className={recordFieldClass} />
-          </label>
+          <div className={isCashContext ? 'grid grid-cols-2 items-start gap-3' : undefined}>
+            <label className={recordLabelClass + ' min-w-0'}>
+              <span>Fecha</span>
+              <input type="date" name="fecha" required defaultValue={record?.fecha?.slice(0, 10) || todayBogota()} className={recordFieldClass} />
+            </label>
+            {isCashContext && (
+              <div className="min-w-0 space-y-1.5">
+                <span className={recordLabelClass}>Cuenta de caja</span>
+                <div className="flex min-h-11 items-center gap-2 rounded-xl border border-input bg-muted/40 px-2.5 py-2 text-sm font-medium">
+                  <i className="ri-safe-2-line shrink-0 text-primary" aria-hidden="true" />
+                  <span className="break-words">Efectivo (Caja)</span>
+                </div>
+              </div>
+            )}
+          </div>
           {!record && <ReceiptInput />}
         </fieldset>
         <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar gasto"} onClose={onClose} onDelete={record && isAdmin ? handleDelete : undefined} deleteLabel="Eliminar gasto" />
