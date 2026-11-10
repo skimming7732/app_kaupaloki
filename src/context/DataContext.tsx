@@ -1243,7 +1243,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!clientObj || !divisaObj) throw new Error('Selecciona un cliente y una divisa válidos.');
 
       const montoDiv = Number(payload['Monto Divisa'] || payload.monto || payload.montoDivisa || 0);
-      const tasaNum = Number(payload['Tasa Cambio'] || payload.tasa || payload.tasaCambio || 0);
+      const rate = payload['Tasa Cambio'] ?? payload.tasa ?? payload.tasaCambio;
+      const tasaNum = rate == null || String(rate).trim() === '' ? NaN : Number(rate);
+      if (!Number.isFinite(tasaNum) || tasaNum < 0) throw new Error('Ingresa una tasa válida.');
       const { error } = await supabase.rpc('crear_negocio_dashboard', {
         p_id: crypto.randomUUID(),
         p_cliente_id: clientObj.id,

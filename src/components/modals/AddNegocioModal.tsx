@@ -95,8 +95,8 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
     ? (Number.isFinite(parsedTasa) && parsedTasa > 0 ? parsedFinal / parsedTasa : NaN)
     : parseAmountInput(monto);
   const ingresoCOP = parsedMonto * parsedTasa;
-  const canSubmit = Boolean(clienteId && selectedCurrency && fecha &&
-    parsedMonto > 0 && parsedTasa > 0 && Number.isFinite(ingresoCOP));
+  const validQuote = parsedMonto > 0 && parsedTasa >= 0 && Number.isFinite(ingresoCOP);
+  const canSubmit = Boolean(clienteId && selectedCurrency && fecha && validQuote);
 
   const changeAmountMode = (mode: AmountMode) => {
     if (mode === amountMode) return;
@@ -328,8 +328,10 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
             <div>
               <label htmlFor={id + '-rate'} className={labelClass}>Tasa de cambio en COP</label>
               <input id={id + '-rate'} type="text" inputMode="decimal" required value={tasa} onChange={(event) => { const rate = formatAmountField(event.currentTarget); if (rate !== undefined) setTasa(rate); }} placeholder="Ej. 3,950.0000" className={fieldClass} />
-              {fromFinal && parsedTasa === 0 && (
-                <p className="mt-1 text-xs text-destructive">Usa una tasa mayor que cero para calcular el monto inicial.</p>
+              {parsedTasa === 0 && (
+                <p className={`mt-1 text-xs ${fromFinal ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {fromFinal ? 'Con tasa cero, selecciona Monto inicial.' : 'El ingreso será $0 COP.'}
+                </p>
               )}
             </div>
           </div>
@@ -339,7 +341,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
             <output htmlFor={id + '-amount ' + id + '-rate'} className="font-mono text-lg font-bold tabular-nums text-primary">
               {fromFinal
                 ? (Number.isFinite(parsedMonto) ? formatNumber(parsedMonto, 0, 12) + (divisaCode ? ' ' + divisaCode : '') : '—')
-                : formatCOP(ingresoCOP)}
+                : (validQuote ? formatCOP(ingresoCOP) : '—')}
             </output>
           </div>
 
