@@ -187,6 +187,7 @@ export interface NormalizedData {
     clienteCodigo?: string;
     clienteNombre: string;
     monto: number;
+    comisionCop?: number;
     origenFondos: string;
     referencia?: string;
     raw: any;
@@ -560,6 +561,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clienteCodigo: e.cliente_codigo,
         clienteNombre: e.cliente_nombre,
         monto: Number(e.monto || 0),
+        comisionCop: Number(e.comision_cop ?? 0),
         origenFondos: e.origen_fondos,
         origenFondosId: e.origen_fondos_id,
         referencia: e.referencia,
@@ -866,6 +868,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clienteCodigo,
         clienteNombre: clienteNombre || (isIngreso ? 'Ingreso de Caja' : 'Movimiento Interno'),
         monto,
+        comisionCop: Number(e.comisionCop ?? 0),
         origenFondos: e.origenFondosNombre || e.origenFondos || 'Sin especificar',
         origenFondosId: e.origenFondosId,
         referencia: e.referencia || '',
@@ -1090,7 +1093,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...gastos.filter((g) => g.divisa === 'COP' && matchesAccount(g, account))
           .map((g) => movement(g, 'Gasto: ' + g.concepto, -Math.abs(g.monto))),
         ...efectivo.filter((e) => matchesAccount(e, account))
-          .map((e) => movement(e, e.tipo + ' de efectivo', (e.tipo || '').trim().toUpperCase() === 'INGRESO' ? e.monto : -e.monto)),
+          .map((e) => movement(e, e.tipo + ' de efectivo', (e.tipo || '').trim().toUpperCase() === 'INGRESO' ? e.monto : -(e.monto - e.comisionCop))),
         ...dispersiones.filter((d) => d.origenFondosId === account.id && d.estado.trim().toUpperCase() !== 'RECHAZADO')
           .flatMap((d) => [
             movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto),
@@ -1459,6 +1462,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cliente_codigo: clientObj?.codigo || null,
         cliente_nombre: clientObj?.nombre || (tipoStr === 'INGRESO' ? 'Ingreso a Caja' : 'Movimiento Interno'),
         monto: montoNum,
+        comision_cop: Number(payload.comisionCop ?? 0),
         origen_fondos: payload.origenFondos || 'EFECTIVO-CAJA',
         origen_fondos_id: payload.origenFondosId || null,
         referencia,
@@ -1497,6 +1501,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cliente_codigo: clientObj?.codigo || null,
         cliente_nombre: clientObj?.nombre || (tipoStr === 'INGRESO' ? 'Ingreso a Caja' : 'Movimiento Interno'),
         monto: montoNum,
+        comision_cop: Number(payload.comisionCop ?? 0),
         origen_fondos: payload.origenFondos || 'EFECTIVO-CAJA',
         origen_fondos_id: payload.origenFondosId || null,
         referencia,

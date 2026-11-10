@@ -8,30 +8,36 @@ import { ClientSearchSelect } from '../common/ClientSearchSelect';
 import { accountLabel } from './AccountSelect';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
 
+export type EfectivoMode = 'pago' | 'ingreso' | 'movimiento';
+
 interface AddEfectivoModalProps {
+  mode?: EfectivoMode;
+  commissionEnabled?: boolean;
   isOpen: boolean;
   record?: NormalizedData['efectivo'][number] | null;
   initialClienteId?: string;
   onClose: () => void;
 }
 
-export const AddEfectivoModal = ({ isOpen, record, initialClienteId, onClose }: AddEfectivoModalProps) =>
+export const AddEfectivoModal = ({ isOpen, record, initialClienteId, mode, commissionEnabled, onClose }: AddEfectivoModalProps) =>
   isOpen ? (
     <EfectivoForm
-      key={record?.id || initialClienteId || 'new'}
+      key={record?.id || initialClienteId || mode || 'new'}
+      mode={mode}
+      commissionEnabled={commissionEnabled}
       record={record}
       initialClienteId={initialClienteId}
       onClose={onClose}
     />
   ) : null;
 
-const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoModalProps, 'isOpen'>) => {
+const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClose }: Omit<AddEfectivoModalProps, 'isOpen'>) => {
   const { data, createMovimientoEfectivo, updateMovimientoEfectivo, deleteMovimientoEfectivo, createCliente } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const id = useId();
 
-  const initialTipo = record?.tipo?.toUpperCase() === 'INGRESO' ? 'Ingreso' : 'Pago';
+  const initialTipo = mode === 'ingreso' || record?.tipo?.toUpperCase() === 'INGRESO' ? 'Ingreso' : 'Pago';
   const [tipo, setTipo] = useState<'Ingreso' | 'Pago'>(initialTipo);
   const [clienteId, setClienteId] = useState(() => {
     if (record?.clienteId) return record.clienteId;
@@ -45,6 +51,9 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
   });
   const [fecha, setFecha] = useState(() => (record?.fecha ? record.fecha.slice(0, 10) : todayBogota()));
   const [monto, setMonto] = useState(() => (record ? formatAmountInput(String(record.monto)) : ''));
+  const [amountBasis, setAmountBasis] = useState<'total' | 'entrega'>('total');
+  const [feeType, setFeeType] = useState<'ninguna' | 'porcentaje' | 'fija'>(record?.comisionCop ? 'fija' : 'ninguna');
+  const [feeInput, setFeeInput] = useState(() => record?.comisionCop ? formatAmountInput(String(record.comisionCop)) : '');
   const [referencia, setReferencia] = useState(record?.referencia || '');
   const [name, setName] = useState('');
   const [addingClient, setAddingClient] = useState(false);
@@ -56,6 +65,22 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
       account.activo?.trim().toUpperCase() === 'EFECTIVO-CAJA' &&
       (account.divisa || 'COP').toUpperCase() === 'COP'
   );
+
+  const isClientPayment = tipo === 'Pago' && mode !== 'movimiento';
+  const showFee = isClientPayment && (mode === 'pago' || commissionEnabled || Boolean(record?.comisionCop));
+  const client = data.clientes.find((item) => item.id === clienteId);
+  const baseCents = Math.round(parseAmountInput(monto) * 100);
+  const feeValue = showFee && feeType !== 'ninguna' ? parseAmountInput(feeInput) : 0;
+  const feeCents = feeType === 'porcentaje' ? Math.round(baseCents * feeValue / 100) : Math.round(feeValue * 100);
+  const totalCents = baseCents + (showFee && amountBasis === 'entrega' ? feeCents : 0);
+  const cashCents = totalCents - feeCents;
+  const validAmount = Number.isSafeInteger(totalCents) && Number.isSafeInteger(cashCents)
+    && cashCents > 0 && feeCents >= 0;
+  const sameClient = record?.clienteId === clienteId || (record?.clienteCodigo && record.clienteCodigo === client?.codigo);
+  const previousEffect = record && sameClient ? record.monto * (record.tipo === 'Pago' ? 1 : -1) : 0;
+  const pending = client ? client.saldoPendienteCOP - client.porCobrarCOP + previousEffect : 0;
+  const excess = showFee && client && validAmount ? totalCents / 100 - Math.max(0, pending) : 0;
+  const overpayment = excess >= 0.005;
 
   const back = () => {
     setAddingClient(false);
@@ -110,7 +135,6 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy) return;
-    const montoCop = parseAmountInput(monto);
     const cleanReferencia = referencia.trim();
     if (!cleanReferencia) {
       setError('Ingresa una referencia o PIN.');
@@ -120,10 +144,15 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
       setError('La cuenta EFECTIVO-CAJA no está disponible.');
       return;
     }
-    if ((tipo === 'Pago' && !clienteId) || !Number.isFinite(montoCop) || montoCop <= 0) {
-      setError('Completa el cliente si es un pago e ingresa un monto mayor que cero.');
+    if (isClientPayment && !clienteId) {
+      setError('Selecciona el cliente que recibirá el pago.');
       return;
     }
+    if (!validAmount) {
+      setError('Ingresa un monto válido y una comisión que deje efectivo por entregar.');
+      return;
+    }
+    if (overpayment && !window.confirm(`El total supera el saldo pendiente en ${formatCOP(excess)}. ¿Confirmas el pago?`)) return;
 
     setBusy(true);
     setError('');
@@ -132,8 +161,9 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
       const payload = {
         ...(record ? { id: record.id, codigo: record.codigo } : {}),
         tipo,
-        montoCop,
-        clienteId,
+        montoCop: totalCents / 100,
+        comisionCop: feeCents / 100,
+        clienteId: mode === 'movimiento' ? '' : clienteId,
         origenFondosId: cashAccount.id,
         origenFondos: accountLabel(cashAccount),
         fecha,
@@ -168,6 +198,8 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
           ? 'Agregar cliente'
           : record
           ? 'Editar movimiento de efectivo'
+          : mode === 'pago' ? 'Pagar a cliente'
+          : mode === 'ingreso' ? 'Ingreso a caja'
           : 'Registrar movimiento de efectivo'
       }
       description={
@@ -175,7 +207,8 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
           ? 'El cliente quedará asignado al movimiento.'
           : record
           ? `Modifica los datos del movimiento ${record.codigo || ''}`
-          : 'Registra un ingreso o un pago en la caja de efectivo.'
+          : mode === 'pago' ? 'Revisa el efectivo a entregar y el total que se aplicará al saldo del cliente.'
+          : 'Registra el movimiento de la caja de efectivo.'
       }
       icon={
         addingClient
@@ -213,14 +246,14 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
       <form hidden={addingClient} onSubmit={submit} className="space-y-4">
         <fieldset disabled={busy || addingClient} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <fieldset className="space-y-1.5 sm:col-span-2">
+            {mode !== 'pago' && mode !== 'ingreso' && <fieldset className="space-y-1.5 sm:col-span-2">
               <legend className="text-sm font-medium">Tipo de movimiento</legend>
               <div className="grid grid-cols-2 gap-2">
                 {(
                   [
                     {
                       value: 'Pago',
-                      label: 'Pago a cliente',
+                      label: mode === 'movimiento' ? 'Salida de caja' : 'Pago a cliente',
                       detail: 'Salida',
                       icon: 'ri-arrow-up-circle-line',
                     },
@@ -249,7 +282,7 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
                   </label>
                 ))}
               </div>
-            </fieldset>
+            </fieldset>}
             <label className={recordLabelClass}>
               <span>Fecha</span>
               <input
@@ -262,15 +295,15 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
               />
             </label>
           </div>
-          <div className="space-y-1.5">
+          {mode !== 'movimiento' && <div className="space-y-1.5">
             <label htmlFor={id} className={recordLabelClass}>
-              Cliente {tipo === 'Ingreso' && '(opcional)'}
+              Cliente {!isClientPayment && '(opcional)'}
             </label>
             <ClientSearchSelect
               id={id}
               value={clienteId}
               onChange={setClienteId}
-              required={tipo === 'Pago'}
+              required={isClientPayment}
               inputClassName="min-h-11"
               onAddNewClient={(query) => {
                 setName(clienteId ? '' : (query || '').trim().toUpperCase());
@@ -278,7 +311,10 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
                 setAddingClient(true);
               }}
             />
-          </div>
+            {showFee && client && (
+              <p className="text-sm text-muted-foreground">Saldo pendiente <strong className="text-foreground">{formatCOP(Math.max(0, pending))}</strong></p>
+            )}
+          </div>}
           <div className="space-y-1.5">
             <p className={recordLabelClass}>Cuenta de caja</p>
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs">
@@ -294,8 +330,17 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
               <p className="text-xs text-destructive">La cuenta EFECTIVO-CAJA no está disponible.</p>
             )}
           </div>
+          {showFee && (
+            <label className={recordLabelClass}>
+              <span>Monto que quieres fijar</span>
+              <select value={amountBasis} onChange={(event) => setAmountBasis(event.currentTarget.value as typeof amountBasis)} className={recordFieldClass}>
+                <option value="total">Total a descontar</option>
+                <option value="entrega">Efectivo a entregar</option>
+              </select>
+            </label>
+          )}
           <label className={recordLabelClass}>
-            <span>Monto (COP)</span>
+            <span>{showFee ? amountBasis === 'total' ? 'Total a descontar (COP)' : 'Efectivo a entregar (COP)' : 'Monto (COP)'}</span>
             <input
               name="monto"
               type="text"
@@ -311,6 +356,51 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
               className={recordFieldClass}
             />
           </label>
+          {showFee && (
+            <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className={recordLabelClass}>
+                  <span>Comisión</span>
+                  <select value={feeType} onChange={(event) => {
+                    setFeeType(event.currentTarget.value as typeof feeType);
+                    setFeeInput('');
+                  }} className={recordFieldClass}>
+                    <option value="ninguna">Sin comisión</option>
+                    <option value="porcentaje">Porcentaje</option>
+                    <option value="fija">Valor fijo</option>
+                  </select>
+                </label>
+                {feeType !== 'ninguna' && (
+                  <label className={recordLabelClass}>
+                    <span>{feeType === 'fija' ? 'Comisión (COP)' : 'Porcentaje sobre el monto ingresado'}</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      value={feeInput}
+                      onChange={(event) => {
+                        const formatted = formatAmountField(event.currentTarget);
+                        if (formatted !== undefined) setFeeInput(formatted);
+                      }}
+                      className={recordFieldClass}
+                    />
+                  </label>
+                )}
+              </div>
+              {validAmount && (
+                <dl className="space-y-2 rounded-xl border border-border bg-muted/30 p-3 text-sm tabular-nums">
+                  <div className="flex justify-between gap-2"><dt>Efectivo a entregar</dt><dd>{formatCOP(cashCents / 100)}</dd></div>
+                  <div className="flex justify-between gap-2"><dt>Comisión</dt><dd>{formatCOP(feeCents / 100)}</dd></div>
+                  <div className="flex justify-between gap-2 border-t border-border pt-2 font-semibold"><dt>Total a descontar</dt><dd>{formatCOP(totalCents / 100)}</dd></div>
+                </dl>
+              )}
+            </div>
+          )}
+          {overpayment && (
+            <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-foreground">
+              Este pago supera el saldo pendiente en <strong>{formatCOP(excess)}</strong>. Puedes confirmar el excedente al guardar.
+            </p>
+          )}
           <label className={recordLabelClass}>
             <span>Referencia o PIN</span>
             <input
@@ -325,7 +415,7 @@ const EfectivoForm = ({ record, initialClienteId, onClose }: Omit<AddEfectivoMod
         <RecordActions
           busy={busy}
           submitDisabled={!cashAccount}
-          label={record ? 'Guardar cambios' : tipo === 'Pago' ? 'Registrar pago' : 'Registrar ingreso'}
+          label={record ? 'Guardar cambios' : isClientPayment ? 'Registrar pago' : tipo === 'Ingreso' ? 'Registrar ingreso' : 'Registrar salida'}
           onClose={onClose}
           onDelete={record && isAdmin ? handleDelete : undefined}
           deleteLabel="Eliminar movimiento"

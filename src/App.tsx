@@ -246,7 +246,6 @@ export const App: React.FC = () => {
               path="/efectivo"
               element={renderWithLayout(
                 <EfectivoView
-                  onOpenAddMovimiento={() => setActiveModal('add-efectivo')}
                   onOpenAddGasto={() => setActiveModal('add-gasto-efectivo')}
                 />,
                 ['super_admin', 'administrador']

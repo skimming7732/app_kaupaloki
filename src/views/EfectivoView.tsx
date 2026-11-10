@@ -9,22 +9,20 @@ import React, { useState, useMemo } from 'react';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatCOP, formatDate, compareChronologicalDesc } from '../utils/formatters';
-import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
+import { AddEfectivoModal, type EfectivoMode } from '../components/modals/AddEfectivoModal';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
 
 interface EfectivoViewProps {
-  onOpenAddMovimiento?: () => void;
   onOpenAddGasto?: () => void;
 }
 
 export const EfectivoView: React.FC<EfectivoViewProps> = ({
-  onOpenAddMovimiento,
   onOpenAddGasto,
 }) => {
   const { data } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
-  const [isAddMovOpen, setIsAddMovOpen] = useState(false);
+  const [movementMode, setMovementMode] = useState<EfectivoMode | null>(null);
   const [isAddGastoOpen, setIsAddGastoOpen] = useState(false);
   const [editingMovimiento, setEditingMovimiento] = useState<NormalizedData['efectivo'][number] | null>(null);
 
@@ -106,22 +104,29 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
           <p className="text-xs text-muted-foreground">Entradas y salidas de caja</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={onOpenAddMovimiento ? onOpenAddMovimiento : () => setIsAddMovOpen(true)}
-            type="button"
-            className={recordButtonClass}
-          >
-            <i className="ri-add-line text-sm" />
-            <span>Registrar Movimiento</span>
+          <button type="button" onClick={() => setMovementMode('pago')} className={recordButtonClass}>
+            <i className="ri-arrow-up-circle-line" aria-hidden="true" /> Pagar a cliente
           </button>
-          <button
-            onClick={onOpenAddGasto ? onOpenAddGasto : () => setIsAddGastoOpen(true)}
-            type="button"
-            className={secondaryAction}
-          >
-            <i className="ri-receipt-line text-sm" />
-            <span>Registrar Gasto</span>
+          <button type="button" onClick={() => setMovementMode('ingreso')} className={secondaryAction}>
+            <i className="ri-arrow-down-circle-line" aria-hidden="true" /> Ingreso a caja
           </button>
+          <details className="relative">
+            <summary className={secondaryAction + ' cursor-pointer list-none'}>
+              <i className="ri-add-line" aria-hidden="true" /> Registrar movimiento
+              <i className="ri-arrow-down-s-line" aria-hidden="true" />
+            </summary>
+            <div className="absolute right-0 z-20 mt-1 grid min-w-48 rounded-xl border border-border bg-card p-1 shadow-md">
+              <button type="button" className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={(event) => {
+                event.currentTarget.closest('details')?.removeAttribute('open');
+                setMovementMode('movimiento');
+              }}>Movimiento de caja</button>
+              <button type="button" className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted" onClick={(event) => {
+                event.currentTarget.closest('details')?.removeAttribute('open');
+                if (onOpenAddGasto) onOpenAddGasto();
+                else setIsAddGastoOpen(true);
+              }}>Registrar gasto</button>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -177,8 +182,9 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       <KpiStrip metrics={([
         ['Movimientos', filteredMovimientos.length],
         ['Entradas COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Ingreso' ? m.monto : 0))],
-        ['Salidas COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Pago' ? m.monto : 0))],
-        ['Neto COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Ingreso' ? m.monto : -m.monto))],
+        ['Salidas COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Pago' ? m.monto - (m.comisionCop ?? 0) : 0))],
+        ['Comisiones COP', formatCOP(sumRows(filteredMovimientos, (m) => m.comisionCop ?? 0))],
+        ['Neto COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Ingreso' ? m.monto : -(m.monto - (m.comisionCop ?? 0))))],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Table */}
@@ -191,7 +197,9 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Tipo</th>
                 <th className="py-3 px-4">Cliente / tercero</th>
-                <th className="py-3 px-4 text-right">Monto (COP)</th>
+                <th className="py-3 px-4 text-right">Efectivo (COP)</th>
+                <th className="py-3 px-4 text-right">Comisión (COP)</th>
+                <th className="py-3 px-4 text-right">Total cliente (COP)</th>
                 <th className="py-3 px-4">Institución</th>
                 <th className="py-3 px-4">Referencia / Detalle</th>
                 <CreatedByHeader />
@@ -201,12 +209,12 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             <tbody className="divide-y divide-border">
               {filteredMovimientos.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
                     No hay movimientos de efectivo que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filteredMovimientos}>{(m) => (
+                <PaginatedRows columns={11} rows={filteredMovimientos}>{(m) => (
                   <tr key={m.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{m.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(m.fecha)}</td>
@@ -229,9 +237,9 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                         <span className="text-muted-foreground italic text-[11px]">{m.clienteNombre || '—'}</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right font-bold text-foreground">
-                      {formatCOP(m.monto)}
-                    </td>
+                    <td className="whitespace-nowrap py-3 px-4 text-right font-bold tabular-nums">{formatCOP(m.monto - (m.comisionCop ?? 0))}</td>
+                    <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.comisionCop ? formatCOP(m.comisionCop) : '—'}</td>
+                    <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.tipo === 'Pago' && (m.clienteId || m.clienteCodigo) ? formatCOP(m.monto) : '—'}</td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
                         {m.origenFondos || '—'}
@@ -260,10 +268,12 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
       {/* Modals */}
       <AddEfectivoModal
-        isOpen={isAddMovOpen || Boolean(editingMovimiento)}
+        isOpen={Boolean(movementMode || editingMovimiento)}
+        mode={movementMode ?? (editingMovimiento?.tipo === 'Pago' && !editingMovimiento.clienteId && !editingMovimiento.clienteCodigo ? 'movimiento' : undefined)}
+        commissionEnabled
         record={editingMovimiento}
         onClose={() => {
-          setIsAddMovOpen(false);
+          setMovementMode(null);
           setEditingMovimiento(null);
         }}
       />
