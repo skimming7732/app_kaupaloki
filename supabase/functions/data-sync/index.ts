@@ -474,7 +474,7 @@ Deno.serve(async (req: Request) => {
         pais: pais,
         authorized_currencies: authorizedCurrencies,
         updated_at: new Date().toISOString(),
-        ...(newlyCreated ? { created_by: inviteActor } : {}),
+        ...(inviteActor ? { created_by: inviteActor } : {}),
       });
       if (profileError) throw profileError;
 
