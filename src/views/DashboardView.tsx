@@ -101,11 +101,11 @@ export const DashboardView: React.FC = () => {
             <span>Resumen de Liquidación y Negocios</span>
           </h3>
           <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1 rounded-lg border border-border">
-            Activos líquidos + Liquidez USDT − Saldo neto con clientes − Gastos operativos − Intereses − Capital invertido
+            Activos líquidos + Liquidez USDT − Saldo neto con clientes − Intereses − Capital invertido
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <div className="p-4 rounded-xl bg-muted/40 border border-border">
             <span className="text-xs text-muted-foreground block mb-1">Liquidez de activos líquidos</span>
             <span className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatCOP(metrics.totalActivosLiquidos)}</span>
@@ -122,12 +122,6 @@ export const DashboardView: React.FC = () => {
             <span className="text-xs text-muted-foreground block mb-1">Saldo neto con clientes</span>
             <span className="text-xl font-bold text-foreground">{formatCOP(metrics.saldoNetoClientesCOP)}</span>
             <span className="text-[11px] text-muted-foreground block mt-1">Saldo por pagar menos saldo por cobrar</span>
-          </div>
-
-          <div className="p-4 rounded-xl bg-muted/40 border border-border">
-            <span className="text-xs text-muted-foreground block mb-1">Gastos Operativos</span>
-            <span className="text-xl font-bold text-rose-600 dark:text-rose-400">{formatCOP(metrics.totalGastosCOP - metrics.interesesSociosCOP)}</span>
-            <span className="text-[11px] text-muted-foreground block mt-1">Sin intereses de socios e inversionistas</span>
           </div>
 
           <div className="p-4 rounded-xl bg-muted/40 border border-border">

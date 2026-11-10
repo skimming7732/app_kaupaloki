@@ -1208,7 +1208,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const capitalTotals = summarizeCapital(capitalLedger.userId === userId ? capitalLedger.rows : []);
     const capitalInvertidoCOP = res?.totalCapitalInvertidoCop ?? (userId && capitalLedger.userId === userId ? capitalTotals.capital : null);
     const gananciaEsperada = totalActivosLiquidos + liquidezEsperada
-      - saldoNetoClientesCOP - totalGastosCOP - (capitalInvertidoCOP ?? 0);
+      - saldoNetoClientesCOP - (capitalInvertidoCOP ?? 0);
 
     return {
       totalActivosLiquidos,
