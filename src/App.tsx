@@ -43,19 +43,26 @@ import { AddGastoModal } from './components/modals/AddGastoModal';
 import { AddUserModal } from './components/modals/AddUserModal';
 import { AiAssistantBubble } from './components/ai/AiAssistantBubble';
 
+function PageLoading({ authSurface = false }: { authSurface?: boolean }) {
+  return (
+    <div className={`flex items-center justify-center text-foreground ${authSurface ? 'auth-surface' : 'min-h-screen bg-background'}`}>
+      <div role="status" className="flex flex-col items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center motion-safe:animate-pulse">
+          <img src="/iso-type-white.png" alt="" className="theme-logo-dark" />
+          <img src="/iso-type-blue.png" alt="" className="theme-logo-light" />
+        </div>
+        <span className="text-xs text-muted-foreground font-semibold">
+          {authSurface ? 'Cargando...' : 'Cargando Kaupaloki...'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 const RequireAuthFor2FA: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) {
-    return (
-      <div className="auth-surface flex items-center justify-center text-foreground">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-black animate-pulse">
-            K
-          </div>
-          <span className="text-xs text-muted-foreground font-semibold">Cargando...</span>
-        </div>
-      </div>
-    );
+    return <PageLoading authSurface />;
   }
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -87,16 +94,7 @@ const ClienteDetailRouteHandler: React.FC<{
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-black animate-pulse">
-            K
-          </div>
-          <span className="text-xs text-muted-foreground font-semibold">Cargando Kaupaloki...</span>
-        </div>
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!user) {
@@ -116,16 +114,7 @@ const AppLayout: React.FC<{
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-black animate-pulse">
-            K
-          </div>
-          <span className="text-xs text-muted-foreground font-semibold">Cargando Kaupaloki...</span>
-        </div>
-      </div>
-    );
+    return <PageLoading />;
   }
 
   // If user is not authenticated or 2FA is pending, redirect
