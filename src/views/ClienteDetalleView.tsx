@@ -18,7 +18,7 @@ import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropd
 export const ClienteDetalleView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data } = useData();
+  const { data, loading } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const isOperador = profile?.role === 'operador';
@@ -162,7 +162,16 @@ export const ClienteDetalleView: React.FC = () => {
   };
 
   const rejectedTotal = data.dispersiones.reduce((total, item) =>
-    matchesClient(item) && item.estado.trim().toUpperCase() === 'RECHAZADO' ? total + item.monto : total, 0);
+    matchesClient(item) && item.estado?.trim().toUpperCase() === 'RECHAZADO' ? total + item.monto : total, 0);
+
+  if (loading && !cliente) {
+    return (
+      <div className="py-24 text-center">
+        <i className="ri-loader-4-line animate-spin text-3xl text-primary mb-3 block" />
+        <span className="text-sm text-muted-foreground font-medium">Cargando expediente del cliente...</span>
+      </div>
+    );
+  }
 
   if (!cliente) {
     return (
@@ -772,7 +781,7 @@ export const ClienteDetalleView: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            ['COMPLETADO', 'DISPERSADO', 'APROBADO'].includes(d.estado.toUpperCase())
+                            ['COMPLETADO', 'DISPERSADO', 'APROBADO'].includes((d.estado || '').toUpperCase())
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                               : 'bg-muted text-muted-foreground'
                           }`}>

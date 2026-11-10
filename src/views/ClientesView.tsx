@@ -20,7 +20,7 @@ type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'tot
 const countryKey = (pais?: string) => findClientCountry(pais || 'COLOMBIA')?.value ?? normalizeSearch(pais?.trim() || 'COLOMBIA').toUpperCase();
 
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
-  const { data } = useData();
+  const { data, loading } = useData();
   const { profile } = useAuth();
   const canFilterComisiones = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [search, setSearch] = useState('');
@@ -294,7 +294,14 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
               {sortedClientes.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="py-12 text-center text-muted-foreground">
-                    No se encontraron clientes
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <i className="ri-loader-4-line animate-spin text-lg text-primary" />
+                        <span>Cargando clientes...</span>
+                      </span>
+                    ) : (
+                      'No se encontraron clientes'
+                    )}
                   </td>
                 </tr>
               ) : (

@@ -55,7 +55,7 @@ export const ClientPublicView = () => {
 
 const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) => {
   const navigate = useNavigate();
-  const { data } = useData();
+  const { data, loading } = useData();
   const { user, profile, is2faVerified } = useAuth();
   const [activeTab, setActiveTab] = useState<'negocios' | 'pagos' | 'ingresos' | 'comisiones'>('negocios');
   const [portal, setPortal] = useState<PortalData | null>(null);
@@ -68,7 +68,8 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const [fechaHasta, setFechaHasta] = useState('');
   const [selectedDivisa, setSelectedDivisa] = useState('');
 
-  const isFromDashboard = preview && !!user && !!is2faVerified &&
+  const isStaff = !!user && !!is2faVerified;
+  const isFromDashboard = (preview || isStaff) &&
     ['administrador', 'super_admin', 'operador', 'dispersor'].includes(profile?.role || '');
   const internalClient = isFromDashboard
     ? data.clientes.find((client) => client.id === token || client.codigo.toLowerCase() === token.toLowerCase())
@@ -212,6 +213,17 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       setVerifyingPin(false);
     }
   };
+
+  if (isStaff && loading && !client) {
+    return (
+      <div className="min-h-[calc(100dvh-57px)] flex items-center justify-center p-4 bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <i className="ri-loader-4-line animate-spin text-3xl text-primary" />
+          <span className="text-xs text-muted-foreground font-semibold">Cargando portal del cliente...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!client) {
     return (

@@ -1,6 +1,6 @@
 import { CapitalSociosView, SociosInversionistasView } from './views/CapitalSociosView';
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { Sidebar } from './components/layout/Sidebar';
@@ -74,6 +74,36 @@ const ProtectedRoute: React.FC<{
     return <Navigate to="/inicio" replace />;
   }
   return <>{children}</>;
+};
+
+
+const ClienteDetailRouteHandler: React.FC<{
+  renderWithLayout: (
+    component: React.ReactNode,
+    allowedRoles?: ('super_admin' | 'administrador' | 'operador' | 'dispersor')[]
+  ) => React.ReactNode;
+}> = ({ renderWithLayout }) => {
+  const { id } = useParams<{ id: string }>();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-black animate-pulse">
+            K
+          </div>
+          <span className="text-xs text-muted-foreground font-semibold">Cargando Kaupaloki...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to={`/cliente/${id || ''}`} replace />;
+  }
+
+  return <>{renderWithLayout(<ClienteDetalleView />, ['super_admin', 'administrador', 'operador', 'dispersor'])}</>;
 };
 
 const AppLayout: React.FC<{
@@ -198,10 +228,7 @@ export const App: React.FC = () => {
             />
             <Route
               path="/clientes/:id"
-              element={renderWithLayout(
-                <ClienteDetalleView />,
-                ['super_admin', 'administrador', 'operador', 'dispersor']
-              )}
+              element={<ClienteDetailRouteHandler renderWithLayout={renderWithLayout} />}
             />
             <Route
               path="/comisionistas"
