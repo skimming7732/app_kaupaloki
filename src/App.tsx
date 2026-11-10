@@ -17,6 +17,7 @@ import { ClienteDetalleView } from './views/ClienteDetalleView';
 import { DispersionesView } from './views/DispersionesView';
 import { EfectivoView } from './views/EfectivoView';
 import { GastosView } from './views/GastosView';
+import { TokensView } from './views/TokensView';
 import { ActivosLiquidosView } from './views/ActivosLiquidosView';
 import { ActivosDigitalesView } from './views/ActivosDigitalesView';
 import { DivisasView } from './views/DivisasView';
@@ -254,6 +255,7 @@ export const App: React.FC = () => {
               path="/activos-digitales/:assetId?"
               element={renderWithLayout(<ActivosDigitalesView />, ['super_admin', 'administrador'])}
             />
+            <Route path="/tokens" element={renderWithLayout(<TokensView />, ['super_admin', 'administrador'])} />
             <Route path="/capital" element={renderWithLayout(<CapitalSociosView />, ['super_admin', 'administrador'])} />
             <Route path="/capital-socios" element={<Navigate to="/capital" replace />} />
             <Route path="/socios-inversionistas/:socioId?" element={renderWithLayout(<SociosInversionistasView />, ['super_admin', 'administrador'])} />
