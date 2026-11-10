@@ -91,6 +91,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
 
   const categorias = useMemo(() => {
     const base = [
+      'Alimentación y Restaurantes',
       'Nómina y Sueldos',
       ...GASTO_CATEGORIES.map((c) => c.name),
       'Arrendamiento',

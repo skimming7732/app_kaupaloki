@@ -21,6 +21,7 @@ export const GASTO_CATEGORIES: CategoryOption[] = [
   { name: 'Nómina y Sueldos', icon: 'ri-user-star-line', group: 'Personal y Talento' },
   { name: 'Nómina, Salarios y Prestaciones', icon: 'ri-user-star-line', group: 'Personal y Talento' },
   { name: 'Seguridad Social y Aportes', icon: 'ri-shield-user-line', group: 'Personal y Talento' },
+  { name: 'Alimentación y Restaurantes', icon: 'ri-restaurant-line', group: 'Personal y Talento' },
   { name: 'Alimentación, Refrigerios y Cafetería', icon: 'ri-restaurant-line', group: 'Personal y Talento' },
   { name: 'Viáticos, Alojamiento y Hoteles', icon: 'ri-hotel-bed-line', group: 'Personal y Talento' },
   { name: 'Capacitación y Formación', icon: 'ri-book-open-line', group: 'Personal y Talento' },
@@ -48,6 +49,7 @@ export const getCategoryIcon = (categoryName?: string): string => {
   if (/papel|liga|sobre|suministro/i.test(categoryName)) return 'ri-archive-line';
   if (/arriendo|alquiler/i.test(categoryName)) return 'ri-building-line';
   if (/nomina|salario|sueldo/i.test(categoryName)) return 'ri-user-star-line';
+  if (/aliment|restauran|comida|cafe|almuerzo/i.test(categoryName)) return 'ri-restaurant-line';
   if (/servicio|luz|agua|gas/i.test(categoryName)) return 'ri-flashlight-line';
   if (/banco|financiero|comision|4x1000/i.test(categoryName)) return 'ri-bank-card-line';
   return 'ri-price-tag-3-line';

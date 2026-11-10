@@ -1048,7 +1048,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       existing.sort((a, b) => compareChronologicalAsc(a, b, false));
       const net = existing.reduce((total, entry) => total + Number(entry.monto || 0), 0);
       const closing = account.saldoCop ?? account.saldoUsdt;
-      let balance = closing == null ? Number(account.saldoInicial ?? 0) : Number(closing) - net;
+      let balance = account.saldoInicial != null ? Number(account.saldoInicial) : (closing != null ? Number(closing) - net : 0);
       return existing.map((entry) => {
         balance += Number(entry.monto || 0);
         return { ...entry, balance };
@@ -1088,7 +1088,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...gastos.filter((g) => g.divisa === 'COP' && matchesAccount(g, account))
           .map((g) => movement(g, 'Gasto: ' + g.concepto, -Math.abs(g.monto))),
         ...efectivo.filter((e) => matchesAccount(e, account))
-          .map((e) => movement(e, e.tipo + ' de efectivo', e.tipo === 'Ingreso' ? e.monto : -e.monto)),
+          .map((e) => movement(e, e.tipo + ' de efectivo', (e.tipo || '').trim().toUpperCase() === 'INGRESO' ? e.monto : -e.monto)),
         ...dispersiones.filter((d) => d.origenFondosId === account.id && d.estado.trim().toUpperCase() !== 'RECHAZADO')
           .flatMap((d) => [
             movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto),

@@ -19,7 +19,7 @@ interface AddGastoModalProps {
 }
 
 const categories = [
-  'Nómina y Sueldos', 'Arrendamiento', 'Nómina y Salarios', 'Combustible y Transporte', 'Servicios Públicos (Agua, Luz, Gas)',
+  'Alimentación y Restaurantes', 'Nómina y Sueldos', 'Arrendamiento', 'Nómina y Salarios', 'Combustible y Transporte', 'Servicios Públicos (Agua, Luz, Gas)',
   'Logística y Envíos (Ligas, Encomiendas)', 'Mantenimiento y Operación', 'Gastos Financieros y Bancarios',
   'Alimentación y Viáticos', 'Otros Gastos Operativos',
 ];
