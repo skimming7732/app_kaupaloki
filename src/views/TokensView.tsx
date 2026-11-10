@@ -6,10 +6,44 @@ import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { formatNumber } from '../utils/formatters';
 import { recordButtonClass } from '../components/modals/RecordDialog';
-import { CashToken, formatCurrencyAmount } from '../utils/tokenVoucherGenerator';
+import { CashToken, formatCurrencyAmount, generateTokenVoucherDataUrl, getTokenState } from '../utils/tokenVoucherGenerator';
 import { CreateTokenModal } from '../components/modals/CreateTokenModal';
 import { ScanTokenModal } from '../components/modals/ScanTokenModal';
 import { TokenVoucherModal } from '../components/modals/TokenVoucherModal';
+
+const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-sm font-semibold text-foreground hover:bg-muted';
+const iconButton = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-base hover:bg-muted sm:h-9 sm:w-9';
+
+const tokenBadges = {
+  activo: { label: 'Activo', style: 'bg-primary/10 text-primary' },
+  entregado: { label: 'Entregado', style: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' },
+  cancelado: { label: 'Cancelado', style: 'bg-destructive/10 text-destructive' },
+  expirado: { label: 'Expirado', style: 'bg-muted text-muted-foreground' },
+};
+
+function VoucherThumbnail({ token, onOpen }: { token: CashToken; onOpen: () => void }) {
+  const [image, setImage] = useState<{ token: CashToken; url: string } | null>(null);
+  useEffect(() => {
+    let current = true;
+    generateTokenVoucherDataUrl(token, true).then((url) => {
+      if (current) setImage({ token, url });
+    }).catch(() => {});
+    return () => { current = false; };
+  }, [token]);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Abrir vale ${token.codigo || 'de retiro'}`}
+      className="flex h-20 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted text-primary hover:ring-2 hover:ring-primary/40 focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      {image?.token === token
+        ? <img src={image.url} alt="" className="h-full w-full object-cover" />
+        : <i className="ri-ticket-2-line text-lg" aria-hidden="true" />}
+    </button>
+  );
+}
 
 export const TokensView: React.FC = () => {
   const { profile, user } = useAuth();
@@ -71,7 +105,7 @@ export const TokensView: React.FC = () => {
 
   // Redeem token
   const handleRedeem = async (token: CashToken) => {
-    if (token.estado === 'entregado' || token.status === 'redeemed') return;
+    if (getTokenState(token) !== 'activo') return;
 
     const confirmed = window.confirm(
       `¿Confirmas la entrega en caja de ${token.divisa} $${formatCurrencyAmount(
@@ -112,7 +146,7 @@ export const TokensView: React.FC = () => {
 
   // Cancel token
   const handleCancel = async (token: CashToken) => {
-    if (token.estado === 'cancelado' || token.status === 'cancelled') return;
+    if (!isAdmin || getTokenState(token) !== 'activo') return;
 
     const reason = window.prompt(
       `Motivo de cancelación para el token ${token.codigo || token.token_code} (opcional):`
@@ -160,18 +194,7 @@ export const TokensView: React.FC = () => {
         if (!matchesCode && !matchesTokenCode && !matchesRef && !matchesAuthor) return false;
       }
 
-      // Status filter
-      if (statusFilter !== 'all') {
-        const isExp =
-          t.estado === 'expirado' ||
-          (t.expires_at && new Date(t.expires_at) < new Date() && t.estado === 'activo');
-        if (statusFilter === 'activo' && (t.estado !== 'activo' || isExp)) return false;
-        if (statusFilter === 'entregado' && t.estado !== 'entregado' && t.status !== 'redeemed')
-          return false;
-        if (statusFilter === 'cancelado' && t.estado !== 'cancelado' && t.status !== 'cancelled')
-          return false;
-        if (statusFilter === 'expirado' && !isExp) return false;
-      }
+      if (statusFilter !== 'all' && getTokenState(t) !== statusFilter) return false;
 
       // Currency filter
       if (currencyFilter !== 'all' && t.divisa !== currencyFilter) return false;
@@ -202,18 +225,11 @@ export const TokensView: React.FC = () => {
     let redeemedCount = 0;
     let cancelledCount = 0;
 
-    const now = new Date();
-
     filteredTokens.forEach((t) => {
-      const isRed = t.estado === 'entregado' || t.status === 'redeemed';
-      const isCanc = t.estado === 'cancelado' || t.status === 'cancelled';
-      const isExp =
-        t.estado === 'expirado' ||
-        (t.expires_at && new Date(t.expires_at) < now && t.estado === 'activo');
-
-      if (isRed) {
+      const state = getTokenState(t);
+      if (state === 'entregado') {
         redeemedCount++;
-      } else if (isCanc || isExp) {
+      } else if (state !== 'activo') {
         cancelledCount++;
       } else {
         activeCount++;
@@ -248,7 +264,7 @@ export const TokensView: React.FC = () => {
         <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
           <button
             onClick={() => setIsScanOpen(true)}
-            className="px-4 py-2.5 rounded-xl border border-border hover:border-primary/30 bg-muted/40 hover:bg-muted text-foreground font-semibold text-xs flex items-center justify-center gap-2 transition-all"
+            className={secondaryButton}
           >
             <i className="ri-qr-scan-2-line text-primary text-sm" />
             Validar token
@@ -360,11 +376,11 @@ export const TokensView: React.FC = () => {
       {/* Tokens Table Card */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="block w-full border-collapse text-left lg:table">
             <caption className="sr-only">Tokens de retiro y autorizaciones de caja</caption>
-            <thead>
+            <thead className="hidden lg:table-header-group">
               <tr className="border-b border-border bg-muted/30 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                <th className="py-3.5 px-4">Código</th>
+                <th className="py-3.5 px-4">Vale</th>
                 <th className="py-3.5 px-4">Código Token</th>
                 <th className="py-3.5 px-4">Fecha</th>
                 <th className="py-3.5 px-4">Monto & Divisa</th>
@@ -374,181 +390,104 @@ export const TokensView: React.FC = () => {
                 <th className="py-3.5 px-4 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border text-xs text-foreground">
+            <tbody className="block divide-y divide-border text-xs text-foreground lg:table-row-group">
               {loading && tokens.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                <tr className="block lg:table-row">
+                  <td colSpan={8} className="block py-12 text-center lg:table-cell text-muted-foreground">
                     <i className="ri-loader-4-line animate-spin text-2xl text-primary block mb-2" />
                     Cargando tokens de retiro...
                   </td>
                 </tr>
               ) : filteredTokens.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                <tr className="block lg:table-row">
+                  <td colSpan={8} className="block py-12 text-center lg:table-cell text-muted-foreground">
                     <i className="ri-ticket-2-line text-3xl text-muted-foreground block mb-2" />
                     No se encontraron tokens con los filtros seleccionados
                   </td>
                 </tr>
               ) : (
                 <PaginatedRows rows={filteredTokens} columns={8}>
-                {(token) => {
-                  const isVisible = visibleCodes[token.id];
-                  const isCancelled = token.estado === 'cancelado' || token.status === 'cancelled';
-                  const isRedeemed = token.estado === 'entregado' || token.status === 'redeemed';
-                  const isExpired =
-                    token.estado === 'expirado' ||
-                    (token.expires_at && new Date(token.expires_at) < new Date() && !isRedeemed);
-                  const isCopied = copiedCodeId === token.id;
+                  {(token) => {
+                    const state = getTokenState(token);
+                    const badge = tokenBadges[state];
+                    const isVisible = visibleCodes[token.id];
+                    const isCopied = copiedCodeId === token.id;
+                    const openVoucher = () => setSelectedVoucherToken(token);
+                    const amount = `${token.divisa} $${formatCurrencyAmount(token.monto, token.divisa)}`;
+                    const date = new Date(token.created_at).toLocaleString('es-CO', {
+                      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+                    });
+                    const status = <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${badge.style}`}>{badge.label}</span>;
 
-                  return (
-                    <tr
-                      key={token.id}
-                      className="hover:bg-muted/30 transition-colors group cursor-pointer"
-                      onClick={() => setSelectedVoucherToken(token)}
-                    >
-                      {/* Código Interno */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-primary">
-                        {token.codigo || 'TK'}
-                      </td>
+                    return (
+                      <tr key={token.id} className="block p-3 lg:table-row lg:p-0 lg:hover:bg-muted/30">
+                        <td className="block lg:table-cell lg:px-4 lg:py-3">
+                          <div className="flex items-center gap-3">
+                            <VoucherThumbnail token={token} onOpen={openVoucher} />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <button type="button" onClick={openVoucher} className="font-mono font-bold text-primary hover:underline">
+                                {token.codigo || 'Ver vale'}
+                              </button>
+                              <div className="space-y-1 lg:hidden">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-bold tabular-nums">{amount}</span>
+                                  {status}
+                                </div>
+                                {token.referencia && <p className="break-words text-muted-foreground">{token.referencia}</p>}
+                                <p className="text-muted-foreground">{date} · {token.created_by_name || 'Sistema'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
 
-                      {/* Código Token Monospace con Eye Toggle & Copy */}
-                      <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1.5 font-mono">
-                          <span
-                            className={`font-bold tracking-wider ${
-                              isVisible ? 'text-foreground' : 'text-muted-foreground select-none'
-                            }`}
-                          >
-                            {isVisible
-                              ? token.token_code.toUpperCase()
-                              : '••••••••'}
-                          </span>
-                          <button
-                            onClick={() => toggleCodeVisibility(token.id)}
-                            title={isVisible ? 'Ocultar código' : 'Mostrar código'}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <i
-                              className={isVisible ? 'ri-eye-off-line text-xs' : 'ri-eye-line text-xs'}
-                            />
-                          </button>
-                          <button
-                            onClick={() => handleCopyCode(token.id, token.token_code)}
-                            title="Copiar código"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
-                          >
-                            <i
-                              className={
-                                isCopied
-                                  ? 'ri-check-line text-emerald-600 dark:text-emerald-400 text-xs'
-                                  : 'ri-file-copy-line text-xs'
-                              }
-                            />
-                          </button>
-                        </div>
-                      </td>
-
-                      {/* Fecha */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-muted-foreground">
-                        {new Date(token.created_at).toLocaleDateString('es-CO', {
-                          day: '2-digit',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-
-                      {/* Monto & Divisa */}
-                      <td className="py-3.5 px-4 whitespace-nowrap font-semibold tabular-nums text-foreground">
-                        <span className="text-muted-foreground text-[11px] mr-1">{token.divisa}</span>
-                        ${formatNumber(token.monto, token.divisa === 'USDT' ? 2 : 0, 2)}
-                      </td>
-
-                      {/* Referencia */}
-                      <td className="py-3.5 px-4 max-w-[200px] truncate text-foreground">
-                        {token.referencia || <span className="text-muted-foreground">—</span>}
-                      </td>
-
-                      {/* Autor */}
-                      <td className="py-3.5 px-4 text-muted-foreground text-[11px]">
-                        {token.created_by_name || 'Sistema'}
-                      </td>
-
-                      {/* Estado */}
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            isCancelled
-                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                              : isRedeemed
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : isExpired
-                              ? 'bg-muted text-muted-foreground border border-border'
-                              : 'bg-primary/10 text-primary border border-primary/20'
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isCancelled
-                                ? 'bg-rose-400'
-                                : isRedeemed
-                                ? 'bg-emerald-400'
-                                : isExpired
-                                ? 'bg-slate-400'
-                                : 'bg-primary'
-                            }`}
-                          />
-                          {isCancelled
-                            ? 'Cancelado'
-                            : isRedeemed
-                            ? 'Entregado'
-                            : isExpired
-                            ? 'Expirado'
-                            : 'Activo'}
-                        </span>
-                      </td>
-
-                      {/* Acciones */}
-                      <td
-                        className="py-3.5 px-4 text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-center justify-end gap-1">
-                          {/* Ver Vale */}
-                          <button
-                            onClick={() => setSelectedVoucherToken(token)}
-                            title="Ver vale de caja"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            <i className="ri-image-line text-xs" />
-                          </button>
-
-                          {/* Redimir si activo */}
-                          {!isRedeemed && !isCancelled && !isExpired && (
-                            <button
-                              onClick={() => handleRedeem(token)}
-                              title="Marcar como entregado en caja"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors"
-                            >
-                              <i className="ri-checkbox-circle-line text-xs" />
+                        <td className="block pt-2 lg:table-cell lg:px-3 lg:py-3">
+                          <div className="flex flex-wrap items-center gap-1.5 font-mono">
+                            <span className="mr-1 font-semibold tracking-wider">
+                              {isVisible ? token.token_code.toUpperCase() : '••••••••'}
+                            </span>
+                            <button type="button" onClick={() => toggleCodeVisibility(token.id)}
+                              title={isVisible ? 'Ocultar código' : 'Mostrar código'}
+                              aria-label={isVisible ? 'Ocultar código' : 'Mostrar código'}
+                              className={iconButton + ' text-muted-foreground'}>
+                              <i className={isVisible ? 'ri-eye-off-line' : 'ri-eye-line'} aria-hidden="true" />
                             </button>
-                          )}
-
-                          {/* Cancelar si activo */}
-                          {!isRedeemed && !isCancelled && !isExpired && isAdmin && (
-                            <button
-                              onClick={() => handleCancel(token)}
-                              title="Cancelar token"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors"
-                            >
-                              <i className="ri-close-circle-line text-xs" />
+                            <button type="button" onClick={() => handleCopyCode(token.id, token.token_code)}
+                              title="Copiar código" aria-label="Copiar código" className={iconButton + ' text-primary'}>
+                              <i className={isCopied ? 'ri-check-line' : 'ri-file-copy-line'} aria-hidden="true" />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }}
+                          </div>
+                        </td>
+
+                        <td className="hidden whitespace-nowrap px-3 py-3 text-muted-foreground lg:table-cell">{date}</td>
+                        <td className="hidden whitespace-nowrap px-3 py-3 font-semibold tabular-nums lg:table-cell">{amount}</td>
+                        <td className="hidden max-w-40 break-words px-3 py-3 lg:table-cell">{token.referencia || '—'}</td>
+                        <td className="hidden px-3 py-3 text-muted-foreground lg:table-cell">{token.created_by_name || 'Sistema'}</td>
+                        <td className="hidden px-3 py-3 lg:table-cell">{status}</td>
+                        <td className="block pt-2 lg:table-cell lg:px-3 lg:py-3">
+                          <div className="flex flex-wrap items-center gap-2 lg:justify-end lg:gap-1">
+                            <button type="button" onClick={openVoucher} className={secondaryButton + ' lg:min-h-9 lg:whitespace-nowrap lg:text-xs'}>
+                              <i className="ri-ticket-2-line text-primary" aria-hidden="true" />
+                              Ver vale
+                            </button>
+                            {state === 'activo' && (
+                              <button type="button" onClick={() => handleRedeem(token)}
+                                title="Marcar como entregado" aria-label="Marcar como entregado"
+                                className={iconButton + ' text-primary'}>
+                                <i className="ri-checkbox-circle-line" aria-hidden="true" />
+                              </button>
+                            )}
+                            {state === 'activo' && isAdmin && (
+                              <button type="button" onClick={() => handleCancel(token)}
+                                title="Cancelar token" aria-label="Cancelar token"
+                                className={iconButton + ' text-destructive'}>
+                                <i className="ri-close-circle-line" aria-hidden="true" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }}
                 </PaginatedRows>
               )}
             </tbody>
@@ -586,7 +525,7 @@ export const TokensView: React.FC = () => {
         onClose={() => setSelectedVoucherToken(null)}
         token={selectedVoucherToken}
         onRedeem={(token) => handleRedeem(token)}
-        onCancel={(token) => handleCancel(token)}
+        onCancel={isAdmin ? handleCancel : undefined}
       />
     </div>
   );

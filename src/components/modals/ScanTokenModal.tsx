@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { CashToken, formatCurrencyAmount } from '../../utils/tokenVoucherGenerator';
+import { RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
+import { CashToken, formatCurrencyAmount, getTokenState } from '../../utils/tokenVoucherGenerator';
 
 interface ScanTokenModalProps {
   isOpen: boolean;
@@ -219,46 +220,36 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isExpired =
-    foundToken &&
-    (foundToken.estado === 'expirado' ||
-      (foundToken.expires_at && new Date(foundToken.expires_at) < new Date()));
-  const isRedeemed = foundToken && (foundToken.estado === 'entregado' || foundToken.status === 'redeemed');
-  const isCancelled = foundToken && (foundToken.estado === 'cancelado' || foundToken.status === 'cancelled');
-  const canRedeem = foundToken && !isRedeemed && !isCancelled && !isExpired;
+  const state = foundToken ? getTokenState(foundToken) : null;
+  const isExpired = state === 'expirado';
+  const isRedeemed = state === 'entregado';
+  const isCancelled = state === 'cancelado';
+  const canRedeem = state === 'activo';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="p-4 px-6 border-b border-border flex justify-between items-center bg-muted/30">
-          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <i className="ri-qr-scan-2-line text-primary text-lg" />
-            Escanear / Validar Token
-          </h2>
-          <button
-            onClick={() => {
-              stopCamera();
-              onClose();
-            }}
-            className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <i className="ri-close-line text-lg" />
-          </button>
-        </div>
-
+    <RecordDialog
+      title="Validar token"
+      description="Escanea el QR, sube una imagen o ingresa el código del vale."
+      icon="ri-qr-scan-2-line"
+      error={error}
+      busy={redeeming}
+      onClose={() => {
+        stopCamera();
+        onClose();
+      }}
+    >
         {/* Tabs (only if no token selected yet) */}
         {!foundToken && (
-          <div className="flex border-b border-border bg-black/20">
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-muted/40 p-1">
             <button
               onClick={() => {
                 setError(null);
                 setTab('camera');
               }}
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-b-2 ${
+              className={`flex min-h-11 flex-wrap items-center justify-center gap-1 rounded-lg px-1 text-xs font-semibold transition-colors ${
                 tab === 'camera'
-                  ? 'text-primary border-primary bg-primary/5'
-                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
+                  ? 'bg-card text-primary shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <i className="ri-camera-line text-base" />
@@ -270,14 +261,14 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                 setError(null);
                 setTab('upload');
               }}
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-b-2 ${
+              className={`flex min-h-11 flex-wrap items-center justify-center gap-1 rounded-lg px-1 text-xs font-semibold transition-colors ${
                 tab === 'upload'
-                  ? 'text-primary border-primary bg-primary/5'
-                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
+                  ? 'bg-card text-primary shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <i className="ri-image-line text-base" />
-              Galería / Imagen
+              Imagen
             </button>
             <button
               onClick={() => {
@@ -285,10 +276,10 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                 setError(null);
                 setTab('manual');
               }}
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-b-2 ${
+              className={`flex min-h-11 flex-wrap items-center justify-center gap-1 rounded-lg px-1 text-xs font-semibold transition-colors ${
                 tab === 'manual'
-                  ? 'text-primary border-primary bg-primary/5'
-                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
+                  ? 'bg-card text-primary shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
               <i className="ri-keyboard-line text-base" />
@@ -298,14 +289,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
         )}
 
         {/* Content Body */}
-        <div className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
-              <i className="ri-error-warning-line text-base shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
+        <div className="mt-4 space-y-4">
           {loading && (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <i className="ri-loader-4-line animate-spin text-3xl text-primary" />
@@ -432,14 +416,14 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
+              <div className="grid grid-cols-2 gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setFoundToken(null);
                     setError(null);
                   }}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-muted/40 hover:bg-muted text-foreground text-xs font-semibold border border-border transition-colors"
+                  className="min-h-11 rounded-xl border border-border px-3 text-sm font-semibold hover:bg-muted"
                 >
                   <i className="ri-arrow-left-line mr-1" />
                   Escanear Otro
@@ -448,7 +432,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onViewVoucher(foundToken)}
-                  className="py-2.5 px-4 rounded-xl bg-primary/10 hover:bg-primary/90/20 text-primary text-xs font-semibold border border-primary/20 transition-colors flex items-center gap-1.5"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border px-3 text-sm font-semibold text-primary hover:bg-muted"
                 >
                   <i className="ri-image-line" />
                   Ver Vale
@@ -459,7 +443,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                     type="button"
                     onClick={handleRedeem}
                     disabled={redeeming}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-foreground text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50"
+                    className={recordButtonClass + ' col-span-2'}
                   >
                     {redeeming ? (
                       <>
@@ -529,22 +513,23 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
               className="py-4 space-y-4"
             >
               <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
-                  Ingresar Código del Token (8 caracteres o N° TK)
+                <label htmlFor="token-validation-code" className={recordLabelClass}>
+                  Código del token o número de vale
                 </label>
                 <input
+                  id="token-validation-code"
                   type="text"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                   placeholder="Ej. TK8H3K9A ó TK0001"
-                  className="w-full bg-background border border-border rounded-xl px-4 py-3.5 text-foreground font-mono text-lg font-bold placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors uppercase tracking-widest text-center"
+                  className={recordFieldClass + ' text-center font-mono font-bold uppercase tracking-widest'}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={!manualCode.trim()}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+                className={recordButtonClass + ' w-full'}
               >
                 <i className="ri-search-line text-base" />
                 Verificar Token
@@ -552,7 +537,6 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
             </form>
           )}
         </div>
-      </div>
-    </div>
+    </RecordDialog>
   );
 };
