@@ -228,12 +228,12 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
   const canRedeem = foundToken && !isRedeemed && !isCancelled && !isExpired;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#0b101b] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="p-4 px-6 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <i className="ri-qr-scan-2-line text-sky-400 text-lg" />
+        <div className="p-4 px-6 border-b border-border flex justify-between items-center bg-muted/30">
+          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+            <i className="ri-qr-scan-2-line text-primary text-lg" />
             Escanear / Validar Token
           </h2>
           <button
@@ -241,7 +241,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
               stopCamera();
               onClose();
             }}
-            className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <i className="ri-close-line text-lg" />
           </button>
@@ -249,7 +249,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
 
         {/* Tabs (only if no token selected yet) */}
         {!foundToken && (
-          <div className="flex border-b border-white/10 bg-black/20">
+          <div className="flex border-b border-border bg-black/20">
             <button
               onClick={() => {
                 setError(null);
@@ -257,8 +257,8 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
               }}
               className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-b-2 ${
                 tab === 'camera'
-                  ? 'text-sky-400 border-sky-400 bg-sky-500/5'
-                  : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'
+                  ? 'text-primary border-primary bg-primary/5'
+                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
               }`}
             >
               <i className="ri-camera-line text-base" />
@@ -272,8 +272,8 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
               }}
               className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-b-2 ${
                 tab === 'upload'
-                  ? 'text-sky-400 border-sky-400 bg-sky-500/5'
-                  : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'
+                  ? 'text-primary border-primary bg-primary/5'
+                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
               }`}
             >
               <i className="ri-image-line text-base" />
@@ -287,8 +287,8 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
               }}
               className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors border-b-2 ${
                 tab === 'manual'
-                  ? 'text-sky-400 border-sky-400 bg-sky-500/5'
-                  : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'
+                  ? 'text-primary border-primary bg-primary/5'
+                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
               }`}
             >
               <i className="ri-keyboard-line text-base" />
@@ -300,15 +300,15 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
         {/* Content Body */}
         <div className="p-6 space-y-4">
           {error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
               <i className="ri-error-warning-line text-base shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {loading && (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-              <i className="ri-loader-4-line animate-spin text-3xl text-sky-400" />
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <i className="ri-loader-4-line animate-spin text-3xl text-primary" />
               <span className="text-sm">Buscando token en el sistema...</span>
             </div>
           )}
@@ -325,19 +325,19 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                     ? 'bg-rose-500/10 border-rose-500/30'
                     : isExpired
                     ? 'bg-slate-500/10 border-slate-500/30'
-                    : 'bg-sky-500/10 border-sky-500/30'
+                    : 'bg-primary/10 border-primary/30'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
                       isRedeemed
-                        ? 'bg-emerald-500/20 text-emerald-400'
+                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                         : isCancelled
-                        ? 'bg-rose-500/20 text-rose-400'
+                        ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400'
                         : isExpired
-                        ? 'bg-slate-500/20 text-slate-400'
-                        : 'bg-sky-500/20 text-sky-400'
+                        ? 'bg-slate-500/20 text-muted-foreground'
+                        : 'bg-primary/15 text-primary'
                     }`}
                   >
                     <i
@@ -353,7 +353,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                     />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base">
+                    <h3 className="font-bold text-foreground text-base">
                       {isRedeemed
                         ? 'Token Ya Entregado'
                         : isCancelled
@@ -362,7 +362,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                         ? 'Token Expirado'
                         : 'Token Válido para Entrega'}
                     </h3>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                       {foundToken.codigo || 'TK'} • Código: {foundToken.token_code}
                     </p>
                   </div>
@@ -371,12 +371,12 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                     isRedeemed
-                      ? 'bg-emerald-500/20 text-emerald-300'
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
                       : isCancelled
-                      ? 'bg-rose-500/20 text-rose-300'
+                      ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
                       : isExpired
-                      ? 'bg-slate-700 text-slate-300'
-                      : 'bg-sky-500/20 text-sky-300'
+                      ? 'bg-muted text-foreground'
+                      : 'bg-primary/15 text-primary'
                   }`}
                 >
                   {isRedeemed ? 'Entregado' : isCancelled ? 'Cancelado' : isExpired ? 'Expirado' : 'Activo'}
@@ -384,38 +384,38 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
               </div>
 
               {/* Amount Display */}
-              <div className="p-5 rounded-xl bg-black/40 border border-white/10 text-center">
-                <span className="text-xs text-slate-400 uppercase tracking-widest block font-medium mb-1">
+              <div className="p-5 rounded-xl bg-muted/30 border border-border text-center">
+                <span className="text-xs text-muted-foreground uppercase tracking-widest block font-medium mb-1">
                   Monto a Entregar
                 </span>
-                <span className="text-3xl font-black text-white">
+                <span className="text-3xl font-black text-foreground">
                   {foundToken.divisa} ${formatCurrencyAmount(foundToken.monto, foundToken.divisa)}
                 </span>
                 {foundToken.referencia && (
-                  <p className="text-xs text-slate-300 mt-2 font-medium">
+                  <p className="text-xs text-foreground mt-2 font-medium">
                     Beneficiario / Ref: {foundToken.referencia}
                   </p>
                 )}
               </div>
 
               {/* Audit Details */}
-              <div className="space-y-2 text-xs bg-white/[0.02] p-4 rounded-xl border border-white/5">
-                <div className="flex justify-between py-1 border-b border-white/5">
-                  <span className="text-slate-400">Creado por:</span>
-                  <span className="text-white font-medium">
+              <div className="space-y-2 text-xs bg-muted/30 p-4 rounded-xl border border-border">
+                <div className="flex justify-between py-1 border-b border-border">
+                  <span className="text-muted-foreground">Creado por:</span>
+                  <span className="text-foreground font-medium">
                     {foundToken.created_by_name || 'Administrador'}
                   </span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-white/5">
-                  <span className="text-slate-400">Fecha de Creación:</span>
-                  <span className="text-slate-300">
+                <div className="flex justify-between py-1 border-b border-border">
+                  <span className="text-muted-foreground">Fecha de Creación:</span>
+                  <span className="text-foreground">
                     {new Date(foundToken.created_at).toLocaleString('es-CO')}
                   </span>
                 </div>
                 {foundToken.redeemed_at && (
-                  <div className="flex justify-between py-1 border-b border-white/5">
-                    <span className="text-emerald-400">Entregado el:</span>
-                    <span className="text-emerald-300 font-medium">
+                  <div className="flex justify-between py-1 border-b border-border">
+                    <span className="text-emerald-600 dark:text-emerald-400">Entregado el:</span>
+                    <span className="text-emerald-700 dark:text-emerald-300 font-medium">
                       {new Date(foundToken.redeemed_at).toLocaleString('es-CO')}{' '}
                       {foundToken.redeemed_by_name ? `por ${foundToken.redeemed_by_name}` : ''}
                     </span>
@@ -423,8 +423,8 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                 )}
                 {foundToken.expires_at && !foundToken.redeemed_at && (
                   <div className="flex justify-between py-1">
-                    <span className="text-slate-400">Válido hasta:</span>
-                    <span className="text-slate-300">
+                    <span className="text-muted-foreground">Válido hasta:</span>
+                    <span className="text-foreground">
                       {new Date(foundToken.expires_at).toLocaleString('es-CO')}
                     </span>
                   </div>
@@ -439,7 +439,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                     setFoundToken(null);
                     setError(null);
                   }}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold border border-white/10 transition-colors"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-muted/40 hover:bg-muted text-foreground text-xs font-semibold border border-border transition-colors"
                 >
                   <i className="ri-arrow-left-line mr-1" />
                   Escanear Otro
@@ -448,7 +448,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                 <button
                   type="button"
                   onClick={() => onViewVoucher(foundToken)}
-                  className="py-2.5 px-4 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-xs font-semibold border border-sky-500/20 transition-colors flex items-center gap-1.5"
+                  className="py-2.5 px-4 rounded-xl bg-primary/10 hover:bg-primary/90/20 text-primary text-xs font-semibold border border-primary/20 transition-colors flex items-center gap-1.5"
                 >
                   <i className="ri-image-line" />
                   Ver Vale
@@ -459,7 +459,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                     type="button"
                     onClick={handleRedeem}
                     disabled={redeeming}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-foreground text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50"
                   >
                     {redeeming ? (
                       <>
@@ -481,7 +481,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
           {/* Tab 1: Camera Scanner */}
           {!foundToken && !loading && tab === 'camera' && (
             <div className="flex flex-col items-center">
-              <div className="w-full aspect-square max-w-[280px] bg-black rounded-2xl overflow-hidden border border-white/10 relative flex items-center justify-center">
+              <div className="w-full aspect-square max-w-[280px] bg-black rounded-2xl overflow-hidden border border-border relative flex items-center justify-center">
                 <video
                   ref={videoRef}
                   className="w-full h-full object-cover"
@@ -490,11 +490,11 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                   muted
                 />
                 {/* Target overlay guide */}
-                <div className="absolute inset-8 border-2 border-sky-400/80 rounded-xl pointer-events-none animate-pulse flex items-center justify-center">
-                  <div className="w-12 h-0.5 bg-sky-400/60" />
+                <div className="absolute inset-8 border-2 border-primary/80 rounded-xl pointer-events-none animate-pulse flex items-center justify-center">
+                  <div className="w-12 h-0.5 bg-primary/60" />
                 </div>
               </div>
-              <p className="text-slate-400 text-xs mt-3 text-center">
+              <p className="text-muted-foreground text-xs mt-3 text-center">
                 Apunta tu cámara directamente al código QR del vale de retiro.
               </p>
             </div>
@@ -503,12 +503,12 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
           {/* Tab 2: Upload Image */}
           {!foundToken && !loading && tab === 'upload' && (
             <div className="py-6 flex flex-col items-center justify-center">
-              <label className="w-full max-w-sm aspect-[4/3] border-2 border-dashed border-white/10 hover:border-sky-500/50 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-white/[0.02] transition-all group">
-                <div className="w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <label className="w-full max-w-sm aspect-[4/3] border-2 border-dashed border-border hover:border-primary/50 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-muted/30 transition-all group">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                   <i className="ri-upload-cloud-line text-2xl" />
                 </div>
-                <span className="text-white font-bold text-sm mb-1">Subir Imagen del Vale</span>
-                <span className="text-slate-400 text-xs">PNG, JPG o captura de pantalla</span>
+                <span className="text-foreground font-bold text-sm mb-1">Subir Imagen del Vale</span>
+                <span className="text-muted-foreground text-xs">PNG, JPG o captura de pantalla</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -529,7 +529,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
               className="py-4 space-y-4"
             >
               <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
                   Ingresar Código del Token (8 caracteres o N° TK)
                 </label>
                 <input
@@ -537,14 +537,14 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                   placeholder="Ej. TK8H3K9A ó TK0001"
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 py-3.5 text-white font-mono text-lg font-bold placeholder:text-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors uppercase tracking-widest text-center"
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3.5 text-foreground font-mono text-lg font-bold placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors uppercase tracking-widest text-center"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={!manualCode.trim()}
-                className="w-full py-3 rounded-xl font-bold text-sm bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-sky-600/20 transition-all disabled:opacity-50"
+                className="w-full py-3 rounded-xl font-bold text-sm bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
               >
                 <i className="ri-search-line text-base" />
                 Verificar Token

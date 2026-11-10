@@ -32,7 +32,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
  */
 export function formatCurrencyAmount(amount: number, currency: string): string {
   const isCrypto = ['USDT', 'USDC', 'BTC', 'ETH'].includes(currency.toUpperCase());
-  return new Intl.NumberFormat('es-CO', {
+  return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: isCrypto ? 2 : 0,
     maximumFractionDigits: isCrypto ? 2 : 2,
   }).format(amount || 0);

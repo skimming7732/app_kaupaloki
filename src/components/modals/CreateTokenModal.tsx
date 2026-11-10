@@ -87,17 +87,17 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#0b101b] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="p-4 px-6 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <i className="ri-ticket-2-line text-sky-400 text-lg" />
+        <div className="p-4 px-6 border-b border-border flex justify-between items-center bg-muted/30">
+          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+            <i className="ri-ticket-2-line text-primary text-lg" />
             Crear Token de Retiro
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <i className="ri-close-line text-lg" />
           </button>
@@ -106,17 +106,17 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Informational Callout */}
-          <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 flex gap-3 text-sky-200 text-xs">
-            <i className="ri-information-line text-base text-sky-400 shrink-0 mt-0.5" />
+          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 flex gap-3 text-primary text-xs">
+            <i className="ri-information-line text-base text-primary shrink-0 mt-0.5" />
             <div className="leading-relaxed">
-              <strong className="text-sky-300">Aviso Operativo:</strong> Crear tokens no afecta
+              <strong className="text-primary">Aviso Operativo:</strong> Crear tokens no afecta
               el saldo de tus activos líquidos ni balances contables. Es un vale de autorización física
               exclusivo para quien entrega el efectivo en caja.
             </div>
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
               <i className="ri-error-warning-line text-base shrink-0" />
               <span>{error}</span>
             </div>
@@ -125,16 +125,16 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
           {/* Divisa y Monto */}
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 block">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                 Divisa
               </label>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-3 h-11 text-white text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                className="w-full bg-background border border-border rounded-xl px-3 h-11 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               >
                 {currencyOptions.map((curr) => (
-                  <option key={curr} value={curr} className="bg-slate-900 text-white">
+                  <option key={curr} value={curr} className="bg-background text-foreground">
                     {curr}
                   </option>
                 ))}
@@ -142,11 +142,11 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
             </div>
 
             <div className="col-span-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 block">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                 Monto a Autorizar
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
                   $
                 </span>
                 <input
@@ -157,7 +157,7 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl pl-8 pr-4 h-11 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                  className="w-full bg-background border border-border rounded-xl pl-8 pr-4 h-11 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 />
               </div>
             </div>
@@ -165,7 +165,7 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
 
           {/* Referencia o Destinatario */}
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 block">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
               Referencia / Beneficiario (Opcional)
             </label>
             <input
@@ -173,42 +173,42 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
               placeholder="Ej. Pago proveedor, Retiro cliente Carlos..."
               value={reference}
               onChange={(e) => setReference(e.target.value)}
-              className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 h-11 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+              className="w-full bg-background border border-border rounded-xl px-4 h-11 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>
 
           {/* Vigencia / Expiración */}
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 block">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
               Vigencia del Token
             </label>
             <select
               value={validityHours}
               onChange={(e) => setValidityHours(e.target.value)}
-              className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-4 h-11 text-white text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+              className="w-full bg-background border border-border rounded-xl px-4 h-11 text-foreground text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
             >
-              <option value="12" className="bg-slate-900 text-white">12 Horas</option>
-              <option value="24" className="bg-slate-900 text-white">24 Horas (1 Día)</option>
-              <option value="48" className="bg-slate-900 text-white">48 Horas (2 Días - Recomendado)</option>
-              <option value="72" className="bg-slate-900 text-white">72 Horas (3 Días)</option>
-              <option value="168" className="bg-slate-900 text-white">7 Días</option>
+              <option value="12" className="bg-background text-foreground">12 Horas</option>
+              <option value="24" className="bg-background text-foreground">24 Horas (1 Día)</option>
+              <option value="48" className="bg-background text-foreground">48 Horas (2 Días - Recomendado)</option>
+              <option value="72" className="bg-background text-foreground">72 Horas (3 Días)</option>
+              <option value="168" className="bg-background text-foreground">7 Días</option>
             </select>
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-2 flex justify-end gap-3 border-t border-white/5">
+          <div className="pt-2 flex justify-end gap-3 border-t border-border">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading || !amount}
-              className="px-6 py-2.5 rounded-xl font-bold text-sm bg-sky-600 hover:bg-sky-500 text-white flex items-center gap-2 shadow-lg shadow-sky-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 rounded-xl font-bold text-sm bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2 shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { KpiStrip } from '../components/common/KpiStrip';
+import { PaginatedRows } from '../components/common/PaginatedRows';
+import { formatNumber } from '../utils/formatters';
 import { recordButtonClass } from '../components/modals/RecordDialog';
 import { CashToken, formatCurrencyAmount } from '../utils/tokenVoucherGenerator';
 import { CreateTokenModal } from '../components/modals/CreateTokenModal';
@@ -193,7 +196,7 @@ export const TokensView: React.FC = () => {
 
   // KPI Metrics Calculation
   const metrics = useMemo(() => {
-    let totalCount = tokens.length;
+    const totalCount = filteredTokens.length;
     let activeCount = 0;
     let activeCOP = 0;
     let redeemedCount = 0;
@@ -201,7 +204,7 @@ export const TokensView: React.FC = () => {
 
     const now = new Date();
 
-    tokens.forEach((t) => {
+    filteredTokens.forEach((t) => {
       const isRed = t.estado === 'entregado' || t.status === 'redeemed';
       const isCanc = t.estado === 'cancelado' || t.status === 'cancelled';
       const isExp =
@@ -221,20 +224,20 @@ export const TokensView: React.FC = () => {
     });
 
     return { totalCount, activeCount, activeCOP, redeemedCount, cancelledCount };
-  }, [tokens]);
+  }, [filteredTokens]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-4 animate-fade-in">
       {/* View Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
               <i className="ri-ticket-2-line text-xl" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">Tokens de Retiro</h1>
-              <p className="text-xs text-slate-400">
+              <h1 className="text-base font-bold text-foreground tracking-tight">Tokens de retiro</h1>
+              <p className="text-xs text-muted-foreground">
                 Autorizaciones operativas de caja y vales de efectivo físicos
               </p>
             </div>
@@ -242,110 +245,50 @@ export const TokensView: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
           <button
             onClick={() => setIsScanOpen(true)}
-            className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-sky-500/30 bg-white/5 hover:bg-white/10 text-white font-semibold text-xs flex items-center gap-2 transition-all"
+            className="px-4 py-2.5 rounded-xl border border-border hover:border-primary/30 bg-muted/40 hover:bg-muted text-foreground font-semibold text-xs flex items-center justify-center gap-2 transition-all"
           >
-            <i className="ri-qr-scan-2-line text-sky-400 text-sm" />
-            Escanear / Validar
+            <i className="ri-qr-scan-2-line text-primary text-sm" />
+            Validar token
           </button>
 
           <button
             onClick={() => setIsCreateOpen(true)}
-            className={`${recordButtonClass} shadow-lg shadow-sky-600/20`}
+            className={`${recordButtonClass} justify-center`}
           >
             <i className="ri-add-line text-sm" />
-            Crear Token Manual
+            Crear token
           </button>
         </div>
       </div>
 
-      {/* Control Notice Callout */}
-      <div className="p-4 rounded-2xl bg-sky-950/20 border border-sky-500/20 flex items-start gap-3 text-xs text-sky-200">
-        <i className="ri-shield-check-line text-base text-sky-400 shrink-0 mt-0.5" />
-        <div className="leading-relaxed">
-          <strong className="text-sky-300 font-bold">Control Exclusivo de Caja Física:</strong>{' '}
-          Estos tokens no influyen en ningún saldo contable ni alteran los saldos de tus activos
-          líquidos ni activos digitales. Son vales internos de seguridad y autorización física para
-          quien realiza entregas en efectivo.
-        </div>
-      </div>
-
-      {/* KPI Cards Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* KPI 1 */}
-        <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5 space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-            Total Tokens
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-white">{metrics.totalCount}</span>
-            <span className="text-xs text-slate-500">generados</span>
-          </div>
-        </div>
-
-        {/* KPI 2 */}
-        <div className="p-4 rounded-2xl bg-sky-950/20 border border-sky-500/20 space-y-1">
-          <span className="text-[11px] font-semibold text-sky-300 uppercase tracking-wider block">
-            Activos / Pendientes
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-sky-400">{metrics.activeCount}</span>
-            {metrics.activeCOP > 0 && (
-              <span className="text-xs text-sky-300/80 truncate">
-                COP ${formatCurrencyAmount(metrics.activeCOP, 'COP')}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* KPI 3 */}
-        <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 space-y-1">
-          <span className="text-[11px] font-semibold text-emerald-300 uppercase tracking-wider block">
-            Entregados / Redimidos
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-400">{metrics.redeemedCount}</span>
-            <span className="text-xs text-emerald-400/60">en caja</span>
-          </div>
-        </div>
-
-        {/* KPI 4 */}
-        <div className="p-4 rounded-2xl bg-rose-950/20 border border-rose-500/20 space-y-1">
-          <span className="text-[11px] font-semibold text-rose-300 uppercase tracking-wider block">
-            Cancelados / Expirados
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-rose-400">{metrics.cancelledCount}</span>
-            <span className="text-xs text-rose-400/60">invalidados</span>
-          </div>
-        </div>
-      </div>
-
       {/* Filter Bar */}
-      <div className="p-4 rounded-2xl bg-slate-900/40 border border-white/5 flex flex-wrap items-center justify-between gap-3">
+      <div className="p-3 rounded-2xl bg-card border border-border grid grid-cols-2 items-center gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
         {/* Search Input */}
-        <div className="relative min-w-[240px] flex-1 max-w-sm">
-          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm" />
+        <div className="relative col-span-2 min-w-0 lg:col-span-1">
+          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
           <input
             type="text"
-            placeholder="Buscar por código, token, beneficiario..."
+            aria-label="Buscar tokens"
+            placeholder="Buscar por código, referencia o autor..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-950/60 border border-white/10 rounded-xl pl-9 pr-4 h-10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+            className="w-full bg-background border border-border rounded-lg pl-9 pr-3 h-9 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
           />
         </div>
 
         {/* Dropdowns */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="col-span-2 grid grid-cols-2 gap-2 lg:col-span-1 lg:flex lg:flex-wrap lg:items-center">
           {/* Status Select */}
           <select
+            aria-label="Estado"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-950/60 border border-white/10 rounded-xl px-3 h-10 text-xs text-white focus:outline-none focus:border-sky-500 transition-colors"
+            className="bg-background border border-border min-w-0 rounded-lg px-2 h-9 text-xs text-foreground focus:outline-none focus:border-primary transition-colors"
           >
-            <option value="all">Todos los Estados</option>
+            <option value="all">Todos los estados</option>
             <option value="activo">Activos</option>
             <option value="entregado">Entregados</option>
             <option value="cancelado">Cancelados</option>
@@ -354,11 +297,12 @@ export const TokensView: React.FC = () => {
 
           {/* Currency Select */}
           <select
+            aria-label="Divisa"
             value={currencyFilter}
             onChange={(e) => setCurrencyFilter(e.target.value)}
-            className="bg-slate-950/60 border border-white/10 rounded-xl px-3 h-10 text-xs text-white focus:outline-none focus:border-sky-500 transition-colors"
+            className="bg-background border border-border min-w-0 rounded-lg px-2 h-9 text-xs text-foreground focus:outline-none focus:border-primary transition-colors"
           >
-            <option value="all">Todas las Divisas</option>
+            <option value="all">Todas las divisas</option>
             <option value="COP">COP</option>
             <option value="USD">USD</option>
             <option value="USDT">USDT</option>
@@ -367,11 +311,12 @@ export const TokensView: React.FC = () => {
 
           {/* Date Filter */}
           <select
+            aria-label="Fecha de creación"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="bg-slate-950/60 border border-white/10 rounded-xl px-3 h-10 text-xs text-white focus:outline-none focus:border-sky-500 transition-colors"
+            className="bg-background border border-border min-w-0 rounded-lg px-2 h-9 text-xs text-foreground focus:outline-none focus:border-primary transition-colors"
           >
-            <option value="all">Cualquier Fecha</option>
+            <option value="all">Cualquier fecha</option>
             <option value="today">Hoy</option>
             <option value="7d">Últimos 7 días</option>
             <option value="30d">Últimos 30 días</option>
@@ -380,20 +325,45 @@ export const TokensView: React.FC = () => {
           {/* Refresh Button */}
           <button
             onClick={fetchTokens}
+            disabled={loading}
+            aria-label="Actualizar tokens"
             title="Recargar tokens"
-            className="w-10 h-10 rounded-xl bg-slate-950/60 border border-white/10 hover:border-white/20 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            className="w-full lg:w-9 h-9 rounded-lg bg-background border border-border hover:border-primary/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           >
-            <i className={`ri-refresh-line text-sm ${loading ? 'animate-spin text-sky-400' : ''}`} />
+            <i className={`ri-refresh-line text-sm ${loading ? 'animate-spin text-primary' : ''}`} />
           </button>
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+        <span>{formatNumber(filteredTokens.length)} de {formatNumber(tokens.length)} registros</span>
+        {(search || statusFilter !== 'all' || currencyFilter !== 'all' || dateFilter !== 'all') && (
+          <button type="button" className="font-semibold text-primary hover:underline" onClick={() => {
+            setSearch(''); setStatusFilter('all'); setCurrencyFilter('all'); setDateFilter('all');
+          }}>Limpiar filtros</button>
+        )}
+      </div>
+
+      <KpiStrip metrics={[
+        { label: 'Tokens', value: metrics.totalCount, icon: 'ri-ticket-2-line' },
+        { label: 'Pendientes', value: metrics.activeCount, icon: 'ri-time-line' },
+        { label: 'Pendiente COP', value: `$${formatNumber(metrics.activeCOP, 0, 2)}`, icon: 'ri-money-dollar-circle-line', featured: true },
+        { label: 'Entregados', value: metrics.redeemedCount, icon: 'ri-checkbox-circle-line' },
+        { label: 'Cancelados / expirados', value: metrics.cancelledCount, icon: 'ri-close-circle-line' },
+      ]} />
+
+      <div className="flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground">
+        <i className="ri-shield-check-line mt-0.5 text-primary" aria-hidden="true" />
+        <p>Vales de autorización para entregas en caja. Su emisión y validación no modifican los saldos de los activos.</p>
+      </div>
+
       {/* Tokens Table Card */}
-      <div className="rounded-2xl border border-white/5 bg-slate-900/30 overflow-hidden shadow-xl">
+      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
+            <caption className="sr-only">Tokens de retiro y autorizaciones de caja</caption>
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-border bg-muted/30 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 <th className="py-3.5 px-4">Código</th>
                 <th className="py-3.5 px-4">Código Token</th>
                 <th className="py-3.5 px-4">Fecha</th>
@@ -404,23 +374,24 @@ export const TokensView: React.FC = () => {
                 <th className="py-3.5 px-4 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+            <tbody className="divide-y divide-border text-xs text-foreground">
               {loading && tokens.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-500">
-                    <i className="ri-loader-4-line animate-spin text-2xl text-sky-400 block mb-2" />
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                    <i className="ri-loader-4-line animate-spin text-2xl text-primary block mb-2" />
                     Cargando tokens de retiro...
                   </td>
                 </tr>
               ) : filteredTokens.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-500">
-                    <i className="ri-ticket-2-line text-3xl text-slate-600 block mb-2" />
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                    <i className="ri-ticket-2-line text-3xl text-muted-foreground block mb-2" />
                     No se encontraron tokens con los filtros seleccionados
                   </td>
                 </tr>
               ) : (
-                filteredTokens.map((token) => {
+                <PaginatedRows rows={filteredTokens} columns={8}>
+                {(token) => {
                   const isVisible = visibleCodes[token.id];
                   const isCancelled = token.estado === 'cancelado' || token.status === 'cancelled';
                   const isRedeemed = token.estado === 'entregado' || token.status === 'redeemed';
@@ -432,11 +403,11 @@ export const TokensView: React.FC = () => {
                   return (
                     <tr
                       key={token.id}
-                      className="hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                      className="hover:bg-muted/30 transition-colors group cursor-pointer"
                       onClick={() => setSelectedVoucherToken(token)}
                     >
                       {/* Código Interno */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-sky-400">
+                      <td className="py-3.5 px-4 font-mono font-bold text-primary">
                         {token.codigo || 'TK'}
                       </td>
 
@@ -445,7 +416,7 @@ export const TokensView: React.FC = () => {
                         <div className="flex items-center gap-1.5 font-mono">
                           <span
                             className={`font-bold tracking-wider ${
-                              isVisible ? 'text-white' : 'text-slate-500 select-none'
+                              isVisible ? 'text-foreground' : 'text-muted-foreground select-none'
                             }`}
                           >
                             {isVisible
@@ -455,7 +426,7 @@ export const TokensView: React.FC = () => {
                           <button
                             onClick={() => toggleCodeVisibility(token.id)}
                             title={isVisible ? 'Ocultar código' : 'Mostrar código'}
-                            className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                           >
                             <i
                               className={isVisible ? 'ri-eye-off-line text-xs' : 'ri-eye-line text-xs'}
@@ -464,12 +435,12 @@ export const TokensView: React.FC = () => {
                           <button
                             onClick={() => handleCopyCode(token.id, token.token_code)}
                             title="Copiar código"
-                            className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-sky-400 transition-colors"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
                           >
                             <i
                               className={
                                 isCopied
-                                  ? 'ri-check-line text-emerald-400 text-xs'
+                                  ? 'ri-check-line text-emerald-600 dark:text-emerald-400 text-xs'
                                   : 'ri-file-copy-line text-xs'
                               }
                             />
@@ -478,7 +449,7 @@ export const TokensView: React.FC = () => {
                       </td>
 
                       {/* Fecha */}
-                      <td className="py-3.5 px-4 text-slate-400">
+                      <td className="py-3.5 px-4 whitespace-nowrap text-muted-foreground">
                         {new Date(token.created_at).toLocaleDateString('es-CO', {
                           day: '2-digit',
                           month: 'short',
@@ -488,18 +459,18 @@ export const TokensView: React.FC = () => {
                       </td>
 
                       {/* Monto & Divisa */}
-                      <td className="py-3.5 px-4 font-semibold text-white">
-                        <span className="text-slate-400 text-[11px] mr-1">{token.divisa}</span>
-                        ${formatCurrencyAmount(token.monto, token.divisa)}
+                      <td className="py-3.5 px-4 whitespace-nowrap font-semibold tabular-nums text-foreground">
+                        <span className="text-muted-foreground text-[11px] mr-1">{token.divisa}</span>
+                        ${formatNumber(token.monto, token.divisa === 'USDT' ? 2 : 0, 2)}
                       </td>
 
                       {/* Referencia */}
-                      <td className="py-3.5 px-4 max-w-[200px] truncate text-slate-300">
-                        {token.referencia || <span className="text-slate-600">—</span>}
+                      <td className="py-3.5 px-4 max-w-[200px] truncate text-foreground">
+                        {token.referencia || <span className="text-muted-foreground">—</span>}
                       </td>
 
                       {/* Autor */}
-                      <td className="py-3.5 px-4 text-slate-400 text-[11px]">
+                      <td className="py-3.5 px-4 text-muted-foreground text-[11px]">
                         {token.created_by_name || 'Sistema'}
                       </td>
 
@@ -508,12 +479,12 @@ export const TokensView: React.FC = () => {
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             isCancelled
-                              ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                               : isRedeemed
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                               : isExpired
-                              ? 'bg-slate-700/50 text-slate-400 border border-slate-600/30'
-                              : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                              ? 'bg-muted text-muted-foreground border border-border'
+                              : 'bg-primary/10 text-primary border border-primary/20'
                           }`}
                         >
                           <span
@@ -524,7 +495,7 @@ export const TokensView: React.FC = () => {
                                 ? 'bg-emerald-400'
                                 : isExpired
                                 ? 'bg-slate-400'
-                                : 'bg-sky-400'
+                                : 'bg-primary'
                             }`}
                           />
                           {isCancelled
@@ -547,7 +518,7 @@ export const TokensView: React.FC = () => {
                           <button
                             onClick={() => setSelectedVoucherToken(token)}
                             title="Ver vale de caja"
-                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                           >
                             <i className="ri-image-line text-xs" />
                           </button>
@@ -557,7 +528,7 @@ export const TokensView: React.FC = () => {
                             <button
                               onClick={() => handleRedeem(token)}
                               title="Marcar como entregado en caja"
-                              className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-colors"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors"
                             >
                               <i className="ri-checkbox-circle-line text-xs" />
                             </button>
@@ -568,7 +539,7 @@ export const TokensView: React.FC = () => {
                             <button
                               onClick={() => handleCancel(token)}
                               title="Cancelar token"
-                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors"
                             >
                               <i className="ri-close-circle-line text-xs" />
                             </button>
@@ -577,7 +548,8 @@ export const TokensView: React.FC = () => {
                       </td>
                     </tr>
                   );
-                })
+                }}
+                </PaginatedRows>
               )}
             </tbody>
           </table>
