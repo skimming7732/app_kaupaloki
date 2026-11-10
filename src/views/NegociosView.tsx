@@ -25,7 +25,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
 
   // Available divisas for dropdown (filtered if Operador)
   const availableDivisas = useMemo(() => {
-    if (isOperador && authorizedCurrencies.length > 0) {
+    if (isOperador) {
       return data.divisas.filter((d) => authorizedCurrencies.includes(d.codigo));
     }
     return data.divisas;
@@ -42,17 +42,15 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
   const [editingNegocio, setEditingNegocio] = useState<any | null>(null);
 
   const totalVisible =
-    isOperador && authorizedCurrencies.length
+    isOperador
       ? data.negocios.filter((n) => authorizedCurrencies.includes(n.divisaCodigo)).length
       : data.negocios.length;
 
   const filteredNegocios = useMemo(() => {
     return data.negocios.filter((n) => {
       // Currency restriction for Operador
-      if (isOperador && authorizedCurrencies.length > 0) {
-        if (!authorizedCurrencies.includes(n.divisaCodigo)) {
-          return false;
-        }
+      if (isOperador && !authorizedCurrencies.includes(n.divisaCodigo)) {
+        return false;
       }
 
       const matchSearch =

@@ -1,3 +1,4 @@
+import { useAuth } from '../../context/AuthContext';
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 
@@ -6,10 +7,19 @@ interface MobileBottomNavProps {
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMore }) => {
+  const { profile } = useAuth();
+  const role = profile?.role || 'operador';
+  const isAdmin = role === 'administrador' || role === 'super_admin';
+  const canDisperse = isAdmin || role === 'dispersor';
+
   const tabs = [
     { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line', activeIcon: 'ri-home-5-fill' },
-    { to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line', activeIcon: 'ri-briefcase-4-fill' },
-    { to: '/dispersiones', label: 'Dispersar', icon: 'ri-send-plane-2-line', activeIcon: 'ri-send-plane-2-fill' },
+    ...(isAdmin || role === 'operador'
+      ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line', activeIcon: 'ri-briefcase-4-fill' }]
+      : []),
+    ...(canDisperse
+      ? [{ to: '/dispersiones', label: 'Dispersar', icon: 'ri-send-plane-2-line', activeIcon: 'ri-send-plane-2-fill' }]
+      : []),
     { to: '/clientes', label: 'Clientes', icon: 'ri-team-line', activeIcon: 'ri-team-fill' },
   ];
 

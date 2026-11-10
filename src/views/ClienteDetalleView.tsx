@@ -21,12 +21,21 @@ export const ClienteDetalleView: React.FC = () => {
   const { data } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const isOperador = profile?.role === 'operador';
+  const canDisperse = isAdmin || profile?.role === 'dispersor';
+  const authorizedCurrencies = profile?.authorized_currencies || [];
 
   const [activeTab, setActiveTab] = useState<'negocios' | 'dispersiones' | 'efectivo' | 'comisiones'>('negocios');
   const [copiedCode, setCopiedCode] = useState(false);
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [selectedDivisa, setSelectedDivisa] = useState('');
+
+  useEffect(() => {
+    if (isOperador && activeTab !== 'negocios') {
+      setActiveTab('negocios');
+    }
+  }, [isOperador, activeTab]);
 
   // Modals state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -66,20 +75,26 @@ export const ClienteDetalleView: React.FC = () => {
   const divisasCliente = useMemo(() => {
     const set = new Set<string>();
     data.negocios.forEach((n) => {
-      if (matchesClient(n) && n.divisaCodigo) set.add(n.divisaCodigo.toUpperCase());
+      if (matchesClient(n) && n.divisaCodigo) {
+        const code = n.divisaCodigo.toUpperCase();
+        if (!isOperador || authorizedCurrencies.includes(code)) {
+          set.add(code);
+        }
+      }
     });
     return Array.from(set).sort();
-  }, [data.negocios, cliente]);
+  }, [data.negocios, cliente, isOperador, authorizedCurrencies]);
 
   const clientNegocios = useMemo(() => {
     return data.negocios
       .filter((n) =>
         matchesClient(n) &&
+        (!isOperador || authorizedCurrencies.includes((n.divisaCodigo || '').toUpperCase())) &&
         matchesDateRange(n.fecha, fechaDesde, fechaHasta) &&
         (!selectedDivisa || (n.divisaCodigo || '').toUpperCase() === selectedDivisa.toUpperCase())
       )
       .sort(compareChronologicalDesc);
-  }, [data.negocios, cliente, fechaDesde, fechaHasta, selectedDivisa]);
+  }, [data.negocios, cliente, isOperador, authorizedCurrencies, fechaDesde, fechaHasta, selectedDivisa]);
 
   const clientDispersiones = useMemo(() => {
     return data.dispersiones
@@ -269,16 +284,18 @@ export const ClienteDetalleView: React.FC = () => {
           </button>
 
           {/* New Dispersion */}
-          <button
-            onClick={() => {
-              setEditingDispersion(undefined);
-              setIsAddDispersionOpen(true);
-            }}
-            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-colors"
-          >
-            <i className="ri-bank-card-line" />
-            <span>Nueva Dispersión</span>
-          </button>
+          {canDisperse && (
+            <button
+              onClick={() => {
+                setEditingDispersion(undefined);
+                setIsAddDispersionOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-colors"
+            >
+              <i className="ri-bank-card-line" />
+              <span>Nueva Dispersión</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -349,120 +366,128 @@ export const ClienteDetalleView: React.FC = () => {
           {/* Quick Balance Status Widget (matching shared client portal style) */}
           <div className="min-w-0 md:text-right flex flex-col md:items-end justify-center">
             <div className="inline-flex">{getStatusBadge(cliente.estado)}</div>
-            <p className={'mt-2 break-words text-3xl font-black tabular-nums sm:text-4xl font-mono ' + (
-              saldoCliente < 0 ? 'text-destructive' : saldoCliente > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
-            )}>
-              <span className="sr-only">Saldo de la cuenta </span>
-              {signoSaldo}{formatCOP(Math.abs(saldoCliente))}
-            </p>
-            <span className="text-[11px] text-muted-foreground mt-0.5">
-              {saldoCliente > 0
-                ? 'Pendiente por pagar al cliente'
-                : saldoCliente < 0
-                ? 'El cliente debe al sistema'
-                : 'Cuentas perfectamente al día'}
-            </span>
+            {!isOperador && (
+              <>
+                <p className={'mt-2 break-words text-3xl font-black tabular-nums sm:text-4xl font-mono ' + (
+                  saldoCliente < 0 ? 'text-destructive' : saldoCliente > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
+                )}>
+                  <span className="sr-only">Saldo de la cuenta </span>
+                  {signoSaldo}{formatCOP(Math.abs(saldoCliente))}
+                </p>
+                <span className="text-[11px] text-muted-foreground mt-0.5">
+                  {saldoCliente > 0
+                    ? 'Pendiente por pagar al cliente'
+                    : saldoCliente < 0
+                    ? 'El cliente debe al sistema'
+                    : 'Cuentas perfectamente al día'}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* Financial KPIs Dossier */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+      <div className={`grid gap-3 sm:gap-4 ${isOperador ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 md:grid-cols-5'}`}>
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider">Total Negocios</span>
             <i className="ri-exchange-dollar-line text-lg text-primary" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
-            {formatNumber(cliente.totalNegocios ?? clientNegocios.length)}
+            {formatNumber(isOperador ? clientNegocios.length : (cliente.totalNegocios ?? clientNegocios.length))}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            Volumen: <strong className="text-foreground">{formatCOP(cliente.totalIngresosCOP)}</strong>
+            Volumen: <strong className="text-foreground">{formatCOP(isOperador ? clientNegocios.reduce((acc, n) => acc + (n.ingresoCOP || 0), 0) : cliente.totalIngresosCOP)}</strong>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Pagado</span>
-            <i className="ri-bank-card-line text-lg text-emerald-500" />
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
-            {formatCOP(cliente.totalDispersadoCOP)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {clientDispersiones.length} dispersiones registradas
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Por Pagar</span>
-            <i className="ri-time-line text-lg text-amber-500" />
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
-            {formatCOP(porPagar)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Pendiente por dispersar al cliente
-          </div>
-          {rejectedTotal > 0 && (
-            <p className="mt-1 text-xs text-destructive">Dispersiones rechazadas: {formatCOP(rejectedTotal)}</p>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Por Cobrar</span>
-            <i className="ri-money-dollar-circle-line text-lg text-rose-500" />
-          </div>
-          <div className={`text-xl sm:text-2xl font-black font-mono ${porCobrar > 0 ? 'text-destructive' : 'text-foreground'}`}>
-            {formatCOP(porCobrar)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Saldo que debe el cliente
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider">
-              {!cliente.esComisionista && referidoPor ? 'Comisionista' : 'Comisiones'}
-            </span>
-            <i className="ri-hand-coin-line text-lg text-indigo-500" />
-          </div>
-          {!cliente.esComisionista && referidoPor ? (
-            <>
-              <button
-                type="button"
-                onClick={() => navigate(`/clientes/${referidoPor.codigo.toLowerCase()}`)}
-                className="text-left text-sm sm:text-base font-black text-foreground hover:text-primary transition-colors line-clamp-1"
-                title={referidoPor.nombre}
-              >
-                {referidoPor.nombre}
-              </button>
-              <div className="text-xs text-muted-foreground mt-1">
-                Comisión: <strong className="text-foreground font-mono">
-                  {referidorComisionista
-                    ? `${formatNumber((referidorComisionista.porcentajeComision <= 1 ? referidorComisionista.porcentajeComision * 100 : referidorComisionista.porcentajeComision), 2)}%`
-                    : 'Asignado'}
-                </strong>
+        {!isOperador && (
+          <>
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Total Pagado</span>
+                <i className="ri-bank-card-line text-lg text-emerald-500" />
               </div>
-            </>
-          ) : (
-            <>
               <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
-                {formatCOP(cliente.totalComisionesCOP ?? 0)}
+                {formatCOP(cliente.totalDispersadoCOP)}
               </div>
-              <div className="text-xs text-muted-foreground mt-1 line-clamp-2" title={clientesReferidos.map((c) => c.nombre).join(', ')}>
-                {cliente.esComisionista
-                  ? (clientesReferidos.length > 0
-                      ? `Comisiona de: ${clientesReferidos.map((c) => c.nombre).join(', ')}`
-                      : 'Sin referidos asignados')
-                  : 'No es comisionista'}
+              <div className="text-xs text-muted-foreground mt-1">
+                {clientDispersiones.length} dispersiones registradas
               </div>
-            </>
-          )}
-        </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Por Pagar</span>
+                <i className="ri-time-line text-lg text-amber-500" />
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
+                {formatCOP(porPagar)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Pendiente por dispersar al cliente
+              </div>
+              {rejectedTotal > 0 && (
+                <p className="mt-1 text-xs text-destructive">Dispersiones rechazadas: {formatCOP(rejectedTotal)}</p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Por Cobrar</span>
+                <i className="ri-money-dollar-circle-line text-lg text-rose-500" />
+              </div>
+              <div className={`text-xl sm:text-2xl font-black font-mono ${porCobrar > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                {formatCOP(porCobrar)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Saldo que debe el cliente
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between text-muted-foreground mb-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider">
+                  {!cliente.esComisionista && referidoPor ? 'Comisionista' : 'Comisiones'}
+                </span>
+                <i className="ri-hand-coin-line text-lg text-indigo-500" />
+              </div>
+              {!cliente.esComisionista && referidoPor ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/clientes/${referidoPor.codigo.toLowerCase()}`)}
+                    className="text-left text-sm sm:text-base font-black text-foreground hover:text-primary transition-colors line-clamp-1"
+                    title={referidoPor.nombre}
+                  >
+                    {referidoPor.nombre}
+                  </button>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Comisión: <strong className="text-foreground font-mono">
+                      {referidorComisionista
+                        ? `${formatNumber((referidorComisionista.porcentajeComision <= 1 ? referidorComisionista.porcentajeComision * 100 : referidorComisionista.porcentajeComision), 2)}%`
+                        : 'Asignado'}
+                    </strong>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xl sm:text-2xl font-black text-foreground font-mono">
+                    {formatCOP(cliente.totalComisionesCOP ?? 0)}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2" title={clientesReferidos.map((c) => c.nombre).join(', ')}>
+                    {cliente.esComisionista
+                      ? (clientesReferidos.length > 0
+                          ? `Comisiona de: ${clientesReferidos.map((c) => c.nombre).join(', ')}`
+                          : 'Sin referidos asignados')
+                      : 'No es comisionista'}
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Tabs Navigation */}
@@ -482,52 +507,56 @@ export const ClienteDetalleView: React.FC = () => {
           </span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('dispersiones')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'dispersiones'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-          }`}
-        >
-          <i className="ri-bank-card-line text-sm" />
-          <span>Dispersiones y Comprobantes</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/15">
-            {clientDispersiones.length}
-          </span>
-        </button>
+        {!isOperador && (
+          <>
+            <button
+              onClick={() => setActiveTab('dispersiones')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'dispersiones'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              <i className="ri-bank-card-line text-sm" />
+              <span>Dispersiones y Comprobantes</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/15">
+                {clientDispersiones.length}
+              </span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('efectivo')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'efectivo'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-          }`}
-        >
-          <i className="ri-money-dollar-box-line text-sm" />
-          <span>Movimientos Efectivo</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/15">
-            {clientEfectivo.length}
-          </span>
-        </button>
+            <button
+              onClick={() => setActiveTab('efectivo')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'efectivo'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              <i className="ri-money-dollar-box-line text-sm" />
+              <span>Movimientos Efectivo</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/15">
+                {clientEfectivo.length}
+              </span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('comisiones')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'comisiones'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-          }`}
-        >
-          <i className="ri-hand-coin-line text-sm" />
-          <span>Comisiones y Red</span>
-          {cliente.esComisionista && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-bold">
-              {clientesReferidos.length}
-            </span>
-          )}
-        </button>
+            <button
+              onClick={() => setActiveTab('comisiones')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'comisiones'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              <i className="ri-hand-coin-line text-sm" />
+              <span>Comisiones y Red</span>
+              {cliente.esComisionista && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-bold">
+                  {clientesReferidos.length}
+                </span>
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       {/* Date Range & Currency Filter for Tabs */}

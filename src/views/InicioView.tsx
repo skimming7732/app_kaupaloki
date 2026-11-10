@@ -194,7 +194,7 @@ export const InicioView = () => {
   const admin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const canSeeNegocios = admin || profile?.role === 'operador';
   const authorized = profile?.authorized_currencies || [];
-  const divisas = admin || !authorized.length ? data.divisas
+  const divisas = admin ? data.divisas
     : data.divisas.filter((currency) => authorized.includes(currency.codigo));
 
   return (

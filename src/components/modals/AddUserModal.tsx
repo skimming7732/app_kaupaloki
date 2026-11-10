@@ -81,6 +81,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [actionLink, setActionLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -98,6 +100,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
     setAllCurrencies(false);
     setError(null);
     setSuccess(false);
+    setActionLink(null);
+    setCopied(false);
     setLoading(false);
   };
 
@@ -186,17 +190,29 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
 
       finishSound(true);
       setSuccess(true);
+      if (resJson.actionLink) {
+        setActionLink(resJson.actionLink);
+      }
       await syncData(true);
 
-      setTimeout(() => {
-        handleClose();
-      }, 1800);
+      if (!resJson.actionLink) {
+        setTimeout(() => {
+          handleClose();
+        }, 1800);
+      }
     } catch (err: any) {
       setError(err?.message || 'Error al procesar la invitación');
     } finally {
       finishSound(false);
       setLoading(false);
     }
+  };
+
+  const handleCopyActionLink = () => {
+    if (!actionLink) return;
+    navigator.clipboard.writeText(actionLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -240,15 +256,54 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
 
         {/* Success Screen */}
         {success ? (
-          <div className="py-8 text-center space-y-3 animate-fade-in">
+          <div className="py-6 text-center space-y-4 animate-fade-in">
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center text-2xl font-bold">
               <i className="ri-checkbox-circle-line" />
             </div>
-            <h4 className="text-base font-bold text-foreground">¡Invitación Registrada con Éxito!</h4>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              El usuario <strong className="text-foreground">{email}</strong> fue configurado con rol{' '}
-              <strong className="text-foreground uppercase">{rol}</strong>. Podrá acceder inmediatamente tras completar su onboarding.
-            </p>
+            <div>
+              <h4 className="text-base font-bold text-foreground">¡Invitación Registrada con Éxito!</h4>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+                El usuario <strong className="text-foreground">{email}</strong> fue configurado con rol{' '}
+                <strong className="text-foreground uppercase">{rol}</strong>.
+              </p>
+            </div>
+
+            {actionLink && (
+              <div className="p-3.5 rounded-2xl bg-muted/60 border border-border text-left space-y-2 mt-4 max-w-md mx-auto">
+                <span className="text-[11px] font-semibold text-muted-foreground block">
+                  Enlace directo de acceso / invitación:
+                </span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={actionLink}
+                    className="flex-1 text-xs font-mono bg-card px-3 py-2 rounded-xl border border-border text-foreground select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyActionLink}
+                    className="px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 flex items-center gap-1.5 shrink-0 transition-opacity"
+                  >
+                    <i className={copied ? "ri-check-line text-emerald-300" : "ri-file-copy-line"} />
+                    <span>{copied ? 'Copiado' : 'Copiar'}</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Puedes copiar este enlace y enviárselo directamente al usuario por WhatsApp o correo.
+                </p>
+              </div>
+            )}
+
+            <div className="pt-3 flex justify-center">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+              >
+                Listo / Cerrar
+              </button>
+            </div>
           </div>
         ) : (
           <>

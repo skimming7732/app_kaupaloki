@@ -478,6 +478,20 @@ Deno.serve(async (req: Request) => {
       });
       if (profileError) throw profileError;
 
+      let actionLink = "";
+      try {
+        const { data: linkData } = await supabase.auth.admin.generateLink({
+          type: "magiclink",
+          email: cleanEmail,
+          options: {
+            redirectTo: "https://app.kaupaloki.co/onboarding",
+          },
+        });
+        if (linkData?.properties?.action_link) {
+          actionLink = linkData.properties.action_link;
+        }
+      } catch (_) {}
+
       return new Response(
         JSON.stringify({
           ok: true,
@@ -485,6 +499,7 @@ Deno.serve(async (req: Request) => {
           airtableRecordId,
           operatorCode,
           email: cleanEmail,
+          actionLink,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -564,6 +579,19 @@ Deno.serve(async (req: Request) => {
             inviteError = invErr.message || (linkErr?.message ?? "Error enviando invitación");
           }
         } else {
+          try {
+            const { data: linkData } = await supabase.auth.admin.generateLink({
+              type: "magiclink",
+              email: cleanEmail,
+              options: {
+                redirectTo: "https://app.kaupaloki.co/onboarding"
+              }
+            });
+            if (linkData?.properties?.action_link) {
+              actionLink = linkData.properties.action_link;
+            }
+          } catch (_) {}
+
           if (invData.user?.id) {
             const { error } = await supabase.from("profiles").upsert({
               id: invData.user.id,

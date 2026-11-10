@@ -70,9 +70,19 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
   }, [isCreatingClient]);
 
   const authorizedCurrencies = profile?.authorized_currencies;
-  const currencies = profile?.role === 'operador' && authorizedCurrencies?.length
-    ? data.divisas.filter((currency) => authorizedCurrencies.includes(currency.codigo))
+  const currencies = profile?.role === 'operador'
+    ? data.divisas.filter((currency) => (authorizedCurrencies || []).includes(currency.codigo))
     : data.divisas;
+
+  useEffect(() => {
+    if (profile?.role === 'operador') {
+      if (!divisaCode && currencies.length > 0) {
+        setDivisaCode(currencies[0].codigo);
+      } else if (divisaCode && !currencies.some((c) => c.codigo === divisaCode)) {
+        setDivisaCode(currencies[0]?.codigo || '');
+      }
+    }
+  }, [profile?.role, currencies, divisaCode]);
   const selectedCurrency = currencies.find((currency) => currency.codigo === divisaCode);
   const authorName = negocio?.createdByName?.trim() ||
     (negocio?.createdBy && (data.usuarios.find((user) => user.id === negocio.createdBy)?.nombre || negocio.createdBy));

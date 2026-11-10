@@ -301,7 +301,7 @@ interface DataContextType {
   createCliente: (nombre: string, pais?: string, authorId?: string) => Promise<any>;
   updateCliente: (payload: { id: string; nombre?: string; pais?: string; authorId?: string }) => Promise<boolean>;
   deleteUser: (idOrEmail: string) => Promise<{ success: boolean; error?: string }>;
-  sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
+  sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; actionLink?: string; error?: string }>;
   createTransferenciaInterna: (payload: any) => Promise<boolean>;
   updateTransferenciaInterna: (id: string, payload: any) => Promise<boolean>;
   deleteTransferenciaInterna: (id: string) => Promise<boolean>;
@@ -1713,7 +1713,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sendUserInvite = async (
     email: string,
     fullName?: string
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; actionLink?: string; error?: string }> => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Inicia sesión para enviar la invitación.');
@@ -1728,7 +1728,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       const resJson = await res.json().catch(() => ({}));
       if (res.ok && resJson.ok) {
-        return { success: true };
+        return { success: true, actionLink: resJson.actionLink };
       }
       return { success: false, error: resJson.error || 'No se pudo enviar la invitación' };
     } catch (err: any) {
