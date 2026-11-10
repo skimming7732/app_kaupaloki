@@ -200,7 +200,6 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <th className="py-3 px-4 text-right">Efectivo (COP)</th>
                 <th className="py-3 px-4 text-right">Comisión (COP)</th>
                 <th className="py-3 px-4 text-right">Total cliente (COP)</th>
-                <th className="py-3 px-4">Institución</th>
                 <th className="py-3 px-4">Referencia / Detalle</th>
                 <CreatedByHeader />
                 <th className="py-3 px-4 text-center">Acciones</th>
@@ -209,12 +208,12 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             <tbody className="divide-y divide-border">
               {filteredMovimientos.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No hay movimientos de efectivo que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={11} rows={filteredMovimientos}>{(m) => (
+                <PaginatedRows columns={10} rows={filteredMovimientos}>{(m) => (
                   <tr key={m.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-foreground">{m.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(m.fecha)}</td>
@@ -240,11 +239,6 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                     <td className="whitespace-nowrap py-3 px-4 text-right font-bold tabular-nums">{formatCOP(m.monto - (m.comisionCop ?? 0))}</td>
                     <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.comisionCop ? formatCOP(m.comisionCop) : '—'}</td>
                     <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.tipo === 'Pago' && (m.clienteId || m.clienteCodigo) ? formatCOP(m.monto) : '—'}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                        {m.origenFondos || '—'}
-                      </span>
-                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{m.referencia || '—'}</td>
                     <CreatedByCell name={m.createdByName} />
                     <td className="py-2.5 px-4 text-center whitespace-nowrap">

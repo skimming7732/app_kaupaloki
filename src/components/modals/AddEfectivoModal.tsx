@@ -331,13 +331,28 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClo
             )}
           </div>
           {showFee && (
-            <label className={recordLabelClass}>
-              <span>Monto que quieres fijar</span>
-              <select value={amountBasis} onChange={(event) => setAmountBasis(event.currentTarget.value as typeof amountBasis)} className={recordFieldClass}>
-                <option value="total">Total a descontar</option>
-                <option value="entrega">Efectivo a entregar</option>
-              </select>
-            </label>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">¿Qué monto vas a ingresar?</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {([
+                  { value: 'total', label: 'Total a descontar', detail: 'Del total se resta la comisión para calcular la entrega.', icon: 'ri-calculator-line' },
+                  { value: 'entrega', label: 'Efectivo a entregar', detail: 'La comisión se suma al total del cliente.', icon: 'ri-money-dollar-box-line' },
+                ] as const).map((option) => (
+                  <label key={option.value} className="relative cursor-pointer">
+                    <input type="radio" name="amountBasis" value={option.value} checked={amountBasis === option.value}
+                      onChange={() => setAmountBasis(option.value)} className="peer sr-only" />
+                    <span className="flex h-full items-start gap-2.5 rounded-xl border border-input p-3 pr-8 peer-checked:border-primary peer-checked:bg-primary/10 peer-focus-visible:ring-2 peer-focus-visible:ring-primary">
+                      <i className={option.icon + ' text-lg leading-5 text-primary'} aria-hidden="true" />
+                      <span>
+                        <strong className="block text-sm">{option.label}</strong>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{option.detail}</span>
+                      </span>
+                    </span>
+                    <i className="ri-checkbox-circle-fill absolute right-3 top-3 hidden text-primary peer-checked:block" aria-hidden="true" />
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           )}
           <label className={recordLabelClass}>
             <span>{showFee ? amountBasis === 'total' ? 'Total a descontar (COP)' : 'Efectivo a entregar (COP)' : 'Monto (COP)'}</span>
@@ -387,13 +402,6 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClo
                   </label>
                 )}
               </div>
-              {validAmount && (
-                <dl className="space-y-2 rounded-xl border border-border bg-muted/30 p-3 text-sm tabular-nums">
-                  <div className="flex justify-between gap-2"><dt>Efectivo a entregar</dt><dd>{formatCOP(cashCents / 100)}</dd></div>
-                  <div className="flex justify-between gap-2"><dt>Comisión</dt><dd>{formatCOP(feeCents / 100)}</dd></div>
-                  <div className="flex justify-between gap-2 border-t border-border pt-2 font-semibold"><dt>Total a descontar</dt><dd>{formatCOP(totalCents / 100)}</dd></div>
-                </dl>
-              )}
             </div>
           )}
           {overpayment && (
@@ -412,14 +420,32 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClo
             />
           </label>
         </fieldset>
-        <RecordActions
-          busy={busy}
-          submitDisabled={!cashAccount}
-          label={record ? 'Guardar cambios' : isClientPayment ? 'Registrar pago' : tipo === 'Ingreso' ? 'Registrar ingreso' : 'Registrar salida'}
-          onClose={onClose}
-          onDelete={record && isAdmin ? handleDelete : undefined}
-          deleteLabel="Eliminar movimiento"
-        />
+        <div className={showFee ? 'sticky bottom-0 z-10 space-y-3 bg-card py-2' : undefined}>
+          {showFee && (
+            <dl aria-label="Desglose del pago" className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm tabular-nums sm:grid-cols-3">
+              <div>
+                <dt className="text-xs text-muted-foreground">Efectivo a entregar</dt>
+                <dd className="break-words font-semibold">{validAmount ? formatCOP(cashCents / 100) : '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Comisión</dt>
+                <dd className="break-words font-semibold">{feeType === 'ninguna' ? formatCOP(0) : validAmount ? formatCOP(feeCents / 100) : '—'}</dd>
+              </div>
+              <div className="col-span-2 flex flex-wrap items-baseline justify-between gap-x-2 border-t border-border pt-2 sm:col-span-1 sm:block sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
+                <dt className="text-xs text-muted-foreground">Total a descontar</dt>
+                <dd className="break-words font-bold text-primary">{validAmount ? formatCOP(totalCents / 100) : '—'}</dd>
+              </div>
+            </dl>
+          )}
+          <RecordActions
+            busy={busy}
+            submitDisabled={!cashAccount}
+            label={record ? 'Guardar cambios' : isClientPayment ? 'Registrar pago' : tipo === 'Ingreso' ? 'Registrar ingreso' : 'Registrar salida'}
+            onClose={onClose}
+            onDelete={record && isAdmin ? handleDelete : undefined}
+            deleteLabel="Eliminar movimiento"
+          />
+        </div>
       </form>
     </RecordDialog>
   );
