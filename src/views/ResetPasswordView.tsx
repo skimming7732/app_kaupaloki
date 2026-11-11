@@ -8,7 +8,6 @@ export const ResetPasswordView: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [reset2Fa, setReset2Fa] = useState(true);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isRecoveryValid, setIsRecoveryValid] = useState(false);
@@ -17,6 +16,15 @@ export const ResetPasswordView: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const is2FaRecovery = location.search.includes('reset_2fa=1') || window.location.hash.includes('reset_2fa=1');
+  const [reset2Fa, setReset2Fa] = useState(is2FaRecovery);
+
+  useEffect(() => {
+    if (is2FaRecovery) {
+      setReset2Fa(true);
+    }
+  }, [is2FaRecovery]);
 
   useEffect(() => {
     // Check if URL has recovery tokens or if an active session exists
@@ -76,8 +84,8 @@ export const ResetPasswordView: React.FC = () => {
 
       if (updateErr) throw updateErr;
 
-      // If user wants to reset their 2FA
-      if (reset2Fa) {
+      // If user requested to reset their 2FA from the 2FA screen
+      if (reset2Fa && is2FaRecovery) {
         try {
           await supabase.rpc('restablecer_mi_2fa');
         } catch (rpcErr) {
@@ -151,7 +159,7 @@ export const ResetPasswordView: React.FC = () => {
                 <div>
                   <span className="font-bold text-sm block">¡Contraseña actualizada!</span>
                   <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
-                    {reset2Fa
+                    {reset2Fa && is2FaRecovery
                       ? 'Tu contraseña y tu autenticador 2FA han sido restablecidos. Al iniciar sesión se te guiará para vincular tu nuevo autenticador.'
                       : 'Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tus nuevas credenciales.'}
                   </span>
@@ -237,25 +245,27 @@ export const ResetPasswordView: React.FC = () => {
                 />
               </div>
 
-              {/* Opción para restablecer también 2FA */}
-              <div className="p-3 rounded-2xl bg-muted/40 border border-border/80 text-xs space-y-1.5">
-                <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={reset2Fa}
-                    onChange={(e) => setReset2Fa(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary/20 accent-primary"
-                  />
-                  <div className="flex-1">
-                    <span className="font-semibold text-foreground text-xs block">
-                      Restablecer también autenticador 2FA
-                    </span>
-                    <span className="text-[11px] text-muted-foreground block leading-relaxed mt-0.5">
-                      Recomendado si perdiste tu celular, borraste la app 2FA o extraviaste los códigos. Al iniciar sesión vincularás un nuevo 2FA.
-                    </span>
-                  </div>
-                </label>
-              </div>
+              {/* Opción para restablecer 2FA (solo si se solicitó recuperación desde la pantalla de 2FA) */}
+              {is2FaRecovery && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={reset2Fa}
+                      onChange={(e) => setReset2Fa(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary/20 accent-primary"
+                    />
+                    <div className="flex-1">
+                      <span className="font-semibold text-foreground text-xs block">
+                        Restablecer también autenticador 2FA
+                      </span>
+                      <span className="text-[11px] text-muted-foreground block leading-relaxed mt-0.5">
+                        Desvincula tu autenticador anterior para que puedas configurar uno nuevo al iniciar sesión.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               <div className="pt-1">
                 <button

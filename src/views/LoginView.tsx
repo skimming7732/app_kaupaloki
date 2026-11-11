@@ -145,7 +145,7 @@ export const LoginView: React.FC = () => {
                 }}
                 className="text-xs text-primary hover:underline font-semibold transition-colors"
               >
-                ¿Olvidaste tu contraseña o 2FA?
+                ¿Olvidaste tu contraseña?
               </button>
             </div>
 
@@ -161,17 +161,17 @@ export const LoginView: React.FC = () => {
         </div>
       </div>
 
-      {/* Forgot Password / 2FA Recovery Modal */}
+      {/* Forgot Password Modal */}
       {isForgotPasswordOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-card w-full max-w-sm rounded-3xl border border-border shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
-                  <i className="ri-shield-keyhole-line" />
+                  <i className="ri-lock-password-line" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Recuperar Acceso (Clave o 2FA)</h3>
+                  <h3 className="text-sm font-bold text-foreground">Recuperar Contraseña</h3>
                   <p className="text-[11px] text-muted-foreground">Te enviaremos un enlace a tu correo</p>
                 </div>
               </div>
@@ -191,7 +191,7 @@ export const LoginView: React.FC = () => {
                   <div>
                     <span className="font-bold block">¡Correo enviado!</span>
                     <span className="text-muted-foreground mt-0.5 block text-[11px] leading-relaxed">
-                      Si el correo coincide con una cuenta activa, recibirás un enlace de acceso para restablecer tu contraseña y/o desvincular tu autenticador 2FA si perdiste tu dispositivo.
+                      Si el correo coincide con una cuenta activa, recibirás un enlace de acceso para restablecer tu contraseña.
                     </span>
                   </div>
                 </div>
@@ -205,10 +205,6 @@ export const LoginView: React.FC = () => {
               </div>
             ) : (
               <form onSubmit={handleForgotPassword} className="space-y-3.5">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Si olvidaste tu contraseña o perdiste tu aplicación de autenticación 2FA / códigos de respaldo, ingresa tu correo para recibir un enlace de recuperación seguro.
-                </p>
-
                 {forgotError && (
                   <div className="p-2.5 rounded-xl bg-destructive/10 text-destructive text-xs border border-destructive/20 flex items-center gap-2">
                     <i className="ri-error-warning-line text-sm shrink-0" />

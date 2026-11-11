@@ -306,7 +306,7 @@ export const TwoFactorView: React.FC = () => {
 
     try {
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password?reset_2fa=1`,
       });
       if (resetErr) throw resetErr;
 
@@ -350,7 +350,7 @@ export const TwoFactorView: React.FC = () => {
 
       // Password verified! Send official recovery email
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password?reset_2fa=1`,
       });
 
       if (resetErr) {
