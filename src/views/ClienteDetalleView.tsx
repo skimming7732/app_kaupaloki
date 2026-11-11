@@ -277,26 +277,15 @@ export const ClienteDetalleView: React.FC = () => {
             <span>Compartir Enlace PIN</span>
           </button>)}
 
-          {/* Saldo Inicial Button (Solo Super Admin) */}
-          {isSuperAdmin && (
-            <button
-              onClick={() => setIsSaldoInicialOpen(true)}
-              className="px-3 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400 transition-colors flex items-center gap-1.5"
-              title="Configurar saldo inicial o deuda previa del cliente"
-            >
-              <i className="ri-scales-3-line" />
-              <span>Saldo Inicial</span>
-            </button>
-          )}
-
           {/* Edit Client */}
           {isAdmin && (
             <button
               onClick={() => setIsEditOpen(true)}
-              className="px-3 py-2 rounded-xl border border-border bg-card hover:bg-muted text-xs font-medium text-foreground transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors flex items-center gap-1.5 shadow-sm"
+              title="Editar datos del cliente"
             >
               <i className="ri-edit-line text-muted-foreground" />
-              <span>Editar</span>
+              <span>Editar Cliente</span>
             </button>
           )}
 
@@ -413,15 +402,44 @@ export const ClienteDetalleView: React.FC = () => {
                     ? 'El cliente debe al sistema'
                     : 'Cuentas perfectamente al día'}
                 </span>
-                {Boolean(cliente.saldoInicialCop) && (
-                  <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                    <i className="ri-scales-3-line text-amber-500" />
-                    <span>Saldo inicial:</span>
-                    <strong className={cliente.saldoInicialCop! < 0 ? 'text-destructive font-mono' : 'text-emerald-600 dark:text-emerald-400 font-mono'}>
-                      {cliente.saldoInicialCop! < 0 ? '- ' : '+ '}{formatCOP(Math.abs(cliente.saldoInicialCop!))}
-                    </strong>
-                    <span>({cliente.conceptoSaldoInicial || 'Saldo inicial'})</span>
-                  </div>
+                {Boolean(cliente.saldoInicialCop) ? (
+                  isSuperAdmin ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsSaldoInicialOpen(true)}
+                      className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted/60 hover:bg-muted text-[11px] font-medium text-muted-foreground transition-colors group cursor-pointer"
+                      title="Clic para editar el saldo inicial de apertura"
+                    >
+                      <i className="ri-scales-3-line text-amber-500" />
+                      <span>Saldo inicial:</span>
+                      <strong className={cliente.saldoInicialCop! < 0 ? 'text-destructive font-mono' : 'text-emerald-600 dark:text-emerald-400 font-mono'}>
+                        {cliente.saldoInicialCop! < 0 ? '- ' : '+ '}{formatCOP(Math.abs(cliente.saldoInicialCop!))}
+                      </strong>
+                      <span className="text-muted-foreground/80">({cliente.conceptoSaldoInicial || 'Saldo inicial'})</span>
+                      <i className="ri-pencil-line text-muted-foreground group-hover:text-primary text-xs ml-0.5" />
+                    </button>
+                  ) : (
+                    <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                      <i className="ri-scales-3-line text-amber-500" />
+                      <span>Saldo inicial:</span>
+                      <strong className={cliente.saldoInicialCop! < 0 ? 'text-destructive font-mono' : 'text-emerald-600 dark:text-emerald-400 font-mono'}>
+                        {cliente.saldoInicialCop! < 0 ? '- ' : '+ '}{formatCOP(Math.abs(cliente.saldoInicialCop!))}
+                      </strong>
+                      <span>({cliente.conceptoSaldoInicial || 'Saldo inicial'})</span>
+                    </div>
+                  )
+                ) : (
+                  isSuperAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSaldoInicialOpen(true)}
+                      className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:underline transition-colors"
+                      title="Configurar saldo inicial para este cliente"
+                    >
+                      <i className="ri-scales-3-line" />
+                      <span>+ Asignar saldo inicial</span>
+                    </button>
+                  )
                 )}
               </>
             )}
@@ -455,7 +473,7 @@ export const ClienteDetalleView: React.FC = () => {
                 {formatCOP(cliente.totalDispersadoCOP)}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {clientDispersiones.length} dispersiones registradas
+                {clientDispersiones.length + (Boolean(cliente.saldoInicialCop && cliente.saldoInicialCop < 0) ? 1 : 0)} dispersiones registradas
               </div>
             </div>
 
@@ -577,7 +595,7 @@ export const ClienteDetalleView: React.FC = () => {
               <i className="ri-money-dollar-box-line text-sm" />
               <span>Movimientos Efectivo</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/15">
-                {clientEfectivo.length}
+                {clientEfectivo.length + (Boolean(cliente.saldoInicialCop && cliente.saldoInicialCop > 0) ? 1 : 0)}
               </span>
             </button>
 

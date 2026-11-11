@@ -142,6 +142,7 @@ export interface NormalizedData {
     esComisionista: boolean;
     comisionaDeIds: string[];
     totalComisionesCOP: number;
+    fechaCreacion?: string;
     estado: string;
     dispersionesIds?: string[];
     negociosIds?: string[];
@@ -161,6 +162,7 @@ export interface NormalizedData {
     montoDivisa: number;
     tasaCambio: number;
     ingresoCOP: number;
+    fechaCreacion?: string;
     estado: string;
     raw: any;
   }>;
@@ -179,6 +181,7 @@ export interface NormalizedData {
     origenFondosId?: string;
     referencia?: string;
     comprobanteUrl?: string;
+    fechaCreacion?: string;
     estado: string;
     raw: any;
   }>;
@@ -894,6 +897,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         saldoCop: saldo,
         saldoInicialCop,
         conceptoSaldoInicial,
+        fechaCreacion: c.fechaCreacion || c.fecha_creacion || c.createdAt || c.created_at,
         porCobrarCOP,
         estado,
         dispersionesIds: Array.isArray(rawDispersionesIds) ? rawDispersionesIds : [rawDispersionesIds],

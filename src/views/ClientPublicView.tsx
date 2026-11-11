@@ -86,7 +86,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       ...dispersiones.filter((item) => item.estado?.trim().toUpperCase() !== 'RECHAZADO').map((item) => ({
         ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos,
       })),
-      ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({
+      ...efectivo.filter((item) => (item.tipo || '').trim().toUpperCase() === 'PAGO').map((item) => ({
         ...item, tipo: 'Pago en efectivo', origen: item.origenFondos, comprobanteUrl: undefined,
       })),
     ];
@@ -96,7 +96,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       list.push({
         id: 'saldo-inicial-deuda',
         codigo: 'SALDO-INICIAL',
-        fecha: (client as any)?.fechaCreacion || (client as any)?.createdAt || '2026-01-01',
+        fecha: (client as any)?.fechaCreacion || (client as any)?.createdAt || (client as any)?.createdAtAudit || new Date().toISOString().slice(0, 10),
         tipo: 'Anticipo / Desembolso inicial',
         monto: Math.abs(initialBalance),
         origen: 'Apertura contable',
@@ -110,7 +110,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   }, [dispersiones, efectivo, client]);
 
   const clientIngresos = useMemo(() => {
-    const list: any[] = efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
+    const list: any[] = efectivo.filter((item) => (item.tipo || '').trim().toUpperCase() === 'INGRESO').map((item) => ({
       ...item, concepto: item.referencia || 'Ingreso en efectivo', origen: item.origenFondos,
     }));
     const initialBalance = Number((client as any)?.saldoInicialCop ?? (client as any)?.saldo_inicial_cop ?? (client as any)?.saldoInicialCOP ?? 0);
@@ -119,7 +119,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       list.push({
         id: 'saldo-inicial-favor',
         codigo: 'SALDO-INICIAL',
-        fecha: (client as any)?.fechaCreacion || (client as any)?.createdAt || '2026-01-01',
+        fecha: (client as any)?.fechaCreacion || (client as any)?.createdAt || (client as any)?.createdAtAudit || new Date().toISOString().slice(0, 10),
         tipo: 'Ingreso inicial',
         monto: initialBalance,
         origen: 'Apertura contable',
@@ -149,12 +149,14 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
 
   const filteredPagos = useMemo(() => {
     return clientPagos.filter((item) => {
+      if (item.codigo === 'SALDO-INICIAL') return true;
       return matchesDateRange(item.fecha, fechaDesde, fechaHasta);
     });
   }, [clientPagos, fechaDesde, fechaHasta]);
 
   const filteredIngresos = useMemo(() => {
     return clientIngresos.filter((item) => {
+      if (item.codigo === 'SALDO-INICIAL') return true;
       return matchesDateRange(item.fecha, fechaDesde, fechaHasta);
     });
   }, [clientIngresos, fechaDesde, fechaHasta]);

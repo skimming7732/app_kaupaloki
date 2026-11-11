@@ -59,7 +59,8 @@ BEGIN
   UPDATE public.resumen_liquidacion
   SET saldo_neto_clientes_cop = (SELECT COALESCE(SUM(saldo_cop), 0) FROM public.clientes),
       total_saldo_pendiente_clientes_cop = (SELECT COALESCE(SUM(GREATEST(0, pendiente_cop)), 0) FROM public.clientes),
-      updated_at = NOW();
+      updated_at = NOW()
+  WHERE id = (SELECT id FROM public.resumen_liquidacion ORDER BY updated_at DESC NULLS LAST LIMIT 1);
   RETURN NULL;
 END;
 $$;
