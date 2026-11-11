@@ -65,8 +65,14 @@ export function capitalAmounts(row: CapitalMovement) {
 export function summarizeCapital(rows: CapitalMovement[], people?: CapitalPerson[]) {
   const initial = {
     capital: 0,
+    capitalSocios: 0,
+    capitalInversionistas: 0,
     balance: 0,
+    balanceSocios: 0,
+    balanceInversionistas: 0,
     interest: 0,
+    interestPaid: 0,
+    interestUnpaid: 0,
     dividends: 0,
     advances: 0,
     liquidaciones: 0,
@@ -82,7 +88,7 @@ export function summarizeCapital(rows: CapitalMovement[], people?: CapitalPerson
     }
   }
 
-  const byPerson = new Map<string, { dividends: number; advances: number; liquidaciones: number }>();
+  const byPerson = new Map<string, { capital: number; balance: number; dividends: number; advances: number; liquidaciones: number; interest: number; interestPaid: number; interestUnpaid: number }>();
 
   for (const row of rows) {
     const amounts = capitalAmounts(row);
@@ -93,10 +99,19 @@ export function summarizeCapital(rows: CapitalMovement[], people?: CapitalPerson
     initial.advances += amounts.advances;
     initial.liquidaciones += amounts.liquidaciones;
 
-    const current = byPerson.get(row.socio_id) || { dividends: 0, advances: 0, liquidaciones: 0 };
+    const isPaidInterest = row.tipo === 'INTERES' && Boolean(row.medio);
+    if (isPaidInterest) initial.interestPaid += amounts.interest;
+    else if (row.tipo === 'INTERES') initial.interestUnpaid += amounts.interest;
+
+    const current = byPerson.get(row.socio_id) || { capital: 0, balance: 0, dividends: 0, advances: 0, liquidaciones: 0, interest: 0, interestPaid: 0, interestUnpaid: 0 };
+    current.capital += amounts.capital;
+    current.balance += amounts.balance;
     current.dividends += amounts.dividends;
     current.advances += amounts.advances;
     current.liquidaciones += amounts.liquidaciones;
+    current.interest += amounts.interest;
+    if (isPaidInterest) current.interestPaid += amounts.interest;
+    else if (row.tipo === 'INTERES') current.interestUnpaid += amounts.interest;
     byPerson.set(row.socio_id, current);
   }
 
@@ -104,9 +119,14 @@ export function summarizeCapital(rows: CapitalMovement[], people?: CapitalPerson
     const tipo = partnerTypeById.get(socioId);
     const isSocio = tipo ? tipo === 'SOCIO' : (stats.advances > 0 || stats.dividends > 0);
     if (isSocio) {
+      initial.capitalSocios += stats.capital;
+      initial.balanceSocios += stats.balance;
       initial.unabsorbedAdvances += Math.max(0, stats.advances - stats.dividends);
       initial.sociosPaidDistributions += stats.advances + stats.liquidaciones;
       initial.sociosTotalDividends += Math.max(stats.dividends, stats.advances);
+    } else {
+      initial.capitalInversionistas += stats.capital;
+      initial.balanceInversionistas += stats.balance;
     }
   }
 

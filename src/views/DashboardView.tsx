@@ -62,9 +62,9 @@ export const DashboardView: React.FC = () => {
       color: 'text-blue-600 dark:text-blue-400',
     },
     {
-      label: 'Distribución a socios',
+      label: 'Adelantos pagados a socios',
       value: formatCOP(metrics.distribucionPagadaSociosCOP),
-      detail: 'Adelantos y liquidaciones pagadas a cuenta de utilidades',
+      detail: 'Anticipos a cuenta de utilidades salidos de banco',
       icon: 'ri-hand-coin-line',
       color: 'text-emerald-600 dark:text-emerald-400',
     },
@@ -74,6 +74,13 @@ export const DashboardView: React.FC = () => {
       detail: 'Saldo por pagar menos saldo por cobrar',
       icon: 'ri-group-line',
       color: 'text-foreground',
+    },
+    {
+      label: 'Intereses a inversionistas',
+      value: formatCOP(metrics.interesesSociosCOP),
+      detail: metrics.interesesPendientesCOP > 0 ? `Total intereses (${formatCOP(metrics.interesesPendientesCOP)} pendientes)` : 'Intereses de contratos liquidados',
+      icon: 'ri-percent-line',
+      color: 'text-indigo-600 dark:text-indigo-400',
     },
     {
       label: 'Capital invertido',
@@ -107,7 +114,7 @@ export const DashboardView: React.FC = () => {
               Fórmula de la liquidación
             </span>
             <p className="min-w-0 rounded-xl bg-primary/5 px-3 py-2.5 text-xs font-medium leading-relaxed text-foreground sm:px-4 sm:text-sm lg:rounded-2xl">
-              Activos líquidos + Liquidez USDT + Distribución a socios − Saldo neto con clientes − Capital invertido
+              Activos líquidos + Liquidez USDT + Adelantos a socios − Saldo neto con clientes − Intereses pendientes − Capital invertido
             </p>
           </div>
         </div>
@@ -152,7 +159,7 @@ export const DashboardView: React.FC = () => {
           </h3>
         </header>
 
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {settlementItems.map((item) => (
             <article key={item.label}
               className="flex min-w-0 flex-col rounded-2xl border border-border bg-gradient-to-br from-background/70 to-card p-4 transition-colors hover:border-primary/30 sm:p-5">
@@ -170,43 +177,80 @@ export const DashboardView: React.FC = () => {
           ))}
         </div>
 
-        <section aria-label="Resultados de liquidación"
-          className="mt-5 grid grid-cols-1 gap-3 border-t border-border pt-5 lg:grid-cols-[1fr_1fr_1.2fr] sm:mt-6 sm:pt-6">
-          <article className="flex min-w-0 items-start gap-3 rounded-2xl border border-primary/10 bg-primary/10 p-4 sm:p-5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-2xl text-primary">
-              <i className="ri-pie-chart-2-line" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <h4 className="text-sm font-semibold text-foreground">Ganancia Estimada Neta</h4>
-              <p className="mt-2 break-words text-2xl font-bold leading-tight tracking-tight tabular-nums text-primary xl:text-3xl">
-                {formatCOP(metrics.gananciaEsperada)}
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">Resultado de la fórmula en COP</p>
+        <section aria-label="Resultados de liquidación" className="mt-5 space-y-4 border-t border-border pt-5 sm:mt-6 sm:pt-6">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <article className="flex min-w-0 items-start gap-3.5 rounded-2xl border border-primary/20 bg-primary/10 p-4 sm:p-5">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-2xl text-primary">
+                <i className="ri-pie-chart-2-line" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-semibold text-foreground">Ganancia Estimada Neta</h4>
+                <p className="mt-1 break-words text-2xl font-bold leading-tight tracking-tight tabular-nums text-primary sm:text-3xl">
+                  {formatCOP(metrics.gananciaEsperada)}
+                </p>
+                <p className="mt-1.5 text-xs text-muted-foreground">Utilidad operativa generada por la empresa antes de dividendos a socios</p>
+              </div>
+            </article>
+
+            <article className="flex min-w-0 items-start gap-3.5 rounded-2xl border border-primary/35 bg-gradient-to-br from-primary/15 to-card p-4 sm:p-5">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/20 text-2xl text-primary">
+                <i className="ri-bar-chart-grouped-line" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-bold text-foreground">Ganancia retenida tras dividendos</h4>
+                <p className="mt-1 break-words text-2xl font-bold leading-tight tracking-tight tabular-nums text-primary sm:text-3xl">
+                  {formatCOP(metrics.gananciaDespuesDividendosCOP)}
+                </p>
+                <p className="mt-1.5 text-xs text-muted-foreground">Utilidad final que permanece en la empresa tras cubrir todos los dividendos</p>
+              </div>
+            </article>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-muted/30 p-4">
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+              <i className="ri-user-shared-line text-sm text-primary" aria-hidden="true" />
+              Desglose de utilidades, adelantos y compromisos con socios e inversionistas
+            </h5>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-border bg-card p-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Adelantos entregados</span>
+                  <i className="ri-hand-coin-line text-amber-500" aria-hidden="true" />
+                </div>
+                <p className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatCOP(metrics.adelantosSociosCOP)}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Anticipos de utilidades a socios</p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Intereses a inversionistas</span>
+                  <i className="ri-percent-line text-indigo-500" aria-hidden="true" />
+                </div>
+                <p className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatCOP(metrics.interesesSociosCOP)}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{metrics.interesesPendientesCOP > 0 ? `${formatCOP(metrics.interesesPendientesCOP)} pendientes` : '100% liquidados'}</p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Dividendos asignados</span>
+                  <i className="ri-pie-chart-line text-teal-500" aria-hidden="true" />
+                </div>
+                <p className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatCOP(metrics.dividendosSociosCOP ? -metrics.dividendosSociosCOP : 0)}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Decretados oficialmente a socios</p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Saldo por liquidar a socios</span>
+                  <i className="ri-wallet-3-line text-primary" aria-hidden="true" />
+                </div>
+                <p className={`mt-1 text-lg font-bold tabular-nums ${metrics.saldoPendienteSociosCOP > 0 ? 'text-primary' : 'text-foreground'}`}>
+                  {formatCOP(metrics.saldoPendienteSociosCOP)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Pendiente de pago (Dividendos − Adelantos)</p>
+              </div>
             </div>
-          </article>
-          <article className="flex min-w-0 items-start gap-3 rounded-2xl border border-border bg-gradient-to-br from-primary/[0.025] to-card p-4 sm:p-5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-2xl text-primary">
-              <i className="ri-group-line" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <h4 className="text-sm font-semibold text-foreground">Distribución y adelantos a socios</h4>
-              <p className="mt-2 break-words text-2xl font-bold leading-tight tracking-tight tabular-nums text-foreground xl:text-3xl">
-                {formatCOP(metrics.dividendosSociosCOP ? -metrics.dividendosSociosCOP : 0)}
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">Distribución de la ganancia + adelantos a socios</p>
-            </div>
-          </article>
-          <article className="flex min-w-0 items-start gap-3 rounded-2xl border border-primary/35 bg-gradient-to-br from-primary/10 to-card p-4 sm:p-5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-2xl text-primary">
-              <i className="ri-bar-chart-grouped-line" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <h4 className="text-sm font-bold text-foreground">Ganancia después de dividendos</h4>
-              <p className="mt-2 break-words text-[clamp(1.5rem,2.4vw,2.6rem)] font-bold leading-tight tracking-tight tabular-nums text-primary">
-                {formatCOP(metrics.gananciaDespuesDividendosCOP)}
-              </p>
-            </div>
-          </article>
+          </div>
         </section>
       </section>
     </div>

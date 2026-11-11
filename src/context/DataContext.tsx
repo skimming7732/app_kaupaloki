@@ -270,8 +270,13 @@ export interface MetricsSummary {
   totalGastosCOP: number;
   totalCostosDispersionCOP: number;
   interesesSociosCOP: number;
+  interesesPendientesCOP: number;
   capitalInvertidoCOP: number | null;
+  capitalSociosCOP: number;
+  capitalInversionistasCOP: number;
+  adelantosSociosCOP: number;
   dividendosSociosCOP: number;
+  saldoPendienteSociosCOP: number;
   distribucionPagadaSociosCOP: number;
   adelantosPendientesSociosCOP: number;
   gananciaDespuesDividendosCOP: number;
@@ -1323,8 +1328,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const capitalInvertidoCOP = res?.totalCapitalInvertidoCop ?? (userId && capitalLedger.userId === userId ? capitalTotals.capital : null);
     const distribucionPagadaSociosCOP = capitalTotals.sociosPaidDistributions;
     const adelantosPendientesSociosCOP = capitalTotals.unabsorbedAdvances;
+    const interesesPendientesCOP = capitalTotals.interestUnpaid;
     const gananciaEsperada = totalActivosLiquidos + liquidezEsperada + distribucionPagadaSociosCOP
-      - saldoNetoClientesCOP - (capitalInvertidoCOP ?? 0);
+      - saldoNetoClientesCOP - interesesPendientesCOP - (capitalInvertidoCOP ?? 0);
     const dividendosSociosCOP = capitalTotals.sociosTotalDividends;
     const gananciaDespuesDividendosCOP = gananciaEsperada - dividendosSociosCOP;
 
@@ -1342,8 +1348,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalGastosCOP,
       totalCostosDispersionCOP,
       interesesSociosCOP: capitalTotals.interest,
+      interesesPendientesCOP,
       capitalInvertidoCOP,
+      capitalSociosCOP: capitalTotals.capitalSocios,
+      capitalInversionistasCOP: capitalTotals.capitalInversionistas,
+      adelantosSociosCOP: capitalTotals.advances,
       dividendosSociosCOP,
+      saldoPendienteSociosCOP: capitalTotals.balanceSocios,
       distribucionPagadaSociosCOP,
       adelantosPendientesSociosCOP,
       gananciaDespuesDividendosCOP,

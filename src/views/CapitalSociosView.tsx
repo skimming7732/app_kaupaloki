@@ -120,8 +120,17 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
     }
     const query = normalizeSearch(search.trim());
     const visiblePeople = people.filter((person) => normalizeSearch(person.nombre).includes(query));
+    const dirTotals = summarizeCapital(movements, people);
     return (
       <div className="space-y-4">
+        <KpiStrip metrics={[
+          { label: 'Total capital aportado', value: formatCOP(dirTotals.capital), featured: true },
+          { label: 'Dividendos a socios', value: formatCOP(dirTotals.dividends) },
+          { label: 'Adelantos a socios', value: formatCOP(dirTotals.advances) },
+          { label: 'Saldo por liquidar a socios', value: <span className={dirTotals.balanceSocios > 0 ? 'text-primary font-bold' : ''}>{formatCOP(dirTotals.balanceSocios)}</span> },
+          { label: 'Intereses a inversionistas', value: formatCOP(dirTotals.interest) },
+        ]} />
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <input type="search" aria-label="Buscar por nombre" placeholder="Buscar por nombre"
             value={search} onChange={(event) => setSearch(event.target.value)} className={recordFieldClass + ' max-w-xs'} />
@@ -159,12 +168,21 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
                       </div>
                     </div>
                     <dl className="mt-4 grid flex-1 grid-cols-2 gap-2">
-                      {figures.map(({ label, amount }) => (
-                        <div key={label} className="min-w-0 rounded-xl bg-muted/60 px-2.5 py-2">
-                          <dt className="text-[11px] text-muted-foreground">{label}</dt>
-                          <dd className={`mt-1 break-words text-xs font-bold tabular-nums ${amount < 0 ? 'text-destructive' : ''}`}>{formatCOP(amount)}</dd>
-                        </div>
-                      ))}
+                      {figures.map(({ label, amount }) => {
+                        const isBalance = label === 'Saldo por liquidar';
+                        const badge = isPartner && isBalance ? (
+                          amount > 0 ? <span className="block text-[10px] font-semibold text-primary">Por pagar</span>
+                            : amount < 0 ? <span className="block text-[10px] font-semibold text-amber-600 dark:text-amber-400">Adelanto vigente</span>
+                            : <span className="block text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Al día</span>
+                        ) : null;
+                        return (
+                          <div key={label} className="min-w-0 rounded-xl bg-muted/60 px-2.5 py-2">
+                            <dt className="text-[11px] text-muted-foreground">{label}</dt>
+                            <dd className={`mt-1 break-words text-xs font-bold tabular-nums ${amount < 0 ? 'text-destructive' : ''}`}>{formatCOP(amount)}</dd>
+                            {badge}
+                          </div>
+                        );
+                      })}
                     </dl>
                     {contractsWithComments.length > 0 && (
                       <div className="mt-3 space-y-2 border-t border-border pt-3">
@@ -246,12 +264,18 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
         { label: 'Capital aportado', value: formatCOP(totals.capital), featured: true },
         { label: 'Dividendos asignados', value: formatCOP(totals.dividends) },
         { label: 'Adelantos entregados', value: formatCOP(totals.advances) },
-        { label: 'Saldo por liquidar', value: formatCOP(totals.balance) },
+        { label: 'Saldo por liquidar', value: formatCOP(totals.balance), featured: true },
+      ] : currentPerson?.tipo === 'INVERSIONISTA' ? [
+        { label: 'Capital invertido', value: formatCOP(totals.capital), featured: true },
+        { label: 'Intereses generados', value: formatCOP(totals.interest) },
+        { label: 'Intereses pagados', value: formatCOP(totals.interestPaid) },
+        { label: 'Saldo por pagar', value: formatCOP(totals.balance), featured: true },
       ] : [
         { label: 'Total capital', value: formatCOP(totals.capital), featured: true },
-        { label: 'Total saldo por liquidar', value: formatCOP(totals.balance) },
-        { label: 'Intereses pagados', value: <span title="Intereses liquidados, incluidos los acreditados al saldo">{formatCOP(totals.interest)}</span> },
-        ...(totals.dividends > 0 || totals.advances > 0 ? [{ label: 'Dividendos y adelantos', value: formatCOP(totals.dividends || totals.advances) }] : []),
+        { label: 'Dividendos a socios', value: formatCOP(totals.dividends) },
+        { label: 'Adelantos a socios', value: formatCOP(totals.advances) },
+        { label: 'Saldo por liquidar a socios', value: formatCOP(totals.balanceSocios), featured: true },
+        { label: 'Intereses a inversionistas', value: formatCOP(totals.interest) },
       ]} />
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
