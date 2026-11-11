@@ -47,6 +47,7 @@ export interface AppUser extends CreationAudit {
   pais?: string;
   divisasAutorizadas?: string[];
   estado: string;
+  twoFactorEnabled?: boolean;
 }
 
 export interface ResumenLiquidacion {
@@ -317,6 +318,7 @@ interface DataContextType {
   createCliente: (nombre: string, pais?: string, authorId?: string) => Promise<any>;
   updateCliente: (payload: { id: string; nombre?: string; pais?: string; authorId?: string }) => Promise<boolean>;
   deleteUser: (idOrEmail: string) => Promise<{ success: boolean; error?: string }>;
+  adminReset2FA: (targetUserId: string) => Promise<{ success: boolean; error?: string }>;
   sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; actionLink?: string; error?: string }>;
   createTransferenciaInterna: (payload: any) => Promise<boolean>;
   updateTransferenciaInterna: (id: string, payload: any) => Promise<boolean>;
@@ -527,6 +529,7 @@ const snapshotTables = {
   divisasAutorizadas: p.authorized_currencies || [],
   estado: ['invitado', 'invited'].includes(String(p.status).toLowerCase()) ? 'Invitado'
     : ['inactivo', 'inactive'].includes(String(p.status).toLowerCase()) ? 'Inactivo' : 'Activo',
+  twoFactorEnabled: Boolean(p.two_factor_enabled),
 }) },
   comisionistas: { key: 'comisionistas', normalize: (c: any) => ({
   ...creationAudit(c),
@@ -1955,6 +1958,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  const adminReset2FA = async (targetUserId: string): Promise<{ success: boolean; error?: string }> => {
+    requireWrite('admin');
+    try {
+      const { error } = await supabase.rpc('admin_restablecer_2fa', { target_user_id: targetUserId });
+      if (error) throw dashboardWriteError(error, 'No se pudo restablecer el 2FA del usuario.');
+      await refreshUsers();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Error al restablecer 2FA' };
+    }
+  };
+
   const deleteUser = async (idOrEmail: string): Promise<{ success: boolean; error?: string }> => {
     requireWrite('admin');
     try {
@@ -2170,6 +2185,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateRateUsdt,
         saveComisionista,
         deleteUser,
+        adminReset2FA,
         sendUserInvite,
         updateUserPermissions,
       }}

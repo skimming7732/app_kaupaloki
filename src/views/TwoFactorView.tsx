@@ -253,12 +253,14 @@ export const TwoFactorView: React.FC = () => {
     setError(null);
     setLoading(true);
 
-    const inputCode = code.trim().toUpperCase();
+    const inputCode = code.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     const savedBackupCodes: string[] = profile?.two_factor_backup_codes || [];
 
-    const matched = savedBackupCodes.find((c) => c.toUpperCase() === inputCode);
+    const matchedIndex = savedBackupCodes.findIndex(
+      (c) => c.replace(/[^A-Za-z0-9]/g, '').toUpperCase() === inputCode
+    );
 
-    if (!matched) {
+    if (matchedIndex === -1) {
       setError('Código de respaldo no válido o ya utilizado. Revisa tu archivo .txt guardado.');
       setLoading(false);
       return;
@@ -266,7 +268,7 @@ export const TwoFactorView: React.FC = () => {
 
     try {
       // Consume the backup code (remove it from array in DB)
-      const remainingCodes = savedBackupCodes.filter((c) => c.toUpperCase() !== inputCode);
+      const remainingCodes = savedBackupCodes.filter((_, idx) => idx !== matchedIndex);
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ two_factor_backup_codes: remainingCodes })
@@ -291,8 +293,33 @@ export const TwoFactorView: React.FC = () => {
   };
 
   // -------------------------------------------------------------
-  // 3. RECUPERACIÓN SEGURA - PASO 1: VERIFICAR CONTRASEÑA Y ENVIAR OTP
+  // 3. RECUPERACIÓN SEGURA - ENVIAR ENLACE DE RECUPERACIÓN
   // -------------------------------------------------------------
+  const handleSendRecoveryLink = async () => {
+    const userEmail = (user?.email || profile?.email || '').trim();
+    if (!userEmail) {
+      setError('No se encontró el correo del usuario.');
+      return;
+    }
+    setError(null);
+    setLoading(true);
+
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(userEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetErr) throw resetErr;
+
+      setSuccessMsg(`Hemos enviado un enlace de recuperación seguro a ${userEmail}. Revisa tu bandeja de entrada.`);
+      setResendCooldown(60);
+      setMode('recovery_email');
+    } catch (err: any) {
+      setError(err?.message || 'Error al enviar enlace de recuperación.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRecoveryStep1Password = async (e: React.FormEvent) => {
     e.preventDefault();
     const userEmail = (user?.email || profile?.email || '').trim();
@@ -321,19 +348,19 @@ export const TwoFactorView: React.FC = () => {
         return;
       }
 
-      // Password verified! Now send a 6-digit security OTP to their email
-      const { error: otpSendError } = await supabase.auth.signInWithOtp({
-        email: userEmail,
-        options: { shouldCreateUser: false },
+      // Password verified! Send official recovery email
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(userEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (otpSendError) {
-        setError(`Error al enviar el código al correo: ${otpSendError.message}`);
-        setLoading(false);
-        return;
+      if (resetErr) {
+        await supabase.auth.signInWithOtp({
+          email: userEmail,
+          options: { shouldCreateUser: false },
+        });
       }
 
-      setSuccessMsg(`Contraseña validada. Hemos enviado un código de 6 dígitos a ${userEmail}.`);
+      setSuccessMsg(`Contraseña validada. Hemos enviado un enlace de recuperación a ${userEmail}.`);
       setResendCooldown(60);
       setEmailOtpCode('');
       setMode('recovery_email');
@@ -807,25 +834,25 @@ export const TwoFactorView: React.FC = () => {
           <form onSubmit={handleVerifyBackupCode} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1 text-center">
-                Código de 8 caracteres alfanuméricos
+                Código de Respaldo (con o sin guión)
               </label>
               <input
                 type="text"
-                maxLength={8}
+                maxLength={14}
                 autoFocus
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="A1B2C3D4"
+                placeholder="8613-E6F6"
                 className="w-full text-center text-2xl tracking-[0.2em] font-mono font-bold py-3 px-4 rounded-2xl border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               />
               <span className="text-[11px] text-muted-foreground text-center block mt-1.5">
-                Este código se eliminará de tu lista tras ser utilizado.
+                Ingresa uno de los códigos de tu archivo .txt guardado (ej: 8613-E6F6 o 8613E6F6).
               </span>
             </div>
 
             <button
               type="submit"
-              disabled={loading || code.trim().length < 8}
+              disabled={loading || code.replace(/[^A-Za-z0-9]/g, '').length < 8}
               className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
               {loading && <i className="ri-loader-4-line animate-spin" />}
@@ -859,49 +886,80 @@ export const TwoFactorView: React.FC = () => {
         )}
 
         {/* ============================================================== */}
-        {/* 3. MODO: RECUPERACIÓN PASO 1 - CONFIRMAR CONTRASEÑA           */}
+        {/* 3. MODO: RECUPERACIÓN PASO 1 - RECUPERAR CUENTA Y 2FA          */}
         {/* ============================================================== */}
         {mode === 'recovery_password' && (
-          <form onSubmit={handleRecoveryStep1Password} className="space-y-4">
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2">
-              <i className="ri-shield-alert-line text-sm shrink-0 mt-0.5" />
-              <span>
-                Por seguridad, debes validar tu contraseña actual y luego un código que enviaremos a tu correo registrado.
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Contraseña actual de tu cuenta
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  autoFocus
-                  value={recoveryPassword}
-                  onChange={(e) => setRecoveryPassword(e.target.value)}
-                  placeholder="Tu contraseña actual"
-                  className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm"
-                >
-                  <i className={showPassword ? 'ri-eye-off-line' : 'ri-eye-line'} />
-                </button>
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold">
+                <i className="ri-shield-alert-line text-sm" />
+                <span>Recuperación de 2FA y Acceso</span>
               </div>
+              <p className="text-[11px] leading-relaxed">
+                Si perdiste tu autenticador y códigos, te enviaremos un enlace seguro a <strong className="font-mono">{user?.email || profile?.email}</strong> para restablecer tu 2FA y configurar uno nuevo.
+              </p>
             </div>
 
             <button
-              type="submit"
-              disabled={loading || !recoveryPassword}
+              type="button"
+              disabled={loading}
+              onClick={handleSendRecoveryLink}
               className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
               {loading && <i className="ri-loader-4-line animate-spin" />}
-              <span>Validar Contraseña y Enviar Código al Correo</span>
+              <i className="ri-mail-send-line text-base" />
+              <span>Enviar Enlace de Recuperación a mi Correo</span>
             </button>
+
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase">
+                <span className="bg-card px-2 text-muted-foreground">o valida con tu contraseña</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleRecoveryStep1Password} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Contraseña de tu cuenta
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={recoveryPassword}
+                    onChange={(e) => setRecoveryPassword(e.target.value)}
+                    placeholder="Tu contraseña actual"
+                    className="w-full pr-10 pl-3 py-2.5 rounded-xl border border-input bg-background text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm"
+                  >
+                    <i className={showPassword ? 'ri-eye-off-line' : 'ri-eye-line'} />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !recoveryPassword}
+                className="w-full py-2.5 rounded-xl border border-border bg-card hover:bg-muted text-foreground font-semibold text-xs transition-colors flex items-center justify-center gap-2"
+              >
+                {loading && <i className="ri-loader-4-line animate-spin" />}
+                <span>Validar Contraseña y Continuar</span>
+              </button>
+            </form>
+
+            <div className="p-3 rounded-xl bg-muted/40 border border-border text-[11px] text-muted-foreground flex items-start gap-2">
+              <i className="ri-information-line text-xs mt-0.5 shrink-0 text-primary" />
+              <span>
+                <strong>Nota:</strong> Cualquier Administrador o Super Admin también puede restablecer tu 2FA desde la sección <strong>Usuarios</strong> para que configures uno nuevo al instante.
+              </span>
+            </div>
 
             <div className="pt-2 flex flex-col gap-2 text-center">
               <button
@@ -925,7 +983,7 @@ export const TwoFactorView: React.FC = () => {
                 <span>Volver al inicio de sesión</span>
               </button>
             </div>
-          </form>
+          </div>
         )}
 
         {/* ============================================================== */}
@@ -933,11 +991,14 @@ export const TwoFactorView: React.FC = () => {
         {/* ============================================================== */}
         {mode === 'recovery_email' && (
           <form onSubmit={handleRecoveryStep2EmailOtp} className="space-y-4">
-            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-600 dark:text-blue-400 flex items-start gap-2">
-              <i className="ri-mail-check-line text-sm shrink-0 mt-0.5" />
-              <span>
-                Revisa tu bandeja de entrada en <strong className="font-mono">{user?.email || profile?.email}</strong> e ingresa el código recibido.
-              </span>
+            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold">
+                <i className="ri-mail-check-line text-sm" />
+                <span>Enlace de recuperación enviado</span>
+              </div>
+              <p className="text-[11px] leading-relaxed">
+                Hemos enviado un enlace seguro a <strong className="font-mono">{user?.email || profile?.email}</strong>. Ábrelo en tu navegador para restablecer tu 2FA. Si recibiste un código de 6 dígitos numéricos, también puedes ingresarlo aquí:
+              </p>
             </div>
 
             <div>

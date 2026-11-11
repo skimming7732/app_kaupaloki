@@ -12,7 +12,7 @@ interface EditUserModalProps {
 }
 
 export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose }) => {
-  const { data, updateRecord, deleteUser } = useData();
+  const { data, updateRecord, deleteUser, adminReset2FA } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [nombre, setNombre] = useState('');
@@ -22,6 +22,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
   const [divisas, setDivisas] = useState<string[]>([]);
   const [estado, setEstado] = useState('Activo');
   const [loading, setLoading] = useState(false);
+  const [reset2FaLoading, setReset2FaLoading] = useState(false);
+  const [reset2FaSuccess, setReset2FaSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,7 +47,28 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
     }
   };
 
-    const handleDelete = async () => {
+    const handleAdminReset2FA = async () => {
+    if (!user) return;
+    if (!window.confirm(`¿Estás seguro de que deseas restablecer el 2FA de "${user.nombre}" (${user.correo})?\n\nEn su próximo inicio de sesión, el usuario podrá escanear un nuevo código QR para vincular su aplicación autenticadora.`)) {
+      return;
+    }
+    setReset2FaLoading(true);
+    setError(null);
+    try {
+      const res = await adminReset2FA(user.id);
+      if (res.success) {
+        setReset2FaSuccess(true);
+      } else {
+        setError(res.error || 'Error al restablecer 2FA');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Error al restablecer 2FA');
+    } finally {
+      setReset2FaLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
     if (!user) return;
     if (user.id === profile?.id) {
       setError('No puedes eliminar tu propia cuenta.');
@@ -230,6 +253,45 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
               })}
             </div>
             </>}
+          </div>
+
+          {/* Sección de Seguridad y 2FA */}
+          <div className="pt-3 border-t border-border">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">Seguridad y Verificación 2FA</p>
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${user.twoFactorEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                  <i className={user.twoFactorEnabled ? 'ri-shield-check-line' : 'ri-shield-flash-line'} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-foreground">
+                    {user.twoFactorEnabled ? '2FA Activo y Vinculado' : '2FA Pendiente de Vinculación'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {user.twoFactorEnabled
+                      ? 'El usuario cuenta con un autenticador TOTP configurado.'
+                      : 'El usuario deberá escanear un nuevo código QR al iniciar sesión.'}
+                  </p>
+                </div>
+              </div>
+              {isAdmin && (
+                <button
+                  type="button"
+                  disabled={reset2FaLoading}
+                  onClick={handleAdminReset2FA}
+                  className="px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
+                >
+                  {reset2FaLoading ? <i className="ri-loader-4-line animate-spin" /> : <i className="ri-restart-line" />}
+                  <span>Restablecer 2FA</span>
+                </button>
+              )}
+            </div>
+            {reset2FaSuccess && (
+              <p className="text-[11px] text-emerald-500 mt-2 font-medium flex items-center gap-1">
+                <i className="ri-checkbox-circle-line" />
+                <span>2FA restablecido exitosamente. En su próximo inicio de sesión el usuario vinculará un nuevo autenticador.</span>
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-3 pt-4 border-t border-border mt-6">

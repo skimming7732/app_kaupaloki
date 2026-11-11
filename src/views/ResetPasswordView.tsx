@@ -8,6 +8,7 @@ export const ResetPasswordView: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [reset2Fa, setReset2Fa] = useState(true);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isRecoveryValid, setIsRecoveryValid] = useState(false);
@@ -75,6 +76,24 @@ export const ResetPasswordView: React.FC = () => {
 
       if (updateErr) throw updateErr;
 
+      // If user wants to reset their 2FA
+      if (reset2Fa) {
+        try {
+          await supabase.rpc('restablecer_mi_2fa');
+        } catch (rpcErr) {
+          console.warn('RPC restablecer_mi_2fa falló, intentando actualización directa en profiles:', rpcErr);
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (currentUser?.id) {
+            await supabase.from('profiles').update({
+              two_factor_enabled: false,
+              two_factor_secret: null,
+              two_factor_backup_codes: null,
+              biometric_credentials: [],
+            }).eq('id', currentUser.id);
+          }
+        }
+      }
+
       finishSound(true);
       setSuccess(true);
 
@@ -132,7 +151,9 @@ export const ResetPasswordView: React.FC = () => {
                 <div>
                   <span className="font-bold text-sm block">¡Contraseña actualizada!</span>
                   <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
-                    Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tus nuevas credenciales.
+                    {reset2Fa
+                      ? 'Tu contraseña y tu autenticador 2FA han sido restablecidos. Al iniciar sesión se te guiará para vincular tu nuevo autenticador.'
+                      : 'Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tus nuevas credenciales.'}
                   </span>
                 </div>
               </div>
@@ -153,7 +174,7 @@ export const ResetPasswordView: React.FC = () => {
                 <div>
                   <span className="font-bold text-sm block">Enlace no válido o expirado</span>
                   <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
-                    El enlace para restablecer tu contraseña no es válido, ya fue utilizado o ha expirado. Por favor solicita uno nuevo.
+                    El enlace para restablecer tu contraseña no es válido, ya fue utilizado o ha expirado. Por favor solicita uno nuevo desde el inicio de sesión.
                   </span>
                 </div>
               </div>
@@ -216,6 +237,26 @@ export const ResetPasswordView: React.FC = () => {
                 />
               </div>
 
+              {/* Opción para restablecer también 2FA */}
+              <div className="p-3 rounded-2xl bg-muted/40 border border-border/80 text-xs space-y-1.5">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={reset2Fa}
+                    onChange={(e) => setReset2Fa(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary/20 accent-primary"
+                  />
+                  <div className="flex-1">
+                    <span className="font-semibold text-foreground text-xs block">
+                      Restablecer también autenticador 2FA
+                    </span>
+                    <span className="text-[11px] text-muted-foreground block leading-relaxed mt-0.5">
+                      Recomendado si perdiste tu celular, borraste la app 2FA o extraviaste los códigos. Al iniciar sesión vincularás un nuevo 2FA.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
               <div className="pt-1">
                 <button
                   type="submit"
@@ -223,7 +264,7 @@ export const ResetPasswordView: React.FC = () => {
                   className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
                   {loading && <i className="ri-loader-4-line animate-spin" />}
-                  <span>Guardar Nueva Contraseña</span>
+                  <span>Guardar y Continuar</span>
                 </button>
               </div>
 
