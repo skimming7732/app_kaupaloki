@@ -8,9 +8,6 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
 import { getCategoryIcon, GASTO_CATEGORIES } from '../components/common/CategorySearchSelect';
-import { uploadReceipt, receiptAccept } from '../utils/receipts';
-import { prepareSuccessSound } from '../utils/confirmationSound';
-import { supabase } from '../lib/supabase';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
@@ -26,63 +23,17 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
   const canWrite = useWriteAccess('admin');
   const { data, metrics, syncData } = useData();
   const tasaUsdtCop = metrics?.rateUsdtCop || 3950;
-  const [attachingTo, setAttachingTo] = useState<{ id: string; url?: string } | null>(null);
+  const [attachingTo, setAttachingTo] = useState<{ id: string; url?: string; append?: boolean } | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editing, setEditing] = useState<GastoItem | null>(null);
 
   // 9:16 Lightbox Modal State
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Direct file upload without popup
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [uploadTarget, setUploadTarget] = useState<{ id: string; currentUrl?: string; append?: boolean } | null>(null);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
-
-  const triggerDirectUpload = (id: string, currentUrl?: string, append = false) => {
-    setUploadTarget({ id, currentUrl, append });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFilePicked = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !uploadTarget) return;
-
-    setUploadingId(uploadTarget.id);
-    const finishSound = prepareSuccessSound();
-
-    try {
-      const newUrl = await uploadReceipt(file, 'gastos');
-      if (!newUrl) throw new Error('No se pudo subir el archivo.');
-
-      const finalUrl = uploadTarget.append && uploadTarget.currentUrl
-        ? `${uploadTarget.currentUrl},${newUrl}`
-        : newUrl;
-
-      const { error } = await supabase.from('gastos').update({
-        comprobante_url: finalUrl,
-      }).eq('id', uploadTarget.id);
-
-      if (error) {
-        // Fallback to RPC if direct write fails
-        await supabase.rpc('adjuntar_comprobante_gasto', {
-          p_expense_id: uploadTarget.id,
-          p_receipt: finalUrl,
-        });
-      }
-
-      await syncData();
-      finishSound(true);
-    } catch (err) {
-      console.error('Error al subir comprobante:', err);
-      finishSound(false);
-      alert('Error al subir comprobante de gasto: ' + (err?.message || 'Inténtalo de nuevo.'));
-    } finally {
-      setUploadingId(null);
-      setUploadTarget(null);
-    }
+  const openReceiptDialog = (id: string, currentUrl?: string, append = false) => {
+    if (!canWrite) return;
+    const row = data.gastos.find((record) => record.id === id);
+    setAttachingTo({ id, url: currentUrl ?? row?.comprobanteUrl, append });
   };
 
   // Filters
@@ -309,14 +260,9 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                     </td>
                     <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">{g.origenFondos}</td>
 
-                    {/* Uniform 9:16 Receipt Cell with direct file upload and '+' button */}
+                    {/* Receipt previews and '+' button */}
                     <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                      {uploadingId === g.id ? (
-                        <div className="flex items-center justify-center gap-1 h-10 text-[11px] text-primary font-medium">
-                          <i className="ri-loader-4-line animate-spin text-sm" />
-                          <span>Subiendo…</span>
-                        </div>
-                      ) : g.comprobanteUrl ? (
+                      {g.comprobanteUrl ? (
                         <div className="flex items-center justify-center gap-1.5 h-10">
                           {/* Thumbnails (split by comma if multiple) */}
                           <div className="flex items-center gap-1 max-w-[120px] overflow-x-auto">
@@ -340,21 +286,21 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                             ))}
                           </div>
 
-                          {/* Direct Edit / Replace icon (opens file picker directly) */}
+                          {/* Replace receipt */}
                           {canWrite && (<button
                             type="button"
-                            onClick={() => triggerDirectUpload(g.id, undefined, false)}
-                            title="Reemplazar comprobante (directo a archivos)"
+                            onClick={() => openReceiptDialog(g.id, undefined, false)}
+                            title="Reemplazar comprobante"
                             className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           >
                             <i className="ri-pencil-line text-xs" />
                           </button>)}
 
-                          {/* Direct '+' icon to append another receipt */}
+                          {/* Append another receipt */}
                           {canWrite && (<button
                             type="button"
-                            onClick={() => triggerDirectUpload(g.id, g.comprobanteUrl, true)}
-                            title="Añadir otro comprobante (directo a archivos)"
+                            onClick={() => openReceiptDialog(g.id, g.comprobanteUrl, true)}
+                            title="Añadir otro comprobante"
                             className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                           >
                             <i className="ri-add-line text-xs font-bold" />
@@ -363,8 +309,8 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                       ) : (
                         canWrite && (<button
                           type="button"
-                          onClick={() => triggerDirectUpload(g.id, undefined, false)}
-                          title="Subir comprobante (directo a archivos)"
+                          onClick={() => openReceiptDialog(g.id, undefined, false)}
+                          title="Subir comprobante"
                           className="h-10 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-muted"
                         >
                           <i className="ri-upload-cloud-line text-xs" />
@@ -394,18 +340,9 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
           </table>
         </div>
       </div>
-      {/* Hidden file input for direct receipt uploads */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={receiptAccept}
-        onChange={handleFilePicked}
-        className="hidden"
-        aria-hidden="true"
-      />
 
       {/* Add Gasto Modal */}
-      {attachingTo && <AttachExpenseReceipt expenseId={attachingTo.id} currentReceipt={attachingTo.url} onClose={() => setAttachingTo(null)} onSaved={syncData} />}
+      {attachingTo && <AttachExpenseReceipt expenseId={attachingTo.id} currentReceipt={attachingTo.url} append={attachingTo.append} onClose={() => setAttachingTo(null)} onSaved={syncData} />}
       {editing && <AddGastoModal isOpen record={editing} onClose={() => setEditing(null)} />}
       <AddGastoModal
         isOpen={isAddOpen}

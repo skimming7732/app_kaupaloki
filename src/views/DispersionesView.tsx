@@ -3,7 +3,6 @@ import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
-import { uploadReceipt, receiptAccept } from '../utils/receipts';
 import { dashboardWriteError } from '../utils/dashboardWrites';
 import type { Pago } from '../data/appData';
 import { prepareSuccessSound } from '../utils/confirmationSound';
@@ -95,54 +94,13 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
   const [fechaHasta, setFechaHasta] = useState('');
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedReceipt, setSelectedReceipt] = useState<{ id: string; url?: string } | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<{ id: string; url?: string; append?: boolean } | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Direct file upload without popup
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [uploadTarget, setUploadTarget] = useState<{ id: string; currentUrl?: string; append?: boolean } | null>(null);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
-
-  const triggerDirectUpload = (id: string, currentUrl?: string, append = false) => {
-    setUploadTarget({ id, currentUrl, append });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFilePicked = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !uploadTarget) return;
-
-    setUploadingId(uploadTarget.id);
-    const finishSound = prepareSuccessSound();
-
-    try {
-      const newUrl = await uploadReceipt(file, 'dispersiones');
-      if (!newUrl) throw new Error('No se pudo subir el archivo.');
-
-      const finalUrl = uploadTarget.append && uploadTarget.currentUrl
-        ? `${uploadTarget.currentUrl},${newUrl}`
-        : newUrl;
-
-      const { error } = await supabase.from('dispersiones').update({
-        comprobante_url: finalUrl,
-        tiene_comprobante: Boolean(finalUrl),
-      }).eq('id', uploadTarget.id);
-
-      if (error) throw error;
-
-      await syncData();
-      finishSound(true);
-    } catch (err: any) {
-      console.error('Error al subir comprobante de dispersión:', err);
-      finishSound(false);
-      alert('Error al subir comprobante: ' + (err?.message || 'Inténtalo de nuevo.'));
-    } finally {
-      setUploadingId(null);
-      setUploadTarget(null);
-    }
+  const openReceiptDialog = (id: string, currentUrl?: string, append = false) => {
+    if (!canWrite) return;
+    const row = data.dispersiones.find((record) => record.id === id);
+    setSelectedReceipt({ id, url: currentUrl ?? row?.comprobanteUrl, append });
   };
 
   const filteredDispersiones = useMemo(() => {
@@ -292,14 +250,9 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                     </td>
                     <td className="py-2.5 px-4 font-mono text-muted-foreground whitespace-nowrap">{d.referencia || '—'}</td>
 
-                    {/* Uniform 9:16 Receipt Cell with direct file upload and '+' button */}
+                    {/* Receipt previews and '+' button */}
                     <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                      {uploadingId === d.id ? (
-                        <div className="flex items-center justify-center gap-1 h-10 text-[11px] text-primary font-medium">
-                          <i className="ri-loader-4-line animate-spin text-sm" />
-                          <span>Subiendo…</span>
-                        </div>
-                      ) : d.comprobanteUrl ? (
+                      {d.comprobanteUrl ? (
                         <div className="flex items-center justify-center gap-1.5 h-10">
                           {/* Thumbnails (split by comma if multiple) */}
                           <div className="flex items-center gap-1 max-w-[120px] overflow-x-auto">
@@ -323,21 +276,21 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                             ))}
                           </div>
 
-                          {/* Direct Edit / Replace icon (opens file picker directly) */}
+                          {/* Replace receipt */}
                           {canWrite && (<button
                             type="button"
-                            onClick={() => triggerDirectUpload(d.id, undefined, false)}
-                            title="Reemplazar comprobante (directo a archivos)"
+                            onClick={() => openReceiptDialog(d.id, undefined, false)}
+                            title="Reemplazar comprobante"
                             className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           >
                             <i className="ri-pencil-line text-xs" />
                           </button>)}
 
-                          {/* Direct '+' icon to append another receipt */}
+                          {/* Append another receipt */}
                           {canWrite && (<button
                             type="button"
-                            onClick={() => triggerDirectUpload(d.id, d.comprobanteUrl, true)}
-                            title="Añadir otro comprobante (directo a archivos)"
+                            onClick={() => openReceiptDialog(d.id, d.comprobanteUrl, true)}
+                            title="Añadir otro comprobante"
                             className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                           >
                             <i className="ri-add-line text-xs font-bold" />
@@ -346,8 +299,8 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                       ) : (
                         canWrite && (<button
                           type="button"
-                          onClick={() => triggerDirectUpload(d.id, undefined, false)}
-                          title="Subir comprobante (directo a archivos)"
+                          onClick={() => openReceiptDialog(d.id, undefined, false)}
+                          title="Subir comprobante"
                           className="h-10 text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-muted"
                         >
                           <i className="ri-upload-cloud-line text-xs" />
@@ -390,20 +343,12 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
           expenseId={selectedReceipt.id}
           dispersion
           currentReceipt={selectedReceipt.url}
+          append={selectedReceipt.append}
           onSaved={syncData}
           onClose={() => setSelectedReceipt(null)}
         />
       )}
 
-      {/* Hidden file input for direct receipt uploads */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={receiptAccept}
-        onChange={handleFilePicked}
-        className="hidden"
-        aria-hidden="true"
-      />
 
       {/* 9:16 Popup Lightbox with Copy, Download & Next/Previous Navigation */}
       {lightboxIndex !== null && (

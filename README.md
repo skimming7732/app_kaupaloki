@@ -92,3 +92,7 @@ Vacía los registros de clientes, operaciones, capital, activos e historial fina
 Los permisos se comprueban en rutas, formularios, operaciones compartidas, RLS y RPC de Supabase. El directorio de usuarios excluye secretos de 2FA; la tabla de perfiles solo permite consultar y mantener el perfil propio desde el navegador. Las invitaciones existentes se activan al iniciar sesión mediante `activar_perfil_invitado`, que no reactiva cuentas inactivas.
 
 El registro de Auth no concede roles desde `user_metadata`. Las invitaciones asignan el rol mediante el servicio administrativo y generan el código interno correspondiente.
+
+## Comprobantes
+
+Los formularios de gastos y dispersiones y sus acciones de adjuntar, reemplazar y agregar otro comprobante usan el mismo selector. Permite elegir archivos, arrastrarlos o pegar una imagen con el teclado o el botón Pegar imagen. Muestra una vista previa y valida JPG, PNG, WEBP o PDF de hasta 10 MB antes de subir. El pegado de texto en otros campos conserva su comportamiento normal. Los comprobantes adicionales conservan los anteriores y el guardado comprueba si otro usuario cambió el registro.

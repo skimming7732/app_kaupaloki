@@ -136,7 +136,7 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
               <input name="referencia" defaultValue={record?.referencia} className={recordFieldClass} />
             </label>
           </div>
-          {!record && <ReceiptInput />}
+          {!record && <ReceiptInput disabled={busy} />}
         </fieldset>
         <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar dispersión"} onClose={onClose} onDelete={record && isAdmin ? handleDelete : undefined} deleteLabel="Eliminar dispersión" />
       </form>

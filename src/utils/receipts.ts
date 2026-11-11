@@ -1,8 +1,9 @@
+import { receiptFileError } from './receiptFiles';
+export { receiptAccept } from './receiptFiles';
 import { supabase } from '../lib/supabase';
 
 const bucket = 'comprobantes';
 const prefix = 'storage:';
-export const receiptAccept = 'image/jpeg,image/png,image/webp,application/pdf';
 const extensions: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -80,6 +81,9 @@ export async function compressImage(file: File): Promise<File> {
 
 export async function uploadReceipt(file: FormDataEntryValue | null, folder: 'gastos' | 'dispersiones') {
   if (!(file instanceof File) || !file.name) return undefined;
+
+  const problem = receiptFileError(file);
+  if (problem) throw new Error(problem);
 
   // Compress image if applicable
   const fileToUpload = await compressImage(file);

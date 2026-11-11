@@ -145,7 +145,7 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
               </div>
             )}
           </div>
-          {!record && <ReceiptInput />}
+          {!record && <ReceiptInput disabled={busy} />}
         </fieldset>
         <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar gasto"} onClose={onClose} onDelete={record && isAdmin ? handleDelete : undefined} deleteLabel="Eliminar gasto" />
       </form>
