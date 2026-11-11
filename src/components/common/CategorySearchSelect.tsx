@@ -7,6 +7,7 @@ export interface CategoryOption {
 }
 
 export const GASTO_CATEGORIES: CategoryOption[] = [
+  { name: 'Pagos OTC', icon: 'ri-exchange-dollar-line', group: 'Operaciones OTC' },
   { name: 'Combustible y Gasolina', icon: 'ri-gas-station-line', group: 'Transporte y Movilidad' },
   { name: 'Tiquetes y Pasajes Aéreos/Terrestres', icon: 'ri-flight-takeoff-line', group: 'Transporte y Movilidad' },
   { name: 'Transporte Local, Taxis y Encomiendas', icon: 'ri-taxi-line', group: 'Transporte y Movilidad' },
@@ -44,6 +45,7 @@ export const getCategoryIcon = (categoryName?: string): string => {
            c.name.toLowerCase().includes(categoryName.toLowerCase())
   );
   if (found) return found.icon;
+  if (/otc|pago.*otc/i.test(categoryName)) return 'ri-exchange-dollar-line';
   if (/combustible|gasolina/i.test(categoryName)) return 'ri-gas-station-line';
   if (/viaje|tiquete|vuelo/i.test(categoryName)) return 'ri-flight-takeoff-line';
   if (/papel|liga|sobre|suministro/i.test(categoryName)) return 'ri-archive-line';
@@ -131,7 +133,7 @@ export const CategorySearchSelect: React.FC<CategorySearchSelectProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar categoría (ej. gasolina, tiquetes, ligas)..."
+              placeholder="Buscar categoría (ej. pagos otc, gasolina, nómina)..."
               className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
