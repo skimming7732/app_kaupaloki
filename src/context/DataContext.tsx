@@ -1,3 +1,4 @@
+import { canRegisterBusiness, canDisperse, canManageClients, isAdminRole } from '../utils/roles';
 import { readAllRows } from '../utils/supabasePagination';
 import type { CashToken } from '../utils/tokenVoucherGenerator';
 import { capitalLabels, loadCapitalRows, summarizeCapital, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
@@ -544,7 +545,11 @@ const snapshotTables = {
 type SnapshotTable = keyof typeof snapshotTables;
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  const requireWrite = (scope: 'business' | 'dispersion' | 'clients' | 'admin') => {
+    const allowed = scope === 'business' ? canRegisterBusiness(profile?.role) : scope === 'dispersion' ? canDisperse(profile?.role, profile?.authorized_currencies) : scope === 'clients' ? canManageClients(profile?.role) : isAdminRole(profile?.role);
+    if (!allowed) throw new Error('Tu rol no permite modificar estos registros.');
+  };
   const userId = user?.id;
   const latestFetch = useRef(0);
   const activeUserId = useRef(userId);
@@ -1374,6 +1379,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Direct Supabase operations (100% decoupled from Airtable)
   const createNegocio = async (payload: any): Promise<boolean> => {
+    requireWrite('business');
     try {
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
@@ -1406,6 +1412,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteNegocio = async (id: string): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const { error } = await supabase.from('negocios').delete().eq('id', id).select('id').single();
       if (error) throw error;
@@ -1418,6 +1425,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteCliente = async (id: string): Promise<boolean> => {
+    requireWrite('admin');
     try {
       await supabase.from('client_shared_links').delete().eq('client_id', id);
       const { error } = await supabase.from('clientes').delete().eq('id', id).select('id').single();
@@ -1431,6 +1439,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteDispersion = async (id: string): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const { error } = await supabase.from('dispersiones').delete().eq('id', id).select('id').single();
       if (error) throw error;
@@ -1443,6 +1452,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteGasto = async (id: string): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const { error } = await supabase.from('gastos').delete().eq('id', id).select('id').single();
       if (error) throw error;
@@ -1455,6 +1465,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteComisionista = async (id: string): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const { error } = await supabase.from('comisionistas').delete().eq('id', id).select('id').single();
       if (error) throw error;
@@ -1467,6 +1478,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteCatalogRecord = async (table: CatalogTable, id: string): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const { data, error } = await supabase.from(table).delete().eq('id', id).select('id');
       if (error) throw error;
@@ -1482,6 +1494,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateRateUsdt = async (rate: number): Promise<boolean> => {
+    requireWrite('admin');
     try {
       if (!Number.isFinite(rate) || rate <= 0) throw new Error('La tasa debe ser mayor a 0');
       const { error } = await supabase.rpc('actualizar_rate_usdt', { p_rate: rate });
@@ -1500,6 +1513,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateNegocio = async (payload: any): Promise<boolean> => {
+    requireWrite('business');
     try {
       const { id, ...fields } = payload;
       const updates: any = {};
@@ -1550,6 +1564,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createDispersion = async (payload: any): Promise<boolean> => {
+    requireWrite('dispersion');
     try {
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
@@ -1589,6 +1604,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createMovimientoEfectivo = async (payload: any, onTokenCreated?: (token: CashToken) => void): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
@@ -1638,6 +1654,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateMovimientoEfectivo = async (payload: any): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
@@ -1674,6 +1691,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteMovimientoEfectivo = async (id: string): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const targetId = id.startsWith('caja:')
         ? (data.efectivo.find((e) => e.codigo === id.replace('caja:', ''))?.id || id)
@@ -1689,6 +1707,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createGasto = async (payload: any): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const montoNum = Number(payload.monto || payload['Monto'] || 0);
 
@@ -1721,6 +1740,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createCliente = async (nombre: string, pais: string = 'COLOMBIA', authorId?: string): Promise<any> => {
+    requireWrite('clients');
     try {
       const id = crypto.randomUUID();
       const author = authorId ? data.usuarios.find((u) => u.id === authorId) : null;
@@ -1751,6 +1771,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateCliente = async (payload: { id: string; nombre?: string; pais?: string; authorId?: string }): Promise<boolean> => {
+    requireWrite('clients');
     try {
       const updates: any = {};
       if (payload.nombre !== undefined) updates.nombre = payload.nombre.trim().toUpperCase();
@@ -1776,6 +1797,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createCatalogRecord: DataContextType['createCatalogRecord'] = async (table, fields, editId) => {
+    requireWrite('admin');
     const id = editId || crypto.randomUUID();
     let record: Record<string, string | number> = editId ? { ...fields } : { ...fields, id };
     const accountLabel = (accounts: any[], accountId: string | number) => {
@@ -1846,6 +1868,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateGasto = async (payload: any) => {
+    requireWrite('admin');
     const { data: saved, error } = await supabase.from('gastos').update({
       concepto: payload.concepto, categoria: payload.categoria, divisa: payload.divisa, monto: payload.monto,
       origen_fondos: payload.origenFondos, origen_fondos_id: payload.origenFondosId, fecha: payload.fecha,
@@ -1856,6 +1879,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateDispersion = async (payload: any) => {
+    requireWrite('dispersion');
     const cliente = data.clientes.find((item) => item.id === payload.clienteId);
     if (!cliente) throw new Error('Selecciona un cliente válido.');
     const { data: saved, error } = await writeDashboardRecord({
@@ -1913,6 +1937,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteUser = async (idOrEmail: string): Promise<{ success: boolean; error?: string }> => {
+    requireWrite('admin');
     try {
       const user = data.usuarios.find((u) => u.id === idOrEmail || u.correo === idOrEmail);
       if (!user) throw new Error('El perfil ya no está disponible.');
@@ -1929,6 +1954,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     fullName?: string
   ): Promise<{ success: boolean; actionLink?: string; error?: string }> => {
+    requireWrite('admin');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Inicia sesión para enviar la invitación.');
@@ -1952,6 +1978,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUserPermissions = async (payload: any): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const { id, nombre, email, correo, pais, rol, estado, divisasAutorizadas } = payload;
       const updates: any = {};
@@ -1968,6 +1995,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data: updated, error } = await supabase.rpc('actualizar_perfil_dashboard', { p_id: id, p_changes: updates });
       if (error || !updated) throw dashboardWriteError(error, 'No se pudo actualizar el usuario.');
+      if (id === profile?.id) await refreshProfile();
       await refreshUsers();
       return true;
     } catch (error) {
@@ -1994,6 +2022,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fetchFromSupabase, scheduleRefresh, userId]);
 
   const saveComisionista: DataContextType['saveComisionista'] = async (payload) => {
+    requireWrite('admin');
     const record = {
       cliente_id: payload.comisionistaId,
       referidos_ids: payload.comisionaDeIds,
@@ -2008,6 +2037,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createTransferenciaInterna = async (payload: any): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const record = {
         fecha: payload.fecha || new Date().toISOString().slice(0, 10),
@@ -2039,6 +2069,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateTransferenciaInterna = async (id: string, payload: any): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const record = {
         fecha: payload.fecha,
@@ -2070,6 +2101,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteTransferenciaInterna = async (id: string): Promise<boolean> => {
+    requireWrite('admin');
     try {
       const { error } = await supabase.from('transferencias_internas').delete().eq('id', id).select('id').single();
       if (error) throw error;

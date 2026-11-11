@@ -49,19 +49,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
 
   const role = profile?.role || 'operador';
   const isAdmin = role === 'administrador' || role === 'super_admin';
-  const canDisperse = isAdmin || role === 'dispersor';
+  const canDisperse = isAdmin || ['operador', 'dispersor', 'supervisor'].includes(role);
 
   const primaryItems = [
     { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
     ...(isAdmin ? [{ to: '/panel-control', label: 'Panel de control', icon: 'ri-dashboard-3-line' }] : []),
     { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
-    ...(isAdmin || role === 'operador' ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' }] : []),
+    ...(isAdmin || ['comercial', 'operador', 'supervisor'].includes(role) ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' }] : []),
   ];
   const sections = [
     { label: undefined, items: primaryItems },
     { label: 'Operaciones', icon: 'ri-exchange-line', items: [
       ...(canDisperse ? [{ to: '/dispersiones', label: 'Dispersiones', icon: 'ri-send-plane-2-line' }] : []),
-      ...(isAdmin ? [
+      ...(isAdmin || role === 'supervisor' ? [
         { to: '/compras-usdt', label: 'Compras USDT', icon: 'ri-shopping-cart-2-line' },
         { to: '/ventas-usdt', label: 'Ventas USDT', icon: 'ri-funds-line' },
         { to: '/transferencias-internas', label: 'Transferencias internas', icon: 'ri-arrow-left-right-line' },
@@ -69,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
         { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
       ] : []),
     ] },
-    { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin ? [
+    { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin || role === 'supervisor' ? [
       { to: '/efectivo', label: 'Efectivo', icon: 'ri-money-dollar-circle-line' },
       { to: '/tokens', label: 'Tokens de retiro', icon: 'ri-ticket-2-line' },
       { to: '/activos-liquidos', label: 'Activos líquidos', icon: 'ri-bank-line' },
@@ -78,12 +78,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       { to: '/socios-inversionistas', label: 'Socios & Inversionistas', icon: 'ri-group-line' },
       { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
     ] : [] },
-    { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin ? [
+    { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin || role === 'supervisor' ? [
       { to: '/estadisticas', label: 'Estadísticas', icon: 'ri-bar-chart-box-line' },
       { to: '/instituciones', label: 'Instituciones', icon: 'ri-building-2-line' },
       { to: '/usuarios', label: 'Usuarios y accesos', icon: 'ri-shield-user-line' },
     ] : [] },
-  ].filter((section) => section.items.length > 0);
+  ].map((section) => ({ ...section, items: section.items.filter((item) => role !== 'supervisor' || !['/capital', '/socios-inversionistas'].includes(item.to)) })).filter((section) => section.items.length > 0);
 
   // Active expanded state on desktop: expands on hover or if pinned
   const isExpanded = isHovered || isPinned || hasKeyboardFocus;

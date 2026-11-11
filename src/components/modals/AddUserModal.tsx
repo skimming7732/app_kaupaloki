@@ -1,3 +1,5 @@
+import { requiresCurrencies as roleRequiresCurrencies, type StaffRole } from '../../utils/roles';
+import { useAuth } from '../../context/AuthContext';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
@@ -24,7 +26,7 @@ const PAISES_DISPONIBLES = [
 ];
 
 const ROLES_OPTIONS: {
-  id: 'operador' | 'dispersor' | 'administrador' | 'super_admin';
+  id: StaffRole;
   title: string;
   badge: string;
   desc: string;
@@ -35,15 +37,17 @@ const ROLES_OPTIONS: {
     id: 'operador',
     title: 'Operador',
     badge: 'Requiere Divisas',
-    desc: 'Inicio, Negocios y Clientes con divisas asignadas.',
+    desc: 'Registra negocios y dispersiones con divisas asignadas.',
     icon: 'ri-briefcase-4-line',
     colorClass: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
   },
+  { id: 'comercial', title: 'Comercial', badge: 'Negocios', desc: 'Registra negocios y consulta clientes con divisas asignadas.', icon: 'ri-briefcase-4-line', colorClass: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
+  { id: 'supervisor', title: 'Supervisor', badge: 'Consulta', desc: 'Consulta todas las vistas excepto Panel de control, Capital y Socios & Inversionistas. Sin modificar registros.', icon: 'ri-eye-line', colorClass: 'text-violet-500 bg-violet-500/10 border-violet-500/20' },
   {
     id: 'dispersor',
     title: 'Dispersor',
     badge: 'Dispersión',
-    desc: 'Pagos bancarios, transferencias y clientes.',
+    desc: 'Gestiona dispersiones en COP y consulta clientes.',
     icon: 'ri-send-plane-2-line',
     colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
   },
@@ -67,6 +71,7 @@ const ROLES_OPTIONS: {
 
 export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
   const { data, refreshUsers } = useData();
+  const { profile } = useAuth();
 
   // Wizard steps: 1 = Datos, 2 = Roles, 3 = Divisas (si rol es operador)
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -75,7 +80,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [pais, setPais] = useState('COL');
-  const [rol, setRol] = useState<'operador' | 'dispersor' | 'administrador' | 'super_admin'>('operador');
+  const [rol, setRol] = useState<StaffRole>('comercial');
   const [divisasAutorizadas, setDivisasAutorizadas] = useState<string[]>([]);
   const [allCurrencies, setAllCurrencies] = useState(false);
 
@@ -85,9 +90,10 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen || !['administrador', 'super_admin'].includes(profile?.role || '')) return null;
 
-  const requiresCurrencies = rol === 'operador';
+  const requiresCurrencies = roleRequiresCurrencies(rol);
+  const roleCurrencies = rol === 'dispersor' ? data.divisas.filter((currency) => currency.codigo === 'COP') : data.divisas;
   const totalSteps = requiresCurrencies ? 3 : 2;
 
   const handleReset = () => {
@@ -95,7 +101,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
     setNombre('');
     setEmail('');
     setPais('COL');
-    setRol('operador');
+    setRol('comercial');
     setDivisasAutorizadas([]);
     setAllCurrencies(false);
     setError(null);
@@ -120,9 +126,9 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
   };
 
   const selectAllDivisas = () => {
-    const all = data.divisas.map((d) => d.codigo);
+    const all = roleCurrencies.map((d) => d.codigo);
     setDivisasAutorizadas(all);
-    setAllCurrencies(true);
+    setAllCurrencies(rol !== 'dispersor');
   };
 
   const clearAllDivisas = () => {
@@ -157,7 +163,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
       setError('Por favor selecciona al menos una divisa');
       return;
     }
-    executeInviteUser(allCurrencies ? [] : divisasAutorizadas);
+    executeInviteUser(rol === 'dispersor' ? ['COP'] : allCurrencies ? [] : divisasAutorizadas);
   };
 
   const executeInviteUser = async (currenciesToAssign: string[]) => {
@@ -234,7 +240,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
               <p className="text-xs text-muted-foreground mt-0.5">
                 {step === 1 && 'Ingresa los datos personales del usuario a invitar'}
                 {step === 2 && 'Define el rol de acceso y privilegios en el sistema'}
-                {step === 3 && 'Selecciona las divisas autorizadas para este operador'}
+                {step === 3 && 'Selecciona las divisas autorizadas para este usuario'}
               </p>
             </div>
           </div>
@@ -383,12 +389,12 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                     Selecciona el Rol para {nombre || email}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {ROLES_OPTIONS.map((opt) => {
+                    {ROLES_OPTIONS.filter((option) => option.id !== 'super_admin' || profile?.role === 'super_admin').map((opt) => {
                       const isSelected = rol === opt.id;
                       return (
                         <div
                           key={opt.id}
-                          onClick={() => setRol(opt.id)}
+                          onClick={() => { setRol(opt.id); if (opt.id === 'dispersor') { setDivisasAutorizadas(['COP']); setAllCurrencies(false); } }}
                           className={`p-3.5 rounded-2xl border transition-all cursor-pointer text-left relative flex flex-col justify-between ${
                             isSelected
                               ? 'bg-primary/5 border-primary ring-2 ring-primary/20 shadow-sm'
@@ -447,7 +453,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                       Divisas Permitidas para {nombre || email}
                     </h4>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      El operador únicamente podrá registrar y visualizar negocios con estas divisas.
+                      {rol === 'dispersor' ? 'Las dispersiones se realizan únicamente en COP.' : 'Selecciona las divisas de los negocios. Para dispersar, el Operador también necesita COP o Todas.'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -471,7 +477,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
 
                 {/* Currency Chips Grid */}
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto p-1">
-                  {data.divisas.map((d) => {
+                  {roleCurrencies.map((d) => {
                     const isSelected = divisasAutorizadas.includes(d.codigo);
                     return (
                       <button
@@ -492,7 +498,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                 </div>
 
                 <div className="text-[11px] text-muted-foreground text-center">
-                  Seleccionadas: <strong className="text-foreground">{divisasAutorizadas.length}</strong> de {data.divisas.length} divisas
+                  Seleccionadas: <strong className="text-foreground">{divisasAutorizadas.length}</strong> de {roleCurrencies.length} divisas
                 </div>
 
                 {/* Footer Buttons */}

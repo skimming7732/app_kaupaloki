@@ -158,6 +158,8 @@ export const Header: React.FC<HeaderProps> = ({
       ? 'ADMINISTRADOR'
       : profile?.role === 'dispersor'
       ? 'DISPERSOR'
+      : profile?.role === 'comercial' ? 'COMERCIAL'
+      : profile?.role === 'supervisor' ? 'SUPERVISOR'
       : 'OPERADOR');
 
   return (

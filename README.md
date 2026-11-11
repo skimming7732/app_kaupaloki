@@ -78,3 +78,17 @@ SELECT kaupaloki_private.reiniciar_operacion('REINICIAR OPERACION KAUPALOKI');
 ```
 
 Vacía los registros de clientes, operaciones, capital, activos e historial financiero. Conserva los usuarios, las instituciones, las divisas y la cuenta `EFECTIVO-CAJA`. Deja la caja y los totales de las divisas en cero. Los archivos del bucket `comprobantes` se gestionan por separado con la API de Storage.
+
+
+## Roles y divisas
+
+- Comercial registra negocios en sus divisas autorizadas.
+- Dispersor gestiona dispersiones en COP.
+- Operador registra negocios y gestiona dispersiones. Necesita COP o Todas para dispersar.
+- Supervisor consulta todas las vistas excepto Panel de control, Capital y Socios & Inversionistas. No puede modificar registros.
+- Administrador y Super Admin conservan la gestión administrativa. Solo Super Admin puede modificar otra cuenta Super Admin o conceder ese rol.
+- Todos los roles internos consultan Clientes. Administrador, Super Admin y Supervisor tienen todas las divisas automáticamente. Una lista de divisas vacía significa Todas.
+
+Los permisos se comprueban en rutas, formularios, operaciones compartidas, RLS y RPC de Supabase. El directorio de usuarios excluye secretos de 2FA; la tabla de perfiles solo permite consultar y mantener el perfil propio desde el navegador. Las invitaciones existentes se activan al iniciar sesión mediante `activar_perfil_invitado`, que no reactiva cuentas inactivas.
+
+El registro de Auth no concede roles desde `user_metadata`. Las invitaciones asignan el rol mediante el servicio administrativo y generan el código interno correspondiente.

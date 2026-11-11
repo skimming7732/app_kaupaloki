@@ -1,3 +1,4 @@
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
@@ -7,6 +8,7 @@ import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddComisionistaModal } from '../components/modals/AddComisionistaModal';
 
 export const ComisionistasView: React.FC = () => {
+  const canWrite = useWriteAccess('admin');
   const { data } = useData();
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState<'comisionesCOP' | 'ingresosCOP' | 'porcentajeComision' | 'comisionistaNombre' | 'codigo' | 'fechaCreacion'>('comisionesCOP');
@@ -70,14 +72,14 @@ export const ComisionistasView: React.FC = () => {
           <h2 className="text-base font-bold text-foreground">Comisionistas</h2>
           <p className="text-xs text-muted-foreground">Control y cálculo automático de comisiones sobre clientes asignados</p>
         </div>
-        <button
+        {canWrite && (<button
           type="button"
           onClick={() => setIsAddOpen(true)}
           className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto"
         >
           <i className="ri-user-star-line text-sm" />
           <span>Nuevo Comisionista</span>
-        </button>
+        </button>)}
       </div>
 
       {/* Search */}
@@ -192,9 +194,9 @@ export const ComisionistasView: React.FC = () => {
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(c.fechaCreacion)}</td>
                     <CreatedByCell name={c.createdByName} />
                     <td className="px-4">
-                      <button type="button" onClick={() => setEditing(c)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted">
+                      {canWrite && (<button type="button" onClick={() => setEditing(c)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted">
                         <i className="ri-edit-line" aria-hidden="true" /> Editar
-                      </button>
+                      </button>)}
                     </td>
                   </tr>
                 )}</PaginatedRows>

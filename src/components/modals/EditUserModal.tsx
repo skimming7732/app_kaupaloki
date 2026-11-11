@@ -1,3 +1,4 @@
+import { requiresCurrencies } from '../../utils/roles';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
@@ -34,7 +35,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
     }
   }, [user]);
 
-  if (!isOpen || !user) return null;
+  if (!isOpen || !user || !isAdmin) return null;
 
   const handleToggleDivisa = (divisaCode: string) => {
     if (divisas.includes(divisaCode)) {
@@ -77,7 +78,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
         'Correo': correo.trim().toLowerCase(),
         'Rol': rol,
         'País': pais,
-        'Divisas Autorizadas': ['administrador', 'super_admin'].includes(rol) ? [] : divisas,
+        'Divisas Autorizadas': rol === 'dispersor' ? ['COP'] : !requiresCurrencies(rol) ? [] : divisas,
         'Estado': estado
       });
       finishSound(true);
@@ -159,11 +160,13 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
               <label className="block text-xs font-semibold text-muted-foreground mb-1">Rol</label>
               <select
                 value={rol}
-                onChange={(e) => setRol(e.target.value)}
+                onChange={(e) => { setRol(e.target.value); if (e.target.value === 'dispersor') setDivisas(['COP']); }}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               >
-                <option value="super_admin">Super Admin</option>
+                {(profile?.role === 'super_admin' || user.rol === 'super_admin') && <option value="super_admin">Super Admin</option>}
                 <option value="administrador">Admin</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="comercial">Comercial</option>
                 <option value="operador">Operador</option>
                 <option value="dispersor">Dispersor</option>
               </select>
@@ -204,7 +207,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
 
           <div>
             <p className="mb-2 text-xs font-semibold text-muted-foreground">Divisas autorizadas</p>
-            {['administrador', 'super_admin'].includes(rol) ? <p className="text-sm">Todas las divisas</p> : <>
+            {rol === 'dispersor' ? <p className="text-sm">COP · Las dispersiones se realizan únicamente en pesos colombianos.</p> : !requiresCurrencies(rol) ? <p className="text-sm">Todas las divisas</p> : <>
             <button type="button" onClick={() => setDivisas([])} className="mb-2 rounded-lg border border-border px-3 py-1.5 text-xs" aria-pressed={divisas.length === 0}>Todas</button>
             <div className="flex flex-wrap gap-2">
               {data.divisas.map((d) => {

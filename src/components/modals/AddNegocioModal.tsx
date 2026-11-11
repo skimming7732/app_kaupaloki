@@ -70,12 +70,12 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
   }, [isCreatingClient]);
 
   const authorizedCurrencies = profile?.authorized_currencies;
-  const currencies = profile?.role === 'operador'
+  const currencies = ['comercial', 'operador'].includes(profile?.role || '') && Boolean(profile?.authorized_currencies?.length)
     ? data.divisas.filter((currency) => (authorizedCurrencies || []).includes(currency.codigo))
     : data.divisas;
 
   useEffect(() => {
-    if (profile?.role === 'operador') {
+    if (['comercial', 'operador'].includes(profile?.role || '') && Boolean(profile?.authorized_currencies?.length)) {
       if (!divisaCode && currencies.length > 0) {
         setDivisaCode(currencies[0].codigo);
       } else if (divisaCode && !currencies.some((c) => c.codigo === divisaCode)) {
@@ -273,7 +273,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
                     <select aria-label="Elegir usuario" value={authorId} onChange={(event) => setAuthorId(event.target.value)} className={fieldClass}>
                       <option value="">Sin registro</option>
                       {data.usuarios.filter((user) =>
-                        ['administrador', 'super_admin', 'operador', 'dispersor'].includes(user.rol) &&
+                        ['administrador', 'super_admin', 'operador', 'dispersor', 'comercial', 'supervisor'].includes(user.rol) &&
                         (user.id === authorId || normalizeSearch(user.nombre + ' ' + user.correo).includes(normalizeSearch(authorSearch.trim())))
                       ).map((user) => (
                         <option key={user.id} value={user.id}>{user.nombre}{user.correo ? ' · ' + user.correo : ''}</option>

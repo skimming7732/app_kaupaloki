@@ -1,3 +1,4 @@
+import { useWriteAccess } from '../utils/useWriteAccess';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { InstitutionLogo, buildAutoLogoUrl, extractDomain } from '../components/common/InstitutionLogo';
@@ -50,6 +51,7 @@ const cleanCountryFromDivisa = (pais?: string, codigo?: string): string => {
 };
 
 export const InstitucionesView: React.FC = () => {
+  const canWrite = useWriteAccess('admin');
   const { data, syncData } = useData();
   const [institutions, setInstitutions] = useState<InstitucionRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -379,7 +381,7 @@ export const InstitucionesView: React.FC = () => {
             <i className="ri-download-2-line text-sm" />
             <span>Exportar CSV</span>
           </button>
-          <button
+          {canWrite && (<button
             type="button"
             onClick={() => openCreateModal()}
             className="px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:opacity-90 text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm transition-opacity"
@@ -390,7 +392,7 @@ export const InstitucionesView: React.FC = () => {
                 ? `Nueva Institución (${currencyFilter})`
                 : 'Nueva Institución'}
             </span>
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -516,14 +518,14 @@ export const InstitucionesView: React.FC = () => {
                   <td colSpan={7} className="py-12 text-center text-muted-foreground space-y-2">
                     <p>No se encontraron instituciones para los filtros seleccionados.</p>
                     {currencyFilter !== 'ALL' && (
-                      <button
+                      canWrite && (<button
                         type="button"
                         onClick={() => openCreateModal(currencyFilter)}
                         className="mt-2 px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center gap-1.5"
                       >
                         <i className="ri-add-line" />
                         <span>Crear primera institución en {currencyFilter}</span>
-                      </button>
+                      </button>)
                     )}
                   </td>
                 </tr>
@@ -605,6 +607,7 @@ export const InstitucionesView: React.FC = () => {
 
                         <td className="py-3 px-4 text-center whitespace-nowrap">
                           <select
+                            disabled={!canWrite}
                             value={inst.status}
                             onChange={(e) =>
                               handleInlineStatusChange(
@@ -648,14 +651,14 @@ export const InstitucionesView: React.FC = () => {
                                 <i className="ri-external-link-line text-sm" />
                               </a>
                             )}
-                            <button
+                            {canWrite && (<button
                               type="button"
                               onClick={() => openEditModal(inst)}
                               className="px-2.5 py-1 rounded-lg border border-border hover:bg-muted text-xs font-semibold text-foreground inline-flex items-center gap-1 transition-colors"
                             >
                               <i className="ri-edit-line text-xs" />
                               <span>Editar</span>
-                            </button>
+                            </button>)}
                           </div>
                         </td>
                       </tr>

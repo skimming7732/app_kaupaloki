@@ -1,3 +1,4 @@
+import { supervisorCanRead, type StaffRole } from './utils/roles';
 import { CapitalSociosView, SociosInversionistasView } from './views/CapitalSociosView';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
@@ -71,11 +72,13 @@ const RequireAuthFor2FA: React.FC<{ children: React.ReactNode }> = ({ children }
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
-  allowedRoles?: ('super_admin' | 'administrador' | 'operador' | 'dispersor')[];
+  allowedRoles?: StaffRole[];
 }> = ({ children, allowedRoles }) => {
   const { profile } = useAuth();
   const role = profile?.role || 'operador';
 
+  const { pathname } = useLocation();
+  if (role === 'supervisor') return supervisorCanRead(pathname) ? <>{children}</> : <Navigate to="/inicio" replace />;
   if (allowedRoles && (role === 'client' || !allowedRoles.includes(role))) {
     return <Navigate to="/inicio" replace />;
   }
@@ -86,7 +89,7 @@ const ProtectedRoute: React.FC<{
 const ClienteDetailRouteHandler: React.FC<{
   renderWithLayout: (
     component: React.ReactNode,
-    allowedRoles?: ('super_admin' | 'administrador' | 'operador' | 'dispersor')[]
+    allowedRoles?: StaffRole[]
   ) => React.ReactNode;
 }> = ({ renderWithLayout }) => {
   const { id } = useParams<{ id: string }>();
@@ -100,7 +103,7 @@ const ClienteDetailRouteHandler: React.FC<{
     return <Navigate to={`/cliente/${id || ''}`} replace />;
   }
 
-  return <>{renderWithLayout(<ClienteDetalleView />, ['super_admin', 'administrador', 'operador', 'dispersor'])}</>;
+  return <>{renderWithLayout(<ClienteDetalleView />, ['super_admin', 'administrador', 'operador', 'dispersor', 'comercial', 'supervisor'])}</>;
 };
 
 const AppLayout: React.FC<{
@@ -171,7 +174,7 @@ export const App: React.FC = () => {
 
   const renderWithLayout = (
     component: React.ReactNode,
-    allowedRoles?: ('super_admin' | 'administrador' | 'operador' | 'dispersor')[]
+    allowedRoles?: StaffRole[]
   ) => (
     <AppLayout activeModal={activeModal} setActiveModal={setActiveModal}>
       <ProtectedRoute allowedRoles={allowedRoles}>{component}</ProtectedRoute>
@@ -204,7 +207,7 @@ export const App: React.FC = () => {
               path="/negocios"
               element={renderWithLayout(
                 <NegociosView onOpenAddNegocio={() => setActiveModal('add-negocio')} />,
-                ['super_admin', 'administrador', 'operador']
+                ['super_admin', 'administrador', 'operador', 'comercial']
               )}
             />
             <Route
@@ -225,7 +228,7 @@ export const App: React.FC = () => {
               path="/dispersiones"
               element={renderWithLayout(
                 <DispersionesView onOpenAddDispersion={() => setActiveModal('add-dispersion')} />,
-                ['super_admin', 'administrador', 'dispersor']
+                ['super_admin', 'administrador', 'dispersor', 'operador']
               )}
             />
             <Route

@@ -1,3 +1,4 @@
+import { roleLabels, type StaffRole } from '../utils/roles';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { clearTwoFactorVerification, connectTwoFactorTabs, getTwoFactorSessionKey } from '../utils/twoFactorTabs';
@@ -9,7 +10,7 @@ export interface UserProfile {
   email: string;
   full_name: string;
   nombre?: string;
-  role: 'super_admin' | 'administrador' | 'operador' | 'dispersor' | 'client';
+  role: StaffRole | 'client';
   rol?: string;
   pais: string;
   operator_code?: string;
@@ -91,8 +92,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (dbProfile) {
         if (dbProfile.status && ['invitado', 'invited'].includes(String(dbProfile.status).toLowerCase())) {
-          dbProfile.status = 'activo';
-          void supabase.from('profiles').update({ status: 'activo' }).eq('id', dbProfile.id);
+          const { data: activated, error: activationError } = await supabase.rpc('activar_perfil_invitado');
+          if (activationError) throw activationError;
+          if (!isCurrent()) return;
+          if (activated) dbProfile.status = 'activo';
         }
 
         let finalRole: any = dbProfile.role || 'operador';
@@ -100,18 +103,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else if (finalRole === 'dispersador' || finalRole === 'dispersor') finalRole = 'dispersor';
         else if (finalRole === 'administrador' || finalRole === 'admin') finalRole = 'administrador';
         else if (finalRole === 'cliente' || finalRole === 'client') finalRole = 'client';
-        else finalRole = 'operador';
+        else if (!['operador', 'comercial', 'supervisor'].includes(finalRole)) finalRole = 'client';
 
-        const readableRole =
-          finalRole === 'super_admin'
-            ? 'SUPER ADMIN'
-            : finalRole === 'administrador'
-            ? 'ADMINISTRADOR'
-            : finalRole === 'dispersor'
-            ? 'DISPERSOR'
-            : finalRole === 'client'
-            ? 'CLIENTE'
-            : 'OPERADOR';
+        const readableRole = finalRole === 'client' ? 'CLIENTE' : roleLabels[finalRole as StaffRole].toUpperCase();
 
         const normalizedProfile: UserProfile = {
           ...dbProfile,

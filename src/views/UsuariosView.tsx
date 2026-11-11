@@ -1,3 +1,5 @@
+import { useAuth } from '../context/AuthContext';
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
@@ -9,6 +11,8 @@ import { DeleteUserModal } from '../components/modals/DeleteUserModal';
 import { AddUserModal } from '../components/modals/AddUserModal';
 
 export const UsuariosView: React.FC = () => {
+  const canWrite = useWriteAccess('admin');
+  const { profile } = useAuth();
   const { data, updateRecord } = useData();
   const [selectedRole, setSelectedRole] = useState('Todos');
   const [search, setSearch] = useState('');
@@ -21,7 +25,7 @@ export const UsuariosView: React.FC = () => {
   const [invitingUser, setInvitingUser] = useState<AppUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<AppUser | null>(null);
 
-  const roles = ['Todos', 'Super Admin', 'Admin', 'Operador', 'Dispersor'];
+  const roles = ['Todos', 'Super Admin', 'Admin', 'Supervisor', 'Operador', 'Comercial', 'Dispersor'];
 
   const normalizeRole = (r: string) => {
     const s = (r || '').toLowerCase().trim();
@@ -37,6 +41,8 @@ export const UsuariosView: React.FC = () => {
     administrador: 'Admin',
     operador: 'Operador',
     dispersor: 'Dispersor',
+    comercial: 'Comercial',
+    supervisor: 'Supervisor',
   };
 
   const filteredUsers = useMemo(() => {
@@ -58,6 +64,7 @@ export const UsuariosView: React.FC = () => {
   };
 
   const handleToggleEstado = async (u: AppUser) => {
+    if (!canWrite) return;
     const nuevoEstado = (u.estado || '').toLowerCase() === 'activo' ? 'Invitado' : 'Activo';
     setUpdatingId(u.id);
     try {
@@ -113,14 +120,14 @@ export const UsuariosView: React.FC = () => {
               className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
           </div>
-          <button
+          {canWrite && (<button
             type="button"
             onClick={() => setIsAddUserOpen(true)}
             className="px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center gap-1.5 whitespace-nowrap transition-all"
           >
             <i className="ri-user-add-line text-sm" />
             <span>Invitar Usuario</span>
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -135,7 +142,7 @@ export const UsuariosView: React.FC = () => {
                 <th className="py-3.5 px-4">País</th>
                 <th className="py-3.5 px-4">Rol</th>
                 <th className="py-3.5 px-4">Divisas</th>
-                <th className="py-3.5 px-4 text-center">Estado (Click para cambiar)</th>
+                <th className="py-3.5 px-4 text-center">Estado {canWrite ? '(Click para cambiar)' : ''}</th>
                 <th className="py-3.5 px-4 text-center">Acciones</th>
                 <CreatedByHeader />
               </tr>
@@ -150,6 +157,7 @@ export const UsuariosView: React.FC = () => {
               ) : (
                 <PaginatedRows columns={8} rows={filteredUsers}>{(u) => {
                   const isActivo = (u.estado || '').toLowerCase() === 'activo';
+                  const canManage = canWrite && (profile?.role === 'super_admin' || u.rol !== 'super_admin');
                   return (
                     <tr key={u.id} className="hover:bg-muted/30 transition-colors">
                       {/* Prominent Code Column - No row numbers */}
@@ -181,7 +189,7 @@ export const UsuariosView: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        {['administrador', 'super_admin'].includes(u.rol) || !u.divisasAutorizadas?.length ||
+                        {['administrador', 'super_admin', 'supervisor'].includes(u.rol) || !u.divisasAutorizadas?.length ||
                           (data.divisas.length > 0 && data.divisas.every((d) => u.divisasAutorizadas?.includes(d.codigo))) ? (
                           <span className="text-xs font-semibold text-primary">Todas</span>
                         ) : (
@@ -197,7 +205,7 @@ export const UsuariosView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleToggleEstado(u)}
-                          disabled={updatingId === u.id}
+                          disabled={!canManage || updatingId === u.id}
                           title="Haz clic para alternar entre Invitado y Activo"
                           className={`px-3 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 ${
                             isActivo
@@ -217,37 +225,37 @@ export const UsuariosView: React.FC = () => {
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          <button
+                          {canManage && (<button
                             onClick={() => handleCopyLink(u)}
                             title="Copiar enlace de acceso"
                             className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                           >
                             <i className={copiedId === u.id ? "ri-check-line text-emerald-500" : "ri-share-line"} />
-                          </button>
+                          </button>)}
 
-                          <button
+                          {canManage && (<button
                             onClick={() => setInvitingUser(u)}
                             title="Enviar correo de invitación"
                             className="p-1.5 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
                           >
                             <i className="ri-mail-send-line" />
-                          </button>
+                          </button>)}
 
-                          <button
+                          {canManage && (<button
                             onClick={() => setEditingUser(u)}
                             title="Editar permisos y rol"
                             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           >
                             <i className="ri-edit-line" />
-                          </button>
+                          </button>)}
 
-                          <button
+                          {canManage && (<button
                             onClick={() => setDeletingUser(u)}
                             title="Eliminar usuario"
                             className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                           >
                             <i className="ri-delete-bin-line" />
-                          </button>
+                          </button>)}
                         </div>
                       </td>
                       <CreatedByCell name={u.createdByName} />

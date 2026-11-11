@@ -2,5 +2,5 @@
 
 - NO EMOJIS: Do not use emoji characters anywhere in UI components, HTML, TSX, CSS, or data files. Always use Remix Icon (`ri-*` classes) for all iconography.
 - Countries and currencies must be displayed as text with standard ISO codes (e.g., 'Colombia (COL)', 'COP', 'USD'), never with emoji flags.
-- Maintain RBAC: Operador only sees Inicio, Clientes, Negocios; Dispersor only sees Inicio, Dispersiones, Clientes.
+- Maintain RBAC from RULES.md: Comercial registers businesses; Dispersor handles dispersions; Operador does both. Only these three roles choose authorized currencies. Supervisor is read-only across all views except Panel de control, Capital and Socios & Inversionistas. All staff see Clientes. Enforce permissions in routes, actions, RLS and RPC.
 - 2FA downloads must follow: kaupaloki-backup-codes-<user_email>.txt.

@@ -1,3 +1,4 @@
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
@@ -29,13 +30,14 @@ const DispersionStatusSelect = ({ dispersion, onSaved }: {
   dispersion: Dispersion;
   onSaved: () => Promise<void>;
 }) => {
+  const canWrite = useWriteAccess('dispersion');
   const [pending, setPending] = useState<DispersionStatus>();
   const [error, setError] = useState('');
   const current = isRejected(dispersion.estado) ? 'RECHAZADO' : 'COMPLETADO';
   const status = pending ?? current;
 
   const save = async (next: DispersionStatus) => {
-    if (pending || next === current) return;
+    if (!canWrite || pending || next === current) return;
     setPending(next);
     setError('');
     const finishSound = prepareSuccessSound();
@@ -64,7 +66,7 @@ const DispersionStatusSelect = ({ dispersion, onSaved }: {
       <select
         aria-label={'Estado de ' + dispersion.codigo}
         value={status}
-        disabled={Boolean(pending)}
+        disabled={!canWrite || Boolean(pending)}
         onChange={(event) => { void save(event.target.value as DispersionStatus); }}
         className={'min-h-8 cursor-pointer rounded-lg border px-2 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait ' +
           (status === 'RECHAZADO'
@@ -81,6 +83,7 @@ const DispersionStatusSelect = ({ dispersion, onSaved }: {
 };
 
 export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDispersion }) => {
+  const canWrite = useWriteAccess('dispersion');
   const { data, syncData } = useData();
 
   const [editing, setEditing] = useState<NormalizedData['dispersiones'][number] | null>(null);
@@ -186,14 +189,14 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
           <h2 className="text-base font-bold text-foreground">Dispersiones Bancarias</h2>
           <p className="text-xs text-muted-foreground">Transferencias, pagos procesados y comprobantes bancarios</p>
         </div>
-        <button
+        {canWrite && (<button
           type="button"
           onClick={onOpenAddDispersion ? onOpenAddDispersion : () => setIsAddOpen(true)}
           className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto"
         >
           <i className="ri-send-plane-line text-sm" />
           <span>Nueva Dispersión</span>
-        </button>
+        </button>)}
       </div>
 
       {/* Comprehensive Filter Bar */}
@@ -321,27 +324,27 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                           </div>
 
                           {/* Direct Edit / Replace icon (opens file picker directly) */}
-                          <button
+                          {canWrite && (<button
                             type="button"
                             onClick={() => triggerDirectUpload(d.id, undefined, false)}
                             title="Reemplazar comprobante (directo a archivos)"
                             className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           >
                             <i className="ri-pencil-line text-xs" />
-                          </button>
+                          </button>)}
 
                           {/* Direct '+' icon to append another receipt */}
-                          <button
+                          {canWrite && (<button
                             type="button"
                             onClick={() => triggerDirectUpload(d.id, d.comprobanteUrl, true)}
                             title="Añadir otro comprobante (directo a archivos)"
                             className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                           >
                             <i className="ri-add-line text-xs font-bold" />
-                          </button>
+                          </button>)}
                         </div>
                       ) : (
-                        <button
+                        canWrite && (<button
                           type="button"
                           onClick={() => triggerDirectUpload(d.id, undefined, false)}
                           title="Subir comprobante (directo a archivos)"
@@ -349,7 +352,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                         >
                           <i className="ri-upload-cloud-line text-xs" />
                           <span>Subir</span>
-                        </button>
+                        </button>)
                       )}
                     </td>
 
@@ -358,14 +361,14 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                     </td>
                     <CreatedByCell name={d.createdByName} />
                     <td className="px-4 py-2.5 text-center whitespace-nowrap">
-                      <button
+                      {canWrite && (<button
                         type="button"
                         onClick={() => setEditing(d)}
                         className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
                       >
                         <i className="ri-edit-line" aria-hidden="true" />
                         <span>Editar</span>
-                      </button>
+                      </button>)}
                     </td>
                   </tr>
                 )}</PaginatedRows>

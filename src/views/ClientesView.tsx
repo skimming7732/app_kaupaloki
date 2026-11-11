@@ -1,3 +1,4 @@
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { CLIENT_COUNTRIES, findClientCountry, getClientCountryIso } from '../data/clientCountries';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -20,9 +21,10 @@ type SortField = 'nombre' | 'pais' | 'totalNegocios' | 'totalIngresosCOP' | 'tot
 const countryKey = (pais?: string) => findClientCountry(pais || 'COLOMBIA')?.value ?? normalizeSearch(pais?.trim() || 'COLOMBIA').toUpperCase();
 
 export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) => {
+  const canWrite = useWriteAccess('clients');
   const { data, loading } = useData();
   const { profile } = useAuth();
-  const canFilterComisiones = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canFilterComisiones = ['administrador', 'super_admin', 'supervisor'].includes(profile?.role || '');
   const [search, setSearch] = useState('');
   const [estado, setEstado] = useState('');
   const [pais, setPais] = useState('');
@@ -167,14 +169,14 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
           <h2 className="text-base font-bold text-foreground">Gestión de Clientes</h2>
           <p className="text-xs text-muted-foreground">Cuentas, estados de saldo, comisiones y enlaces de consulta pública</p>
         </div>
-        <button
+        {canWrite && (<button
           type="button"
           onClick={onOpenAddCliente ? onOpenAddCliente : () => setIsAddOpen(true)}
           className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto"
         >
           <i className="ri-user-add-line text-sm" />
           <span>Nuevo Cliente</span>
-        </button>
+        </button>)}
       </div>
 
       <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
@@ -388,22 +390,22 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
 
                     <td className="py-3 px-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <button
+                        {canWrite && (<button
                           type="button"
                           onClick={() => setEditingClient(c)}
                           title="Editar cliente"
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                         >
                           <i className="ri-edit-line text-sm" />
-                        </button>
-                        <button
+                        </button>)}
+                        {canWrite && (<button
                           type="button"
                           onClick={() => setSharingClient(c)}
                           title="Compartir enlace y mensaje de WhatsApp"
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
                         >
                           <i className="ri-share-forward-line text-sm" />
-                        </button>
+                        </button>)}
                         <button
                           type="button"
                           onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=panel-control`)}

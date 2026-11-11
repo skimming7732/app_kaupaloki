@@ -9,10 +9,15 @@
   - Ejemplo incorrecto: `🇨🇴 Colombia`, `🇺🇸 Estados Unidos`.
 
 ## 2. Permisos y Roles (RBAC)
-- **Super Admin / Admin**: Acceso total al ecosistema.
-- **Operador**: Únicamente puede visualizar y acceder a **Inicio**, **Clientes** y **Negocios** (este último restringido a sus divisas autorizadas).
-- **Dispersor**: Únicamente puede visualizar y acceder a **Inicio**, **Dispersiones** y **Clientes**.
-- **Route Guards**: Cualquier intento de acceso directo por URL a vistas no autorizadas debe ser interceptado y redirigido a `/inicio`.
+- **Super Admin / Administrador**: Acceso administrativo existente; solo Super Admin concede ese rol.
+- **Comercial**: Inicio, Clientes y Negocios. Registra negocios con sus divisas autorizadas.
+- **Dispersor**: Inicio, Clientes y Dispersiones. Registra dispersiones con sus divisas autorizadas.
+- **Operador**: Inicio, Clientes, Negocios y Dispersiones. Combina Comercial y Dispersor.
+- **Supervisor**: Consulta todas las vistas excepto Panel de control, Capital y Socios & Inversionistas, incluidos sus extractos. Sin crear, editar, eliminar, entregar tokens ni adjuntar comprobantes. Puede mantener sus propios datos de perfil y seguridad.
+- **Dispersiones**: Únicamente COP. Dispersor tiene COP fijo; Operador requiere COP autorizado o Todas para registrar o modificar dispersiones.
+- **Divisas**: Solo Comercial, Dispersor y Operador requieren selección de divisas, con posibilidad de Todas. Administrador, Super Admin y Supervisor tienen todas automáticamente. La lista vacía representa Todas.
+- **Route Guards**: El acceso directo a rutas no autorizadas redirige a `/inicio`.
+- Los permisos deben aplicarse en interfaz, operaciones compartidas y Supabase (RLS y RPC), usando el rol de `profiles`.
 
 ## 3. Seguridad y 2FA
 - Autenticación multifactor obligatoria.

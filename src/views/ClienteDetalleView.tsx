@@ -1,3 +1,5 @@
+import { canRegisterBusiness } from '../utils/roles';
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { getClientCountryIso } from '../data/clientCountries';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -18,11 +20,13 @@ import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropd
 export const ClienteDetalleView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const canWrite = useWriteAccess('clients');
   const { data, loading } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
-  const isOperador = profile?.role === 'operador';
-  const canDisperse = isAdmin || profile?.role === 'dispersor';
+  const isOperador = profile?.role === 'comercial';
+  const hasCurrencyScope = ['operador', 'comercial', 'dispersor'].includes(profile?.role || '') && Boolean(profile?.authorized_currencies?.length);
+  const canDisperse = (isAdmin || ['operador', 'dispersor'].includes(profile?.role || '')) && (!profile?.authorized_currencies?.length || profile.authorized_currencies.includes('COP') || isAdmin);
   const authorizedCurrencies = profile?.authorized_currencies || [];
 
   const [activeTab, setActiveTab] = useState<'negocios' | 'dispersiones' | 'efectivo' | 'comisiones'>('negocios');
@@ -78,24 +82,24 @@ export const ClienteDetalleView: React.FC = () => {
     data.negocios.forEach((n) => {
       if (matchesClient(n) && n.divisaCodigo) {
         const code = n.divisaCodigo.toUpperCase();
-        if (!isOperador || authorizedCurrencies.includes(code)) {
+        if (!hasCurrencyScope || authorizedCurrencies.includes(code)) {
           set.add(code);
         }
       }
     });
     return Array.from(set).sort();
-  }, [data.negocios, cliente, isOperador, authorizedCurrencies]);
+  }, [data.negocios, cliente, hasCurrencyScope, authorizedCurrencies]);
 
   const clientNegocios = useMemo(() => {
     return data.negocios
       .filter((n) =>
         matchesClient(n) &&
-        (!isOperador || authorizedCurrencies.includes((n.divisaCodigo || '').toUpperCase())) &&
+        (!hasCurrencyScope || authorizedCurrencies.includes((n.divisaCodigo || '').toUpperCase())) &&
         matchesDateRange(n.fecha, fechaDesde, fechaHasta) &&
         (!selectedDivisa || (n.divisaCodigo || '').toUpperCase() === selectedDivisa.toUpperCase())
       )
       .sort(compareChronologicalDesc);
-  }, [data.negocios, cliente, isOperador, authorizedCurrencies, fechaDesde, fechaHasta, selectedDivisa]);
+  }, [data.negocios, cliente, hasCurrencyScope, authorizedCurrencies, fechaDesde, fechaHasta, selectedDivisa]);
 
   const clientDispersiones = useMemo(() => {
     return data.dispersiones
@@ -262,13 +266,13 @@ export const ClienteDetalleView: React.FC = () => {
           </button>
 
           {/* Share Access PIN Modal */}
-          <button
+          {canWrite && (<button
             onClick={() => setIsShareOpen(true)}
             className="px-3 py-2 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 text-xs font-semibold text-primary transition-colors flex items-center gap-1.5"
           >
             <i className="ri-share-line" />
             <span>Compartir Enlace PIN</span>
-          </button>
+          </button>)}
 
           {/* Edit Client */}
           {isAdmin && (
@@ -282,7 +286,7 @@ export const ClienteDetalleView: React.FC = () => {
           )}
 
           {/* New Operation (Negocio) */}
-          <button
+          {canRegisterBusiness(profile?.role) && (<button
             onClick={() => {
               setEditingNegocio(undefined);
               setIsAddNegocioOpen(true);
@@ -291,11 +295,11 @@ export const ClienteDetalleView: React.FC = () => {
           >
             <i className="ri-add-line" />
             <span>Nuevo Negocio</span>
-          </button>
+          </button>)}
 
           {/* New Dispersion */}
           {canDisperse && (
-            <button
+            canDisperse && (<button
               onClick={() => {
                 setEditingDispersion(undefined);
                 setIsAddDispersionOpen(true);
@@ -304,7 +308,7 @@ export const ClienteDetalleView: React.FC = () => {
             >
               <i className="ri-bank-card-line" />
               <span>Nueva Dispersión</span>
-            </button>
+            </button>)
           )}
         </div>
       </div>
@@ -620,7 +624,7 @@ export const ClienteDetalleView: React.FC = () => {
             <h3 className="text-sm font-bold text-foreground">
               Operaciones y Negocios del Cliente ({clientNegocios.length})
             </h3>
-            <button
+            {canRegisterBusiness(profile?.role) && (<button
               onClick={() => {
                 setEditingNegocio(undefined);
                 setIsAddNegocioOpen(true);
@@ -629,7 +633,7 @@ export const ClienteDetalleView: React.FC = () => {
             >
               <i className="ri-add-line" />
               <span>Registrar Negocio</span>
-            </button>
+            </button>)}
           </div>
 
           <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -686,7 +690,7 @@ export const ClienteDetalleView: React.FC = () => {
                         <CreatedByCell name={n.createdByName} createdBy={n.createdBy} createdAt={n.createdAtAudit} />
                         <td className="py-3 px-4 text-center">
                           {isAdmin && (
-                            <button
+                            canRegisterBusiness(profile?.role) && (<button
                               onClick={() => {
                                 setEditingNegocio(n);
                                 setIsAddNegocioOpen(true);
@@ -695,7 +699,7 @@ export const ClienteDetalleView: React.FC = () => {
                               title="Editar negocio"
                             >
                               <i className="ri-pencil-line text-sm" />
-                            </button>
+                            </button>)
                           )}
                         </td>
                       </tr>
@@ -715,7 +719,7 @@ export const ClienteDetalleView: React.FC = () => {
             <h3 className="text-sm font-bold text-foreground">
               Dispersiones Bancarias y Comprobantes ({clientDispersiones.length})
             </h3>
-            <button
+            {canDisperse && (<button
               onClick={() => {
                 setEditingDispersion(undefined);
                 setIsAddDispersionOpen(true);
@@ -724,7 +728,7 @@ export const ClienteDetalleView: React.FC = () => {
             >
               <i className="ri-add-line" />
               <span>Nueva Dispersión</span>
-            </button>
+            </button>)}
           </div>
 
           <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -793,7 +797,7 @@ export const ClienteDetalleView: React.FC = () => {
                         </td>
                         <CreatedByCell name={d.createdByName} createdBy={d.createdBy} createdAt={d.createdAtAudit} />
                         <td className="py-3 px-4 text-center">
-                          <button
+                          {canDisperse && (<button
                             onClick={() => {
                               setEditingDispersion(d);
                               setIsAddDispersionOpen(true);
@@ -802,7 +806,7 @@ export const ClienteDetalleView: React.FC = () => {
                             title="Editar dispersión"
                           >
                             <i className="ri-pencil-line text-sm" />
-                          </button>
+                          </button>)}
                         </td>
                       </tr>
                     ))
@@ -821,13 +825,13 @@ export const ClienteDetalleView: React.FC = () => {
             <h3 className="text-sm font-bold text-foreground">
               Movimientos de Caja y Efectivo ({clientEfectivo.length})
             </h3>
-            <button
+            {isAdmin && (<button
               onClick={() => setIsAddEfectivoOpen(true)}
               className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
             >
               <i className="ri-add-line" />
               <span>Registrar Efectivo</span>
-            </button>
+            </button>)}
           </div>
 
           <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -881,7 +885,7 @@ export const ClienteDetalleView: React.FC = () => {
                         </td>
                         <CreatedByCell name={e.createdByName} createdBy={e.createdBy} createdAt={e.createdAtAudit} />
                         <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                          <button
+                          {isAdmin && (<button
                             type="button"
                             onClick={() => {
                               setEditingEfectivo(e);
@@ -892,7 +896,7 @@ export const ClienteDetalleView: React.FC = () => {
                           >
                             <i className="ri-edit-line text-xs" />
                             <span>Editar</span>
-                          </button>
+                          </button>)}
                         </td>
                       </tr>
                     ))

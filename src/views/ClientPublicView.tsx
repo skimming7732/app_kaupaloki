@@ -70,7 +70,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
 
   const isStaff = !!user && !!is2faVerified;
   const isFromDashboard = (preview || isStaff) &&
-    ['administrador', 'super_admin', 'operador', 'dispersor'].includes(profile?.role || '');
+    ['administrador', 'super_admin', 'operador', 'dispersor', 'comercial', 'supervisor'].includes(profile?.role || '');
   const internalClient = isFromDashboard
     ? data.clientes.find((client) => client.id === token || client.codigo.toLowerCase() === token.toLowerCase())
     : undefined;

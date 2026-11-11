@@ -1,3 +1,4 @@
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { readAllRows } from '../utils/supabasePagination';
 import { Link } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -47,6 +48,7 @@ function VoucherThumbnail({ token, onOpen }: { token: CashToken; onOpen: () => v
 }
 
 export const TokensView: React.FC = () => {
+  const canWrite = useWriteAccess('admin');
   const { profile, user } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
 
@@ -106,7 +108,7 @@ export const TokensView: React.FC = () => {
 
   // Redeem token
   const handleRedeem = async (token: CashToken) => {
-    if (getTokenState(token) !== 'activo') return;
+    if (!canWrite || getTokenState(token) !== 'activo') return;
 
     const confirmed = window.confirm(
       `¿Confirmas la entrega en caja de ${token.divisa} $${formatCurrencyAmount(
@@ -255,21 +257,21 @@ export const TokensView: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-          <button
+          {canWrite && (<button
             onClick={() => setIsScanOpen(true)}
             className={secondaryButton}
           >
             <i className="ri-qr-scan-2-line text-primary text-sm" />
             Validar token
-          </button>
+          </button>)}
 
-          <button
+          {canWrite && (<button
             onClick={() => setIsPaymentOpen(true)}
             className={`${recordButtonClass} justify-center`}
           >
             <i className="ri-add-line text-sm" />
             Pago en efectivo
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -470,18 +472,18 @@ export const TokensView: React.FC = () => {
                               Ver vale
                             </button>
                             {state === 'activo' && (
-                              <button type="button" onClick={() => handleRedeem(token)}
+                              canWrite && (<button type="button" onClick={() => handleRedeem(token)}
                                 title="Marcar como entregado" aria-label="Marcar como entregado"
                                 className={iconButton + ' text-primary'}>
                                 <i className="ri-checkbox-circle-line" aria-hidden="true" />
-                              </button>
+                              </button>)
                             )}
                             {state === 'activo' && isAdmin && (
-                              <button type="button" onClick={() => handleCancel(token)}
+                              canWrite && (<button type="button" onClick={() => handleCancel(token)}
                                 title="Cancelar token" aria-label="Cancelar token"
                                 className={iconButton + ' text-destructive'}>
                                 <i className="ri-close-circle-line" aria-hidden="true" />
-                              </button>
+                              </button>)
                             )}
                           </div>
                         </td>
@@ -525,7 +527,7 @@ export const TokensView: React.FC = () => {
         isOpen={Boolean(selectedVoucherToken)}
         onClose={() => setSelectedVoucherToken(null)}
         token={selectedVoucherToken}
-        onRedeem={(token) => handleRedeem(token)}
+        onRedeem={canWrite ? handleRedeem : undefined}
         onCancel={isAdmin ? handleCancel : undefined}
       />
     </div>

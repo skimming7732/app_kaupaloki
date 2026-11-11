@@ -1,3 +1,4 @@
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { recordButtonClass } from '../components/modals/RecordDialog';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
@@ -22,6 +23,7 @@ interface GastosViewProps {
 }
 
 export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
+  const canWrite = useWriteAccess('admin');
   const { data, metrics, syncData } = useData();
   const tasaUsdtCop = metrics?.rateUsdtCop || 3950;
   const [attachingTo, setAttachingTo] = useState<{ id: string; url?: string } | null>(null);
@@ -172,14 +174,14 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
           <p className="text-xs text-muted-foreground">Registro de egresos y comprobantes</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
+          {canWrite && (<button
             onClick={onOpenAddGasto ? onOpenAddGasto : () => setIsAddOpen(true)}
             type="button"
             className={recordButtonClass}
           >
             <i className="ri-add-line text-sm" />
             <span>Registrar Gasto</span>
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -339,27 +341,27 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                           </div>
 
                           {/* Direct Edit / Replace icon (opens file picker directly) */}
-                          <button
+                          {canWrite && (<button
                             type="button"
                             onClick={() => triggerDirectUpload(g.id, undefined, false)}
                             title="Reemplazar comprobante (directo a archivos)"
                             className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           >
                             <i className="ri-pencil-line text-xs" />
-                          </button>
+                          </button>)}
 
                           {/* Direct '+' icon to append another receipt */}
-                          <button
+                          {canWrite && (<button
                             type="button"
                             onClick={() => triggerDirectUpload(g.id, g.comprobanteUrl, true)}
                             title="Añadir otro comprobante (directo a archivos)"
                             className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                           >
                             <i className="ri-add-line text-xs font-bold" />
-                          </button>
+                          </button>)}
                         </div>
                       ) : (
-                        <button
+                        canWrite && (<button
                           type="button"
                           onClick={() => triggerDirectUpload(g.id, undefined, false)}
                           title="Subir comprobante (directo a archivos)"
@@ -367,7 +369,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                         >
                           <i className="ri-upload-cloud-line text-xs" />
                           <span>Subir</span>
-                        </button>
+                        </button>)
                       )}
                     </td>
 
@@ -376,14 +378,14 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                     </td>
                     <CreatedByCell name={g.createdByName} />
                     <td className="py-2.5 px-4 whitespace-nowrap">
-                      <button
+                      {canWrite && (<button
                         type="button"
                         onClick={() => setEditing(g)}
                         className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
                       >
                         <i className="ri-edit-line" aria-hidden="true" />
                         <span>Editar</span>
-                      </button>
+                      </button>)}
                     </td>
                   </tr>
                 )}</PaginatedRows>

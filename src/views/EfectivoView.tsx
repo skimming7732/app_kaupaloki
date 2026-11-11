@@ -1,3 +1,4 @@
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { readAllRows } from '../utils/supabasePagination';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -24,6 +25,7 @@ interface EfectivoViewProps {
 export const EfectivoView: React.FC<EfectivoViewProps> = ({
   onOpenAddGasto,
 }) => {
+  const canWrite = useWriteAccess('admin');
   const { data } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
@@ -172,15 +174,15 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
           <p className="text-xs text-muted-foreground">Entradas y salidas de caja</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => setMovementMode('pago')} className={recordButtonClass}>
+          {canWrite && (<button type="button" onClick={() => setMovementMode('pago')} className={recordButtonClass}>
             <i className="ri-arrow-up-circle-line" aria-hidden="true" /> Pago en efectivo
-          </button>
-          <button type="button" onClick={() => setMovementMode('ingreso')} className={secondaryAction}>
+          </button>)}
+          {canWrite && (<button type="button" onClick={() => setMovementMode('ingreso')} className={secondaryAction}>
             <i className="ri-arrow-down-circle-line" aria-hidden="true" /> Ingreso a caja
-          </button>
-          <button type="button" onClick={onOpenAddGasto ?? (() => setIsAddGastoOpen(true))} className={secondaryAction}>
+          </button>)}
+          {canWrite && (<button type="button" onClick={onOpenAddGasto ?? (() => setIsAddGastoOpen(true))} className={secondaryAction}>
             <i className="ri-receipt-line" aria-hidden="true" /> Registrar gasto
-          </button>
+          </button>)}
         </div>
       </div>
 
@@ -315,17 +317,17 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                               <i className="ri-ticket-2-line" aria-hidden="true" /> {tokenLabels[tokenState]}
                             </button>
                             {isAdmin && (tokenState === 'expirado' || tokenState === 'cancelado') && (
-                              <button type="button" disabled={Boolean(issuingId)} onClick={() => void replaceToken(m.id)}
+                              canWrite && (<button type="button" disabled={Boolean(issuingId)} onClick={() => void replaceToken(m.id)}
                                 className="font-semibold text-primary hover:underline disabled:opacity-50">
                                 {issuingId === m.id ? 'Emitiendo…' : 'Reemitir'}
-                              </button>
+                              </button>)
                             )}
                           </div>
                         )}
                       </td>
                       <CreatedByCell name={m.createdByName} />
                       <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                        <button
+                        {canWrite && (<button
                           type="button"
                           onClick={() => setEditingMovimiento(m)}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
@@ -333,7 +335,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                         >
                           <i className="ri-edit-line text-xs" />
                           <span>Editar</span>
-                        </button>
+                        </button>)}
                       </td>
                     </tr>
                   );

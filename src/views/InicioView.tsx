@@ -192,9 +192,9 @@ export const InicioView = () => {
   const { user, profile } = useAuth();
   const { data, loading, metrics, snapshot } = useData();
   const admin = profile?.role === 'administrador' || profile?.role === 'super_admin';
-  const canSeeNegocios = admin || profile?.role === 'operador';
+  const canSeeNegocios = admin || ['comercial', 'operador', 'supervisor'].includes(profile?.role || '');
   const authorized = profile?.authorized_currencies || [];
-  const divisas = admin ? data.divisas
+  const divisas = admin || !authorized.length ? data.divisas
     : data.divisas.filter((currency) => authorized.includes(currency.codigo));
 
   return (

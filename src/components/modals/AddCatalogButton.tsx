@@ -365,6 +365,8 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     return field ? renderField(field) : null;
   });
 
+  if (!isAdmin) return null;
+
   return (
     <>
       <button type="button" className={buttonClassName ?? (edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass)}

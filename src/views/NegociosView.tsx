@@ -1,3 +1,4 @@
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
@@ -16,9 +17,10 @@ interface NegociosViewProps {
 }
 
 export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) => {
+  const canWrite = useWriteAccess('business');
   const { data } = useData();
   const { profile } = useAuth();
-  const isOperador = profile?.role === 'operador';
+  const isOperador = ['comercial', 'operador'].includes(profile?.role || '') && Boolean(profile?.authorized_currencies?.length);
   const authorizedCurrencies = profile?.authorized_currencies || [];
 
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -76,14 +78,14 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
           <h2 className="text-base font-bold text-foreground">Operaciones Cambiarias</h2>
           <p className="text-xs text-muted-foreground">Registro y control de conversiones en tiempo real</p>
         </div>
-        <button
+        {canWrite && (<button
           type="button"
           onClick={onOpenAddNegocio ? onOpenAddNegocio : () => setIsAddOpen(true)}
           className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md shadow-primary/20 hover:opacity-95 flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto"
         >
           <i className="ri-add-line text-sm" />
           <span>Registrar Negocio</span>
-        </button>
+        </button>)}
       </div>
 
       {/* Comprehensive Filter Bar: Fecha Desde - Hasta, Cliente, Divisa, Búsqueda */}
@@ -201,13 +203,13 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                       </td>
                       {/* Action: Edit */}
                       <td className="py-3 px-4 text-center">
-                        <button
+                        {canWrite && (<button
                           onClick={() => setEditingNegocio(n)}
                           title="Editar negocio"
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         >
                           <i className="ri-edit-line text-sm" />
-                        </button>
+                        </button>)}
                       </td>
                       <CreatedByCell name={n.createdByName} />
                     </tr>
