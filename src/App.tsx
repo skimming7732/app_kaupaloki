@@ -236,7 +236,7 @@ export const App: React.FC = () => {
               path="/dispersiones"
               element={renderWithLayout(
                 <DispersionesView onOpenAddDispersion={() => setActiveModal('add-dispersion')} />,
-                ['super_admin', 'administrador', 'dispersor', 'operador']
+                ['super_admin', 'administrador', 'supervisor', 'dispersor', 'operador']
               )}
             />
             <Route

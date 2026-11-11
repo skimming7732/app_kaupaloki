@@ -32,10 +32,17 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
   const [clienteId, setClienteId] = useState(record?.clienteId || initialClienteId || '');
   const [accountId, setAccountId] = useState(record?.origenFondosId || '');
   const [remoteAccounts, setRemoteAccounts] = useState<Account[]>([]);
-  const [useLegacyAccounts, setUseLegacyAccounts] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const accounts = useLegacyAccounts ? data.activosLiquidos as Account[] : remoteAccounts;
+
+  // Fallback seamless a data.activosLiquidos si remoteAccounts aún está cargando o está vacío
+  const accounts = React.useMemo(() => {
+    if (remoteAccounts.length > 0) return remoteAccounts;
+    const local = (data.activosLiquidos || []).filter((a: any) =>
+      !a.divisa || String(a.divisa).trim().toUpperCase() === 'COP'
+    );
+    return local as Account[];
+  }, [remoteAccounts, data.activosLiquidos]);
 
   // Inline client creation states (popup sobre popup)
   const [isCreatingClient, setIsCreatingClient] = useState(false);
@@ -45,11 +52,13 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
 
   useEffect(() => {
     let active = true;
-    void supabase.rpc('cuentas_para_dispersion').then(({ data: accounts, error }) => {
+    void supabase.rpc('cuentas_para_dispersion').then(({ data: rpcAccounts, error: rpcError }) => {
       if (!active) return;
-      if (error?.code === 'PGRST202') setUseLegacyAccounts(true);
-      else if (error) setError('No se pudieron cargar las cuentas de origen.');
-      else setRemoteAccounts(accounts || []);
+      if (rpcError) {
+        console.warn('cuentas_para_dispersion warning:', rpcError);
+      } else if (Array.isArray(rpcAccounts) && rpcAccounts.length > 0) {
+        setRemoteAccounts(rpcAccounts);
+      }
     });
     return () => { active = false; };
   }, []);
