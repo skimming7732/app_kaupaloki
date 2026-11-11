@@ -53,7 +53,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
 
   const primaryItems = [
     { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
-    ...(isAdmin ? [{ to: '/panel-control', label: 'Panel de control', icon: 'ri-dashboard-3-line' }] : []),
     { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
     ...(isAdmin || ['comercial', 'operador', 'supervisor'].includes(role) ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' }] : []),
   ];
@@ -74,16 +73,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       { to: '/tokens', label: 'Tokens de retiro', icon: 'ri-ticket-2-line' },
       { to: '/activos-liquidos', label: 'Activos líquidos', icon: 'ri-bank-line' },
       { to: '/activos-digitales', label: 'Activos digitales', icon: 'ri-coin-line' },
+      { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
+    ] : [] },
+    { label: 'Dirección', icon: 'ri-dashboard-3-line', items: isAdmin ? [
+      { to: '/panel-control', label: 'Panel de control', icon: 'ri-dashboard-3-line' },
       { to: '/capital', label: 'Capital', icon: 'ri-hand-coin-line' },
       { to: '/socios-inversionistas', label: 'Socios & Inversionistas', icon: 'ri-group-line' },
-      { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
     ] : [] },
     { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin || role === 'supervisor' ? [
       { to: '/estadisticas', label: 'Estadísticas', icon: 'ri-bar-chart-box-line' },
       { to: '/instituciones', label: 'Instituciones', icon: 'ri-building-2-line' },
       { to: '/usuarios', label: 'Usuarios y accesos', icon: 'ri-shield-user-line' },
     ] : [] },
-  ].map((section) => ({ ...section, items: section.items.filter((item) => role !== 'supervisor' || !['/capital', '/socios-inversionistas'].includes(item.to)) })).filter((section) => section.items.length > 0);
+  ].filter((section) => section.items.length > 0);
 
   // Active expanded state on desktop: expands on hover or if pinned
   const isExpanded = isHovered || isPinned || hasKeyboardFocus;
