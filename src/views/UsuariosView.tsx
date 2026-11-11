@@ -58,7 +58,7 @@ export const UsuariosView: React.FC = () => {
   }, [data.usuarios, search, selectedRole]);
 
   const handleCopyLink = (u: AppUser) => {
-    const link = `${window.location.origin}/onboarding?email=${encodeURIComponent(u.correo)}`;
+    const link = `${window.location.origin}/onboarding?email=${encodeURIComponent(u.correo)}&nombre=${encodeURIComponent(u.nombre)}`;
     navigator.clipboard.writeText(link);
     setCopiedId(u.id);
     setTimeout(() => setCopiedId(null), 2000);

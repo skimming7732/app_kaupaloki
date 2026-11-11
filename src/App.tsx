@@ -161,7 +161,7 @@ const AppLayout: React.FC<{
 export const App: React.FC = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
-  // Auto-intercept password recovery tokens wherever they land (including old email links)
+  // Auto-intercept password recovery & invite tokens wherever they land (including email links opened on iPhone)
   useEffect(() => {
     const hash = window.location.hash || '';
     const search = window.location.search || '';
@@ -170,6 +170,13 @@ export const App: React.FC = () => {
       !window.location.pathname.startsWith('/reset-password')
     ) {
       window.location.replace(`/reset-password${window.location.search}${window.location.hash}`);
+      return;
+    }
+    if (
+      (hash.includes('type=invite') || search.includes('type=invite') || hash.includes('type=signup') || search.includes('type=signup')) &&
+      !window.location.pathname.startsWith('/onboarding')
+    ) {
+      window.location.replace(`/onboarding${window.location.search}${window.location.hash}`);
     }
   }, []);
 
