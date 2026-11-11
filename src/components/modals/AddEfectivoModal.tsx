@@ -378,18 +378,27 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onTok
                 </label>
                 {feeType !== 'ninguna' && (
                   <label className={recordLabelClass}>
-                    <span>{feeType === 'fija' ? 'Comisión (COP)' : 'Porcentaje sobre el monto ingresado'}</span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      required
-                      value={feeInput}
-                      onChange={(event) => {
-                        const formatted = formatAmountField(event.currentTarget);
-                        if (formatted !== undefined) setFeeInput(formatted);
-                      }}
-                      className={recordFieldClass}
-                    />
+                    <span>{feeType === 'fija' ? 'Comisión (COP)' : 'Porcentaje'}</span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        required
+                        value={feeInput}
+                        onChange={(event) => {
+                          const formatted = formatAmountField(event.currentTarget);
+                          if (formatted !== undefined) setFeeInput(formatted);
+                        }}
+                        className={recordFieldClass + (feeType === 'porcentaje' ? ' pr-12' : '')}
+                      />
+                      {feeType === 'porcentaje' && (
+                        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center">
+                          <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary/10 text-sm font-bold text-primary motion-safe:animate-[cash-percent-enter_180ms_ease-out]">
+                            %
+                          </span>
+                        </span>
+                      )}
+                    </div>
                   </label>
                 )}
               </div>
