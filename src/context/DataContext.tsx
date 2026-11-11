@@ -270,6 +270,7 @@ export interface MetricsSummary {
   totalGastosCOP: number;
   totalCostosDispersionCOP: number;
   interesesSociosCOP: number;
+  interesesPagadosCOP: number;
   interesesPendientesCOP: number;
   capitalInvertidoCOP: number | null;
   capitalSociosCOP: number;
@@ -278,6 +279,8 @@ export interface MetricsSummary {
   dividendosSociosCOP: number;
   saldoPendienteSociosCOP: number;
   distribucionPagadaSociosCOP: number;
+  compromisosPendientesCOP: number;
+  totalPagadoSociosInversionistasCOP: number;
   adelantosPendientesSociosCOP: number;
   gananciaDespuesDividendosCOP: number;
   rateUsdtCop: number;
@@ -1328,7 +1331,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const capitalInvertidoCOP = res?.totalCapitalInvertidoCop ?? (userId && capitalLedger.userId === userId ? capitalTotals.capital : null);
     const distribucionPagadaSociosCOP = capitalTotals.sociosPaidDistributions;
     const adelantosPendientesSociosCOP = capitalTotals.unabsorbedAdvances;
+    const interesesPagadosCOP = capitalTotals.interestPaid;
     const interesesPendientesCOP = capitalTotals.interestUnpaid;
+    const totalPagadoSociosInversionistasCOP = distribucionPagadaSociosCOP + interesesPagadosCOP;
+    const compromisosPendientesCOP = capitalTotals.balanceSocios + capitalTotals.balanceInversionistas;
+
     const gananciaEsperada = totalActivosLiquidos + liquidezEsperada + distribucionPagadaSociosCOP
       - saldoNetoClientesCOP - interesesPendientesCOP - (capitalInvertidoCOP ?? 0);
     const dividendosSociosCOP = capitalTotals.sociosTotalDividends;
@@ -1348,6 +1355,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalGastosCOP,
       totalCostosDispersionCOP,
       interesesSociosCOP: capitalTotals.interest,
+      interesesPagadosCOP,
       interesesPendientesCOP,
       capitalInvertidoCOP,
       capitalSociosCOP: capitalTotals.capitalSocios,
@@ -1356,6 +1364,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dividendosSociosCOP,
       saldoPendienteSociosCOP: capitalTotals.balanceSocios,
       distribucionPagadaSociosCOP,
+      compromisosPendientesCOP,
+      totalPagadoSociosInversionistasCOP,
       adelantosPendientesSociosCOP,
       gananciaDespuesDividendosCOP,
       rateUsdtCop: rateUsdt,
