@@ -16,7 +16,7 @@ const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 
 const iconButton = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-base hover:bg-muted sm:h-9 sm:w-9';
 
 const tokenBadges = {
-  activo: { label: 'Activo', style: 'bg-primary/10 text-primary' },
+  activo: { label: 'Pendiente de entrega', style: 'bg-primary/10 text-primary' },
   entregado: { label: 'Entregado', style: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' },
   cancelado: { label: 'Cancelado', style: 'bg-destructive/10 text-destructive' },
   expirado: { label: 'Expirado', style: 'bg-muted text-muted-foreground' },
@@ -222,29 +222,21 @@ export const TokensView: React.FC = () => {
     });
   }, [tokens, search, statusFilter, currencyFilter, dateFilter]);
 
-  // KPI Metrics Calculation
   const metrics = useMemo(() => {
-    const totalCount = filteredTokens.length;
-    let activeCount = 0;
-    let activeCOP = 0;
-    let redeemedCount = 0;
-    let cancelledCount = 0;
+    let pendingLinked = 0;
+    let pendingUnlinked = 0;
+    let delivered = 0;
 
-    filteredTokens.forEach((t) => {
-      const state = getTokenState(t);
-      if (state === 'entregado') {
-        redeemedCount++;
-      } else if (state !== 'activo') {
-        cancelledCount++;
-      } else {
-        activeCount++;
-        if (t.divisa === 'COP') {
-          activeCOP += Number(t.monto) || 0;
-        }
+    for (const token of filteredTokens) {
+      const state = getTokenState(token);
+      if (state === 'entregado') delivered++;
+      if (state === 'activo') {
+        if (token.efectivo_id) pendingLinked++;
+        else pendingUnlinked++;
       }
-    });
+    }
 
-    return { totalCount, activeCount, activeCOP, redeemedCount, cancelledCount };
+    return { pendingLinked, pendingUnlinked, delivered };
   }, [filteredTokens]);
 
   return (
@@ -310,7 +302,7 @@ export const TokensView: React.FC = () => {
             className="bg-background border border-border min-w-0 rounded-lg px-2 h-9 text-xs text-foreground focus:outline-none focus:border-primary transition-colors"
           >
             <option value="all">Todos los estados</option>
-            <option value="activo">Activos</option>
+            <option value="activo">Pendientes de entrega</option>
             <option value="entregado">Entregados</option>
             <option value="cancelado">Cancelados</option>
             <option value="expirado">Expirados</option>
@@ -366,11 +358,11 @@ export const TokensView: React.FC = () => {
       </div>
 
       <KpiStrip metrics={[
-        { label: 'Tokens', value: metrics.totalCount, icon: 'ri-ticket-2-line' },
-        { label: 'Pendientes', value: metrics.activeCount, icon: 'ri-time-line' },
-        { label: 'Pendiente COP', value: `$${formatNumber(metrics.activeCOP, 0, 2)}`, icon: 'ri-money-dollar-circle-line', featured: true },
-        { label: 'Entregados', value: metrics.redeemedCount, icon: 'ri-checkbox-circle-line' },
-        { label: 'Cancelados / expirados', value: metrics.cancelledCount, icon: 'ri-close-circle-line' },
+        { label: 'Tokens totales', value: filteredTokens.length, icon: 'ri-ticket-2-line' },
+        { label: 'Tokens pendientes', value: metrics.pendingLinked + metrics.pendingUnlinked, icon: 'ri-time-line', featured: true },
+        { label: 'Entregados totales', value: metrics.delivered, icon: 'ri-checkbox-circle-line' },
+        { label: 'Pendientes vinculados', value: metrics.pendingLinked, icon: 'ri-link' },
+        { label: 'Pendientes sin vincular', value: metrics.pendingUnlinked, icon: 'ri-links-line' },
       ]} />
 
       <div className="flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground">
@@ -388,7 +380,7 @@ export const TokensView: React.FC = () => {
                 <th className="py-3.5 px-4">Vale</th>
                 <th className="py-3.5 px-4">Código Token</th>
                 <th className="py-3.5 px-4">Fecha</th>
-                <th className="py-3.5 px-4">Monto & Divisa</th>
+                <th className="py-3.5 px-4">Monto</th>
                 <th className="py-3.5 px-4">Beneficiario / Ref</th>
                 <th className="py-3.5 px-4">Pago vinculado</th>
                 <th className="py-3.5 px-4">Autor</th>
@@ -419,7 +411,7 @@ export const TokensView: React.FC = () => {
                     const isVisible = visibleCodes[token.id];
                     const isCopied = copiedCodeId === token.id;
                     const openVoucher = () => setSelectedVoucherToken(token);
-                    const amount = `${token.divisa} $${formatCurrencyAmount(token.monto, token.divisa)}`;
+                    const amount = `$${formatCurrencyAmount(token.monto, token.divisa)}`;
                     const date = new Date(token.created_at).toLocaleString('es-CO', {
                       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                     });
@@ -446,7 +438,7 @@ export const TokensView: React.FC = () => {
                                   {status}
                                 </div>
                                 <p className="text-muted-foreground">{paymentLink}</p>
-                                {token.referencia && <p className="break-words text-muted-foreground">{token.referencia}</p>}
+                                {token.referencia && <p className="break-words text-muted-foreground">{token.referencia.toUpperCase()}</p>}
                                 <p className="text-muted-foreground">{date} · {token.created_by_name || 'Sistema'}</p>
                               </div>
                             </div>
@@ -473,7 +465,7 @@ export const TokensView: React.FC = () => {
 
                         <td className="hidden whitespace-nowrap px-3 py-3 text-muted-foreground lg:table-cell">{date}</td>
                         <td className="hidden whitespace-nowrap px-3 py-3 font-semibold tabular-nums lg:table-cell">{amount}</td>
-                        <td className="hidden max-w-40 break-words px-3 py-3 lg:table-cell">{token.referencia || '—'}</td>
+                        <td className="hidden max-w-40 break-words px-3 py-3 lg:table-cell">{token.referencia?.toUpperCase() || '—'}</td>
                         <td className="hidden px-3 py-3 text-muted-foreground lg:table-cell">{paymentLink}</td>
                         <td className="hidden px-3 py-3 text-muted-foreground lg:table-cell">{token.created_by_name || 'Sistema'}</td>
                         <td className="hidden px-3 py-3 lg:table-cell">{status}</td>

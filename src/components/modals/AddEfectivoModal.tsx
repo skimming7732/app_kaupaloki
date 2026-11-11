@@ -141,7 +141,7 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onTok
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy) return;
-    const cleanReferencia = referencia.trim();
+    const cleanReferencia = isPayment ? referencia.trim().toUpperCase() : referencia.trim();
     if (!cleanReferencia) {
       setError('Ingresa una referencia.');
       return;
@@ -414,8 +414,8 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onTok
             <input
               name="referencia"
               required
-              value={referencia}
-              onChange={(e) => setReferencia(e.target.value)}
+              value={isPayment ? referencia.toUpperCase() : referencia}
+              onChange={(e) => setReferencia(isPayment ? e.target.value.toUpperCase() : e.target.value)}
               className={recordFieldClass}
             />
           </label>

@@ -60,7 +60,7 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
           token_code: tokenCode,
           monto: numAmount,
           divisa: currency,
-          referencia: reference.trim() || null,
+          referencia: reference.trim().toUpperCase() || null,
           estado: 'activo',
           status: 'activo',
           expires_at: expiresAt,
@@ -128,7 +128,7 @@ export const CreateTokenModal: React.FC<CreateTokenModalProps> = ({
             type="text"
             placeholder="Ej. Retiro de Carlos"
             value={reference}
-            onChange={(event) => setReference(event.target.value)}
+            onChange={(event) => setReference(event.target.value.toUpperCase())}
             className={recordFieldClass}
           />
         </label>

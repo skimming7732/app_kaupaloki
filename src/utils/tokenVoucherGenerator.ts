@@ -93,7 +93,7 @@ export async function generateTokenVoucherDataUrl(token: CashToken, preview = fa
   const state = getTokenState(token);
   const delivered = state === 'entregado';
   const badge = {
-    activo: { label: 'AUTORIZADO', color: '#7dd3fc', background: '#12324b' },
+    activo: { label: 'PENDIENTE DE ENTREGA', color: '#7dd3fc', background: '#12324b' },
     entregado: { label: 'ENTREGADO', color: '#86efac', background: '#153b35' },
     cancelado: { label: 'CANCELADO', color: '#fecaca', background: '#492736' },
     expirado: { label: 'EXPIRADO', color: '#cbd5e1', background: '#293649' },
@@ -137,7 +137,7 @@ export async function generateTokenVoucherDataUrl(token: CashToken, preview = fa
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  box(171, 190, 198, 36, 18, badge.background);
+  box(146, 190, 248, 36, 18, badge.background);
   write(badge.label, 208, `700 15px ${font}`, badge.color);
   write(delivered ? 'COMPROBANTE DE ENTREGA' : 'VALE DE AUTORIZACIÓN', 256, `600 18px ${font}`, muted);
   write(`${token.divisa} $${formatCurrencyAmount(token.monto, token.divisa)}`, 305, `700 48px ${font}`, '#ffffff');
@@ -164,7 +164,7 @@ export async function generateTokenVoucherDataUrl(token: CashToken, preview = fa
   box(114, 682, 312, 56, 14, '#0a1424');
   write(preview ? '••••••••' : token.token_code.toUpperCase(), 710, '700 31px Consolas, monospace', badge.color, 278);
 
-  const reference = token.referencia?.trim();
+  const reference = token.referencia?.trim().toUpperCase();
   if (reference) {
     const label = reference.length > 42 ? reference.slice(0, 41) + '…' : reference;
     write(label, 770, `600 20px ${font}`, '#f1f5f9');

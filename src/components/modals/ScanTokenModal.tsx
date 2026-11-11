@@ -365,7 +365,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                       : 'bg-primary/15 text-primary'
                   }`}
                 >
-                  {isRedeemed ? 'Entregado' : isCancelled ? 'Cancelado' : isExpired ? 'Expirado' : 'Activo'}
+                  {isRedeemed ? 'Entregado' : isCancelled ? 'Cancelado' : isExpired ? 'Expirado' : 'Pendiente de entrega'}
                 </span>
               </div>
 
@@ -379,7 +379,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
                 </span>
                 {foundToken.referencia && (
                   <p className="text-xs text-foreground mt-2 font-medium">
-                    Beneficiario / Ref: {foundToken.referencia}
+                    Beneficiario / Ref: {foundToken.referencia.toUpperCase()}
                   </p>
                 )}
               </div>

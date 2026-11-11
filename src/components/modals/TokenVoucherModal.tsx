@@ -58,7 +58,7 @@ export const TokenVoucherModal: React.FC<TokenVoucherModalProps> = ({
   const dataUrl = preview?.token === token ? preview.url : null;
   const loading = preview?.token !== token;
   const title = isDelivered ? 'Comprobante de entrega' : 'Vale de retiro';
-  const statusLabel = { activo: 'Activo', entregado: 'Entregado', cancelado: 'Cancelado', expirado: 'Expirado' }[state];
+  const statusLabel = { activo: 'Pendiente de entrega', entregado: 'Entregado', cancelado: 'Cancelado', expirado: 'Expirado' }[state];
   const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border px-3 text-sm font-semibold hover:bg-muted disabled:opacity-50';
   const date = isDelivered ? token.redeemed_at : token.expires_at;
 
@@ -136,7 +136,7 @@ export const TokenVoucherModal: React.FC<TokenVoucherModalProps> = ({
             </div>
           </div>
           <dl className="space-y-3 text-sm">
-            {token.referencia && <div><dt className="text-muted-foreground">Referencia</dt><dd className="break-words font-medium">{token.referencia}</dd></div>}
+            {token.referencia && <div><dt className="text-muted-foreground">Referencia</dt><dd className="break-words font-medium">{token.referencia.toUpperCase()}</dd></div>}
             <div><dt className="text-muted-foreground">Creado por</dt><dd>{token.created_by_name || 'Sistema'}</dd></div>
             {date && <div><dt className="text-muted-foreground">{isDelivered ? 'Entregado el' : 'Vence el'}</dt><dd>{new Date(date).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</dd></div>}
             {isDelivered && token.redeemed_by_name && <div><dt className="text-muted-foreground">Entregado por</dt><dd>{token.redeemed_by_name}</dd></div>}
