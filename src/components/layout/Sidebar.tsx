@@ -71,12 +71,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
     ] },
     { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin ? [
       { to: '/efectivo', label: 'Efectivo', icon: 'ri-money-dollar-circle-line' },
+      { to: '/tokens', label: 'Tokens de retiro', icon: 'ri-ticket-2-line' },
       { to: '/activos-liquidos', label: 'Activos líquidos', icon: 'ri-bank-line' },
       { to: '/activos-digitales', label: 'Activos digitales', icon: 'ri-coin-line' },
       { to: '/capital', label: 'Capital', icon: 'ri-hand-coin-line' },
       { to: '/socios-inversionistas', label: 'Socios & Inversionistas', icon: 'ri-group-line' },
       { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
-      { to: '/tokens', label: 'Tokens de retiro', icon: 'ri-ticket-2-line' },
     ] : [] },
     { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin ? [
       { to: '/estadisticas', label: 'Estadísticas', icon: 'ri-bar-chart-box-line' },

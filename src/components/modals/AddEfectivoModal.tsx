@@ -18,10 +18,11 @@ interface AddEfectivoModalProps {
   record?: NormalizedData['efectivo'][number] | null;
   initialClienteId?: string;
   onClose: () => void;
+  requireToken?: boolean;
   onTokenCreated?: (token: CashToken) => void;
 }
 
-export const AddEfectivoModal = ({ isOpen, record, initialClienteId, mode, commissionEnabled, onTokenCreated, onClose }: AddEfectivoModalProps) =>
+export const AddEfectivoModal = ({ isOpen, record, initialClienteId, mode, commissionEnabled, requireToken, onTokenCreated, onClose }: AddEfectivoModalProps) =>
   isOpen ? (
     <EfectivoForm
       key={record?.id || initialClienteId || mode || 'new'}
@@ -29,12 +30,13 @@ export const AddEfectivoModal = ({ isOpen, record, initialClienteId, mode, commi
       commissionEnabled={commissionEnabled}
       record={record}
       initialClienteId={initialClienteId}
+      requireToken={requireToken}
       onTokenCreated={onTokenCreated}
       onClose={onClose}
     />
   ) : null;
 
-const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onTokenCreated, onClose }: Omit<AddEfectivoModalProps, 'isOpen'>) => {
+const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, requireToken, onTokenCreated, onClose }: Omit<AddEfectivoModalProps, 'isOpen'>) => {
   const { data, createMovimientoEfectivo, updateMovimientoEfectivo, deleteMovimientoEfectivo, createCliente } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
@@ -170,7 +172,7 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onTok
         origenFondos: accountLabel(cashAccount),
         fecha,
         referencia: cleanReferencia,
-        tokenRequestId: !record && isPayment && generateToken ? tokenRequestId : undefined,
+        tokenRequestId: !record && isPayment && (requireToken || generateToken) ? tokenRequestId : undefined,
       };
 
       const success = record
@@ -420,8 +422,8 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onTok
             />
           </label>
           {!record && isPayment && onTokenCreated && (
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3">
-              <input type="checkbox" checked={generateToken} onChange={(event) => setGenerateToken(event.currentTarget.checked)}
+            <label className={`flex items-start gap-3 rounded-xl border border-border p-3 ${requireToken ? 'bg-muted/30' : 'cursor-pointer'}`}>
+              <input type="checkbox" checked={Boolean(requireToken || generateToken)} disabled={requireToken} onChange={(event) => setGenerateToken(event.currentTarget.checked)}
                 className="mt-0.5 h-4 w-4 accent-primary" />
               <span>
                 <strong className="block text-sm">Generar token de entrega</strong>

@@ -2,13 +2,12 @@ import { Link } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { formatNumber } from '../utils/formatters';
 import { recordButtonClass } from '../components/modals/RecordDialog';
 import { CashToken, formatCurrencyAmount, generateTokenVoucherDataUrl, getTokenState } from '../utils/tokenVoucherGenerator';
-import { CreateTokenModal } from '../components/modals/CreateTokenModal';
+import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
 import { ScanTokenModal } from '../components/modals/ScanTokenModal';
 import { TokenVoucherModal } from '../components/modals/TokenVoucherModal';
 
@@ -48,7 +47,6 @@ function VoucherThumbnail({ token, onOpen }: { token: CashToken; onOpen: () => v
 
 export const TokensView: React.FC = () => {
   const { profile, user } = useAuth();
-  const { data: globalData } = useData();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
 
   // Tokens data state
@@ -56,7 +54,7 @@ export const TokensView: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Modals state
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isScanOpen, setIsScanOpen] = useState(false);
   const [selectedVoucherToken, setSelectedVoucherToken] = useState<CashToken | null>(null);
 
@@ -77,6 +75,7 @@ export const TokensView: React.FC = () => {
       const { data, error } = await supabase
         .from('cash_tokens')
         .select('*')
+        .or('efectivo_id.not.is.null,pago_codigo.not.is.null')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -223,20 +222,16 @@ export const TokensView: React.FC = () => {
   }, [tokens, search, statusFilter, currencyFilter, dateFilter]);
 
   const metrics = useMemo(() => {
-    let pendingLinked = 0;
-    let pendingUnlinked = 0;
+    let pending = 0;
     let delivered = 0;
 
     for (const token of filteredTokens) {
       const state = getTokenState(token);
       if (state === 'entregado') delivered++;
-      if (state === 'activo') {
-        if (token.efectivo_id) pendingLinked++;
-        else pendingUnlinked++;
-      }
+      if (state === 'activo' && token.efectivo_id) pending++;
     }
 
-    return { pendingLinked, pendingUnlinked, delivered };
+    return { pending, delivered };
   }, [filteredTokens]);
 
   return (
@@ -268,11 +263,11 @@ export const TokensView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setIsCreateOpen(true)}
+            onClick={() => setIsPaymentOpen(true)}
             className={`${recordButtonClass} justify-center`}
           >
             <i className="ri-add-line text-sm" />
-            Crear token
+            Pago en efectivo
           </button>
         </div>
       </div>
@@ -359,15 +354,13 @@ export const TokensView: React.FC = () => {
 
       <KpiStrip metrics={[
         { label: 'Tokens totales', value: filteredTokens.length, icon: 'ri-ticket-2-line' },
-        { label: 'Tokens pendientes', value: metrics.pendingLinked + metrics.pendingUnlinked, icon: 'ri-time-line', featured: true },
+        { label: 'Tokens pendientes', value: metrics.pending, icon: 'ri-time-line', featured: true },
         { label: 'Entregados totales', value: metrics.delivered, icon: 'ri-checkbox-circle-line' },
-        { label: 'Pendientes vinculados', value: metrics.pendingLinked, icon: 'ri-link' },
-        { label: 'Pendientes sin vincular', value: metrics.pendingUnlinked, icon: 'ri-links-line' },
       ]} />
 
       <div className="flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground">
         <i className="ri-shield-check-line mt-0.5 text-primary" aria-hidden="true" />
-        <p>Los tokens creados en esta vista son independientes de caja. Los tokens vinculados toman el importe del pago registrado en Efectivo.</p>
+        <p>Cada token se emite al registrar un pago en efectivo y muestra el importe a entregar.</p>
       </div>
 
       {/* Tokens Table Card */}
@@ -421,7 +414,7 @@ export const TokensView: React.FC = () => {
                       <Link className="font-semibold text-primary hover:underline" to={'/efectivo?pago=' + token.efectivo_id}>
                         {token.pago_codigo || 'Ver pago'}
                       </Link>
-                    ) : token.pago_codigo ? token.pago_codigo + ' · Anulado' : 'Independiente';
+                    ) : token.pago_codigo + ' · Anulado';
 
                     return (
                       <tr key={token.id} className="block p-3 lg:table-row lg:p-0 lg:hover:bg-muted/30">
@@ -501,13 +494,14 @@ export const TokensView: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Token Modal */}
-      <CreateTokenModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        availableCurrencies={globalData.divisas}
-        onSuccess={(newToken) => {
-          setTokens((prev) => [newToken, ...prev]);
+      {/* Pago con token */}
+      <AddEfectivoModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        mode="pago"
+        requireToken
+        onTokenCreated={(newToken) => {
+          setTokens((prev) => [newToken, ...prev.filter((token) => token.id !== newToken.id)]);
           setSelectedVoucherToken(newToken);
         }}
       />

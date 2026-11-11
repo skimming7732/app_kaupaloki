@@ -130,6 +130,7 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
       const { data, error: fetchErr } = await supabase
         .from('cash_tokens')
         .select('*')
+        .not('efectivo_id', 'is', null)
         .or(`token_code.eq.${cleaned},codigo.eq.${cleaned}`)
         .single();
 
