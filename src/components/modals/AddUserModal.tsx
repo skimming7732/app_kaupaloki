@@ -66,7 +66,7 @@ const ROLES_OPTIONS: {
 ];
 
 export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) => {
-  const { data, syncData } = useData();
+  const { data, refreshUsers } = useData();
 
   // Wizard steps: 1 = Datos, 2 = Roles, 3 = Divisas (si rol es operador)
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -193,7 +193,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
       if (resJson.actionLink) {
         setActionLink(resJson.actionLink);
       }
-      await syncData(true);
+      await refreshUsers();
 
       if (!resJson.actionLink) {
         setTimeout(() => {

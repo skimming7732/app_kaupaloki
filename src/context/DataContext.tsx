@@ -311,6 +311,7 @@ interface DataContextType {
   updateTransferenciaInterna: (id: string, payload: any) => Promise<boolean>;
   deleteTransferenciaInterna: (id: string) => Promise<boolean>;
   updateUserPermissions: (payload: any) => Promise<boolean>;
+  refreshUsers: () => Promise<void>;
   saveComisionista: (payload: { id?: string; comisionistaId: string; comisionaDeIds: string[]; porcentajeComision: number }) => Promise<boolean>;
 }
 
@@ -333,10 +334,215 @@ const defaultSnapshot: DataSnapshot = {
 
 const DataContext = createContext<DataContextType>({} as DataContextType);
 
+const snapshotTables = {
+  clientes: { key: 'clientes', normalize: (c: any) => ({
+  ...creationAudit(c),
+  id: c.id,
+  codigo: c.codigo,
+  nombre: c.nombre,
+  pais: c.pais,
+  numero: c.numero,
+  ingresosCop: Number(c.ingresos_cop || 0),
+  pagadoCop: Number(c.pagado_cop || 0),
+  pendienteCop: Number(c.pendiente_cop || 0),
+  saldoCop: c.saldo_cop == null ? undefined : Number(c.saldo_cop),
+  estado: c.estado,
+  fechaCreacion: c.fecha_creacion,
+}) },
+  divisas: { key: 'divisas', normalize: (d: any) => ({
+  ...creationAudit(d),
+  id: d.id,
+  codigo: d.codigo,
+  divisa: d.divisa,
+  nombreDivisa: d.nombre_divisa,
+  pais: d.pais,
+  banderaUrl: d.bandera_url,
+  totalRecibido: Number(d.total_recibido || 0),
+  totalComprado: Number(d.total_comprado || 0),
+  totalPendiente: Number(d.total_pendiente || 0),
+}) },
+  negocios: { key: 'negocios', normalize: (n: any) => ({
+  ...creationAudit(n),
+  id: n.id,
+  codigo: n.codigo,
+  numero: n.numero,
+  fecha: n.fecha,
+  clienteId: n.cliente_id,
+  clienteCodigo: n.cliente_codigo,
+  clienteNombre: n.cliente_nombre,
+  divisaCodigo: n.divisa_codigo,
+  montoDivisa: Number(n.monto_divisa || 0),
+  cantidadDivisa: Number(n.monto_divisa || 0),
+  tasa: Number(n.tasa || 0),
+  tasaClienteCop: Number(n.tasa_cliente_cop || n.tasa || 0),
+  ingresoCop: Number(n.ingreso_cop || 0),
+  montoCop: Number(n.monto_cop || n.ingreso_cop || 0),
+  usdtPorDivisa: Number(n.usdt_por_divisa || 0),
+  costoUsdtComp: Number(n.costo_usdt_comp || 0),
+  estado: n.estado,
+}) },
+  dispersiones: { key: 'dispersiones', normalize: (d: any) => ({
+  ...creationAudit(d),
+  id: d.id,
+  codigo: d.codigo,
+  numero: d.numero,
+  fecha: d.fecha ? String(d.fecha).slice(0, 10) : '',
+  clienteId: d.cliente_id,
+  clienteCodigo: d.cliente_codigo,
+  clienteNombre: d.cliente_nombre,
+  monto: Number(d.monto || d.monto_cop || 0),
+  montoCop: Number(d.monto_cop || d.monto || 0),
+  costoCop: Number(d.costo_cop ?? 0),
+  costoOrigenAplicado: d.costo_origen_aplicado === true,
+  origenFondos: d.origen_fondos,
+  origenFondosId: d.origen_fondos_id,
+  referencia: d.referencia,
+  estado: d.estado,
+  tieneComprobante: Boolean(d.tiene_comprobante),
+  comprobanteUrl: d.comprobante_url,
+}) },
+  compras_usdt: { key: 'comprasUsdt', normalize: (c: any) => ({
+  ...creationAudit(c),
+  id: c.id,
+  codigo: c.codigo,
+  numero: c.numero,
+  fecha: c.fecha,
+  proveedor: c.proveedor || '',
+  divisaCodigo: c.divisa_codigo,
+  valorComprado: Number(c.valor_comprado || 0),
+  usdtComprado: Number(c.usdt_comprado || 0),
+  tasa: Number(c.tasa || 0),
+  costo: Number(c.costo || 0),
+  walletDestino: c.wallet_destino,
+  walletDestinoId: c.wallet_destino_id,
+}) },
+  ventas_usdt: { key: 'ventasUsdt', normalize: (v: any) => ({
+  ...creationAudit(v),
+  id: v.id,
+  codigo: v.codigo,
+  numero: v.numero,
+  fecha: v.fecha,
+  concepto: v.concepto,
+  usdtVendido: Number(v.usdt_vendido || 0),
+  feeUsdt: Number(v.fee_usdt ?? 0),
+  tasa: Number(v.tasa || 0),
+  totalCop: Number(v.total_cop || 0),
+  walletOrigen: v.wallet_origen,
+  walletOrigenId: v.wallet_origen_id,
+  destinoFondosId: v.destino_fondos_id,
+  destinoFondosNombre: v.destino_fondos_nombre,
+}) },
+  activos_liquidos: { key: 'activosLiquidos', normalize: (a: any) => ({
+  ...creationAudit(a),
+  id: a.id,
+  activo: a.activo,
+  institucion: a.institucion,
+  institucionId: a.institucion_id,
+  institution: a.institution,
+  tipo: a.tipo,
+  titular: a.titular,
+  empresa: a.empresa,
+  cuenta: a.cuenta,
+  divisa: a.divisa,
+  tarifas: a.tarifas,
+  saldoCop: Number(a.saldo_cop || 0),
+  saldoReal: (a.saldo_real !== null && a.saldo_real !== undefined && a.saldo_real !== '' && (a.institucion || '').toUpperCase() !== 'EFECTIVO' && !(a.activo || '').toUpperCase().includes('EFECTIVO'))
+    ? Number(a.saldo_real)
+    : null,
+  saldoInicial: a.saldo_inicial == null ? null : Number(a.saldo_inicial),
+  ingresosCop: Number(a.ingresos_cop || 0),
+  egresosCop: Number(a.egresos_cop || 0),
+  movimientos: a.movimientos || [],
+}) },
+  activos_digitales: { key: 'activosDigitales', normalize: (d: any) => ({
+  ...creationAudit(d),
+  id: d.id,
+  activo: d.activo,
+  idWallet: d.id_wallet,
+  institucionId: d.institucion_id,
+  institution: d.institution,
+  tipo: d.tipo,
+  wallet: d.wallet,
+  red: d.red,
+  titular: d.titular,
+  tarifas: d.tarifas,
+  saldoUsdt: Number(d.saldo_usdt || 0),
+  saldoReal: (d.saldo_real !== null && d.saldo_real !== undefined && d.saldo_real !== '')
+    ? Number(d.saldo_real)
+    : null,
+  saldoInicial: d.saldo_inicial == null ? null : Number(d.saldo_inicial),
+  ingresosUsdt: Number(d.ingresos_usdt || 0),
+  egresosUsdt: Number(d.egresos_usdt || 0),
+  rateFinal: Number(d.rate_final || 3230),
+  liquidezEsperadaCop: Number(d.liquidez_esperada_cop || 0),
+  movimientos: d.movimientos || [],
+}) },
+  efectivo: { key: 'efectivo', normalize: (e: any) => ({
+  ...creationAudit(e),
+  id: e.id,
+  codigo: e.codigo,
+  fecha: e.fecha,
+  tipo: e.tipo,
+  clienteId: e.cliente_id,
+  clienteCodigo: e.cliente_codigo,
+  clienteNombre: e.cliente_nombre,
+  monto: Number(e.monto || 0),
+  comisionCop: Number(e.comision_cop ?? 0),
+  origenFondos: e.origen_fondos,
+  origenFondosId: e.origen_fondos_id,
+  referencia: e.referencia,
+}) },
+  gastos: { key: 'gastos', normalize: (g: any) => ({
+  ...creationAudit(g),
+  id: g.id,
+  codigo: g.codigo,
+  fecha: g.fecha,
+  concepto: g.concepto,
+  categoria: g.categoria,
+  divisa: g.divisa,
+  monto: Number(g.monto || 0),
+  origenFondos: g.origen_fondos,
+  origenFondosId: g.origen_fondos_id,
+  comprobanteUrl: g.comprobante_url,
+}) },
+  profiles: { key: 'usuarios', normalize: (p: any) => ({
+  ...creationAudit(p),
+  id: p.id,
+  codigo: p.operator_code || p.full_name || 'USR',
+  nombre: p.full_name || p.email || 'Usuario',
+  correo: p.email || '',
+  rol: p.role || 'operador',
+  pais: p.pais || 'Colombia',
+  divisasAutorizadas: p.authorized_currencies || [],
+  estado: ['invitado', 'invited'].includes(String(p.status).toLowerCase()) ? 'Invitado'
+    : ['inactivo', 'inactive'].includes(String(p.status).toLowerCase()) ? 'Inactivo' : 'Activo',
+}) },
+  comisionistas: { key: 'comisionistas', normalize: (c: any) => ({
+  ...creationAudit(c),
+  id: c.id,
+  codigo: c.codigo,
+  comisionistaClienteId: c.cliente_id,
+  comisionaDeIds: Array.isArray(c.referidos_ids) ? c.referidos_ids : [],
+  porcentajeComision: Number(c.porcentaje_comision),
+  ingresosCOP: Number(c.ingresos_cop || 0),
+  comisionesCOP: Number(c.comisiones_cop || 0),
+  fechaCreacion: c.fecha_creacion,
+}) },
+  transferencias_internas: { key: 'transferenciasInternas', normalize: (row: any) => row },
+} as const;
+
+type SnapshotTable = keyof typeof snapshotTables;
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const userId = user?.id;
   const latestFetch = useRef(0);
+  const activeUserId = useRef(userId);
+  activeUserId.current = userId;
+  const refreshOwner = useRef(userId);
+  const refreshInFlight = useRef<Promise<void> | null>(null);
+  const refreshRequested = useRef(false);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [snapshot, setSnapshot] = useState<DataSnapshot>(() => {
     try {
       const saved = localStorage.getItem('kaupaloki_cached_snapshot');
@@ -363,7 +569,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   }, []);
 
-  const fetchFromSupabase = useCallback(async () => {
+  const fetchSnapshot = useCallback(async () => {
     const request = ++latestFetch.current;
     setSyncStatus('syncing');
     try {
@@ -403,210 +609,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         gastosData, transferenciasInternasData, resumenData, profilesData, comisionistasData, ingresosMensualesData,
       ] = results.map((result) => result.data);
 
-      const clientes = (clientesData || []).map((c: any) => ({
-        ...creationAudit(c),
-        id: c.id,
-        codigo: c.codigo,
-        nombre: c.nombre,
-        pais: c.pais,
-        numero: c.numero,
-        ingresosCop: Number(c.ingresos_cop || 0),
-        pagadoCop: Number(c.pagado_cop || 0),
-        pendienteCop: Number(c.pendiente_cop || 0),
-        saldoCop: c.saldo_cop == null ? undefined : Number(c.saldo_cop),
-        estado: c.estado,
-        fechaCreacion: c.fecha_creacion,
-      }));
+      const clientes = (clientesData || []).map(snapshotTables.clientes.normalize);
 
-      const divisas = (divisasData || []).map((d: any) => ({
-        ...creationAudit(d),
-        id: d.id,
-        codigo: d.codigo,
-        divisa: d.divisa,
-        nombreDivisa: d.nombre_divisa,
-        pais: d.pais,
-        banderaUrl: d.bandera_url,
-        totalRecibido: Number(d.total_recibido || 0),
-        totalComprado: Number(d.total_comprado || 0),
-        totalPendiente: Number(d.total_pendiente || 0),
-      }));
+      const divisas = (divisasData || []).map(snapshotTables.divisas.normalize);
 
-      const negocios = (negociosData || []).map((n: any) => ({
-        ...creationAudit(n),
-        id: n.id,
-        codigo: n.codigo,
-        numero: n.numero,
-        fecha: n.fecha,
-        clienteId: n.cliente_id,
-        clienteCodigo: n.cliente_codigo,
-        clienteNombre: n.cliente_nombre,
-        divisaCodigo: n.divisa_codigo,
-        montoDivisa: Number(n.monto_divisa || 0),
-        cantidadDivisa: Number(n.monto_divisa || 0),
-        tasa: Number(n.tasa || 0),
-        tasaClienteCop: Number(n.tasa_cliente_cop || n.tasa || 0),
-        ingresoCop: Number(n.ingreso_cop || 0),
-        montoCop: Number(n.monto_cop || n.ingreso_cop || 0),
-        usdtPorDivisa: Number(n.usdt_por_divisa || 0),
-        costoUsdtComp: Number(n.costo_usdt_comp || 0),
-        estado: n.estado,
-      }));
+      const negocios = (negociosData || []).map(snapshotTables.negocios.normalize);
 
-      const dispersiones = (dispersionesData || []).map((d: any) => ({
-        ...creationAudit(d),
-        id: d.id,
-        codigo: d.codigo,
-        numero: d.numero,
-        fecha: d.fecha ? String(d.fecha).slice(0, 10) : '',
-        clienteId: d.cliente_id,
-        clienteCodigo: d.cliente_codigo,
-        clienteNombre: d.cliente_nombre,
-        monto: Number(d.monto || d.monto_cop || 0),
-        montoCop: Number(d.monto_cop || d.monto || 0),
-        costoCop: Number(d.costo_cop ?? 0),
-        costoOrigenAplicado: d.costo_origen_aplicado === true,
-        origenFondos: d.origen_fondos,
-        origenFondosId: d.origen_fondos_id,
-        referencia: d.referencia,
-        estado: d.estado,
-        tieneComprobante: Boolean(d.tiene_comprobante),
-        comprobanteUrl: d.comprobante_url,
-      }));
+      const dispersiones = (dispersionesData || []).map(snapshotTables.dispersiones.normalize);
 
-      const comprasUsdt = (comprasUsdtData || []).map((c: any) => ({
-        ...creationAudit(c),
-        id: c.id,
-        codigo: c.codigo,
-        numero: c.numero,
-        fecha: c.fecha,
-        proveedor: c.proveedor || '',
-        divisaCodigo: c.divisa_codigo,
-        valorComprado: Number(c.valor_comprado || 0),
-        usdtComprado: Number(c.usdt_comprado || 0),
-        tasa: Number(c.tasa || 0),
-        costo: Number(c.costo || 0),
-        walletDestino: c.wallet_destino,
-        walletDestinoId: c.wallet_destino_id,
-      }));
+      const comprasUsdt = (comprasUsdtData || []).map(snapshotTables.compras_usdt.normalize);
 
-      const ventasUsdt = (ventasUsdtData || []).map((v: any) => ({
-        ...creationAudit(v),
-        id: v.id,
-        codigo: v.codigo,
-        numero: v.numero,
-        fecha: v.fecha,
-        concepto: v.concepto,
-        usdtVendido: Number(v.usdt_vendido || 0),
-        feeUsdt: Number(v.fee_usdt ?? 0),
-        tasa: Number(v.tasa || 0),
-        totalCop: Number(v.total_cop || 0),
-        walletOrigen: v.wallet_origen,
-        walletOrigenId: v.wallet_origen_id,
-        destinoFondosId: v.destino_fondos_id,
-        destinoFondosNombre: v.destino_fondos_nombre,
-      }));
+      const ventasUsdt = (ventasUsdtData || []).map(snapshotTables.ventas_usdt.normalize);
 
-      const activosLiquidos = (activosLiquidosData || []).map((a: any) => ({
-        ...creationAudit(a),
-        id: a.id,
-        activo: a.activo,
-        institucion: a.institucion,
-        institucionId: a.institucion_id,
-        institution: a.institution,
-        tipo: a.tipo,
-        titular: a.titular,
-        empresa: a.empresa,
-        cuenta: a.cuenta,
-        divisa: a.divisa,
-        tarifas: a.tarifas,
-        saldoCop: Number(a.saldo_cop || 0),
-        saldoReal: (a.saldo_real !== null && a.saldo_real !== undefined && a.saldo_real !== '' && (a.institucion || '').toUpperCase() !== 'EFECTIVO' && !(a.activo || '').toUpperCase().includes('EFECTIVO'))
-          ? Number(a.saldo_real)
-          : null,
-        saldoInicial: a.saldo_inicial == null ? null : Number(a.saldo_inicial),
-        ingresosCop: Number(a.ingresos_cop || 0),
-        egresosCop: Number(a.egresos_cop || 0),
-        movimientos: a.movimientos || [],
-      }));
+      const activosLiquidos = (activosLiquidosData || []).map(snapshotTables.activos_liquidos.normalize);
 
-      const activosDigitales = (activosDigitalesData || []).map((d: any) => ({
-        ...creationAudit(d),
-        id: d.id,
-        activo: d.activo,
-        idWallet: d.id_wallet,
-        institucionId: d.institucion_id,
-        institution: d.institution,
-        tipo: d.tipo,
-        wallet: d.wallet,
-        red: d.red,
-        titular: d.titular,
-        tarifas: d.tarifas,
-        saldoUsdt: Number(d.saldo_usdt || 0),
-        saldoReal: (d.saldo_real !== null && d.saldo_real !== undefined && d.saldo_real !== '')
-          ? Number(d.saldo_real)
-          : null,
-        saldoInicial: d.saldo_inicial == null ? null : Number(d.saldo_inicial),
-        ingresosUsdt: Number(d.ingresos_usdt || 0),
-        egresosUsdt: Number(d.egresos_usdt || 0),
-        rateFinal: Number(d.rate_final || 3230),
-        liquidezEsperadaCop: Number(d.liquidez_esperada_cop || 0),
-        movimientos: d.movimientos || [],
-      }));
+      const activosDigitales = (activosDigitalesData || []).map(snapshotTables.activos_digitales.normalize);
 
-      const efectivo = (efectivoData || []).map((e: any) => ({
-        ...creationAudit(e),
-        id: e.id,
-        codigo: e.codigo,
-        fecha: e.fecha,
-        tipo: e.tipo,
-        clienteId: e.cliente_id,
-        clienteCodigo: e.cliente_codigo,
-        clienteNombre: e.cliente_nombre,
-        monto: Number(e.monto || 0),
-        comisionCop: Number(e.comision_cop ?? 0),
-        origenFondos: e.origen_fondos,
-        origenFondosId: e.origen_fondos_id,
-        referencia: e.referencia,
-      }));
+      const efectivo = (efectivoData || []).map(snapshotTables.efectivo.normalize);
 
-      const gastos = (gastosData || []).map((g: any) => ({
-        ...creationAudit(g),
-        id: g.id,
-        codigo: g.codigo,
-        fecha: g.fecha,
-        concepto: g.concepto,
-        categoria: g.categoria,
-        divisa: g.divisa,
-        monto: Number(g.monto || 0),
-        origenFondos: g.origen_fondos,
-        origenFondosId: g.origen_fondos_id,
-        comprobanteUrl: g.comprobante_url,
-      }));
+      const gastos = (gastosData || []).map(snapshotTables.gastos.normalize);
 
-      const usuarios = (profilesData || []).map((p: any) => ({
-        ...creationAudit(p),
-        id: p.id,
-        codigo: p.operator_code || p.full_name || 'USR',
-        nombre: p.full_name || p.email || 'Usuario',
-        correo: p.email || '',
-        rol: p.role || 'operador',
-        pais: p.pais || 'Colombia',
-        divisasAutorizadas: p.authorized_currencies || [],
-        estado: ['invitado', 'invited'].includes(String(p.status).toLowerCase()) ? 'Invitado'
-          : ['inactivo', 'inactive'].includes(String(p.status).toLowerCase()) ? 'Inactivo' : 'Activo',
-      }));
+      const usuarios = (profilesData || []).map(snapshotTables.profiles.normalize);
 
-      const comisionistas = (comisionistasData || []).map((c: any) => ({
-        ...creationAudit(c),
-        id: c.id,
-        codigo: c.codigo,
-        comisionistaClienteId: c.cliente_id,
-        comisionaDeIds: Array.isArray(c.referidos_ids) ? c.referidos_ids : [],
-        porcentajeComision: Number(c.porcentaje_comision),
-        ingresosCOP: Number(c.ingresos_cop || 0),
-        comisionesCOP: Number(c.comisiones_cop || 0),
-        fechaCreacion: c.fecha_creacion,
-      }));
+      const comisionistas = (comisionistasData || []).map(snapshotTables.comisionistas.normalize);
 
       const resumenLiquidacion: ResumenLiquidacion | undefined = resumenData ? {
         totalNegocioCop: Number(resumenData.total_negocio_cop ?? 0),
@@ -660,6 +685,76 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (request === latestFetch.current) setLoading(false);
     }
   }, [applySnapshot, userId]);
+
+  const fetchFromSupabase = useCallback(() => {
+    refreshRequested.current = true;
+    if (refreshInFlight.current && refreshOwner.current === userId) return refreshInFlight.current;
+    refreshOwner.current = userId;
+    const run = async () => {
+      while (refreshRequested.current && activeUserId.current === userId) {
+        refreshRequested.current = false;
+        await fetchSnapshot();
+      }
+    };
+    const pending = run().finally(() => {
+      if (refreshInFlight.current === pending) refreshInFlight.current = null;
+    });
+    refreshInFlight.current = pending;
+    return pending;
+  }, [fetchSnapshot, userId]);
+
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null;
+      void fetchFromSupabase();
+    }, 200);
+  }, [fetchFromSupabase]);
+
+  // Publish committed rows before background reconciliation. Invalidate older reads.
+  const publishMutation = (table: SnapshotTable, row: any | null, deletedId?: string) => {
+    if (activeUserId.current !== userId) return;
+    latestFetch.current++;
+    const { key, normalize } = snapshotTables[table];
+    setSnapshot((current) => {
+      const rows = (current[key] || []) as any[];
+      const normalized = row ? normalize(row) : null;
+      const id = row?.id ?? deletedId;
+      const exists = rows.some((item) => item.id === id);
+      let next = rows.filter((item) => item.id !== id);
+      if (normalized) {
+        next = exists ? rows.map((item) => item.id === id ? normalized : item) : [normalized, ...rows];
+      }
+      if (normalized?.fecha) next.sort(compareChronologicalDesc);
+      return { ...current, [key]: next, ...(table === 'dispersiones' ? { pagos: next } : {}) };
+    });
+    scheduleRefresh();
+  };
+
+  const refreshSavedRow = async (table: SnapshotTable, id: string) => {
+    const fields = table === 'activos_liquidos' || table === 'activos_digitales'
+      ? '*, institution:instituciones(id,name,type,currency,website_url,logo_url,status)' : '*';
+    const { data: row, error } = await supabase.from(table).select(fields).eq('id', id).single();
+    if (error) {
+      // The write succeeded. A failed refresh must not invite a duplicate retry.
+      console.error('Error reading a committed row:', error);
+      scheduleRefresh();
+      return;
+    }
+    publishMutation(table, row);
+  };
+
+  const refreshUsers = useCallback(async () => {
+    const { data: profiles, error } = await supabase.rpc('listar_perfiles_dashboard');
+    if (activeUserId.current !== userId) return;
+    if (error) {
+      console.error('Error refreshing profiles:', error);
+    } else {
+      latestFetch.current++;
+      setSnapshot((current) => ({ ...current, usuarios: (profiles || []).map(snapshotTables.profiles.normalize) }));
+    }
+    scheduleRefresh();
+  }, [scheduleRefresh, userId]);
 
   const syncData = useCallback(
     async (_forceLive = false) => {
@@ -1258,8 +1353,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const rate = payload['Tasa Cambio'] ?? payload.tasa ?? payload.tasaCambio;
       const tasaNum = rate == null || String(rate).trim() === '' ? NaN : Number(rate);
       if (!Number.isFinite(tasaNum) || tasaNum < 0) throw new Error('Ingresa una tasa válida.');
+      const id = crypto.randomUUID();
       const { error } = await supabase.rpc('crear_negocio_dashboard', {
-        p_id: crypto.randomUUID(),
+        p_id: id,
         p_cliente_id: clientObj.id,
         p_divisa_codigo: divisaObj.codigo,
         p_fecha: payload['Fecha'] || payload.fecha || new Date().toISOString().slice(0, 10),
@@ -1269,7 +1365,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error?.code === '22023') throw new Error(error.message);
       if (error) throw error;
-      await fetchFromSupabase();
+      await refreshSavedRow('negocios', id);
       return true;
     } catch (err) {
       console.error('Error creating negocio in Supabase:', err);
@@ -1279,9 +1375,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteNegocio = async (id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('negocios').delete().eq('id', id);
+      const { error } = await supabase.from('negocios').delete().eq('id', id).select('id').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('negocios', null, id);
       return true;
     } catch (err) {
       console.error('Error deleting negocio in Supabase:', err);
@@ -1292,9 +1388,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteCliente = async (id: string): Promise<boolean> => {
     try {
       await supabase.from('client_shared_links').delete().eq('client_id', id);
-      const { error } = await supabase.from('clientes').delete().eq('id', id);
+      const { error } = await supabase.from('clientes').delete().eq('id', id).select('id').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('clientes', null, id);
       return true;
     } catch (err) {
       console.error('Error deleting cliente in Supabase:', err);
@@ -1306,7 +1402,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.from('dispersiones').delete().eq('id', id).select('id').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('dispersiones', null, id);
       return true;
     } catch (err) {
       console.error('Error deleting dispersion in Supabase:', err);
@@ -1316,9 +1412,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteGasto = async (id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('gastos').delete().eq('id', id);
+      const { error } = await supabase.from('gastos').delete().eq('id', id).select('id').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('gastos', null, id);
       return true;
     } catch (err) {
       console.error('Error deleting gasto in Supabase:', err);
@@ -1328,9 +1424,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteComisionista = async (id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('comisionistas').delete().eq('id', id);
+      const { error } = await supabase.from('comisionistas').delete().eq('id', id).select('id').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('comisionistas', null, id);
       return true;
     } catch (err) {
       console.error('Error deleting comisionista in Supabase:', err);
@@ -1345,7 +1441,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!data || data.length === 0) {
         throw new Error('No se pudo eliminar el registro o no cuentas con los permisos requeridos.');
       }
-      await fetchFromSupabase();
+      publishMutation(table, null, id);
       return true;
     } catch (err) {
       console.error(`Error deleting from ${table} in Supabase:`, err);
@@ -1358,7 +1454,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!Number.isFinite(rate) || rate <= 0) throw new Error('La tasa debe ser mayor a 0');
       const { error } = await supabase.rpc('actualizar_rate_usdt', { p_rate: rate });
       if (error) throw error;
-      await fetchFromSupabase();
+      latestFetch.current++;
+      setSnapshot((current) => ({
+        ...current,
+        resumenLiquidacion: current.resumenLiquidacion ? { ...current.resumenLiquidacion, rateUsdtCop: rate } : current.resumenLiquidacion,
+      }));
+      scheduleRefresh();
       return true;
     } catch (err) {
       console.error('Error updating rate in Supabase:', err);
@@ -1400,15 +1501,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (fields.estado !== undefined) updates.estado = fields.estado;
       if (fields.authorId) updates.created_by = fields.authorId;
 
-      const { error } = await writeDashboardRecord(updates,
+      const { data: saved, error } = await writeDashboardRecord(updates,
         (record) => {
           const update = supabase.from('negocios').update(record).eq('id', id);
-          return (fields.authorId ? update.is('created_by', null) : update).select('id').single();
+          return (fields.authorId ? update.is('created_by', null) : update).select('*').single();
         },
         { generatedColumns: negocioGeneratedFields },
       );
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('negocios', saved);
       return true;
     } catch (err) {
       console.error('Error updating negocio in Supabase:', err);
@@ -1440,14 +1541,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (payload.codigo) insertData.codigo = payload.codigo;
 
       const id = crypto.randomUUID();
-      const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('dispersiones').insert(fields), {
+      const { data: saved, error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('dispersiones').insert(fields).select('*').single(), {
         fallbackCode: createCode('DISP', id),
         generatedColumns: ['monto_cop', 'tiene_comprobante'],
         optionalColumns: ['origen_fondos_id'],
       });
 
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('dispersiones', saved);
       return true;
     } catch (err) {
       console.error('Error creating dispersion in Supabase:', err);
@@ -1483,20 +1584,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           p_pago: { ...insertData, id: payload.tokenRequestId },
         });
         if (error) throw error;
-        await fetchFromSupabase();
+        await refreshSavedRow('efectivo', (token as CashToken).efectivo_id!);
         onTokenCreated?.(token as CashToken);
         return true;
       }
 
       const id = crypto.randomUUID();
-      const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('efectivo').insert(fields), {
+      const { data: saved, error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('efectivo').insert(fields).select('*').single(), {
         fallbackCode: createCode('EFEC', id),
         generatedColumns: [],
         optionalColumns: ['origen_fondos_id'],
       });
 
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('efectivo', saved);
       return true;
     } catch (err) {
       console.error('Error creating efectivo in Supabase:', err);
@@ -1530,9 +1631,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ? (data.efectivo.find((e) => e.codigo === payload.codigo)?.id || payload.id)
         : payload.id;
 
-      const { error } = await supabase.from('efectivo').update(updateData).eq('id', targetId);
+      const { data: saved, error } = await supabase.from('efectivo').update(updateData).eq('id', targetId).select('*').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('efectivo', saved);
       return true;
     } catch (err) {
       console.error('Error updating efectivo in Supabase:', err);
@@ -1545,9 +1646,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const targetId = id.startsWith('caja:')
         ? (data.efectivo.find((e) => e.codigo === id.replace('caja:', ''))?.id || id)
         : id;
-      const { error } = await supabase.from('efectivo').delete().eq('id', targetId);
+      const { error } = await supabase.from('efectivo').delete().eq('id', targetId).select('id').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('efectivo', null, targetId);
       return true;
     } catch (err) {
       console.error('Error deleting efectivo in Supabase:', err);
@@ -1572,14 +1673,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (payload.codigo) insertData.codigo = payload.codigo;
 
       const id = crypto.randomUUID();
-      const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('gastos').insert(fields), {
+      const { data: saved, error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('gastos').insert(fields).select('*').single(), {
         fallbackCode: createCode('GST', id),
         generatedColumns: [],
         optionalColumns: ['origen_fondos_id', ...(!payload.comprobanteUrl ? ['comprobante_url'] : [])],
       });
 
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('gastos', saved);
       return true;
     } catch (err) {
       console.error('Error creating gasto in Supabase:', err);
@@ -1603,13 +1704,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         estado: 'SIN ACTIVIDAD',
         fecha_creacion: new Date().toISOString(),
         ...(authorId ? { created_by: authorId, created_by_name: author?.nombre } : {}),
-      }, (fields) => supabase.from('clientes').insert(fields).select('id').single(), {
+      }, (fields) => supabase.from('clientes').insert(fields).select('*').single(), {
         fallbackCode: createCode('CLI', id),
         optionalColumns: /^(COL|COLOMBIA)$/i.test(pais?.trim() || 'COL') ? ['pais'] : [],
       });
 
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('clientes', inserted);
       return { success: true, id: inserted?.id };
     } catch (err) {
       console.error('Error creating cliente in Supabase:', err);
@@ -1628,13 +1729,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updates.created_by_name = author?.nombre || null;
       }
 
-      const { error } = await supabase
+      const { data: saved, error } = await supabase
         .from('clientes')
         .update(updates)
-        .eq('id', payload.id);
+        .eq('id', payload.id).select('*').single();
 
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('clientes', saved);
       return true;
     } catch (err) {
       console.error('Error updating cliente in Supabase:', err);
@@ -1700,36 +1801,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (Object.values(record).some((value) => typeof value === 'number' && !Number.isFinite(value))) {
       throw new Error('El resultado de la operación no es un número válido.');
     }
-    const { error } = editId
-      ? await supabase.from(table).update(record).eq('id', editId).select('id').single()
-      : await writeDashboardRecord(record, (fields) => supabase.from(table).insert(fields));
+    const { data: saved, error } = editId
+      ? await supabase.from(table).update(record).eq('id', editId).select('*').single()
+      : await writeDashboardRecord(record, (fields) => supabase.from(table).insert(fields).select('*').single());
     if (error?.code === 'P0001' && /^(El monto supera|Selecciona un origen|La cuenta de destino|El ajuste supera|Ingresa montos|Las cuentas de un registro)/.test(error.message)) throw new Error(error.message);
     if (error) throw dashboardWriteError(error, 'No se pudo guardar el registro.');
-    await fetchFromSupabase();
+    if (table === 'activos_liquidos' || table === 'activos_digitales') {
+      await refreshSavedRow(table, id);
+    } else {
+      publishMutation(table, saved);
+    }
   };
 
   const updateGasto = async (payload: any) => {
-    const { error } = await supabase.from('gastos').update({
+    const { data: saved, error } = await supabase.from('gastos').update({
       concepto: payload.concepto, categoria: payload.categoria, divisa: payload.divisa, monto: payload.monto,
       origen_fondos: payload.origenFondos, origen_fondos_id: payload.origenFondosId, fecha: payload.fecha,
-    }).eq('id', payload.id).select('id').single();
+    }).eq('id', payload.id).select('*').single();
     if (error) throw dashboardWriteError(error, 'No se pudo editar el gasto.');
-    await fetchFromSupabase();
+    publishMutation('gastos', saved);
     return true;
   };
 
   const updateDispersion = async (payload: any) => {
     const cliente = data.clientes.find((item) => item.id === payload.clienteId);
     if (!cliente) throw new Error('Selecciona un cliente válido.');
-    const { error } = await writeDashboardRecord({
+    const { data: saved, error } = await writeDashboardRecord({
       cliente_id: cliente.id, cliente_codigo: cliente.codigo, cliente_nombre: cliente.nombre,
       monto: payload.monto, monto_cop: payload.monto, origen_fondos: payload.origenFondos,
       ...(payload.costoCop !== undefined ? { costo_cop: payload.costoCop } : {}),
       origen_fondos_id: payload.origenFondosId, fecha: payload.fecha, referencia: payload.referencia,
-    }, (record) => supabase.from('dispersiones').update(record).eq('id', payload.id).select('id').single(),
+    }, (record) => supabase.from('dispersiones').update(record).eq('id', payload.id).select('*').single(),
     { generatedColumns: ['monto_cop'] });
     if (error) throw dashboardWriteError(error, 'No se pudo editar la dispersión.');
-    await fetchFromSupabase();
+    publishMutation('dispersiones', saved);
     return true;
   };
 
@@ -1781,7 +1886,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!user) throw new Error('El perfil ya no está disponible.');
       const { data: deleted, error } = await supabase.rpc('eliminar_perfil_dashboard', { p_id: user.id });
       if (error || !deleted) throw dashboardWriteError(error, 'No se pudo eliminar el perfil.');
-      await fetchFromSupabase();
+      publishMutation('profiles', null, user.id);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message };
@@ -1831,7 +1936,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data: updated, error } = await supabase.rpc('actualizar_perfil_dashboard', { p_id: id, p_changes: updates });
       if (error || !updated) throw dashboardWriteError(error, 'No se pudo actualizar el usuario.');
-      await fetchFromSupabase();
+      await refreshUsers();
       return true;
     } catch (error) {
       throw dashboardWriteError(error, 'No se pudo actualizar el usuario.');
@@ -1845,15 +1950,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Supabase Realtime Subscription to public schema tables
     const channel = supabase
       .channel('supabase_realtime_dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-        fetchFromSupabase();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public' }, scheduleRefresh)
       .subscribe();
 
     return () => {
+      latestFetch.current++;
+      refreshRequested.current = false;
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
       supabase.removeChannel(channel);
     };
-  }, [fetchFromSupabase, userId]);
+  }, [fetchFromSupabase, scheduleRefresh, userId]);
 
   const saveComisionista: DataContextType['saveComisionista'] = async (payload) => {
     const record = {
@@ -1861,11 +1967,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       referidos_ids: payload.comisionaDeIds,
       porcentaje_comision: payload.porcentajeComision,
     };
-    const { error } = payload.id
-      ? await supabase.from('comisionistas').update(record).eq('id', payload.id).select('id').single()
-      : await supabase.from('comisionistas').insert(record);
+    const { data: saved, error } = payload.id
+      ? await supabase.from('comisionistas').update(record).eq('id', payload.id).select('*').single()
+      : await supabase.from('comisionistas').insert(record).select('*').single();
     if (error) throw dashboardWriteError(error, payload.id ? 'No se pudo editar el comisionista.' : 'No se pudo registrar el comisionista.');
-    await fetchFromSupabase();
+    publishMutation('comisionistas', saved);
     return true;
   };
 
@@ -1890,9 +1996,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notas: payload.notas?.trim() || null,
         comprobante_url: payload.comprobanteUrl || null,
       };
-      const { error } = await supabase.from('transferencias_internas').insert(record);
+      const { data: saved, error } = await supabase.from('transferencias_internas').insert(record).select('*').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('transferencias_internas', saved);
       return true;
     } catch (err: any) {
       console.error('Error creating transferencia interna:', err);
@@ -1921,9 +2027,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notas: payload.notas?.trim() || null,
         comprobante_url: payload.comprobanteUrl || null,
       };
-      const { error } = await supabase.from('transferencias_internas').update(record).eq('id', id);
+      const { data: saved, error } = await supabase.from('transferencias_internas').update(record).eq('id', id).select('*').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('transferencias_internas', saved);
       return true;
     } catch (err: any) {
       console.error('Error updating transferencia interna:', err);
@@ -1933,9 +2039,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTransferenciaInterna = async (id: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('transferencias_internas').delete().eq('id', id);
+      const { error } = await supabase.from('transferencias_internas').delete().eq('id', id).select('id').single();
       if (error) throw error;
-      await fetchFromSupabase();
+      publishMutation('transferencias_internas', null, id);
       return true;
     } catch (err: any) {
       console.error('Error deleting transferencia interna:', err);
@@ -1953,6 +2059,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         syncStatus,
         lastSyncTime,
         syncData,
+        refreshUsers,
         syncWithAirtable: syncData,
         createCatalogRecord,
         createRecord,

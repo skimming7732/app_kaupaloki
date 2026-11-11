@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useData } from '../context/DataContext';
@@ -6,10 +6,12 @@ import { AccountSelect, accountLabel, type Account } from '../components/modals/
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from '../components/modals/RecordDialog';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import { formatCOP, formatDate, formatCurrency, formatRate, normalizeSearch } from '../utils/formatters';
+import { compareChronologicalDesc, formatCOP, formatDate, formatCurrency, formatRate, normalizeSearch } from '../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../utils/amountInput';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { capitalAmounts, capitalLabels, loadCapitalRows, summarizeCapital, type CapitalKind, type CapitalMethod, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
+
+type CapitalChange = { person: CapitalPerson } | { movement: CapitalMovement } | { deletedMovementId: string };
 
 type Action = 'persona' | 'contrato' | 'liquidar' | 'adelanto' | 'rendimiento';
 const actionLabels: Record<Action, string> = {
@@ -47,6 +49,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
   const [movements, setMovements] = useState<CapitalMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const latestReload = useRef(0);
   const [selected, setSelected] = useState('');
   const [kindFilter, setKindFilter] = useState<CapitalKind | ''>('');
   const [search, setSearch] = useState('');
@@ -56,6 +59,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
   const [editingMovement, setEditingMovement] = useState<CapitalMovement>();
 
   const reload = useCallback(async () => {
+    const request = ++latestReload.current;
     setLoading(true);
     setError('');
     try {
@@ -63,12 +67,13 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
         loadCapitalRows<CapitalPerson>('capital_socios'),
         loadCapitalRows<CapitalMovement>('capital_movimientos'),
       ]);
+      if (request !== latestReload.current) return;
       setPeople(people);
       setMovements(movements);
     } catch {
-      setError('No se pudieron cargar los registros.');
+      if (request === latestReload.current) setError('No se pudieron cargar los registros.');
     } finally {
-      setLoading(false);
+      if (request === latestReload.current) setLoading(false);
     }
   }, []);
   useEffect(() => { void reload(); }, [reload]);
@@ -78,11 +83,22 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
   const rows = movements.filter((row) => (!activePerson || row.socio_id === activePerson) && (!kindFilter || row.tipo === kindFilter));
   const totals = summarizeCapital(rows);
   const peopleById = new Map(people.map((person) => [person.id, person]));
-  const saved = () => {
+  const saved = (change: CapitalChange) => {
+    latestReload.current++;
+    setLoading(false);
+    setError('');
+    if ('person' in change) {
+      setPeople((current) => [change.person, ...current.filter((person) => person.id !== change.person.id)]
+        .sort((left, right) => left.nombre.localeCompare(right.nombre)));
+    } else if ('movement' in change) {
+      setMovements((current) => [change.movement, ...current.filter((row) => row.id !== change.movement.id)]
+        .sort(compareChronologicalDesc));
+    } else {
+      setMovements((current) => current.filter((row) => row.id !== change.deletedMovementId));
+    }
     setAction(undefined);
     setEditingMovement(undefined);
     setDetail(undefined);
-    void reload();
     void syncData();
   };
 
@@ -327,7 +343,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
 }
 
 function CapitalForm({ action, editMovement, initialPerson, people, movements, onClose, onSaved }: {
-  action: Action; editMovement?: CapitalMovement; initialPerson: string; people: CapitalPerson[]; movements: CapitalMovement[]; onClose: () => void; onSaved: () => void;
+  action: Action; editMovement?: CapitalMovement; initialPerson: string; people: CapitalPerson[]; movements: CapitalMovement[]; onClose: () => void; onSaved: (change: CapitalChange) => void;
 }) {
   const { data, metrics } = useData();
   const [id] = useState(() => editMovement?.id || crypto.randomUUID());
@@ -357,9 +373,9 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
     setDeleting(true);
     setError('');
     try {
-      const { error } = await supabase.from('capital_movimientos').delete().eq('id', editMovement.id);
+      const { error } = await supabase.from('capital_movimientos').delete().eq('id', editMovement.id).select('id').single();
       if (error) throw error;
-      onSaved();
+      onSaved({ deletedMovementId: editMovement.id });
     } catch (err) {
       const issue = err as { code?: string; message?: string };
       setError(issue.code === '42501' ? 'Tu perfil no tiene permiso para eliminar esta operación.'
@@ -387,6 +403,7 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
     setError('');
     const finish = prepareSuccessSound();
     try {
+      let change: CapitalChange;
       if (editMovement) {
         const updatePayload: Record<string, string | number | null> = {
           socio_id: personId,
@@ -400,8 +417,9 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
           contrato_id: needsContract ? contract : null,
           condiciones: kind === 'CONTRATO' ? field('condiciones') : null,
         };
-        const { error } = await supabase.from('capital_movimientos').update(updatePayload).eq('id', editMovement.id);
+        const { data: row, error } = await supabase.from('capital_movimientos').update(updatePayload).eq('id', editMovement.id).select('*').single();
         if (error) throw error;
+        change = { movement: row as CapitalMovement };
       } else {
         const table = action === 'persona' ? 'capital_socios' : 'capital_movimientos';
         const record: Record<string, string | number | null> = action === 'persona'
@@ -411,15 +429,18 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
               cuenta_liquida_id: needsAccount && method !== 'USDT' ? account : null,
               cuenta_digital_id: needsAccount && method === 'USDT' ? account : null,
               contrato_id: needsContract ? contract : null, condiciones: kind === 'CONTRATO' ? field('condiciones') : null };
-        const { error } = await supabase.from(table).insert(record);
+        const { data: inserted, error } = await supabase.from(table).insert(record).select('*').single();
+        let row = inserted;
         if (error) {
           if (error.code !== '23505') throw error;
-          const previous = await supabase.from(table).select('id').eq('id', id).maybeSingle();
+          const previous = await supabase.from(table).select('*').eq('id', id).maybeSingle();
           if (!previous.data) throw new Error('Ya existe un socio o inversionista con ese nombre.');
+          row = previous.data;
         }
+        change = table === 'capital_socios' ? { person: row as CapitalPerson } : { movement: row as CapitalMovement };
       }
       finish(true);
-      onSaved();
+      onSaved(change);
     } catch (error) {
       const issue = error as { code?: string; message?: string };
       setError(issue.code === '42501' ? 'Tu perfil no tiene permiso para guardar esta operación.'

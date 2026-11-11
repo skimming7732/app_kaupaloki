@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { InstitutionLogo, buildAutoLogoUrl, extractDomain } from '../components/common/InstitutionLogo';
 import { TYPE_LABELS, type InstitucionRecord, type InstitutionStatus, type InstitutionType } from '../utils/institutions';
@@ -53,6 +53,7 @@ export const InstitucionesView: React.FC = () => {
   const { data, syncData } = useData();
   const [institutions, setInstitutions] = useState<InstitucionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const latestFetch = useRef(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Filters
@@ -89,6 +90,7 @@ export const InstitucionesView: React.FC = () => {
   }, [data.divisas]);
 
   const fetchInstitutions = useCallback(async () => {
+    const request = ++latestFetch.current;
     setLoading(true);
     setErrorMessage(null);
     const { data: rows, error } = await supabase
@@ -96,6 +98,7 @@ export const InstitucionesView: React.FC = () => {
       .select('*')
       .order('name', { ascending: true });
 
+    if (request !== latestFetch.current) return;
     if (error) {
       setErrorMessage(error.message);
     } else {
@@ -247,16 +250,24 @@ export const InstitucionesView: React.FC = () => {
 
     try {
       if (editing) {
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from('instituciones')
           .update(payload)
-          .eq('id', editing.id);
+          .eq('id', editing.id)
+          .select('*').single();
         if (error) throw error;
+        latestFetch.current++;
+        setLoading(false);
+        setInstitutions((current) => current.map((row) => row.id === updated.id ? updated as InstitucionRecord : row));
       } else {
-        const { error } = await supabase.from('instituciones').insert(payload);
+        const { data: inserted, error } = await supabase.from('instituciones').insert(payload).select('*').single();
         if (error) throw error;
+        latestFetch.current++;
+        setLoading(false);
+        setInstitutions((current) => [inserted as InstitucionRecord, ...current]
+          .sort((left, right) => left.name.localeCompare(right.name)));
       }
-      await Promise.all([fetchInstitutions(), syncData()]);
+      void syncData();
       setIsModalOpen(false);
     } catch (err: any) {
       setModalError(err?.message || 'No se pudo guardar la institución.');
@@ -273,9 +284,12 @@ export const InstitucionesView: React.FC = () => {
     setModalDeleting(true);
     setModalError(null);
     try {
-      const { error } = await supabase.from('instituciones').delete().eq('id', editing.id);
+      const { error } = await supabase.from('instituciones').delete().eq('id', editing.id).select('id').single();
       if (error) throw error;
-      await Promise.all([fetchInstitutions(), syncData()]);
+      latestFetch.current++;
+      setLoading(false);
+      setInstitutions((current) => current.filter((row) => row.id !== editing.id));
+      void syncData();
       setIsModalOpen(false);
     } catch (err: any) {
       setModalError(err?.message || 'No se pudo eliminar la institución.');
