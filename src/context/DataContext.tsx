@@ -1014,7 +1014,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return {
         id: g.id || g.gasto || g['GASTO'],
-        codigo: g.codigo || g.gasto || g['GASTO'] || 'GST-000',
+        codigo: g.codigo || g.gasto || g['GASTO'] || 'G00001',
         concepto: g.concepto || g['CONCEPTO'] || 'Gasto Operativo',
         categoria: g.categoria || g['CATEGORÍA'] || 'Otros Gastos Operativos',
         divisa: (g.divisa || g['DIVISA'] || 'COP') as 'COP' | 'USDT',

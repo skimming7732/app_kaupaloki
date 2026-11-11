@@ -1168,7 +1168,7 @@ Deno.serve(async (req: Request) => {
 
       return {
         id: r.id,
-        codigo: String(f["GASTO"] || `GST-${String(idx + 1).padStart(3, "0")}`),
+        codigo: String(f["GASTO"] || `G${String(idx + 1).padStart(5, "0")}`),
         concepto: String(f["CONCEPTO"] || "Gasto Operativo"),
         categoria: String(f["CATEGORÍA"] || "Otros Gastos Operativos"),
         divisa: String(f["DIVISA"] || "COP"),
