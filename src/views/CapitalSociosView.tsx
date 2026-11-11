@@ -135,11 +135,15 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
               const summary = summarizeCapital(personMovements);
               const contractsWithComments = personMovements.filter((row) => row.tipo === 'CONTRATO' && row.condiciones?.trim());
               const isPartner = person.tipo === 'SOCIO';
-              const figures = [
-                { label: 'Capital', amount: summary.capital },
+              const figures = isPartner ? [
+                { label: 'Capital aportado', amount: summary.capital },
+                { label: 'Dividendos asignados', amount: summary.dividends },
+                { label: 'Adelantos entregados', amount: summary.advances },
                 { label: 'Saldo por liquidar', amount: summary.balance },
-                { label: 'Intereses', amount: summary.interest },
-                ...(isPartner ? [{ label: 'Dividendos', amount: summary.dividends }] : []),
+              ] : [
+                { label: 'Capital invertido', amount: summary.capital },
+                { label: 'Intereses generados', amount: summary.interest },
+                { label: 'Saldo por liquidar', amount: summary.balance },
               ];
               return (
                 <li key={person.id} className="min-w-0">
@@ -238,10 +242,16 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
       </section>
 
       {loadError}
-      <KpiStrip metrics={[
+      <KpiStrip metrics={currentPerson?.tipo === 'SOCIO' ? [
+        { label: 'Capital aportado', value: formatCOP(totals.capital), featured: true },
+        { label: 'Dividendos asignados', value: formatCOP(totals.dividends) },
+        { label: 'Adelantos entregados', value: formatCOP(totals.advances) },
+        { label: 'Saldo por liquidar', value: formatCOP(totals.balance) },
+      ] : [
         { label: 'Total capital', value: formatCOP(totals.capital), featured: true },
-        { label: 'Total saldo', value: formatCOP(totals.balance) },
+        { label: 'Total saldo por liquidar', value: formatCOP(totals.balance) },
         { label: 'Intereses pagados', value: <span title="Intereses liquidados, incluidos los acreditados al saldo">{formatCOP(totals.interest)}</span> },
+        ...(totals.dividends > 0 || totals.advances > 0 ? [{ label: 'Dividendos y adelantos', value: formatCOP(totals.dividends || totals.advances) }] : []),
       ]} />
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
@@ -347,9 +357,11 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
 }) {
   const { data, metrics } = useData();
   const [id] = useState(() => editMovement?.id || crypto.randomUUID());
-  const [personId, setPersonId] = useState(editMovement?.socio_id || initialPerson || people[0]?.id || '');
+  const selectablePeople = action === 'adelanto' ? (people.some((p) => p.tipo === 'SOCIO') ? people.filter((p) => p.tipo === 'SOCIO') : people) : people;
+  const [personId, setPersonId] = useState(editMovement?.socio_id || initialPerson || selectablePeople[0]?.id || people[0]?.id || '');
+  const initialPersonObj = people.find((row) => row.id === personId);
   const [kind, setKind] = useState<CapitalKind>(
-    editMovement ? editMovement.tipo : (action === 'contrato' ? 'CONTRATO' : action === 'adelanto' ? 'ADELANTO' : action === 'liquidar' ? 'LIQUIDACION' : 'INTERES')
+    editMovement ? editMovement.tipo : (action === 'contrato' ? 'CONTRATO' : action === 'adelanto' ? 'ADELANTO' : action === 'liquidar' ? 'LIQUIDACION' : (initialPersonObj?.tipo === 'SOCIO' ? 'DIVIDENDO' : 'INTERES'))
   );
   const [payInterest, setPayInterest] = useState(editMovement ? Boolean(editMovement.tipo === 'INTERES' && editMovement.medio) : false);
   const [method, setMethod] = useState<CapitalMethod>(editMovement?.medio || 'EFECTIVO');
@@ -462,13 +474,18 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
             <option value="SOCIO">Socio</option><option value="INVERSIONISTA">Inversionista</option>
           </select></label>
         </> : <>
-          <label className={recordLabelClass}>Socio o inversionista
+          <label className={recordLabelClass}>{action === 'adelanto' ? 'Socio' : 'Socio o inversionista'}
             <select required value={personId} className={recordFieldClass} onChange={(event) => {
               const next = event.target.value;
               setPersonId(next); setContract('');
-              if (kind === 'DIVIDENDO' && people.find((item) => item.id === next)?.tipo !== 'SOCIO') setKind('INTERES');
+              const nextPerson = people.find((item) => item.id === next);
+              if (action === 'rendimiento') {
+                setKind(nextPerson?.tipo === 'SOCIO' ? 'DIVIDENDO' : 'INTERES');
+              } else if (kind === 'DIVIDENDO' && nextPerson?.tipo !== 'SOCIO') {
+                setKind('INTERES');
+              }
             }}>
-              {people.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+              {selectablePeople.map((item) => <option key={item.id} value={item.id}>{item.nombre}{item.tipo === 'SOCIO' ? ' (Socio)' : ' (Inversionista)'}</option>)}
             </select>
           </label>
           {(editMovement || action === 'liquidar' || action === 'rendimiento') && <label className={recordLabelClass}>Concepto
@@ -485,10 +502,79 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
                 <option value="INTERES">{capitalLabels.INTERES}</option>
                 {person?.tipo === 'SOCIO' && <option value="DIVIDENDO">{capitalLabels.DIVIDENDO}</option>}
                 <option value="RETIRO">{capitalLabels.RETIRO}</option>
-              </> : action === 'liquidar' ? <><option value="LIQUIDACION">Pagar saldo</option><option value="RETIRO">Retirar capital</option><option value="INTERES">Liquidar interés</option></>
-                : <><option value="INTERES">Interés</option>{person?.tipo === 'SOCIO' && <option value="DIVIDENDO">Dividendo</option>}</>}
+              </> : action === 'liquidar' ? <><option value="LIQUIDACION">Pagar saldo</option><option value="RETIRO">Retirar capital</option>{person?.tipo !== 'SOCIO' && <option value="INTERES">Liquidar interés</option>}</>
+                : <>{person?.tipo === 'SOCIO' && <option value="DIVIDENDO">Dividendo</option>}<option value="INTERES">Interés</option></>}
             </select>
           </label>}
+          {(() => {
+            const personSummary = summarizeCapital(movements.filter((row) => row.socio_id === personId && row.id !== editMovement?.id));
+            if (kind === 'ADELANTO') {
+              return (
+                <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs text-foreground space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-amber-700 dark:text-amber-400">
+                    <i className="ri-hand-coin-line text-base" />
+                    <span>Anticipo de utilidades al socio</span>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed">
+                    El dinero se debitará de la cuenta de origen. No reduce la ganancia estimada neta de la empresa y se cruzará automáticamente contra futuros dividendos.
+                  </p>
+                </div>
+              );
+            }
+            if (kind === 'DIVIDENDO') {
+              return (
+                <div className="rounded-xl border border-teal-500/25 bg-teal-500/10 p-3 text-xs text-foreground space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-teal-700 dark:text-teal-400">
+                    <i className="ri-pie-chart-line text-base" />
+                    <span>Decreto de dividendos</span>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Asigna utilidades oficiales al socio (no extrae fondos bancarios). Los adelantos previos se descontarán automáticamente al momento de liquidar el saldo.
+                  </p>
+                  {personSummary.advances > 0 && (
+                    <p className="text-xs font-semibold text-foreground pt-1 border-t border-border/50">
+                      Adelantos previos por cruzar: <span className="font-mono text-amber-600 dark:text-amber-400">{formatCOP(personSummary.advances)}</span>
+                    </p>
+                  )}
+                </div>
+              );
+            }
+            if (kind === 'LIQUIDACION') {
+              return (
+                <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 text-xs text-foreground space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 font-semibold text-primary">
+                      <i className="ri-wallet-3-line text-base" />
+                      <span>Liquidación de utilidades</span>
+                    </span>
+                  </div>
+                  {person?.tipo === 'SOCIO' ? (
+                    personSummary.balance > 0 ? (
+                      <div className="text-muted-foreground leading-relaxed">
+                        Saldo pendiente a pagar: <strong className="text-foreground">{formatCOP(personSummary.balance)}</strong>
+                        <span className="block text-[11px] mt-0.5">
+                          (Dividendos decretados: {formatCOP(personSummary.dividends)} − Adelantos descontados: {formatCOP(personSummary.advances)} − Pagos previos: {formatCOP(personSummary.liquidaciones)})
+                        </span>
+                      </div>
+                    ) : personSummary.balance < 0 ? (
+                      <div className="text-amber-600 dark:text-amber-400">
+                        El socio tiene un saldo de adelantos no cubiertos de <strong>{formatCOP(Math.abs(personSummary.balance))}</strong>. No hay saldo a favor para liquidar.
+                      </div>
+                    ) : (
+                      <div className="text-emerald-600 dark:text-emerald-400">
+                        El socio se encuentra completamente al día (saldo $0).
+                      </div>
+                    )
+                  ) : (
+                    <div className="text-muted-foreground leading-relaxed">
+                      Saldo pendiente: <strong className="text-foreground">{formatCOP(personSummary.balance)}</strong>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          })()}
           {needsContract && <label className={recordLabelClass}>Contrato
             <select value={contract} required className={recordFieldClass} onChange={(event) => setContract(event.target.value)}>
               <option value="">{contracts.length ? 'Elige un contrato' : 'Esta persona aún no tiene contratos'}</option>
@@ -511,7 +597,7 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
           <div className="grid grid-cols-2 gap-2">
             <label className={recordLabelClass}>Fecha<input name="fecha" type="date" defaultValue={editMovement?.fecha || today()} required className={recordFieldClass} /></label>
             <label className={recordLabelClass}>Monto ({needsAccount && method === 'USDT' ? 'USDT' : 'COP'})
-              <input name="monto" inputMode="decimal" defaultValue={editMovement ? String(editMovement.monto) : ''} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
+              <input name="monto" inputMode="decimal" defaultValue={editMovement ? String(editMovement.monto) : (action === 'liquidar' ? (() => { const pSum = summarizeCapital(movements.filter((r) => r.socio_id === personId)); return pSum.balance > 0 ? String(pSum.balance) : ''; })() : '')} onChange={(event) => formatAmountField(event.currentTarget)} required className={recordFieldClass} />
             </label>
           </div>
           {needsAccount && method === 'USDT' && (

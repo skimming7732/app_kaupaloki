@@ -272,6 +272,8 @@ export interface MetricsSummary {
   interesesSociosCOP: number;
   capitalInvertidoCOP: number | null;
   dividendosSociosCOP: number;
+  distribucionPagadaSociosCOP: number;
+  adelantosPendientesSociosCOP: number;
   gananciaDespuesDividendosCOP: number;
   rateUsdtCop: number;
 }
@@ -1314,10 +1316,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const liquidezEsperada = totalActivosDigitales * rateUsdt;
 
     // Interest is already included in gastos. Dividends are deducted after net profit.
-    const capitalTotals = summarizeCapital(capitalLedger.userId === userId ? capitalLedger.rows : []);
+    const capitalTotals = summarizeCapital(
+      capitalLedger.userId === userId ? capitalLedger.rows : [],
+      capitalLedger.userId === userId ? capitalLedger.people : []
+    );
     const capitalInvertidoCOP = res?.totalCapitalInvertidoCop ?? (userId && capitalLedger.userId === userId ? capitalTotals.capital : null);
-    const gananciaEsperada = totalActivosLiquidos + liquidezEsperada
+    const distribucionPagadaSociosCOP = capitalTotals.sociosPaidDistributions;
+    const adelantosPendientesSociosCOP = capitalTotals.unabsorbedAdvances;
+    const gananciaEsperada = totalActivosLiquidos + liquidezEsperada + distribucionPagadaSociosCOP
       - saldoNetoClientesCOP - (capitalInvertidoCOP ?? 0);
+    const dividendosSociosCOP = capitalTotals.sociosTotalDividends;
+    const gananciaDespuesDividendosCOP = gananciaEsperada - dividendosSociosCOP;
 
     return {
       totalActivosLiquidos,
@@ -1334,8 +1343,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalCostosDispersionCOP,
       interesesSociosCOP: capitalTotals.interest,
       capitalInvertidoCOP,
-      dividendosSociosCOP: capitalTotals.dividends,
-      gananciaDespuesDividendosCOP: gananciaEsperada - capitalTotals.dividends,
+      dividendosSociosCOP,
+      distribucionPagadaSociosCOP,
+      adelantosPendientesSociosCOP,
+      gananciaDespuesDividendosCOP,
       rateUsdtCop: rateUsdt,
     };
   }, [snapshot.resumenLiquidacion, data.gastos, data.dispersiones, data.clientes, data.activosLiquidos, data.activosDigitales, data.ventasUsdt, data.negocios, capitalLedger, userId]);

@@ -45,20 +45,72 @@ export function capitalAmounts(row: CapitalMovement) {
   const contribution = row.tipo === 'CONTRATO' ? amount : 0;
   const dividends = row.tipo === 'DIVIDENDO' ? amount : 0;
   const interest = row.tipo === 'INTERES' ? amount : 0;
+  const advances = row.tipo === 'ADELANTO' ? amount : 0;
+  const liquidaciones = row.tipo === 'LIQUIDACION' ? amount : 0;
   const outflow = row.tipo === 'ADELANTO' || row.tipo === 'LIQUIDACION' || (row.tipo === 'INTERES' && row.medio) ? amount : 0;
   const withdrawal = row.tipo === 'RETIRO' ? amount : 0;
-  return { contribution, dividends, interest, outflow, withdrawal, capital: contribution - withdrawal, balance: dividends + interest - outflow };
+  return {
+    contribution,
+    dividends,
+    interest,
+    advances,
+    liquidaciones,
+    outflow,
+    withdrawal,
+    capital: contribution - withdrawal,
+    balance: dividends + interest - outflow,
+  };
 }
 
-export function summarizeCapital(rows: CapitalMovement[]) {
-  return rows.reduce((sum, row) => {
+export function summarizeCapital(rows: CapitalMovement[], people?: CapitalPerson[]) {
+  const initial = {
+    capital: 0,
+    balance: 0,
+    interest: 0,
+    dividends: 0,
+    advances: 0,
+    liquidaciones: 0,
+    unabsorbedAdvances: 0,
+    sociosPaidDistributions: 0,
+    sociosTotalDividends: 0,
+  };
+
+  const partnerTypeById = new Map<string, 'SOCIO' | 'INVERSIONISTA'>();
+  if (people) {
+    for (const p of people) {
+      partnerTypeById.set(p.id, p.tipo);
+    }
+  }
+
+  const byPerson = new Map<string, { dividends: number; advances: number; liquidaciones: number }>();
+
+  for (const row of rows) {
     const amounts = capitalAmounts(row);
-    sum.capital += amounts.capital;
-    sum.balance += amounts.balance;
-    sum.interest += amounts.interest;
-    sum.dividends += amounts.dividends;
-    return sum;
-  }, { capital: 0, balance: 0, interest: 0, dividends: 0 });
+    initial.capital += amounts.capital;
+    initial.balance += amounts.balance;
+    initial.interest += amounts.interest;
+    initial.dividends += amounts.dividends;
+    initial.advances += amounts.advances;
+    initial.liquidaciones += amounts.liquidaciones;
+
+    const current = byPerson.get(row.socio_id) || { dividends: 0, advances: 0, liquidaciones: 0 };
+    current.dividends += amounts.dividends;
+    current.advances += amounts.advances;
+    current.liquidaciones += amounts.liquidaciones;
+    byPerson.set(row.socio_id, current);
+  }
+
+  for (const [socioId, stats] of byPerson.entries()) {
+    const tipo = partnerTypeById.get(socioId);
+    const isSocio = tipo ? tipo === 'SOCIO' : (stats.advances > 0 || stats.dividends > 0);
+    if (isSocio) {
+      initial.unabsorbedAdvances += Math.max(0, stats.advances - stats.dividends);
+      initial.sociosPaidDistributions += stats.advances + stats.liquidaciones;
+      initial.sociosTotalDividends += Math.max(stats.dividends, stats.advances);
+    }
+  }
+
+  return initial;
 }
 
 export async function loadCapitalRows<T>(table: 'capital_socios' | 'capital_movimientos'): Promise<T[]> {
