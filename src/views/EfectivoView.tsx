@@ -10,7 +10,9 @@ import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -93,6 +95,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [selectedCliente, setSelectedCliente] = useState('');
+  const [filterCreador, setFilterCreador] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
@@ -154,9 +158,11 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
       const matchFecha = matchesDateRange(m.fecha, fechaDesde, fechaHasta);
 
-      return matchSearch && matchTipo && matchCliente && matchFecha && (!paymentId || m.id === paymentId);
+      const matchCreador = !filterCreador || formatAuthorName(m.createdByName, m.createdBy, data.usuarios).toLowerCase() === filterCreador.toLowerCase();
+
+      return matchSearch && matchTipo && matchCliente && matchFecha && matchCreador && (!paymentId || m.id === paymentId);
     });
-  }, [movimientos, search, filterTipo, selectedCliente, fechaDesde, fechaHasta, paymentId]);
+  }, [movimientos, data.usuarios, search, filterTipo, selectedCliente, fechaDesde, fechaHasta, filterCreador, paymentId]);
 
   const isPending = (id: string) => {
     const token = tokenByPayment.get(id);
@@ -186,11 +192,11 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         </div>
       </div>
 
-      {/* Comprehensive Filter Bar: Rango de fechas, Cliente, Tipo, Búsqueda */}
+      {/* Filter Bar: Desktop (Search + Fecha + Filtros) | Mobile (Search + Filtros) */}
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
           {/* Search */}
-          <div className="relative lg:col-span-2">
+          <div className="relative flex-1 min-w-[200px]">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
@@ -201,41 +207,90 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             />
           </div>
 
-          {/* Tipo */}
-          <div>
-            <TableSelectFilter label="Tipo" value={filterTipo} onChange={setFilterTipo} className="w-full">
-              <option value="">Todos los tipos</option>
-              <option value="Ingreso">Ingreso a Caja</option>
-              <option value="Pago">Salida de Caja</option>
-            </TableSelectFilter>
+          {/* Fecha (Desktop only) */}
+          <div className="hidden md:block shrink-0">
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
           </div>
 
-          <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
-          {/* Fecha Desde */}
-          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          {/* Popup Filter Trigger Button */}
+          <FilterTriggerButton
+            onClick={() => setIsFilterOpen(true)}
+            activeCount={(filterTipo ? 1 : 0) + (selectedCliente ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+          />
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
           <span>{formatNumber(visibleMovements.length)} de {formatNumber(movimientos.length)} registros</span>
-            {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta || paymentId || pendingOnly) && (
-              <button
-                onClick={() => {
-                  setSearch('');
-                  setFilterTipo('');
-                  setSelectedCliente('');
-                  setFechaDesde('');
-                  setFechaHasta('');
-                  setPendingOnly(false);
-                  setParams((current) => { const next = new URLSearchParams(current); next.delete('pago'); return next; });
-                }}
-                type="button" className="font-semibold text-primary hover:underline"
-              >
-                <i className="ri-filter-off-line" />
-                <span>Limpiar filtros</span>
-              </button>
-            )}
+          {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta || filterCreador || paymentId || pendingOnly) && (
+            <button
+              onClick={() => {
+                setSearch('');
+                setFilterTipo('');
+                setSelectedCliente('');
+                setFechaDesde('');
+                setFechaHasta('');
+                setFilterCreador('');
+                setPendingOnly(false);
+                setParams((current) => { const next = new URLSearchParams(current); next.delete('pago'); return next; });
+              }}
+              type="button"
+              className="font-semibold text-primary hover:underline flex items-center gap-1"
+            >
+              <i className="ri-filter-off-line" />
+              <span>Limpiar filtros</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filtros de Efectivo"
+        activeCount={(filterTipo ? 1 : 0) + (selectedCliente ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+        onClear={() => {
+          setFilterTipo('');
+          setSelectedCliente('');
+          setFechaDesde('');
+          setFechaHasta('');
+          setFilterCreador('');
+        }}
+      >
+        {/* Mobile-only visible filters */}
+        <div className="md:hidden space-y-3 pb-3 border-b border-border">
+          <div>
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          </div>
+        </div>
+
+        {/* Tipo Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Movimiento</label>
+          <TableSelectFilter label="Tipo" value={filterTipo} onChange={setFilterTipo} className="w-full">
+            <option value="">Todos los tipos</option>
+            <option value="Ingreso">Ingreso a Caja</option>
+            <option value="Pago">Salida de Caja</option>
+          </TableSelectFilter>
+        </div>
+
+        {/* Cliente Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Cliente</label>
+          <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
+        </div>
+
+        {/* Creador Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
+          <CreatedByFilter
+            value={filterCreador}
+            onChange={setFilterCreador}
+            records={movimientos}
+            className="w-full"
+          />
+        </div>
+      </FilterModal>
 
       <KpiStrip metrics={([
         ['Movimientos', visibleMovements.length],

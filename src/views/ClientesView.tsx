@@ -3,7 +3,9 @@ import { CLIENT_COUNTRIES, findClientCountry, getClientCountryIso } from '../dat
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
@@ -30,6 +32,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
   const [pais, setPais] = useState('');
   const [tieneComisionista, setTieneComisionista] = useState('');
   const [esComisionista, setEsComisionista] = useState('');
+  const [filterCreador, setFilterCreador] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sharingClient, setSharingClient] = useState<any | null>(null);
   const [editingClient, setEditingClient] = useState<any | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -59,7 +63,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
     }
     return [...options].sort((left, right) => left[1].localeCompare(right[1], 'es'));
   }, [data.clientes]);
-  const filtrosActivos = Boolean(search || estado || pais || (canFilterComisiones && (tieneComisionista || esComisionista)));
+  const activeSecondaryCount = (estado ? 1 : 0) + (pais ? 1 : 0) + (filterCreador ? 1 : 0) + (tieneComisionista ? 1 : 0) + (esComisionista ? 1 : 0);
+  const filtrosActivos = Boolean(search || activeSecondaryCount > 0);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -76,12 +81,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
       if (!c.nombre.toLowerCase().includes(query) && !c.codigo.toLowerCase().includes(query)) return false;
       if (estado && c.estado !== estado) return false;
       if (pais && countryKey(c.pais) !== pais) return false;
+      if (filterCreador && formatAuthorName(c.createdByName, c.createdBy, data.usuarios).toLowerCase() !== filterCreador.toLowerCase()) return false;
       if (!canFilterComisiones) return true;
       if (esComisionista && c.esComisionista !== (esComisionista === 'si')) return false;
       const tieneAsignado = referidos.has(c.id.toLowerCase()) || referidos.has(c.codigo.toLowerCase());
       return !tieneComisionista || tieneAsignado === (tieneComisionista === 'si');
     });
-  }, [data.clientes, referidos, search, estado, pais, tieneComisionista, esComisionista, canFilterComisiones]);
+  }, [data.clientes, data.usuarios, referidos, search, estado, pais, filterCreador, tieneComisionista, esComisionista, canFilterComisiones]);
 
   const sortedClientes = useMemo(() => {
     return [...filteredClientes].sort((a, b) => {
@@ -179,9 +185,11 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
         </button>)}
       </div>
 
+      {/* Filter Bar: Desktop & Mobile (Search + Filtros) */}
       <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
-        <div className={'grid items-end gap-2 sm:grid-cols-2 ' + (canFilterComisiones ? 'lg:grid-cols-6' : 'lg:grid-cols-4')}>
-          <div className="relative sm:col-span-2">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[200px]">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true" />
             <input
               type="search"
@@ -192,44 +200,14 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
               className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
-          <label className="grid gap-1 text-xs text-muted-foreground">
-            Estado
-            <TableSelectFilter label="Estado" value={estado} onChange={setEstado}>
-              <option value="">Todos</option>
-              <option value="PENDIENTE">Pendiente</option>
-              <option value="PAGADO">Pagado</option>
-              <option value="DEBE">Debe</option>
-              <option value="SIN ACTIVIDAD">Sin actividad</option>
-            </TableSelectFilter>
-          </label>
-          <label className="grid gap-1 text-xs text-muted-foreground">
-            País
-            <TableSelectFilter label="País" value={pais} onChange={setPais}>
-              <option value="">Todos</option>
-              {paises.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </TableSelectFilter>
-          </label>
-          {canFilterComisiones && (
-            <>
-              <label className="grid gap-1 text-xs text-muted-foreground">
-                Tiene comisionista
-                <TableSelectFilter label="Tiene comisionista" value={tieneComisionista} onChange={setTieneComisionista}>
-                  <option value="">Todos</option>
-                  <option value="si">Sí</option>
-                  <option value="no">No</option>
-                </TableSelectFilter>
-              </label>
-              <label className="grid gap-1 text-xs text-muted-foreground">
-                Es comisionista
-                <TableSelectFilter label="Es comisionista" value={esComisionista} onChange={setEsComisionista}>
-                  <option value="">Todos</option>
-                  <option value="si">Sí</option>
-                  <option value="no">No</option>
-                </TableSelectFilter>
-              </label>
-            </>
-          )}
+
+          {/* Popup Filter Trigger Button */}
+          <FilterTriggerButton
+            onClick={() => setIsFilterOpen(true)}
+            activeCount={activeSecondaryCount}
+          />
         </div>
+
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-xs">
           <span className="mr-auto font-medium text-muted-foreground" aria-live="polite">
             {formatNumber(sortedClientes.length)} de {formatNumber(data.clientes.length)} clientes
@@ -241,6 +219,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                 setSearch('');
                 setEstado('');
                 setPais('');
+                setFilterCreador('');
                 setTieneComisionista('');
                 setEsComisionista('');
               }}
@@ -263,6 +242,74 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
           ) : null}
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filtros de Clientes"
+        activeCount={activeSecondaryCount}
+        onClear={() => {
+          setEstado('');
+          setPais('');
+          setFilterCreador('');
+          setTieneComisionista('');
+          setEsComisionista('');
+        }}
+      >
+        {/* Estado Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Estado</label>
+          <TableSelectFilter label="Estado" value={estado} onChange={setEstado} className="w-full">
+            <option value="">Todos los estados</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="PAGADO">Pagado</option>
+            <option value="DEBE">Debe</option>
+            <option value="SIN ACTIVIDAD">Sin actividad</option>
+          </TableSelectFilter>
+        </div>
+
+        {/* Pais Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">País</label>
+          <TableSelectFilter label="País" value={pais} onChange={setPais} className="w-full">
+            <option value="">Todos los países</option>
+            {paises.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </TableSelectFilter>
+        </div>
+
+        {/* Creador Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
+          <CreatedByFilter
+            value={filterCreador}
+            onChange={setFilterCreador}
+            records={data.clientes}
+            className="w-full"
+          />
+        </div>
+
+        {canFilterComisiones && (
+          <div className="pt-3 border-t border-border space-y-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Tiene comisionista</label>
+              <TableSelectFilter label="Tiene comisionista" value={tieneComisionista} onChange={setTieneComisionista} className="w-full">
+                <option value="">Todos</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </TableSelectFilter>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Es comisionista</label>
+              <TableSelectFilter label="Es comisionista" value={esComisionista} onChange={setEsComisionista} className="w-full">
+                <option value="">Todos</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </TableSelectFilter>
+            </div>
+          </div>
+        )}
+      </FilterModal>
 
       <KpiStrip metrics={([
         ['Clientes', sortedClientes.length],

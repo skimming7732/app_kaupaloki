@@ -7,6 +7,7 @@ import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
 import { CreatedByFilter } from '../components/common/CreatedByFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { formatCOP, formatDate } from '../utils/formatters';
@@ -19,6 +20,7 @@ export const VentasUsdtView: React.FC = () => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [filterCreador, setFilterCreador] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const { destinosUnicos, filteredVentas } = useMemo(() => {
     const destinosSet = new Set<string>();
@@ -72,11 +74,11 @@ export const VentasUsdtView: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
           {/* Search */}
-          <div className="relative lg:col-span-2">
+          <div className="relative flex-1 min-w-[200px]">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
@@ -87,35 +89,21 @@ export const VentasUsdtView: React.FC = () => {
             />
           </div>
 
-          {/* Divisa Filter */}
-          <div>
+          {/* Divisa Filter (Desktop only) */}
+          <div className="hidden md:block w-36 shrink-0">
             <CurrencyFilterDropdown value={filterDivisa} onChange={setFilterDivisa} className="w-full" />
           </div>
 
-          {/* Creador Filter */}
-          <div>
-            <CreatedByFilter
-              value={filterCreador}
-              onChange={setFilterCreador}
-              records={data.ventasUsdt}
-              className="w-full"
-            />
+          {/* Date Range (Desktop only) */}
+          <div className="hidden md:block shrink-0">
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
           </div>
 
-          {/* Destino Filter */}
-          <div>
-            <TableSelectFilter label="Destino" value={filterDestino} onChange={setFilterDestino} className="w-full">
-              <option value="">Todas las cuentas destino</option>
-              {destinosUnicos.map((dest) => (
-                <option key={dest} value={dest}>
-                  {dest}
-                </option>
-              ))}
-            </TableSelectFilter>
-          </div>
-
-          {/* Date Range */}
-          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          {/* Popup Filter Trigger Button */}
+          <FilterTriggerButton
+            onClick={() => setIsFilterOpen(true)}
+            activeCount={(filterDivisa ? 1 : 0) + (filterCreador ? 1 : 0) + (filterDestino ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+          />
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
@@ -140,6 +128,56 @@ export const VentasUsdtView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filtros de Ventas USDT"
+        activeCount={(filterDivisa ? 1 : 0) + (filterCreador ? 1 : 0) + (filterDestino ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+        onClear={() => {
+          setFilterDivisa('');
+          setFilterDestino('');
+          setFechaDesde('');
+          setFechaHasta('');
+          setFilterCreador('');
+        }}
+      >
+        {/* Mobile-only visible filters */}
+        <div className="md:hidden space-y-3 pb-3 border-b border-border">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Divisa</label>
+            <CurrencyFilterDropdown value={filterDivisa} onChange={setFilterDivisa} className="w-full" />
+          </div>
+          <div>
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          </div>
+        </div>
+
+        {/* Destino Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Cuenta Destino</label>
+          <TableSelectFilter label="Destino" value={filterDestino} onChange={setFilterDestino} className="w-full">
+            <option value="">Todas las cuentas destino</option>
+            {destinosUnicos.map((dest) => (
+              <option key={dest} value={dest}>
+                {dest}
+              </option>
+            ))}
+          </TableSelectFilter>
+        </div>
+
+        {/* Creador Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
+          <CreatedByFilter
+            value={filterCreador}
+            onChange={setFilterCreador}
+            records={data.ventasUsdt}
+            className="w-full"
+          />
+        </div>
+      </FilterModal>
 
       <KpiStrip
         metrics={(

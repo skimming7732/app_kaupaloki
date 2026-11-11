@@ -6,6 +6,7 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
 import { CreatedByFilter } from '../components/common/CreatedByFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -41,6 +42,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [selectedCreador, setSelectedCreador] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Selected negocio for editing
   const [editingNegocio, setEditingNegocio] = useState<any | null>(null);
@@ -92,11 +94,11 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
         </button>)}
       </div>
 
-      {/* Comprehensive Filter Bar: Fecha Desde - Hasta, Cliente, Divisa, Búsqueda */}
+      {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
           {/* Search */}
-          <div className="relative lg:col-span-2">
+          <div className="relative flex-1 min-w-[200px]">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
@@ -107,8 +109,8 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
             />
           </div>
 
-          {/* Divisa */}
-          <div>
+          {/* Divisa (Desktop only) */}
+          <div className="hidden md:block w-36 shrink-0">
             <CurrencyFilterDropdown
               value={selectedDivisa}
               onChange={setSelectedDivisa}
@@ -117,19 +119,16 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
             />
           </div>
 
-          <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
-
-          {/* Creador Filter */}
-          <div>
-            <CreatedByFilter
-              value={selectedCreador}
-              onChange={setSelectedCreador}
-              records={data.negocios}
-              className="w-full"
-            />
+          {/* Fecha (Desktop only) */}
+          <div className="hidden md:block shrink-0">
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
           </div>
-          {/* Fecha Desde */}
-          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+
+          {/* Popup Filter Trigger Button */}
+          <FilterTriggerButton
+            onClick={() => setIsFilterOpen(true)}
+            activeCount={(selectedDivisa ? 1 : 0) + (selectedCliente ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+          />
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
@@ -154,6 +153,54 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
           </div>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filtros de Operaciones"
+        activeCount={(selectedDivisa ? 1 : 0) + (selectedCliente ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+        onClear={() => {
+          setSelectedDivisa('');
+          setSelectedCliente('');
+          setFechaDesde('');
+          setFechaHasta('');
+          setSelectedCreador('');
+        }}
+      >
+        {/* Mobile-only visible filters */}
+        <div className="md:hidden space-y-3 pb-3 border-b border-border">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Divisa</label>
+            <CurrencyFilterDropdown
+              value={selectedDivisa}
+              onChange={setSelectedDivisa}
+              currencies={availableDivisas.map((d) => d.codigo)}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          </div>
+        </div>
+
+        {/* Cliente Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Cliente</label>
+          <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
+        </div>
+
+        {/* Creador Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
+          <CreatedByFilter
+            value={selectedCreador}
+            onChange={setSelectedCreador}
+            records={data.negocios}
+            className="w-full"
+          />
+        </div>
+      </FilterModal>
 
       <KpiStrip
         metrics={(

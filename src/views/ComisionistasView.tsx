@@ -1,7 +1,9 @@
 import { useWriteAccess } from '../utils/useWriteAccess';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo } from 'react';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
@@ -11,6 +13,8 @@ export const ComisionistasView: React.FC = () => {
   const canWrite = useWriteAccess('admin');
   const { data } = useData();
   const [search, setSearch] = useState('');
+  const [filterCreador, setFilterCreador] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [sortField, setSortField] = useState<'comisionesCOP' | 'ingresosCOP' | 'porcentajeComision' | 'comisionistaNombre' | 'codigo' | 'fechaCreacion'>('comisionesCOP');
   const [sortAsc, setSortAsc] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -62,7 +66,7 @@ export const ComisionistasView: React.FC = () => {
     return {
       filteredComisionistas: sorted,
     };
-  }, [data.comisionistas, search, sortField, sortAsc]);
+  }, [data.comisionistas, data.usuarios, search, filterCreador, sortField, sortAsc]);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -82,22 +86,64 @@ export const ComisionistasView: React.FC = () => {
         </button>)}
       </div>
 
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border">
-        <div className="relative w-full sm:w-80">
-          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por comisionista o cliente..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+      {/* Filter Bar: Desktop & Mobile (Search + Filtros) */}
+      <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[200px]">
+            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por comisionista o cliente..."
+              className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+            />
+          </div>
+
+          {/* Popup Filter Trigger Button */}
+          <FilterTriggerButton
+            onClick={() => setIsFilterOpen(true)}
+            activeCount={filterCreador ? 1 : 0}
           />
         </div>
-        <span className="text-xs text-muted-foreground font-medium">
-          {formatNumber(filteredComisionistas.length)} registros encontrados
-        </span>
+
+        <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
+          <span>{formatNumber(filteredComisionistas.length)} de {formatNumber(data.comisionistas.length)} comisionistas</span>
+          {(search || filterCreador) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setFilterCreador('');
+              }}
+              className="font-semibold text-primary hover:underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filtros de Comisionistas"
+        activeCount={filterCreador ? 1 : 0}
+        onClear={() => setFilterCreador('')}
+      >
+        {/* Creador Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
+          <CreatedByFilter
+            value={filterCreador}
+            onChange={setFilterCreador}
+            records={data.comisionistas}
+            className="w-full"
+          />
+        </div>
+      </FilterModal>
 
       <KpiStrip metrics={([
         ['Comisionistas', filteredComisionistas.length],

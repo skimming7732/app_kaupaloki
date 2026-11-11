@@ -10,7 +10,9 @@ import { supabase } from '../lib/supabase';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo } from 'react';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
@@ -92,6 +94,8 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
   const [selectedCliente, setSelectedCliente] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [selectedCreador, setSelectedCreador] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<{ id: string; url?: string; append?: boolean } | null>(null);
@@ -116,9 +120,11 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
 
       const matchFecha = matchesDateRange(d.fecha, fechaDesde, fechaHasta);
 
-      return matchSearch && matchCliente && matchFecha;
+      const matchCreador = !selectedCreador || formatAuthorName(d.createdByName, d.createdBy, data.usuarios).toLowerCase() === selectedCreador.toLowerCase();
+
+      return matchSearch && matchCliente && matchFecha && matchCreador;
     });
-  }, [data.dispersiones, search, selectedCliente, fechaDesde, fechaHasta]);
+  }, [data.dispersiones, data.usuarios, search, selectedCliente, fechaDesde, fechaHasta, selectedCreador]);
 
   // Dispersiones with receipts for the lightbox gallery
   const receiptsList: LightboxItem[] = useMemo(() => {

@@ -9,7 +9,9 @@ import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
 import { getCategoryIcon, GASTO_CATEGORIES } from '../components/common/CategorySearchSelect';
 import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo } from 'react';
 import { useData, type GastoItem } from '../context/DataContext';
 import { formatNumber, formatCOP, formatUSD, formatDate, formatRate } from '../utils/formatters';
@@ -42,6 +44,8 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
   const [selectedDivisa, setSelectedDivisa] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [selectedCreador, setSelectedCreador] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const categorias = useMemo(() => {
     const base = [
@@ -62,9 +66,11 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
 
       const matchFecha = matchesDateRange(g.fecha, fechaDesde, fechaHasta);
 
-      return matchSearch && matchCategoria && matchDivisa && matchFecha;
+      const matchCreador = !selectedCreador || formatAuthorName(g.createdByName, g.createdBy, data.usuarios).toLowerCase() === selectedCreador.toLowerCase();
+
+      return matchSearch && matchCategoria && matchDivisa && matchFecha && matchCreador;
     });
-  }, [data.gastos, search, selectedCategoria, selectedDivisa, fechaDesde, fechaHasta]);
+  }, [data.gastos, data.usuarios, search, selectedCategoria, selectedDivisa, fechaDesde, fechaHasta, selectedCreador]);
 
   const divisasUsadas = useMemo(() => {
     const set = new Set<string>();

@@ -3,7 +3,9 @@ import { useData, type TransferenciaInterna } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddTransferenciaModal } from '../components/modals/AddTransferenciaModal';
 
@@ -16,6 +18,8 @@ export const TransferenciasInternasView: React.FC = () => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [filterTipo, setFilterTipo] = useState<string>('TODOS');
+  const [filterCreador, setFilterCreador] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Filtered rows
   const filtered = useMemo(() => {
@@ -42,9 +46,11 @@ export const TransferenciasInternasView: React.FC = () => {
         matchTipo = t.tipoOrigen === 'ACTIVO_DIGITAL';
       }
 
-      return matchSearch && matchDivisa && matchDate && matchTipo;
+      const matchCreador = !filterCreador || formatAuthorName(t.createdByName, t.createdBy, data.usuarios).toLowerCase() === filterCreador.toLowerCase();
+
+      return matchSearch && matchDivisa && matchDate && matchTipo && matchCreador;
     });
-  }, [transferencias, search, filterDivisa, fechaDesde, fechaHasta, filterTipo]);
+  }, [transferencias, data.usuarios, search, filterDivisa, fechaDesde, fechaHasta, filterTipo, filterCreador]);
 
   // Aggregate KPIs
   const totalCount = transferencias.length;
@@ -169,7 +175,7 @@ export const TransferenciasInternasView: React.FC = () => {
             <span className="text-xs font-mono text-muted-foreground">
               {filtered.length} de {transferencias.length} registros
             </span>
-            {(search || filterDivisa || filterTipo !== 'TODOS' || fechaDesde || fechaHasta) && (
+            {(search || filterDivisa || filterTipo !== 'TODOS' || fechaDesde || fechaHasta || filterCreador) && (
               <button
                 type="button"
                 onClick={() => {
@@ -178,6 +184,7 @@ export const TransferenciasInternasView: React.FC = () => {
                   setFilterTipo('TODOS');
                   setFechaDesde('');
                   setFechaHasta('');
+                  setFilterCreador('');
                 }}
                 className="text-xs font-semibold text-primary hover:underline"
               >
@@ -187,11 +194,11 @@ export const TransferenciasInternasView: React.FC = () => {
           </div>
         </div>
 
-        {/* Toolbar: Search and Filters placed BEFORE the table */}
-        <div className="p-3.5 bg-muted/20 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1">
+        {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
+        <div className="p-3.5 bg-muted/20 border-b border-border space-y-2">
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
             {/* Search */}
-            <div className="relative w-full sm:w-64">
+            <div className="relative flex-1 min-w-[200px]">
               <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
               <input
                 type="text"
@@ -202,18 +209,74 @@ export const TransferenciasInternasView: React.FC = () => {
               />
             </div>
 
-            {/* Divisa Selector */}
-            <CurrencyFilterDropdown
-              value={filterDivisa}
-              onChange={setFilterDivisa}
-              className="w-full sm:w-48"
-            />
+            {/* Divisa Selector (Desktop only) */}
+            <div className="hidden md:block w-36 shrink-0">
+              <CurrencyFilterDropdown
+                value={filterDivisa}
+                onChange={setFilterDivisa}
+                className="w-full"
+              />
+            </div>
 
-            {/* Tipo Selector */}
+            {/* Date range filter (Desktop only) */}
+            <div className="hidden md:block shrink-0">
+              <DateRangeFilter
+                from={fechaDesde}
+                to={fechaHasta}
+                setFrom={setFechaDesde}
+                setTo={setFechaHasta}
+              />
+            </div>
+
+            {/* Popup Filter Trigger Button */}
+            <FilterTriggerButton
+              onClick={() => setIsFilterOpen(true)}
+              activeCount={(filterDivisa ? 1 : 0) + (filterTipo !== 'TODOS' ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+            />
+          </div>
+        </div>
+
+        {/* Filter Modal */}
+        <FilterModal
+          isOpen={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
+          title="Filtros de Transferencias Internas"
+          activeCount={(filterDivisa ? 1 : 0) + (filterTipo !== 'TODOS' ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+          onClear={() => {
+            setFilterDivisa('');
+            setFilterTipo('TODOS');
+            setFilterCreador('');
+            setFechaDesde('');
+            setFechaHasta('');
+          }}
+        >
+          {/* Mobile-only visible filters */}
+          <div className="md:hidden space-y-3 pb-3 border-b border-border">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Divisa</label>
+              <CurrencyFilterDropdown
+                value={filterDivisa}
+                onChange={setFilterDivisa}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <DateRangeFilter
+                from={fechaDesde}
+                to={fechaHasta}
+                setFrom={setFechaDesde}
+                setTo={setFechaHasta}
+              />
+            </div>
+          </div>
+
+          {/* Tipo Selector */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Transferencia</label>
             <select
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
-              className="h-8 px-3 rounded-lg border border-input bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary outline-none"
+              className="h-8 w-full px-3 rounded-lg border border-input bg-background text-xs font-semibold text-foreground focus:ring-1 focus:ring-primary outline-none"
             >
               <option value="TODOS">Todos los tipos</option>
               <option value="ACTIVO_LIQUIDO">Entre Activos Líquidos (COP)</option>
@@ -221,16 +284,17 @@ export const TransferenciasInternasView: React.FC = () => {
             </select>
           </div>
 
-          {/* Date range filter */}
-          <div className="flex items-center gap-2">
-            <DateRangeFilter
-              from={fechaDesde}
-              to={fechaHasta}
-              setFrom={setFechaDesde}
-              setTo={setFechaHasta}
+          {/* Creador Filter */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
+            <CreatedByFilter
+              value={filterCreador}
+              onChange={setFilterCreador}
+              records={transferencias}
+              className="w-full"
             />
           </div>
-        </div>
+        </FilterModal>
 
         {/* Table */}
         <div className="overflow-x-auto">
