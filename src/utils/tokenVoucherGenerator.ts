@@ -16,6 +16,8 @@ export interface TokenVoucherData {
 
 export interface CashToken extends TokenVoucherData {
   id: string;
+  efectivo_id?: string | null;
+  pago_codigo?: string | null;
   status?: string;
   created_at: string;
 }

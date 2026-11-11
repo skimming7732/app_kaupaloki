@@ -1,3 +1,4 @@
+import type { CashToken } from '../../utils/tokenVoucherGenerator';
 import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { formatCOP, todayBogota } from '../../utils/formatters';
@@ -17,9 +18,10 @@ interface AddEfectivoModalProps {
   record?: NormalizedData['efectivo'][number] | null;
   initialClienteId?: string;
   onClose: () => void;
+  onTokenCreated?: (token: CashToken) => void;
 }
 
-export const AddEfectivoModal = ({ isOpen, record, initialClienteId, mode, commissionEnabled, onClose }: AddEfectivoModalProps) =>
+export const AddEfectivoModal = ({ isOpen, record, initialClienteId, mode, commissionEnabled, onTokenCreated, onClose }: AddEfectivoModalProps) =>
   isOpen ? (
     <EfectivoForm
       key={record?.id || initialClienteId || mode || 'new'}
@@ -27,11 +29,12 @@ export const AddEfectivoModal = ({ isOpen, record, initialClienteId, mode, commi
       commissionEnabled={commissionEnabled}
       record={record}
       initialClienteId={initialClienteId}
+      onTokenCreated={onTokenCreated}
       onClose={onClose}
     />
   ) : null;
 
-const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClose }: Omit<AddEfectivoModalProps, 'isOpen'>) => {
+const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onTokenCreated, onClose }: Omit<AddEfectivoModalProps, 'isOpen'>) => {
   const { data, createMovimientoEfectivo, updateMovimientoEfectivo, deleteMovimientoEfectivo, createCliente } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
@@ -54,6 +57,8 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClo
   const [amountBasis, setAmountBasis] = useState<'total' | 'entrega'>('total');
   const [feeType, setFeeType] = useState<'ninguna' | 'porcentaje' | 'fija'>(record?.comisionCop ? 'fija' : 'ninguna');
   const [feeInput, setFeeInput] = useState(() => record?.comisionCop ? formatAmountInput(String(record.comisionCop)) : '');
+  const [generateToken, setGenerateToken] = useState(false);
+  const [tokenRequestId] = useState(() => crypto.randomUUID());
   const [referencia, setReferencia] = useState(record?.referencia || '');
   const [name, setName] = useState('');
   const [addingClient, setAddingClient] = useState(false);
@@ -138,7 +143,7 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClo
     if (busy) return;
     const cleanReferencia = referencia.trim();
     if (!cleanReferencia) {
-      setError('Ingresa una referencia o PIN.');
+      setError('Ingresa una referencia.');
       return;
     }
     if (!cashAccount) {
@@ -165,11 +170,12 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClo
         origenFondos: accountLabel(cashAccount),
         fecha,
         referencia: cleanReferencia,
+        tokenRequestId: !record && isPayment && generateToken ? tokenRequestId : undefined,
       };
 
       const success = record
         ? await updateMovimientoEfectivo(payload)
-        : await createMovimientoEfectivo(payload);
+        : await createMovimientoEfectivo(payload, onTokenCreated);
 
       if (!success) throw new Error();
       finishSound(true);
@@ -395,7 +401,7 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClo
             </p>
           )}
           <label className={recordLabelClass}>
-            <span>Referencia o PIN</span>
+            <span>Referencia</span>
             <input
               name="referencia"
               required
@@ -404,6 +410,16 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, onClo
               className={recordFieldClass}
             />
           </label>
+          {!record && isPayment && onTokenCreated && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3">
+              <input type="checkbox" checked={generateToken} onChange={(event) => setGenerateToken(event.currentTarget.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary" />
+              <span>
+                <strong className="block text-sm">Generar token de entrega</strong>
+                <span className="block text-xs text-muted-foreground">El pago se descuenta al guardar. El vale usa la misma referencia.</span>
+              </span>
+            </label>
+          )}
         </fieldset>
         <div className={showBreakdown ? 'sticky bottom-0 z-10 space-y-3 bg-card py-2' : undefined}>
           {showBreakdown && (

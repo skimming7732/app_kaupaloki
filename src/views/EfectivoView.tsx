@@ -1,3 +1,7 @@
+import { useSearchParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { getTokenState, type CashToken } from '../utils/tokenVoucherGenerator';
+import { TokenVoucherModal } from '../components/modals/TokenVoucherModal';
 import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { recordButtonClass } from '../components/modals/RecordDialog';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
@@ -5,7 +9,7 @@ import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatCOP, formatDate, compareChronologicalDesc } from '../utils/formatters';
@@ -25,6 +29,62 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const [movementMode, setMovementMode] = useState<EfectivoMode | null>(null);
   const [isAddGastoOpen, setIsAddGastoOpen] = useState(false);
   const [editingMovimiento, setEditingMovimiento] = useState<NormalizedData['efectivo'][number] | null>(null);
+
+  const [params, setParams] = useSearchParams();
+  const paymentId = params.get('pago');
+  const [pendingOnly, setPendingOnly] = useState(false);
+  const [linkedTokens, setLinkedTokens] = useState<CashToken[]>([]);
+  const [voucher, setVoucher] = useState<CashToken | null>(null);
+  const [issuingId, setIssuingId] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState('');
+
+  const refreshTokens = useCallback(async () => {
+    const { data: tokens, error } = await supabase.from('cash_tokens').select('*')
+      .not('efectivo_id', 'is', null).order('created_at', { ascending: false });
+    if (error) {
+      setTokenError('No se pudieron consultar los tokens de pago.');
+      return;
+    }
+    setLinkedTokens(tokens as CashToken[]);
+    setTokenError((message) => message === 'No se pudieron consultar los tokens de pago.' ? '' : message);
+  }, []);
+
+  useEffect(() => {
+    void refreshTokens();
+    const refresh = () => { void refreshTokens(); };
+    window.addEventListener('focus', refresh);
+    const timer = window.setInterval(refresh, 30_000);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.clearInterval(timer);
+    };
+  }, [refreshTokens]);
+
+  const tokenByPayment = new Map<string, CashToken>();
+  for (const token of linkedTokens) {
+    if (token.efectivo_id && !tokenByPayment.has(token.efectivo_id)) tokenByPayment.set(token.efectivo_id, token);
+  }
+
+  const openNewToken = (token: CashToken) => {
+    setLinkedTokens((current) => [token, ...current.filter((item) => item.id !== token.id)]);
+    setVoucher(token);
+  };
+
+  const replaceToken = async (payment: string) => {
+    if (issuingId) return;
+    setIssuingId(payment);
+    setTokenError('');
+    try {
+      const { data: token, error } = await supabase.rpc('emitir_token_pago_efectivo', { p_pago_id: payment });
+      if (error) throw error;
+      openNewToken(token as CashToken);
+    } catch (error) {
+      setTokenError('No se pudo emitir el reemplazo. Inténtalo de nuevo.');
+      console.error(error);
+    } finally {
+      setIssuingId(null);
+    }
+  };
 
   // Filters
   const [search, setSearch] = useState('');
@@ -91,10 +151,17 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
       const matchFecha = matchesDateRange(m.fecha, fechaDesde, fechaHasta);
 
-      return matchSearch && matchTipo && matchCliente && matchFecha;
+      return matchSearch && matchTipo && matchCliente && matchFecha && (!paymentId || m.id === paymentId);
     });
-  }, [movimientos, search, filterTipo, selectedCliente, fechaDesde, fechaHasta]);
+  }, [movimientos, search, filterTipo, selectedCliente, fechaDesde, fechaHasta, paymentId]);
 
+  const isPending = (id: string) => {
+    const token = tokenByPayment.get(id);
+    return Boolean(token && getTokenState(token) === 'activo');
+  };
+  const pendingCount = filteredMovimientos.filter((row) => isPending(row.id)).length;
+  const visibleMovements = pendingOnly ? filteredMovimientos.filter((row) => isPending(row.id)) : filteredMovimientos;
+  const tokenLabels = { activo: 'Pendiente de entrega', entregado: 'Entregado', cancelado: 'Cancelado', expirado: 'Vencido' };
   const secondaryAction = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold hover:bg-muted';
   return (
     <div className="space-y-4 animate-fade-in">
@@ -146,8 +213,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
-          <span>{formatNumber(filteredMovimientos.length)} de {formatNumber(movimientos.length)} registros</span>
-            {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta) && (
+          <span>{formatNumber(visibleMovements.length)} de {formatNumber(movimientos.length)} registros</span>
+            {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta || paymentId || pendingOnly) && (
               <button
                 onClick={() => {
                   setSearch('');
@@ -155,6 +222,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                   setSelectedCliente('');
                   setFechaDesde('');
                   setFechaHasta('');
+                  setPendingOnly(false);
+                  setParams((current) => { const next = new URLSearchParams(current); next.delete('pago'); return next; });
                 }}
                 type="button" className="font-semibold text-primary hover:underline"
               >
@@ -166,12 +235,20 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       </div>
 
       <KpiStrip metrics={([
-        ['Movimientos', filteredMovimientos.length],
-        ['Entradas COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Ingreso' ? m.monto : 0))],
-        ['Salidas COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Pago' ? m.monto - (m.comisionCop ?? 0) : 0))],
-        ['Comisiones COP', formatCOP(sumRows(filteredMovimientos, (m) => m.comisionCop ?? 0))],
-        ['Neto COP', formatCOP(sumRows(filteredMovimientos, (m) => m.tipo === 'Ingreso' ? m.monto : -(m.monto - (m.comisionCop ?? 0))))],
+        ['Movimientos', visibleMovements.length],
+        ['Entradas COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? m.monto : 0))],
+        ['Salidas COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Pago' ? m.monto - (m.comisionCop ?? 0) : 0))],
+        ['Comisiones COP', formatCOP(sumRows(visibleMovements, (m) => m.comisionCop ?? 0))],
+        ['Neto COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? m.monto : -(m.monto - (m.comisionCop ?? 0))))],
+        ['Pendientes de entrega', (
+          <button type="button" aria-pressed={pendingOnly} aria-label={`Filtrar ${pendingCount} pendientes de entrega`}
+            onClick={() => setPendingOnly(!pendingOnly)} className="text-destructive hover:underline">
+            {formatNumber(pendingCount)} <i className="ri-filter-3-line text-sm" aria-hidden="true" />
+          </button>
+        )],
       ] as const).map(([label, value]) => ({ label, value }))} />
+
+      {tokenError && <p role="alert" className="text-sm text-destructive">{tokenError}</p>}
 
       {/* Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -192,54 +269,74 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredMovimientos.length === 0 ? (
+              {visibleMovements.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No hay movimientos de efectivo que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={filteredMovimientos}>{(m) => (
-                  <tr key={m.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-mono font-medium text-foreground">{m.codigo}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{formatDate(m.fecha)}</td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          m.tipo === 'Ingreso'
-                            ? 'bg-emerald-500/10 text-emerald-500'
-                            : 'bg-amber-500/10 text-amber-500'
-                        }`}
-                      >
-                        {m.tipo === 'Ingreso' ? 'Ingreso' : 'Salida'}
-                      </span>
-                    </td>
-                    {/* Exact Client Name from {CLIENTE} column */}
-                    <td className="py-3 px-4 font-semibold text-foreground">
-                      {m.clienteNombre && m.clienteNombre !== 'Ingreso de Caja' && m.clienteNombre !== 'Movimiento Interno' ? (
-                        <span className="font-mono text-xs">{m.clienteNombre}</span>
-                      ) : (
-                        <span className="text-muted-foreground italic text-[11px]">{m.clienteNombre || '—'}</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap py-3 px-4 text-right font-bold tabular-nums">{formatCOP(m.monto - (m.comisionCop ?? 0))}</td>
-                    <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.comisionCop ? formatCOP(m.comisionCop) : '—'}</td>
-                    <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.tipo === 'Pago' && (m.clienteId || m.clienteCodigo) ? formatCOP(m.monto) : '—'}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{m.referencia || '—'}</td>
-                    <CreatedByCell name={m.createdByName} />
-                    <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() => setEditingMovimiento(m)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                        title={isAdmin ? 'Editar o eliminar movimiento' : 'Editar movimiento'}
-                      >
-                        <i className="ri-edit-line text-xs" />
-                        <span>Editar</span>
-                      </button>
-                    </td>
-                  </tr>
-                )}</PaginatedRows>
+                <PaginatedRows columns={10} rows={visibleMovements}>{(m) => {
+                  const token = tokenByPayment.get(m.id);
+                  const tokenState = token && getTokenState(token);
+                  return (
+                    <tr key={m.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-4 font-mono font-medium text-foreground">{m.codigo}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{formatDate(m.fecha)}</td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            m.tipo === 'Ingreso'
+                              ? 'bg-emerald-500/10 text-emerald-500'
+                              : 'bg-amber-500/10 text-amber-500'
+                          }`}
+                        >
+                          {m.tipo === 'Ingreso' ? 'Ingreso' : 'Salida'}
+                        </span>
+                      </td>
+                      {/* Exact Client Name from {CLIENTE} column */}
+                      <td className="py-3 px-4 font-semibold text-foreground">
+                        {m.clienteNombre && m.clienteNombre !== 'Ingreso de Caja' && m.clienteNombre !== 'Movimiento Interno' ? (
+                          <span className="font-mono text-xs">{m.clienteNombre}</span>
+                        ) : (
+                          <span className="text-muted-foreground italic text-[11px]">{m.clienteNombre || '—'}</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap py-3 px-4 text-right font-bold tabular-nums">{formatCOP(m.monto - (m.comisionCop ?? 0))}</td>
+                      <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.comisionCop ? formatCOP(m.comisionCop) : '—'}</td>
+                      <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.tipo === 'Pago' && (m.clienteId || m.clienteCodigo) ? formatCOP(m.monto) : '—'}</td>
+                      <td className="py-3 px-4 text-muted-foreground">
+                        <span>{m.referencia || '—'}</span>
+                        {token && tokenState && (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                            <button type="button" onClick={() => setVoucher(token)}
+                              className={'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold hover:underline ' + (tokenState === 'activo' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground')}>
+                              <i className="ri-ticket-2-line" aria-hidden="true" /> {tokenLabels[tokenState]}
+                            </button>
+                            {isAdmin && (tokenState === 'expirado' || tokenState === 'cancelado') && (
+                              <button type="button" disabled={Boolean(issuingId)} onClick={() => void replaceToken(m.id)}
+                                className="font-semibold text-primary hover:underline disabled:opacity-50">
+                                {issuingId === m.id ? 'Emitiendo…' : 'Reemitir'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <CreatedByCell name={m.createdByName} />
+                      <td className="py-2.5 px-4 text-center whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => setEditingMovimiento(m)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                          title={isAdmin ? 'Editar o eliminar movimiento' : 'Editar movimiento'}
+                        >
+                          <i className="ri-edit-line text-xs" />
+                          <span>Editar</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                }}</PaginatedRows>
               )}
             </tbody>
           </table>
@@ -251,12 +348,14 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         isOpen={Boolean(movementMode || editingMovimiento)}
         mode={movementMode ?? (editingMovimiento?.tipo === 'Pago' ? 'pago' : 'ingreso')}
         commissionEnabled
+        onTokenCreated={openNewToken}
         record={editingMovimiento}
         onClose={() => {
           setMovementMode(null);
           setEditingMovimiento(null);
         }}
       />
+      <TokenVoucherModal isOpen={Boolean(voucher)} token={voucher} onClose={() => setVoucher(null)} />
       <AddGastoModal
         isOpen={isAddGastoOpen}
         onClose={() => setIsAddGastoOpen(false)}

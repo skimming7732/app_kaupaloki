@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -126,6 +127,8 @@ export const TokensView: React.FC = () => {
           redeemed_by_name: profile?.full_name || user?.email || 'Cajero',
         })
         .eq('id', token.id)
+        .eq('estado', 'activo')
+        .gt('expires_at', new Date().toISOString())
         .select()
         .single();
 
@@ -163,6 +166,8 @@ export const TokensView: React.FC = () => {
           cancel_reason: reason.trim() || null,
         })
         .eq('id', token.id)
+        .eq('estado', 'activo')
+        .gt('expires_at', new Date().toISOString())
         .select()
         .single();
 
@@ -370,7 +375,7 @@ export const TokensView: React.FC = () => {
 
       <div className="flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground">
         <i className="ri-shield-check-line mt-0.5 text-primary" aria-hidden="true" />
-        <p>Vales de autorización para entregas en caja. Su emisión y validación no modifican los saldos de los activos.</p>
+        <p>Los tokens creados en esta vista son independientes de caja. Los tokens vinculados toman el importe del pago registrado en Efectivo.</p>
       </div>
 
       {/* Tokens Table Card */}
@@ -385,6 +390,7 @@ export const TokensView: React.FC = () => {
                 <th className="py-3.5 px-4">Fecha</th>
                 <th className="py-3.5 px-4">Monto & Divisa</th>
                 <th className="py-3.5 px-4">Beneficiario / Ref</th>
+                <th className="py-3.5 px-4">Pago vinculado</th>
                 <th className="py-3.5 px-4">Autor</th>
                 <th className="py-3.5 px-4">Estado</th>
                 <th className="py-3.5 px-4 text-right">Acciones</th>
@@ -393,20 +399,20 @@ export const TokensView: React.FC = () => {
             <tbody className="block divide-y divide-border text-xs text-foreground lg:table-row-group">
               {loading && tokens.length === 0 ? (
                 <tr className="block lg:table-row">
-                  <td colSpan={8} className="block py-12 text-center lg:table-cell text-muted-foreground">
+                  <td colSpan={9} className="block py-12 text-center lg:table-cell text-muted-foreground">
                     <i className="ri-loader-4-line animate-spin text-2xl text-primary block mb-2" />
                     Cargando tokens de retiro...
                   </td>
                 </tr>
               ) : filteredTokens.length === 0 ? (
                 <tr className="block lg:table-row">
-                  <td colSpan={8} className="block py-12 text-center lg:table-cell text-muted-foreground">
+                  <td colSpan={9} className="block py-12 text-center lg:table-cell text-muted-foreground">
                     <i className="ri-ticket-2-line text-3xl text-muted-foreground block mb-2" />
                     No se encontraron tokens con los filtros seleccionados
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows rows={filteredTokens} columns={8}>
+                <PaginatedRows rows={filteredTokens} columns={9}>
                   {(token) => {
                     const state = getTokenState(token);
                     const badge = tokenBadges[state];
@@ -418,6 +424,12 @@ export const TokensView: React.FC = () => {
                       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                     });
                     const status = <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${badge.style}`}>{badge.label}</span>;
+
+                    const paymentLink = token.efectivo_id ? (
+                      <Link className="font-semibold text-primary hover:underline" to={'/efectivo?pago=' + token.efectivo_id}>
+                        {token.pago_codigo || 'Ver pago'}
+                      </Link>
+                    ) : token.pago_codigo ? token.pago_codigo + ' · Anulado' : 'Independiente';
 
                     return (
                       <tr key={token.id} className="block p-3 lg:table-row lg:p-0 lg:hover:bg-muted/30">
@@ -433,6 +445,7 @@ export const TokensView: React.FC = () => {
                                   <span className="text-sm font-bold tabular-nums">{amount}</span>
                                   {status}
                                 </div>
+                                <p className="text-muted-foreground">{paymentLink}</p>
                                 {token.referencia && <p className="break-words text-muted-foreground">{token.referencia}</p>}
                                 <p className="text-muted-foreground">{date} · {token.created_by_name || 'Sistema'}</p>
                               </div>
@@ -461,6 +474,7 @@ export const TokensView: React.FC = () => {
                         <td className="hidden whitespace-nowrap px-3 py-3 text-muted-foreground lg:table-cell">{date}</td>
                         <td className="hidden whitespace-nowrap px-3 py-3 font-semibold tabular-nums lg:table-cell">{amount}</td>
                         <td className="hidden max-w-40 break-words px-3 py-3 lg:table-cell">{token.referencia || '—'}</td>
+                        <td className="hidden px-3 py-3 text-muted-foreground lg:table-cell">{paymentLink}</td>
                         <td className="hidden px-3 py-3 text-muted-foreground lg:table-cell">{token.created_by_name || 'Sistema'}</td>
                         <td className="hidden px-3 py-3 lg:table-cell">{status}</td>
                         <td className="block pt-2 lg:table-cell lg:px-3 lg:py-3">

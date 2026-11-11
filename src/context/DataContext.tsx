@@ -1,3 +1,4 @@
+import type { CashToken } from '../utils/tokenVoucherGenerator';
 import { capitalLabels, loadCapitalRows, summarizeCapital, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
@@ -297,7 +298,7 @@ interface DataContextType {
   createDispersion: (payload: any) => Promise<boolean>;
   updateDispersion: (payload: any) => Promise<boolean>;
   updateGasto: (payload: any) => Promise<boolean>;
-  createMovimientoEfectivo: (payload: any) => Promise<boolean>;
+  createMovimientoEfectivo: (payload: any, onTokenCreated?: (token: CashToken) => void) => Promise<boolean>;
   updateMovimientoEfectivo: (payload: any) => Promise<boolean>;
   deleteMovimientoEfectivo: (id: string) => Promise<boolean>;
   createGasto: (payload: any) => Promise<boolean>;
@@ -1453,14 +1454,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const createMovimientoEfectivo = async (payload: any): Promise<boolean> => {
+  const createMovimientoEfectivo = async (payload: any, onTokenCreated?: (token: CashToken) => void): Promise<boolean> => {
     try {
       const clientRaw = payload.clienteId || (Array.isArray(payload.Cliente) ? payload.Cliente[0] : payload.Cliente);
       const clientObj = data.clientes.find((c) => c.id === clientRaw || c.codigo === clientRaw);
       const montoNum = Number(payload.montoCop ?? payload.monto ?? payload['Monto'] ?? 0);
       const tipoStr = String(payload.tipo || payload['Tipo'] || 'PAGO').toUpperCase();
       const referencia = String(payload.referencia ?? payload['Referencia'] ?? '').trim();
-      if (!referencia) throw new Error('Ingresa una referencia o PIN.');
+      if (!referencia) throw new Error('Ingresa una referencia.');
 
       const insertData: any = {
         fecha: payload.fecha || payload['Fecha'] || new Date().toISOString().split('T')[0],
@@ -1475,6 +1476,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         referencia,
       };
       if (payload.codigo) insertData.codigo = payload.codigo;
+
+      if (payload.tokenRequestId) {
+        const { data: token, error } = await supabase.rpc('registrar_pago_con_token', {
+          p_pago: { ...insertData, id: payload.tokenRequestId },
+        });
+        if (error) throw error;
+        await fetchFromSupabase();
+        onTokenCreated?.(token as CashToken);
+        return true;
+      }
 
       const id = crypto.randomUUID();
       const { error } = await writeDashboardRecord({ ...insertData, id }, (fields) => supabase.from('efectivo').insert(fields), {
@@ -1499,7 +1510,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const montoNum = Number(payload.montoCop ?? payload.monto ?? payload['Monto'] ?? 0);
       const tipoStr = String(payload.tipo || payload['Tipo'] || 'PAGO').toUpperCase();
       const referencia = String(payload.referencia ?? payload['Referencia'] ?? '').trim();
-      if (!referencia) throw new Error('Ingresa una referencia o PIN.');
+      if (!referencia) throw new Error('Ingresa una referencia.');
 
       const updateData: any = {
         fecha: payload.fecha || payload['Fecha'],

@@ -202,6 +202,8 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
           redeemed_by_name: profile?.full_name || user?.email || 'Cajero',
         })
         .eq('id', foundToken.id)
+        .eq('estado', 'activo')
+        .gt('expires_at', new Date().toISOString())
         .select()
         .single();
 
