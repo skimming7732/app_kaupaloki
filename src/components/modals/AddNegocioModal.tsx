@@ -65,15 +65,17 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
 
   const selectedCurrency = data.divisas.find((currency) => currency.codigo === divisaCode);
   const fromFinal = amountMode === 'final';
-  const parsedTasa = parseAmountInput(tasa);
+  const parsedTasa = tasa.trim() === '' ? 0 : parseAmountInput(tasa);
   const parsedFinal = parseFinalAmount(montoFinal);
   const parsedMonto = fromFinal
     ? (Number.isFinite(parsedFinal) && parsedTasa > 0 ? parsedFinal / parsedTasa : NaN)
     : parseAmountInput(monto);
   const ingresoCOP = fromFinal
     ? (Number.isFinite(parsedFinal) ? parsedFinal : 0)
-    : (Number.isFinite(parsedMonto) && parsedMonto > 0 && Number.isFinite(parsedTasa) && parsedTasa > 0 ? parsedMonto * parsedTasa : 0);
-  const validQuote = fromFinal ? Number.isFinite(parsedFinal) && parsedFinal > 0 && parsedTasa > 0 : ingresoCOP > 0;
+    : (Number.isFinite(parsedMonto) && parsedMonto > 0 && Number.isFinite(parsedTasa) && parsedTasa >= 0 ? parsedMonto * parsedTasa : 0);
+  const validQuote = fromFinal
+    ? Number.isFinite(parsedFinal) && parsedFinal > 0 && parsedTasa > 0
+    : Number.isFinite(parsedMonto) && parsedMonto > 0 && Number.isFinite(parsedTasa) && parsedTasa >= 0;
   const authorName = data.usuarios.find((user) => user.id === authorId)?.nombre
     || data.usuarios.find((user) => user.id === negocio?.createdBy)?.nombre
     || negocio?.createdByName;
@@ -169,7 +171,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
         tasaCambio: parsedTasa,
         createdBy: canAssignAuthor ? (authorId || undefined) : undefined,
       };
-      const ok = negocio ? await updateNegocio(negocio.id, fields) : await createNegocio(fields);
+      const ok = negocio ? await updateNegocio({ id: negocio.id, ...fields, ingresoCOP }) : await createNegocio(fields);
       if (!ok) throw new Error('No se pudo guardar la operación. Inténtalo de nuevo.');
       finishSound(true);
       onClose();
@@ -291,7 +293,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
             </div>
             <div>
               <label htmlFor={id + '-rate'} className={labelClass}>Tasa de cambio en COP</label>
-              <input id={id + '-rate'} type="text" inputMode="decimal" required value={tasa} onChange={(event) => { const rate = formatAmountField(event.currentTarget); if (rate !== undefined) setTasa(rate); }} placeholder="Ej. 3,950.0000" className={fieldClass} />
+              <input id={id + '-rate'} type="text" inputMode="decimal" value={tasa} onChange={(event) => { const rate = formatAmountField(event.currentTarget); if (rate !== undefined) setTasa(rate); }} placeholder="Ej. 3,950.0000" className={fieldClass} />
               {parsedTasa === 0 && (
                 <p className={`mt-1 text-xs ${fromFinal ? 'text-destructive' : 'text-muted-foreground'}`}>
                   {fromFinal ? 'Con tasa cero, selecciona Monto inicial.' : 'El ingreso será $0 COP.'}

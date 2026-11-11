@@ -1524,9 +1524,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateNegocio = async (payload: any): Promise<boolean> => {
+  const updateNegocio = async (payloadOrId: any, maybeFields?: any): Promise<boolean> => {
     requireWrite('business');
     try {
+      const payload = typeof payloadOrId === 'string' && maybeFields
+        ? { id: payloadOrId, ...maybeFields }
+        : (typeof payloadOrId === 'object' && payloadOrId ? payloadOrId : { id: payloadOrId });
       const { id, ...fields } = payload;
       const updates: any = {};
       const clientId = fields.clienteId || fields.Cliente?.[0];
@@ -1555,6 +1558,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (fields.ingresoCOP !== undefined) {
         updates.ingreso_cop = Number(fields.ingresoCOP);
         updates.monto_cop = Number(fields.ingresoCOP);
+      } else if (fields.montoDivisa !== undefined && fields.tasaCambio !== undefined) {
+        const calculated = Number(fields.montoDivisa) * Number(fields.tasaCambio);
+        updates.ingreso_cop = calculated;
+        updates.monto_cop = calculated;
       }
       if (fields.estado !== undefined) updates.estado = fields.estado;
       if (fields.authorId) updates.created_by = fields.authorId;
