@@ -135,6 +135,9 @@ export interface NormalizedData {
     totalIngresosCOP: number;
     totalDispersadoCOP: number;
     saldoPendienteCOP: number;
+    saldoCop: number;
+    saldoInicialCop?: number;
+    conceptoSaldoInicial?: string;
     porCobrarCOP: number;
     esComisionista: boolean;
     comisionaDeIds: string[];
@@ -848,11 +851,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : 0;
       const esComisionista: boolean = Boolean(comisionistaRecord);
 
+      const saldoInicialCop = Number(c.saldoInicialCop ?? c.saldo_inicial_cop ?? 0);
+      const conceptoSaldoInicial = c.conceptoSaldoInicial || c.concepto_saldo_inicial || '';
       const totalNegocios = Math.max(Number(c.totalNegocios || c.total_negocios || 0), dynamicNegociosCount);
       const baseIngresos = Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0);
       const totalIngresos = Math.max(baseIngresos, dynamicIngresos + totalComisionesCOP);
       const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
-      const saldo = Number(c.saldoCop ?? (totalIngresos - totalDispersado)) + (totalIngresos - baseIngresos);
+      const saldo = (totalIngresos + saldoInicialCop) - totalDispersado;
       const saldoPendiente = Math.max(0, saldo);
       const porCobrarCOP = Math.max(0, -saldo);
       let estado = c.estado || 'SIN ACTIVIDAD';
@@ -860,11 +865,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const up = estado.toUpperCase();
         if (porCobrarCOP > 0) estado = 'DEBE';
         else if (saldoPendiente > 0) estado = 'PENDIENTE';
-        else if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = (totalIngresos > 0 || totalDispersado > 0) ? 'PAGADO' : 'SIN ACTIVIDAD';
+        else if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = (totalIngresos > 0 || totalDispersado > 0 || saldoInicialCop !== 0) ? (saldo === 0 ? 'PAGADO' : saldo < 0 ? 'DEBE' : 'PENDIENTE') : 'SIN ACTIVIDAD';
         else if (up.includes('PAGADO')) estado = 'PAGADO';
         else if (up.includes('DEBE')) estado = 'DEBE';
-        else if (totalIngresos === 0 && totalDispersado === 0) estado = 'SIN ACTIVIDAD';
-        else estado = 'PENDIENTE';
+        else if (totalIngresos === 0 && totalDispersado === 0 && saldoInicialCop === 0) estado = 'SIN ACTIVIDAD';
+        else estado = saldo < 0 ? 'DEBE' : saldo > 0 ? 'PENDIENTE' : 'PAGADO';
       }
 
       const fullCode = c.codigo || c.idCliente || c.cliente || c['CLIENTE'] || c.nombre || 'C-000';
@@ -886,6 +891,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalIngresosCOP: totalIngresos,
         totalDispersadoCOP: totalDispersado,
         saldoPendienteCOP: saldoPendiente,
+        saldoCop: saldo,
+        saldoInicialCop,
+        conceptoSaldoInicial,
         porCobrarCOP,
         estado,
         dispersionesIds: Array.isArray(rawDispersionesIds) ? rawDispersionesIds : [rawDispersionesIds],

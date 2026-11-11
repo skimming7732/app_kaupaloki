@@ -6,7 +6,72 @@ ALTER TABLE public.clientes
   ADD COLUMN IF NOT EXISTS saldo_inicial_cop NUMERIC DEFAULT 0 NOT NULL,
   ADD COLUMN IF NOT EXISTS concepto_saldo_inicial TEXT;
 
--- 2. Update fn_recalculate_financial_aggregates to incorporate saldo_inicial_cop in balance and status
+-- 2. Trigger on clientes to automatically recalculate saldo_cop, pendiente_cop, and estado
+CREATE OR REPLACE FUNCTION public.fn_clientes_recalculate_balance()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $$
+DECLARE
+  v_effective_income NUMERIC;
+BEGIN
+  NEW.saldo_inicial_cop := COALESCE(NEW.saldo_inicial_cop, 0);
+  NEW.ingresos_cop := COALESCE(NEW.ingresos_cop, 0);
+  NEW.pagado_cop := COALESCE(NEW.pagado_cop, 0);
+
+  v_effective_income := NEW.ingresos_cop + NEW.saldo_inicial_cop;
+  NEW.saldo_cop := v_effective_income - NEW.pagado_cop;
+  NEW.pendiente_cop := GREATEST(0, NEW.saldo_cop);
+
+  IF NEW.saldo_cop < 0 THEN
+    NEW.estado := 'DEBE';
+  ELSIF NEW.saldo_cop > 0 THEN
+    NEW.estado := 'PENDIENTE';
+  ELSIF v_effective_income = 0 AND NEW.pagado_cop = 0 THEN
+    NEW.estado := 'SIN ACTIVIDAD';
+  ELSE
+    NEW.estado := 'PAGADO';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_clientes_balance ON public.clientes;
+CREATE TRIGGER trg_clientes_balance
+BEFORE INSERT OR UPDATE OF ingresos_cop, pagado_cop, saldo_inicial_cop
+ON public.clientes
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_clientes_recalculate_balance();
+
+-- 3. Trigger to keep resumen_liquidacion updated when clients balance changes
+CREATE OR REPLACE FUNCTION public.fn_clientes_after_balance_update()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN
+    RETURN NULL;
+  END IF;
+  UPDATE public.resumen_liquidacion
+  SET saldo_neto_clientes_cop = (SELECT COALESCE(SUM(saldo_cop), 0) FROM public.clientes),
+      total_saldo_pendiente_clientes_cop = (SELECT COALESCE(SUM(GREATEST(0, pendiente_cop)), 0) FROM public.clientes),
+      updated_at = NOW();
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_clientes_after_balance ON public.clientes;
+CREATE TRIGGER trg_clientes_after_balance
+AFTER INSERT OR UPDATE OF saldo_cop, pendiente_cop
+ON public.clientes
+FOR EACH STATEMENT
+EXECUTE FUNCTION public.fn_clientes_after_balance_update();
+
+-- 4. Update fn_recalculate_financial_aggregates to incorporate saldo_inicial_cop in balance and status
 CREATE OR REPLACE FUNCTION public.fn_recalculate_financial_aggregates()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -143,7 +208,7 @@ BEGIN
 END;
 $function$;
 
--- 3. Update abrir_portal_cliente to include saldoInicialCOP, conceptoSaldoInicial, fechaCreacion
+-- 5. Update abrir_portal_cliente to include saldoInicialCOP, conceptoSaldoInicial, fechaCreacion
 CREATE OR REPLACE FUNCTION public.abrir_portal_cliente(p_token uuid, p_pin text)
  RETURNS jsonb
  LANGUAGE plpgsql
