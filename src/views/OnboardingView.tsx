@@ -262,7 +262,7 @@ export const OnboardingView: React.FC = () => {
                   required
                   readOnly={isNombreLocked}
                   value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
+                  onChange={(e) => setNombre(e.target.value.toUpperCase())}
                   placeholder={fetchingInfo ? 'Cargando datos...' : 'Ej: Daniel Ramírez'}
                   className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-foreground outline-none transition-colors ${
                     isNombreLocked

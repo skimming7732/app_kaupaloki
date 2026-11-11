@@ -178,7 +178,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
       const payload = {
         action: 'prepare_invited_user',
         email: email.trim().toLowerCase(),
-        fullName: nombre.trim(),
+        fullName: nombre.trim().toUpperCase(),
         role: rol,
         pais,
         authorizedCurrencies: currenciesToAssign,
@@ -325,9 +325,9 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose }) =
                     type="text"
                     required
                     value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    placeholder="Ej. Carlos Mendoza"
-                    className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    onChange={(e) => setNombre(e.target.value.toUpperCase())}
+                    placeholder="EJ. CARLOS MENDOZA"
+                    className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-xs text-foreground uppercase placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   />
                 </div>
 

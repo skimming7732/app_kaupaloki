@@ -74,7 +74,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
     const finishSound = prepareSuccessSound();
     try {
       await updateRecord('Usuarios', user.id, {
-        'Nombre': nombre.trim(),
+        'Nombre': nombre.trim().toUpperCase(),
         'Correo': correo.trim().toLowerCase(),
         'Rol': rol,
         'País': pais,
@@ -151,8 +151,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
                 type="text"
                 required
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                onChange={(e) => setNombre(e.target.value.toUpperCase())}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground uppercase focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               />
             </div>
 
