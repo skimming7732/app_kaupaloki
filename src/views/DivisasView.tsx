@@ -142,6 +142,40 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
           </tbody>
         </table>
       </div>
+
+      {/* Mobile Movements Cards */}
+      <div className="block md:hidden space-y-2.5">
+        {movimientos.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground bg-card border border-border rounded-xl">
+            {rawMovimientos.length === 0
+              ? 'No hay movimientos registrados para esta divisa.'
+              : 'No hay movimientos en el rango de fechas seleccionado.'}
+          </div>
+        ) : (
+          movimientos.map((item) => (
+            <div key={item.tipo + '-' + item.id} className="p-3.5 rounded-xl bg-card border border-border shadow-xs space-y-2 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">{item.tipo}</span>
+                  <span className="font-mono text-[11px] text-muted-foreground">{item.codigo}</span>
+                </div>
+                <span className="font-mono text-[11px] text-muted-foreground">{formatDate(item.fecha)}</span>
+              </div>
+              {item.detalle && (
+                <p className="text-muted-foreground text-[11px] truncate">{item.detalle}</p>
+              )}
+              <div className="flex items-center justify-between pt-1.5 border-t border-border/50 font-mono text-xs font-bold">
+                <span className="text-muted-foreground text-[10px] font-sans">Monto</span>
+                {item.entrada ? (
+                  <span className="text-emerald-600 dark:text-emerald-400">+{formatCurrency(item.entrada, codigo)}</span>
+                ) : (
+                  <span className="text-rose-600 dark:text-rose-400">-{formatCurrency(item.salida, codigo)}</span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
@@ -275,34 +309,57 @@ export const DivisasView: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Movements Cards */}
+      {/* Mobile Divisas Cards */}
       <div className="block md:hidden space-y-2.5">
-        {movimientos.length === 0 ? (
+        {filteredDivisas.length === 0 ? (
           <div className="p-8 text-center text-xs text-muted-foreground bg-card border border-border rounded-xl">
-            {rawMovimientos.length === 0
-              ? 'No hay movimientos registrados para esta divisa.'
-              : 'No hay movimientos en el rango de fechas seleccionado.'}
+            No hay divisas que coincidan con la búsqueda
           </div>
         ) : (
-          movimientos.map((item) => (
-            <div key={item.tipo + '-' + item.id} className="p-3.5 rounded-xl bg-card border border-border shadow-xs space-y-2 text-xs">
+          filteredDivisas.map((d) => (
+            <div
+              key={d.id}
+              onClick={() => navigate('/divisas/' + d.codigo)}
+              className="p-3.5 rounded-xl bg-card border border-border shadow-xs space-y-2.5 text-xs cursor-pointer hover:border-primary/50 transition-colors"
+            >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">{item.tipo}</span>
-                  <span className="font-mono text-[11px] text-muted-foreground">{item.codigo}</span>
+                  <span className="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary inline-flex items-center gap-1.5">
+                    {(fallbackBanderaUrl[d.codigo] || d.banderaUrl) && (
+                      <img
+                        src={fallbackBanderaUrl[d.codigo] || d.banderaUrl}
+                        alt=""
+                        className="inline-block h-[1em] w-[1.35em] rounded-sm object-cover align-[-0.1em]"
+                        onError={(event) => { event.currentTarget.hidden = true; }}
+                      />
+                    )}
+                    <span>{d.codigo}</span>
+                    <i className="ri-arrow-right-s-line" aria-hidden="true" />
+                  </span>
+                  <span className="font-semibold text-foreground truncate">{d.nombre}</span>
                 </div>
-                <span className="font-mono text-[11px] text-muted-foreground">{formatDate(item.fecha)}</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 shrink-0">
+                  {d.estado || 'Activo'}
+                </span>
               </div>
-              {item.detalle && (
-                <p className="text-muted-foreground text-[11px] truncate">{item.detalle}</p>
-              )}
-              <div className="flex items-center justify-between pt-1.5 border-t border-border/50 font-mono text-xs font-bold">
-                <span className="text-muted-foreground text-[10px] font-sans">Monto</span>
-                {item.entrada ? (
-                  <span className="text-emerald-600 dark:text-emerald-400">+{formatCurrency(item.entrada, codigo)}</span>
-                ) : (
-                  <span className="text-rose-600 dark:text-rose-400">-{formatCurrency(item.salida, codigo)}</span>
-                )}
+
+              <div className="text-[11px] text-muted-foreground">
+                <span>{d.pais || 'Internacional'}</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50 text-center font-mono">
+                <div className="p-1.5 rounded-lg bg-muted/30">
+                  <span className="text-[10px] font-sans text-muted-foreground block">Recibido</span>
+                  <span className="font-bold text-foreground text-xs">{formatAmount(d.totalRecibido)}</span>
+                </div>
+                <div className="p-1.5 rounded-lg bg-muted/30">
+                  <span className="text-[10px] font-sans text-muted-foreground block">Comprado</span>
+                  <span className="font-bold text-foreground text-xs">{formatAmount(d.totalComprado)}</span>
+                </div>
+                <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <span className="text-[10px] font-sans text-amber-500 block">Pendiente</span>
+                  <span className="font-bold text-amber-500 text-xs">{formatAmount(d.totalPendiente)}</span>
+                </div>
               </div>
             </div>
           ))
