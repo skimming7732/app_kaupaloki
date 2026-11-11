@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatCOP, formatNumber, formatDate, formatCurrency, formatRate, compareChronologicalDesc } from '../utils/formatters';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { ReceiptLightboxModal, type LightboxItem } from '../components/modals/ReceiptLightboxModal';
 import { EditClienteModal } from '../components/modals/EditClienteModal';
@@ -357,16 +357,19 @@ export const ClienteDetalleView: React.FC = () => {
                     <i className={copiedCode ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
                   </button>
                 </div>
-                {cliente.createdBy && (
-                  <div className="flex items-center gap-1">
-                    <i className="ri-user-smile-line text-muted-foreground" />
-                    <span>Registrado por: <strong>{cliente.createdBy}</strong></span>
-                  </div>
-                )}
-                {cliente.createdAt && (
+                {(() => {
+                  const author = formatAuthorName(cliente.createdByName, cliente.createdBy, data.usuarios);
+                  return author && author !== 'Sin registro' ? (
+                    <div className="flex items-center gap-1">
+                      <i className="ri-user-smile-line text-muted-foreground" />
+                      <span>Registrado por: <strong>{author}</strong></span>
+                    </div>
+                  ) : null;
+                })()}
+                {(cliente.createdAt || cliente.createdAtAudit || cliente.fechaCreacion || cliente.raw?.created_at) && (
                   <div className="flex items-center gap-1">
                     <i className="ri-calendar-line text-muted-foreground" />
-                    <span>Fecha alta: {formatDate(cliente.createdAt)}</span>
+                    <span>Fecha alta: {formatDate(cliente.createdAt || cliente.createdAtAudit || cliente.fechaCreacion || cliente.raw?.created_at)}</span>
                   </div>
                 )}
               </div>

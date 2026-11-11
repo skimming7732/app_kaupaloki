@@ -414,7 +414,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                         </button>
                       </div>
                     </td>
-                    <CreatedByCell name={c.createdByName} />
+                    <CreatedByCell name={c.createdByName} createdBy={c.createdBy} />
                   </tr>
                 )}</PaginatedRows>
               )}
