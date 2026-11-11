@@ -125,10 +125,11 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
       <div className="space-y-4">
         <KpiStrip metrics={[
           { label: 'Total capital aportado', value: formatCOP(dirTotals.capital), featured: true },
-          { label: 'Dividendos a socios', value: formatCOP(dirTotals.dividends) },
-          { label: 'Adelantos a socios', value: formatCOP(dirTotals.advances) },
-          { label: 'Saldo por liquidar a socios', value: <span className={dirTotals.balanceSocios > 0 ? 'text-primary font-bold' : ''}>{formatCOP(dirTotals.balanceSocios)}</span> },
-          { label: 'Intereses a inversionistas', value: formatCOP(dirTotals.interest) },
+          { label: 'Ganado por dividendos', value: formatCOP(dirTotals.dividends) },
+          { label: 'Ganado por intereses', value: formatCOP(dirTotals.interest) },
+          { label: 'Total ganancias generadas', value: formatCOP(dirTotals.dividends + dirTotals.interest) },
+          { label: 'Adelantos entregados', value: formatCOP(dirTotals.advances) },
+          { label: 'Saldo por liquidar a socios', value: <span className={dirTotals.balanceSocios > 0 ? 'text-primary font-bold' : ''}>{formatCOP(dirTotals.balanceSocios)}</span>, featured: true },
         ]} />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -144,14 +145,18 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
               const summary = summarizeCapital(personMovements);
               const contractsWithComments = personMovements.filter((row) => row.tipo === 'CONTRATO' && row.condiciones?.trim());
               const isPartner = person.tipo === 'SOCIO';
+              const totalGanado = summary.dividends + summary.interest;
               const figures = isPartner ? [
                 { label: 'Capital aportado', amount: summary.capital },
-                { label: 'Dividendos asignados', amount: summary.dividends },
+                { label: 'Ganado por dividendo', amount: summary.dividends },
+                ...(summary.interest > 0 ? [{ label: 'Ganado por interés', amount: summary.interest }] : []),
+                { label: 'Total ganancias', amount: totalGanado },
                 { label: 'Adelantos entregados', amount: summary.advances },
                 { label: 'Saldo por liquidar', amount: summary.balance },
               ] : [
                 { label: 'Capital invertido', amount: summary.capital },
-                { label: 'Intereses generados', amount: summary.interest },
+                { label: 'Ganado por interés', amount: summary.interest },
+                { label: 'Intereses pagados', amount: summary.interestPaid },
                 { label: 'Saldo por liquidar', amount: summary.balance },
               ];
               return (
@@ -230,19 +235,33 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
     <div className="space-y-4">
       {currentPerson && backLink}
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {currentPerson ? <div className="min-w-0 mr-2">
             <h2 className="break-words text-base font-semibold">{currentPerson.nombre}</h2>
             <p className="text-xs text-muted-foreground">{currentPerson.tipo === 'SOCIO' ? 'Socio' : 'Inversionista'}</p>
           </div> : <>
             <label htmlFor="capital-person-filter" className="sr-only">Socio o inversionista</label>
-            <select id="capital-person-filter" className={recordFieldClass + ' w-auto'} value={selected} onChange={(event) => setSelected(event.target.value)}>
-              <option value="">Todos los socios e inversionistas</option>
-              {people.map((person) => <option key={person.id} value={person.id}>{person.nombre}</option>)}
+            <select
+              id="capital-person-filter"
+              className="h-10 min-w-36 max-w-xs rounded-xl border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shrink-0"
+              value={selected}
+              onChange={(event) => setSelected(event.target.value)}
+            >
+              <option value="">Todos los integrantes</option>
+              {people.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.nombre} ({person.tipo === 'SOCIO' ? 'Socio' : 'Inv.'})
+                </option>
+              ))}
             </select>
           </>}
           <label htmlFor="capital-kind-filter" className="sr-only">Tipo de movimiento</label>
-          <select id="capital-kind-filter" className={recordFieldClass + ' w-auto'} value={kindFilter} onChange={(event) => setKindFilter(event.target.value as CapitalKind | '')}>
+          <select
+            id="capital-kind-filter"
+            className="h-10 min-w-36 max-w-xs rounded-xl border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 shrink-0"
+            value={kindFilter}
+            onChange={(event) => setKindFilter(event.target.value as CapitalKind | '')}
+          >
             <option value="">Todos los movimientos</option>
             {(Object.keys(capitalLabels) as CapitalKind[]).map((k) => (
               <option key={k} value={k}>{capitalLabels[k]}</option>
@@ -261,21 +280,24 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
 
       {loadError}
       <KpiStrip metrics={currentPerson?.tipo === 'SOCIO' ? [
-        { label: 'Capital aportado', value: formatCOP(totals.capital), featured: true },
-        { label: 'Dividendos asignados', value: formatCOP(totals.dividends) },
+        { label: 'Capital aportado', value: formatCOP(totals.capital) },
+        { label: 'Ganado por dividendo', value: formatCOP(totals.dividends) },
+        { label: 'Ganado por interés', value: formatCOP(totals.interest) },
+        { label: 'Total ganancias generadas', value: formatCOP(totals.dividends + totals.interest), featured: true },
         { label: 'Adelantos entregados', value: formatCOP(totals.advances) },
-        { label: 'Saldo por liquidar', value: formatCOP(totals.balance), featured: true },
+        { label: 'Saldo por liquidar', value: <span className={totals.balance > 0 ? 'text-primary font-bold' : ''}>{formatCOP(totals.balance)}</span>, featured: true },
       ] : currentPerson?.tipo === 'INVERSIONISTA' ? [
-        { label: 'Capital invertido', value: formatCOP(totals.capital), featured: true },
-        { label: 'Intereses generados', value: formatCOP(totals.interest) },
+        { label: 'Capital invertido', value: formatCOP(totals.capital) },
+        { label: 'Ganado por interés', value: formatCOP(totals.interest), featured: true },
         { label: 'Intereses pagados', value: formatCOP(totals.interestPaid) },
-        { label: 'Saldo por pagar', value: formatCOP(totals.balance), featured: true },
+        { label: 'Saldo pendiente por pagar', value: <span className={totals.balance > 0 ? 'text-primary font-bold' : ''}>{formatCOP(totals.balance)}</span>, featured: true },
       ] : [
-        { label: 'Total capital', value: formatCOP(totals.capital), featured: true },
-        { label: 'Dividendos a socios', value: formatCOP(totals.dividends) },
-        { label: 'Adelantos a socios', value: formatCOP(totals.advances) },
-        { label: 'Saldo por liquidar a socios', value: formatCOP(totals.balanceSocios), featured: true },
-        { label: 'Intereses a inversionistas', value: formatCOP(totals.interest) },
+        { label: 'Total capital aportado', value: formatCOP(totals.capital) },
+        { label: 'Ganado por dividendos', value: formatCOP(totals.dividends) },
+        { label: 'Ganado por intereses', value: formatCOP(totals.interest) },
+        { label: 'Total ganancias asignadas', value: formatCOP(totals.dividends + totals.interest), featured: true },
+        { label: 'Total adelantos entregados', value: formatCOP(totals.advances) },
+        { label: 'Saldo total por liquidar', value: <span className={totals.balance > 0 ? 'text-primary font-bold' : ''}>{formatCOP(totals.balance)}</span>, featured: true },
       ]} />
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
