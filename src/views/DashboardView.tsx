@@ -189,11 +189,11 @@ export const DashboardView: React.FC = () => {
               <i className="ri-group-line" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h4 className="text-sm font-semibold text-foreground">Dividendos y adelantos asignados</h4>
+              <h4 className="text-sm font-semibold text-foreground">Dividendos asignados</h4>
               <p className="mt-2 break-words text-2xl font-bold leading-tight tracking-tight tabular-nums text-foreground xl:text-3xl">
                 {formatCOP(metrics.dividendosSociosCOP ? -metrics.dividendosSociosCOP : 0)}
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">Distribución de la ganancia + adelantos</p>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">Distribución de la ganancia neta a socios</p>
             </div>
           </article>
           <article className="flex min-w-0 items-start gap-3 rounded-2xl border border-primary/35 bg-gradient-to-br from-primary/10 to-card p-4 sm:p-5">

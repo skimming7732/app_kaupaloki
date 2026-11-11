@@ -57,11 +57,8 @@ export function summarizeCapital(rows: CapitalMovement[]) {
     sum.balance += amounts.balance;
     sum.interest += amounts.interest;
     sum.dividends += amounts.dividends;
-    if (row.tipo === 'ADELANTO') {
-      sum.advances += Number(row.monto_cop) || 0;
-    }
     return sum;
-  }, { capital: 0, balance: 0, interest: 0, dividends: 0, advances: 0 });
+  }, { capital: 0, balance: 0, interest: 0, dividends: 0 });
 }
 
 export async function loadCapitalRows<T>(table: 'capital_socios' | 'capital_movimientos'): Promise<T[]> {
