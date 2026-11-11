@@ -167,7 +167,7 @@ export const SaldoInicialModal: React.FC<SaldoInicialModalProps> = ({ cliente, i
               inputMode="decimal"
               required
               value={monto}
-              onChange={(e) => formatAmountField(e, setMonto)}
+              onChange={(e) => { const value = formatAmountField(e.currentTarget); if (value !== undefined) setMonto(value); }}
               placeholder="0 COP"
               className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm font-mono font-bold text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />

@@ -243,7 +243,7 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
                     type="text"
                     inputMode="decimal"
                     value={montoSaldo}
-                    onChange={(e) => formatAmountField(e, setMontoSaldo)}
+                    onChange={(e) => { const value = formatAmountField(e.currentTarget); if (value !== undefined) setMontoSaldo(value); }}
                     placeholder="0 COP"
                     className="w-full px-3 py-1.5 rounded-lg border border-input bg-background text-xs font-mono font-bold text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                   />
