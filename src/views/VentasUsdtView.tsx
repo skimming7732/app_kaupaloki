@@ -69,6 +69,13 @@ export const VentasUsdtView: React.FC = () => {
             Monetización y dispersión de Tether a cuentas bancarias y caja de efectivo
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <AddCatalogButton table="ventas_usdt" />
+        </div>
+      </div>
+
+      {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
+      <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
         <div className="flex items-center justify-between gap-2.5">
           {/* Left: Search + Divisa */}
           <div className="flex items-center gap-2 flex-1 min-w-0 max-w-2xl">

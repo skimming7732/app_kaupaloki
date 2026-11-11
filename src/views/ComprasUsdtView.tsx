@@ -66,6 +66,13 @@ export const ComprasUsdtView: React.FC = () => {
           <h2 className="text-base font-bold text-foreground">Compras USDT</h2>
           <p className="text-xs text-muted-foreground">Registro y custodia de adquisición de Tether en divisas internacionales</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <AddCatalogButton table="compras_usdt" />
+        </div>
+      </div>
+
+      {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
+      <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
         <div className="flex items-center justify-between gap-2.5">
           {/* Left: Search + Divisa */}
           <div className="flex items-center gap-2 flex-1 min-w-0 max-w-2xl">
