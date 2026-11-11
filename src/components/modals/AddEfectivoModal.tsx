@@ -5,6 +5,7 @@ import { formatCOP, todayBogota } from '../../utils/formatters';
 import React, { useId, useState } from 'react';
 import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { canDeleteRole } from '../../utils/roles';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 import { accountLabel } from './AccountSelect';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
@@ -40,6 +41,7 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, requi
   const { data, createMovimientoEfectivo, updateMovimientoEfectivo, deleteMovimientoEfectivo, createCliente } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canDelete = canDeleteRole(profile?.role);
   const id = useId();
 
   const initialTipo = mode === 'ingreso' || record?.tipo?.toUpperCase() === 'INGRESO' ? 'Ingreso' : 'Pago';
@@ -454,7 +456,7 @@ const EfectivoForm = ({ record, initialClienteId, mode, commissionEnabled, requi
             submitDisabled={!cashAccount}
             label={record ? 'Guardar cambios' : isPayment ? 'Registrar pago' : 'Registrar ingreso'}
             onClose={onClose}
-            onDelete={record && isAdmin ? handleDelete : undefined}
+            onDelete={record && canDelete ? handleDelete : undefined}
             deleteLabel="Eliminar movimiento"
           />
         </div>

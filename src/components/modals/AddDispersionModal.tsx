@@ -5,6 +5,7 @@ import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useEffect, useId, useState } from 'react';
 import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { canDeleteRole } from '../../utils/roles';
 import { formatCOP, todayBogota } from '../../utils/formatters';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 import { supabase } from '../../lib/supabase';
@@ -25,6 +26,7 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
   const { data, createDispersion, updateDispersion, deleteDispersion } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canDelete = canDeleteRole(profile?.role);
   const clientInputId = useId();
   const [clienteId, setClienteId] = useState(record?.clienteId || initialClienteId || '');
   const [accountId, setAccountId] = useState(record?.origenFondosId || '');
@@ -138,7 +140,7 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
           </div>
           {!record && <ReceiptInput disabled={busy} />}
         </fieldset>
-        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar dispersión"} onClose={onClose} onDelete={record && isAdmin ? handleDelete : undefined} deleteLabel="Eliminar dispersión" />
+        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar dispersión"} onClose={onClose} onDelete={record && canDelete ? handleDelete : undefined} deleteLabel="Eliminar dispersión" />
       </form>
     </RecordDialog>
   );

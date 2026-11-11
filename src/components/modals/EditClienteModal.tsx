@@ -1,6 +1,7 @@
 import React, { useId, useState } from 'react';
 import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { canDeleteRole } from '../../utils/roles';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { ClientCountrySelect } from '../common/ClientCountrySelect';
 
@@ -14,6 +15,7 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
   const { data, updateCliente, deleteCliente } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canDelete = canDeleteRole(profile?.role);
   const [nombre, setNombre] = useState(() => cliente?.nombre || '');
   const [pais, setPais] = useState(() => cliente?.pais || 'COLOMBIA');
   const countryId = useId();
@@ -182,7 +184,7 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
 
           <div className="flex items-center justify-between gap-3 pt-4 border-t border-border mt-6">
             <div>
-              {isAdmin && (
+              {canDelete && (
                 hasRelatedRecords ? (
                   <div className="flex items-center gap-2" title="No se puede eliminar: el cliente tiene registros o movimientos asociados">
                     <button

@@ -43,6 +43,7 @@ export const UsuariosView: React.FC = () => {
     dispersor: 'Dispersor',
     comercial: 'Comercial',
     supervisor: 'Supervisor',
+    auditor: 'Auditor',
   };
 
   const filteredUsers = useMemo(() => {
@@ -189,7 +190,7 @@ export const UsuariosView: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        {['administrador', 'super_admin', 'supervisor'].includes(u.rol) || !u.divisasAutorizadas?.length ||
+                        {['administrador', 'super_admin', 'supervisor', 'auditor'].includes(u.rol) || !u.divisasAutorizadas?.length ||
                           (data.divisas.length > 0 && data.divisas.every((d) => u.divisasAutorizadas?.includes(d.codigo))) ? (
                           <span className="text-xs font-semibold text-primary">Todas</span>
                         ) : (

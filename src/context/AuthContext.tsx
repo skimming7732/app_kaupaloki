@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else if (finalRole === 'dispersador' || finalRole === 'dispersor') finalRole = 'dispersor';
         else if (finalRole === 'administrador' || finalRole === 'admin') finalRole = 'administrador';
         else if (finalRole === 'cliente' || finalRole === 'client') finalRole = 'client';
-        else if (!['operador', 'comercial', 'supervisor'].includes(finalRole)) finalRole = 'client';
+        else if (!['operador', 'comercial', 'supervisor', 'auditor'].includes(finalRole)) finalRole = 'client';
 
         const readableRole = finalRole === 'client' ? 'CLIENTE' : roleLabels[finalRole as StaffRole].toUpperCase();
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useData, type TransferenciaInterna } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { canDeleteRole } from '../../utils/roles';
 import { formatNumber, formatCOP } from '../../utils/formatters';
 import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
@@ -15,6 +16,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
   const { data, createTransferenciaInterna, updateTransferenciaInterna, deleteTransferenciaInterna } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canDelete = canDeleteRole(profile?.role);
 
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -414,7 +416,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
               busy={busy}
               label={edit ? 'Guardar cambios' : 'Registrar transferencia'}
               onClose={() => setOpen(false)}
-              onDelete={edit && isAdmin ? handleDelete : undefined}
+              onDelete={edit && canDelete ? handleDelete : undefined}
               deleteLabel="Eliminar transferencia"
             />
           </form>

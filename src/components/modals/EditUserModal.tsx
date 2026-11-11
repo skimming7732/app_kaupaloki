@@ -166,6 +166,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
                 {(profile?.role === 'super_admin' || user.rol === 'super_admin') && <option value="super_admin">Super Admin</option>}
                 <option value="administrador">Admin</option>
                 <option value="supervisor">Supervisor</option>
+                <option value="auditor">Auditor</option>
                 <option value="comercial">Comercial</option>
                 <option value="operador">Operador</option>
                 <option value="dispersor">Dispersor</option>

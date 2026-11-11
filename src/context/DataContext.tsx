@@ -1,4 +1,4 @@
-import { canRegisterBusiness, canDisperse, canManageClients, isAdminRole } from '../utils/roles';
+import { canRegisterBusiness, canDisperse, canManageClients, isAdminRole, canDeleteRole, isAuditorRole } from '../utils/roles';
 import { readAllRows } from '../utils/supabasePagination';
 import type { CashToken } from '../utils/tokenVoucherGenerator';
 import { capitalLabels, loadCapitalRows, summarizeCapital, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
@@ -546,8 +546,20 @@ type SnapshotTable = keyof typeof snapshotTables;
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, refreshProfile } = useAuth();
-  const requireWrite = (scope: 'business' | 'dispersion' | 'clients' | 'admin') => {
-    const allowed = scope === 'business' ? canRegisterBusiness(profile?.role) : scope === 'dispersion' ? canDisperse(profile?.role, profile?.authorized_currencies) : scope === 'clients' ? canManageClients(profile?.role) : isAdminRole(profile?.role);
+  const requireWrite = (scope: 'business' | 'dispersion' | 'clients' | 'admin' | 'delete') => {
+    if (isAuditorRole(profile?.role)) {
+      throw new Error('El rol de auditor es de solo lectura y no permite modificaciones.');
+    }
+    const allowed =
+      scope === 'delete'
+        ? canDeleteRole(profile?.role)
+        : scope === 'business'
+        ? canRegisterBusiness(profile?.role)
+        : scope === 'dispersion'
+        ? canDisperse(profile?.role, profile?.authorized_currencies)
+        : scope === 'clients'
+        ? canManageClients(profile?.role)
+        : isAdminRole(profile?.role) || profile?.role === 'supervisor';
     if (!allowed) throw new Error('Tu rol no permite modificar estos registros.');
   };
   const userId = user?.id;
@@ -1412,7 +1424,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteNegocio = async (id: string): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('delete');
     try {
       const { error } = await supabase.from('negocios').delete().eq('id', id).select('id').single();
       if (error) throw error;
@@ -1425,7 +1437,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteCliente = async (id: string): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('delete');
     try {
       await supabase.from('client_shared_links').delete().eq('client_id', id);
       const { error } = await supabase.from('clientes').delete().eq('id', id).select('id').single();
@@ -1439,7 +1451,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteDispersion = async (id: string): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('delete');
     try {
       const { error } = await supabase.from('dispersiones').delete().eq('id', id).select('id').single();
       if (error) throw error;
@@ -1452,7 +1464,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteGasto = async (id: string): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('delete');
     try {
       const { error } = await supabase.from('gastos').delete().eq('id', id).select('id').single();
       if (error) throw error;
@@ -1465,7 +1477,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteComisionista = async (id: string): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('delete');
     try {
       const { error } = await supabase.from('comisionistas').delete().eq('id', id).select('id').single();
       if (error) throw error;
@@ -1478,7 +1490,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteCatalogRecord = async (table: CatalogTable, id: string): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('delete');
     try {
       const { data, error } = await supabase.from(table).delete().eq('id', id).select('id');
       if (error) throw error;
@@ -1691,7 +1703,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteMovimientoEfectivo = async (id: string): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('delete');
     try {
       const targetId = id.startsWith('caja:')
         ? (data.efectivo.find((e) => e.codigo === id.replace('caja:', ''))?.id || id)
@@ -2101,7 +2113,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteTransferenciaInterna = async (id: string): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('delete');
     try {
       const { error } = await supabase.from('transferencias_internas').delete().eq('id', id).select('id').single();
       if (error) throw error;

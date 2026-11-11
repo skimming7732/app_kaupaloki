@@ -4,6 +4,7 @@ import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatCOP, formatNumber, normalizeSearch } from '../../utils/formatters';
+import { canDeleteRole } from '../../utils/roles';
 import { CurrencySelect } from './CurrencySelect';
 import { ClientSearchSelect } from '../common/ClientSearchSelect';
 import { ClientCountrySelect } from '../common/ClientCountrySelect';
@@ -54,6 +55,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
   const [newClientName, setNewClientName] = useState('');
   const [newClientPais, setNewClientPais] = useState('COLOMBIA');
   const [saving, setSaving] = useState(false);
+  const canDelete = canDeleteRole(profile?.role);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -108,10 +110,8 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
     setAmountMode(mode);
   };
 
-    const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
-
-  const handleDelete = async () => {
-    if (!negocio) return;
+    const handleDelete = async () => {
+    if (!negocio || !canDelete) return;
     if (!window.confirm(`¿Estás seguro de que deseas eliminar el negocio ${negocio.codigo}? Esta acción recalculará automáticamente los saldos de clientes y estadísticas.`)) {
       return;
     }
@@ -347,7 +347,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
 
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
             <div>
-              {negocio && isAdmin && (
+              {negocio && canDelete && (
                 <button
                   type="button"
                   onClick={handleDelete}

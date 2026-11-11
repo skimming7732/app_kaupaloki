@@ -49,18 +49,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
 
   const role = profile?.role || 'operador';
   const isAdmin = role === 'administrador' || role === 'super_admin';
-  const canDisperse = isAdmin || ['operador', 'dispersor', 'supervisor'].includes(role);
+  const isAuditor = role === 'auditor';
+  const isSupervisor = role === 'supervisor';
+  const canDisperse = isAdmin || ['operador', 'dispersor', 'supervisor', 'auditor'].includes(role);
 
   const primaryItems = [
     { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line' },
     { to: '/clientes', label: 'Clientes', icon: 'ri-team-line' },
-    ...(isAdmin || ['comercial', 'operador', 'supervisor'].includes(role) ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' }] : []),
+    ...(isAdmin || ['comercial', 'operador', 'supervisor', 'auditor'].includes(role) ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line' }] : []),
   ];
   const sections = [
     { label: undefined, items: primaryItems },
     { label: 'Operaciones', icon: 'ri-exchange-line', items: [
       ...(canDisperse ? [{ to: '/dispersiones', label: 'Dispersiones', icon: 'ri-send-plane-2-line' }] : []),
-      ...(isAdmin || role === 'supervisor' ? [
+      ...(isAdmin || isSupervisor || isAuditor ? [
         { to: '/compras-usdt', label: 'Compras USDT', icon: 'ri-shopping-cart-2-line' },
         { to: '/ventas-usdt', label: 'Ventas USDT', icon: 'ri-funds-line' },
         { to: '/transferencias-internas', label: 'Transferencias internas', icon: 'ri-arrow-left-right-line' },
@@ -68,19 +70,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
         { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
       ] : []),
     ] },
-    { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin || role === 'supervisor' ? [
+    { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin || isSupervisor || isAuditor ? [
       { to: '/efectivo', label: 'Efectivo', icon: 'ri-money-dollar-circle-line' },
       { to: '/tokens', label: 'Tokens de retiro', icon: 'ri-ticket-2-line' },
       { to: '/activos-liquidos', label: 'Activos líquidos', icon: 'ri-bank-line' },
       { to: '/activos-digitales', label: 'Activos digitales', icon: 'ri-coin-line' },
       { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line' },
     ] : [] },
-    { label: 'Finanzas', icon: 'ri-pie-chart-2-line', items: isAdmin ? [
+    { label: 'Finanzas', icon: 'ri-pie-chart-2-line', items: isAdmin || isAuditor ? [
       { to: '/panel-control', label: 'Panel de control', icon: 'ri-dashboard-3-line' },
       { to: '/capital', label: 'Capital', icon: 'ri-hand-coin-line' },
       { to: '/socios-inversionistas', label: 'Socios & Inversionistas', icon: 'ri-group-line' },
     ] : [] },
-    { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin || role === 'supervisor' ? [
+    { label: 'Administración', icon: 'ri-settings-3-line', items: isAdmin || isSupervisor || isAuditor ? [
       { to: '/estadisticas', label: 'Estadísticas', icon: 'ri-bar-chart-box-line' },
       { to: '/instituciones', label: 'Instituciones', icon: 'ri-building-2-line' },
       { to: '/usuarios', label: 'Usuarios y accesos', icon: 'ri-shield-user-line' },

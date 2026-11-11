@@ -10,11 +10,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMore }) 
   const { profile } = useAuth();
   const role = profile?.role || 'operador';
   const isAdmin = role === 'administrador' || role === 'super_admin';
-  const canDisperse = isAdmin || ['operador', 'dispersor', 'supervisor'].includes(role);
+  const canDisperse = isAdmin || ['operador', 'dispersor', 'supervisor', 'auditor'].includes(role);
 
   const tabs = [
     { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line', activeIcon: 'ri-home-5-fill' },
-    ...(isAdmin || ['comercial', 'operador', 'supervisor'].includes(role)
+    ...(isAdmin || ['comercial', 'operador', 'supervisor', 'auditor'].includes(role)
       ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line', activeIcon: 'ri-briefcase-4-fill' }]
       : []),
     ...(canDisperse

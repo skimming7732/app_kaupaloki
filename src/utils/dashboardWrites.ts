@@ -43,6 +43,6 @@ export function dashboardWriteError(error: unknown, fallback: string): Error {
   }
   if (code === '23505') return new Error('Ya existe un registro con los mismos datos únicos.');
   if (code === '23503') return new Error('Uno de los registros seleccionados ya no está disponible. Actualiza la vista y vuelve a seleccionarlo.');
-  if (code === 'PGRST116') return new Error('El registro ya no está disponible o tu sesión no tiene permiso para editarlo.');
+  if (code === 'PGRST116') return new Error('El registro ya no está disponible o tu sesión no tiene permiso para modificarlo.');
   return new Error(code ? fallback + ' Código: ' + code + '.' : fallback);
 }

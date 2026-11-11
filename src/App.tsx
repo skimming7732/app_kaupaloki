@@ -1,4 +1,4 @@
-import { supervisorCanRead, type StaffRole } from './utils/roles';
+import { supervisorCanRead, auditorCanRead, type StaffRole } from './utils/roles';
 import { CapitalSociosView, SociosInversionistasView } from './views/CapitalSociosView';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
@@ -79,6 +79,7 @@ const ProtectedRoute: React.FC<{
 
   const { pathname } = useLocation();
   if (role === 'supervisor') return supervisorCanRead(pathname) ? <>{children}</> : <Navigate to="/inicio" replace />;
+  if (role === 'auditor') return auditorCanRead(pathname) ? <>{children}</> : <Navigate to="/inicio" replace />;
   if (allowedRoles && (role === 'client' || !allowedRoles.includes(role))) {
     return <Navigate to="/inicio" replace />;
   }
@@ -103,7 +104,7 @@ const ClienteDetailRouteHandler: React.FC<{
     return <Navigate to={`/cliente/${id || ''}`} replace />;
   }
 
-  return <>{renderWithLayout(<ClienteDetalleView />, ['super_admin', 'administrador', 'operador', 'dispersor', 'comercial', 'supervisor'])}</>;
+  return <>{renderWithLayout(<ClienteDetalleView />, ['super_admin', 'administrador', 'operador', 'dispersor', 'comercial', 'supervisor', 'auditor'])}</>;
 };
 
 const AppLayout: React.FC<{

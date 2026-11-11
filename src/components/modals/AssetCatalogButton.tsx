@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { canDeleteRole } from '../../utils/roles';
 import { useData } from '../../context/DataContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeSearch } from '../../utils/formatters';
@@ -241,7 +242,7 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
               </label>
             </fieldset>
             <RecordActions busy={busy} label={asset ? 'Guardar cambios' : title} onClose={() => setOpen(false)}
-              submitDisabled={!asset && !institution} onDelete={asset && allowDelete ? remove : undefined} deleteLabel="Eliminar activo" />
+              submitDisabled={!asset && !institution} onDelete={asset && canDeleteRole(profile?.role) && allowDelete ? remove : undefined} deleteLabel="Eliminar activo" />
           </form>
         </RecordDialog>
       )}

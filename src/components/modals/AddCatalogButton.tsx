@@ -6,6 +6,7 @@ import { CurrencySelect } from './CurrencySelect';
 import { AccountSelect, type Account } from './AccountSelect';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 import { useAuth } from '../../context/AuthContext';
+import { canDeleteRole } from '../../utils/roles';
 import { useData, type CatalogTable } from '../../context/DataContext';
 import { AmountEntryMode, type AmountMode } from '../common/AmountEntryMode';
 
@@ -37,6 +38,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
   const { data, createCatalogRecord, deleteCatalogRecord } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canDelete = canDeleteRole(profile?.role);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -446,7 +448,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
                 <div className="grid gap-4 sm:grid-cols-2">{form.fields.map(renderField)}</div>
               )}
             </fieldset>
-            <RecordActions submitDisabled={exceedsBalance || sameWallet || (isPurchase && (!validPurchaseQuote || !currency || missingAccounts)) || (isSale && (!validSaleQuote || !validFee || missingAccounts))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && isAdmin && allowDelete ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
+            <RecordActions submitDisabled={exceedsBalance || sameWallet || (isPurchase && (!validPurchaseQuote || !currency || missingAccounts)) || (isSale && (!validSaleQuote || !validFee || missingAccounts))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && canDelete && allowDelete ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />
           </form>
         </RecordDialog>
       )}

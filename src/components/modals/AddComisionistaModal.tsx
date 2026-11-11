@@ -2,6 +2,7 @@ import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useState } from 'react';
 import { useData, type NormalizedData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { canDeleteRole } from '../../utils/roles';
 import { formatNumber } from '../../utils/formatters';
 import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
 import { ClientDetails, ClientSearchSelect } from '../common/ClientSearchSelect';
@@ -19,6 +20,7 @@ const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, '
   const { data, saveComisionista, deleteComisionista } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canDelete = canDeleteRole(profile?.role);
   const [comisionistaId, setComisionistaId] = useState(record?.comisionistaId || '');
   const [selectedReferidos, setSelectedReferidos] = useState<string[]>(record?.comisionaDeIds ?? []);
   const [porcentaje, setPorcentaje] = useState(record ? formatNumber(record.porcentajeComision * 100, 0, 10) : '1');
@@ -179,7 +181,7 @@ const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, '
 
           <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
             <div>
-              {record && isAdmin && (
+              {record && canDelete && (
                 <button
                   type="button"
                   onClick={handleDelete}

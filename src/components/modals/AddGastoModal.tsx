@@ -6,6 +6,7 @@ import { todayBogota } from '../../utils/formatters';
 import React, { useState } from 'react';
 import { useData, type GastoItem } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { canDeleteRole } from '../../utils/roles';
 import { AccountSelect, accountLabel } from './AccountSelect';
 import { CategorySearchSelect } from '../common/CategorySearchSelect';
 import { RecordActions, RecordDialog, recordFieldClass, recordLabelClass } from './RecordDialog';
@@ -25,6 +26,7 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
   const { data, createGasto, updateGasto, deleteGasto } = useData();
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const canDelete = canDeleteRole(profile?.role);
 
   // Find cash account in activosLiquidos
   const cashAccount = React.useMemo(() => {
@@ -147,7 +149,7 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
           </div>
           {!record && <ReceiptInput disabled={busy} />}
         </fieldset>
-        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar gasto"} onClose={onClose} onDelete={record && isAdmin ? handleDelete : undefined} deleteLabel="Eliminar gasto" />
+        <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar gasto"} onClose={onClose} onDelete={record && canDelete ? handleDelete : undefined} deleteLabel="Eliminar gasto" />
       </form>
     </RecordDialog>
   );
