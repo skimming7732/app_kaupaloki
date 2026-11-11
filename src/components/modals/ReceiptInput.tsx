@@ -106,12 +106,15 @@ export const ReceiptInput = ({ required = false, disabled = false }: { required?
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <label htmlFor={id} className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+        <label htmlFor={id} className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
           <i className="ri-attachment-2 text-primary" aria-hidden="true" /> Comprobante
         </label>
-        <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{required ? 'Obligatorio' : 'Opcional'}</span>
+        <span className="flex items-center gap-2">
+          <kbd className="hidden rounded border border-border px-1 py-0.5 text-[9px] text-muted-foreground sm:inline">{shortcut}</kbd>
+          <span className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">{required ? 'Obligatorio' : 'Opcional'}</span>
+        </span>
       </div>
       <div
         ref={area}
@@ -120,7 +123,7 @@ export const ReceiptInput = ({ required = false, disabled = false }: { required?
         aria-label="Adjuntar comprobante: arrastra un archivo o pega una imagen"
         aria-describedby={id + '-help' + (error ? ' ' + id + '-error' : '')}
         aria-disabled={disabled}
-        className={`relative rounded-2xl border border-dashed p-4 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 sm:p-5 ${dragging ? 'border-primary bg-primary/10 ring-2 ring-primary/15' : error ? 'border-destructive/50 bg-destructive/5' : 'border-primary/25 bg-gradient-to-br from-primary/5 via-background to-background'} ${disabled ? 'opacity-60' : ''}`}
+        className={`relative rounded-xl border border-dashed p-2.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary/30 sm:p-3 ${dragging ? 'border-primary bg-primary/10 ring-2 ring-primary/15' : error ? 'border-destructive/50 bg-destructive/5' : 'border-primary/25 bg-gradient-to-br from-primary/5 via-background to-background'} ${disabled ? 'opacity-60' : ''}`}
         onDragEnter={(event) => {
           if (!event.dataTransfer.types.includes('Files')) return;
           event.preventDefault();
@@ -153,14 +156,17 @@ export const ReceiptInput = ({ required = false, disabled = false }: { required?
           onInvalid={(event) => { event.preventDefault(); setError('Adjunta un comprobante para continuar.'); area.current?.focus(); }}
         />
         {file ? (
-          <div className="mb-4 flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
-            <div className="flex h-16 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
-              {preview ? <img src={preview} alt="Vista previa del comprobante" className="h-full w-full object-contain" /> : <i className="ri-file-pdf-2-line text-2xl text-primary" aria-hidden="true" />}
+          <div className="mb-2 flex min-w-0 items-center gap-2.5">
+            <div className="flex h-10 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-card">
+              {preview ? <img src={preview} alt="Vista previa del comprobante" className="h-full w-full object-contain" /> : <i className="ri-file-pdf-2-line text-xl text-primary" aria-hidden="true" />}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-foreground" title={file.name}>{file.name}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">{file.type === 'application/pdf' ? 'PDF' : 'Imagen'} · {receiptFileSize(file.size)}</p>
-              <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"><i className="ri-checkbox-circle-line" aria-hidden="true" /> Listo para adjuntar</p>
+              <p id={id + '-help'} className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                {file.type === 'application/pdf' ? 'PDF' : 'Imagen'} · {receiptFileSize(file.size)}
+                <i className="ri-checkbox-circle-line text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                <span className="sr-only">Listo para adjuntar</span>
+              </p>
             </div>
             <button type="button" disabled={disabled} aria-label="Quitar comprobante" title="Quitar comprobante" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-destructive disabled:opacity-50" onClick={() => {
               if (unavailable()) return;
@@ -169,18 +175,19 @@ export const ReceiptInput = ({ required = false, disabled = false }: { required?
             }}><i className="ri-close-line text-lg" aria-hidden="true" /></button>
           </div>
         ) : (
-          <div className="mb-4 flex flex-col items-center text-center">
-            <span className={`mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform ${dragging ? '-translate-y-1' : ''}`}><i className="ri-upload-cloud-2-line text-2xl" aria-hidden="true" /></span>
-            <p className="text-sm font-semibold text-foreground">{dragging ? 'Suelta aquí tu comprobante' : 'Arrastra tu comprobante aquí'}</p>
-            <p className="mt-1 text-xs text-muted-foreground">También puedes pegar una imagen copiada.</p>
+          <div className="mb-2 flex items-center gap-2.5">
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform ${dragging ? '-translate-y-0.5' : ''}`}><i className="ri-upload-cloud-2-line text-xl" aria-hidden="true" /></span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground">{dragging ? 'Suelta aquí tu comprobante' : 'Arrastra o pega aquí'}</p>
+              <p id={id + '-help'} className="mt-0.5 text-[10px] text-muted-foreground">JPG, PNG, WEBP o PDF · Hasta 10 MB</p>
+            </div>
           </div>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" disabled={disabled || reading} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-2 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50" onClick={() => { if (!unavailable()) input.current?.click(); }}><i className="ri-folder-open-line" aria-hidden="true" /> {file ? 'Cambiar archivo' : 'Elegir archivo'}</button>
-          <button type="button" disabled={disabled || reading} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-2 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50" onClick={() => void pasteFromClipboard()}><i className={reading ? 'ri-loader-4-line animate-spin' : 'ri-clipboard-line'} aria-hidden="true" /> {reading ? 'Leyendo…' : 'Pegar imagen'}</button>
+          <button type="button" disabled={disabled || reading} className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50" onClick={() => { if (!unavailable()) input.current?.click(); }}><i className="ri-folder-open-line" aria-hidden="true" /> {file ? 'Cambiar archivo' : 'Elegir archivo'}</button>
+          <button type="button" disabled={disabled || reading} className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 text-[11px] font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50" onClick={() => void pasteFromClipboard()}><i className={reading ? 'ri-loader-4-line animate-spin' : 'ri-clipboard-line'} aria-hidden="true" /> {reading ? 'Leyendo…' : 'Pegar imagen'}</button>
         </div>
-        <p id={id + '-help'} className="mt-3 text-center text-[10px] leading-relaxed text-muted-foreground">JPG, PNG, WEBP o PDF · Hasta 10 MB <span className="hidden sm:inline">· Pega con {shortcut}</span></p>
-        {hint && <p role="status" className="mt-2 text-center text-xs text-muted-foreground">{hint}</p>}
+        {hint && <p role="status" className="mt-1.5 text-[11px] text-muted-foreground">{hint}</p>}
       </div>
       {error && <p id={id + '-error'} role="alert" className="flex items-start gap-1.5 text-xs text-destructive"><i className="ri-error-warning-line shrink-0" aria-hidden="true" />{error}</p>}
     </div>
