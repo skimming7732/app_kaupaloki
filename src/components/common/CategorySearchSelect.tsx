@@ -7,34 +7,57 @@ export interface CategoryOption {
 }
 
 export const GASTO_CATEGORIES: CategoryOption[] = [
+  // Operaciones OTC y Cripto
   { name: 'Pagos OTC', icon: 'ri-exchange-dollar-line', group: 'Operaciones OTC' },
+  { name: 'Comisiones de Red y Gas Fees (Blockchain)', icon: 'ri-cpu-line', group: 'Operaciones OTC' },
+  { name: 'Comisiones a Terceros y Corretaje', icon: 'ri-percent-line', group: 'Operaciones OTC' },
+
+  // Operación y Logística
+  { name: 'Transporte de Valores y Custodia', icon: 'ri-shield-check-line', group: 'Operación y Logística' },
+  { name: 'Caja Menor e Imprevistos Operativos', icon: 'ri-safe-2-line', group: 'Operación y Logística' },
+  { name: 'Otros Gastos Operativos', icon: 'ri-more-fill', group: 'Operación y Logística' },
+
+  // Transporte y Movilidad
   { name: 'Combustible y Gasolina', icon: 'ri-gas-station-line', group: 'Transporte y Movilidad' },
   { name: 'Tiquetes y Pasajes Aéreos/Terrestres', icon: 'ri-flight-takeoff-line', group: 'Transporte y Movilidad' },
   { name: 'Transporte Local, Taxis y Encomiendas', icon: 'ri-taxi-line', group: 'Transporte y Movilidad' },
+
+  // Suministros y Oficina
   { name: 'Papelería, Ligas, Sobres y Empaques', icon: 'ri-archive-line', group: 'Suministros y Oficina' },
   { name: 'Aseo, Limpieza e Insumos', icon: 'ri-sparkling-line', group: 'Suministros y Oficina' },
   { name: 'Dotación y Elementos de Trabajo', icon: 'ri-t-shirt-line', group: 'Suministros y Oficina' },
+
+  // Instalaciones y Servicios
   { name: 'Arrendamiento y Alquileres', icon: 'ri-building-line', group: 'Instalaciones y Servicios' },
   { name: 'Servicios Públicos (Luz, Agua, Gas)', icon: 'ri-flashlight-line', group: 'Instalaciones y Servicios' },
   { name: 'Internet, Telefonía y Comunicaciones', icon: 'ri-wifi-line', group: 'Instalaciones y Servicios' },
   { name: 'Mantenimiento y Reparaciones Locativas', icon: 'ri-tools-line', group: 'Instalaciones y Servicios' },
   { name: 'Seguridad y Vigilancia Privada', icon: 'ri-shield-keyhole-line', group: 'Instalaciones y Servicios' },
-  { name: 'Nómina y Sueldos', icon: 'ri-user-star-line', group: 'Personal y Talento' },
+
+  // Personal y Talento
   { name: 'Nómina, Salarios y Prestaciones', icon: 'ri-user-star-line', group: 'Personal y Talento' },
   { name: 'Seguridad Social y Aportes', icon: 'ri-shield-user-line', group: 'Personal y Talento' },
   { name: 'Alimentación y Restaurantes', icon: 'ri-restaurant-line', group: 'Personal y Talento' },
-  { name: 'Alimentación, Refrigerios y Cafetería', icon: 'ri-restaurant-line', group: 'Personal y Talento' },
   { name: 'Viáticos, Alojamiento y Hoteles', icon: 'ri-hotel-bed-line', group: 'Personal y Talento' },
   { name: 'Capacitación y Formación', icon: 'ri-book-open-line', group: 'Personal y Talento' },
+
+  // Servicios Administrativos
   { name: 'Honorarios y Servicios Profesionales', icon: 'ri-briefcase-line', group: 'Servicios Administrativos' },
   { name: 'Gastos Legales, Notaría y Registro', icon: 'ri-scales-3-line', group: 'Servicios Administrativos' },
+
+  // Tecnología
+  { name: 'Equipos, Maquinaria y Tecnología (Contadoras, PC)', icon: 'ri-computer-line', group: 'Tecnología' },
   { name: 'Software, Licencias y Servidores', icon: 'ri-macbook-line', group: 'Tecnología' },
   { name: 'Suscripciones y Servicios Cloud', icon: 'ri-cloud-line', group: 'Tecnología' },
+
+  // Finanzas e Impuestos
   { name: 'Gastos Financieros, Comisiones y 4x1000', icon: 'ri-bank-card-line', group: 'Finanzas e Impuestos' },
   { name: 'Impuestos, Tasas y Contribuciones', icon: 'ri-government-line', group: 'Finanzas e Impuestos' },
+  { name: 'Seguros y Pólizas', icon: 'ri-file-shield-2-line', group: 'Finanzas e Impuestos' },
+
+  // Mercadeo y Ventas
   { name: 'Publicidad, Marketing y Diseño', icon: 'ri-megaphone-line', group: 'Mercadeo y Ventas' },
-  { name: 'Caja Menor e Imprevistos Operativos', icon: 'ri-safe-2-line', group: 'Operación y Logística' },
-  { name: 'Otros Gastos Operativos', icon: 'ri-more-fill', group: 'Operación y Logística' },
+  { name: 'Atención a Clientes y Representación', icon: 'ri-shake-hands-line', group: 'Mercadeo y Ventas' },
 ];
 
 export const getCategoryIcon = (categoryName?: string): string => {
@@ -46,6 +69,13 @@ export const getCategoryIcon = (categoryName?: string): string => {
   );
   if (found) return found.icon;
   if (/otc|pago.*otc/i.test(categoryName)) return 'ri-exchange-dollar-line';
+  if (/gas|red|blockchain|mineria/i.test(categoryName)) return 'ri-cpu-line';
+  if (/comision.*tercero|corretaje|broker/i.test(categoryName)) return 'ri-percent-line';
+  if (/transporte.*valor|custodia|blindado|escolta/i.test(categoryName)) return 'ri-shield-check-line';
+  if (/equipo|maquinaria|contadora|computad/i.test(categoryName)) return 'ri-computer-line';
+  if (/seguro|poliza/i.test(categoryName)) return 'ri-file-shield-2-line';
+  if (/atencion.*cliente|representacion/i.test(categoryName)) return 'ri-shake-hands-line';
+  if (/honorario|profesional/i.test(categoryName)) return 'ri-briefcase-line';
   if (/combustible|gasolina/i.test(categoryName)) return 'ri-gas-station-line';
   if (/viaje|tiquete|vuelo/i.test(categoryName)) return 'ri-flight-takeoff-line';
   if (/papel|liga|sobre|suministro/i.test(categoryName)) return 'ri-archive-line';

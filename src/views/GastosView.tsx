@@ -91,18 +91,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
 
   const categorias = useMemo(() => {
     const base = [
-      'Alimentación y Restaurantes',
-      'Nómina y Sueldos',
       ...GASTO_CATEGORIES.map((c) => c.name),
-      'Arrendamiento',
-      'Nómina y Salarios',
-      'Combustible y Transporte',
-      'Servicios Públicos (Agua, Luz, Gas)',
-      'Logística y Envíos (Ligas, Encomiendas)',
-      'Mantenimiento y Operación',
-      'Gastos Financieros y Bancarios',
-      'Alimentación y Viáticos',
-      'Otros Gastos Operativos',
       ...data.gastos.map((g) => g.categoria).filter(Boolean),
     ];
     return Array.from(new Set(base));

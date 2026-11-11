@@ -18,12 +18,6 @@ interface AddGastoModalProps {
   defaultOrigenFondos?: string;
 }
 
-const categories = [
-  'Alimentación y Restaurantes', 'Nómina y Sueldos', 'Arrendamiento', 'Nómina y Salarios', 'Combustible y Transporte', 'Servicios Públicos (Agua, Luz, Gas)',
-  'Logística y Envíos (Ligas, Encomiendas)', 'Mantenimiento y Operación', 'Gastos Financieros y Bancarios',
-  'Alimentación y Viáticos', 'Otros Gastos Operativos',
-];
-
 export const AddGastoModal = ({ isOpen, onClose, record, isCashContext, defaultOrigenFondos }: AddGastoModalProps) =>
   isOpen ? <GastoForm key={record?.id ?? (isCashContext ? 'cash' : 'normal')} onClose={onClose} record={record} isCashContext={isCashContext} defaultOrigenFondos={defaultOrigenFondos} /> : null;
 
