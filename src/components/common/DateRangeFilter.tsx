@@ -76,13 +76,15 @@ export function DateRangeFilter({
   to,
   setFrom,
   setTo,
-  className = 'sm:col-span-2',
+  className = '',
+  compact = false,
 }: {
   from: string;
   to: string;
   setFrom: (value: string) => void;
   setTo: (value: string) => void;
   className?: string;
+  compact?: boolean;
 }) {
   const hasFilter = Boolean(from || to);
 
@@ -104,6 +106,73 @@ export function DateRangeFilter({
     setFrom('');
     setTo('');
   };
+
+  if (compact) {
+    return (
+      <div className={`inline-flex items-center gap-1.5 ${className}`}>
+        <div className="inline-flex items-center h-8 rounded-lg border border-input bg-background px-2.5 text-xs focus-within:ring-1 focus-within:ring-primary shadow-2xs">
+          <i className="ri-calendar-line text-muted-foreground mr-1.5 text-xs shrink-0" />
+          <input
+            type="date"
+            aria-label="Fecha desde"
+            value={from}
+            max={to || undefined}
+            onChange={(event) => setFrom(event.target.value)}
+            className="bg-transparent text-xs text-foreground outline-none w-[108px] cursor-pointer"
+            title="Fecha desde"
+          />
+          <span className="text-muted-foreground mx-1 text-xs select-none">–</span>
+          <input
+            type="date"
+            aria-label="Fecha hasta"
+            value={to}
+            min={from || undefined}
+            onChange={(event) => setTo(event.target.value)}
+            className="bg-transparent text-xs text-foreground outline-none w-[108px] cursor-pointer"
+            title="Fecha hasta"
+          />
+          {hasFilter && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="text-muted-foreground hover:text-destructive text-xs ml-1 transition-colors"
+              title="Borrar fechas"
+            >
+              <i className="ri-close-line" />
+            </button>
+          )}
+        </div>
+
+        {/* Quick Presets */}
+        <div className="hidden lg:inline-flex items-center h-8 bg-muted/40 p-0.5 rounded-lg border border-border/50 gap-0.5">
+          <button
+            type="button"
+            onClick={() => applyPreset('hoy')}
+            className="h-full px-2 rounded text-[11px] font-medium hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+            title="Hoy"
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('7d')}
+            className="h-full px-2 rounded text-[11px] font-medium hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+            title="Últimos 7 días"
+          >
+            7D
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('mes')}
+            className="h-full px-2 rounded text-[11px] font-medium hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+            title="Este mes"
+          >
+            Mes
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>

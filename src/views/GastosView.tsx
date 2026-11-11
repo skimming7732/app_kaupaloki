@@ -142,11 +142,11 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         </div>
       </div>
 
-      {/* Advanced Filter Bar: Rango de fechas, Categoría, Divisa, Búsqueda */}
+      {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Search */}
-          <div className="relative lg:col-span-2">
+          <div className="relative flex-1 sm:flex-initial sm:w-64 lg:w-72 min-w-[160px]">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
@@ -157,26 +157,32 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
             />
           </div>
 
-          {/* Categoría */}
-          <div>
-            <TableSelectFilter label="Categoría" value={selectedCategoria} onChange={setSelectedCategoria} className="w-full">
-              <option value="">Todas las categorías</option>
-              {categorias.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </TableSelectFilter>
+          {/* Divisa (Desktop only) */}
+          <div className="hidden md:block w-44 shrink-0">
+            <CurrencyFilterDropdown value={selectedDivisa} onChange={setSelectedDivisa} currencies={divisasUsadas} className="w-full" />
           </div>
 
-          <CurrencyFilterDropdown value={selectedDivisa} onChange={setSelectedDivisa} currencies={divisasUsadas} className="w-full" />
-          {/* Fecha Desde */}
-          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          {/* Fecha (Desktop only) */}
+          <div className="hidden md:block shrink-0">
+            <DateRangeFilter
+              from={fechaDesde}
+              to={fechaHasta}
+              setFrom={setFechaDesde}
+              setTo={setFechaHasta}
+              compact
+            />
+          </div>
+
+          {/* Popup Filter Trigger Button */}
+          <FilterTriggerButton
+            onClick={() => setIsFilterOpen(true)}
+            activeCount={(selectedDivisa ? 1 : 0) + (selectedCategoria ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+          />
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
           <span>{formatNumber(filteredGastos.length)} de {formatNumber(data.gastos.length)} registros</span>
-          {(search || selectedCategoria || selectedDivisa || fechaDesde || fechaHasta) && (
+          {(search || selectedCategoria || selectedDivisa || fechaDesde || fechaHasta || selectedCreador) && (
             <button
               onClick={() => {
                 setSearch('');
@@ -184,14 +190,66 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                 setSelectedDivisa('');
                 setFechaDesde('');
                 setFechaHasta('');
+                setSelectedCreador('');
               }}
-              type="button" className="text-primary hover:underline font-semibold"
+              type="button"
+              className="text-primary hover:underline font-semibold"
             >
               Limpiar filtros
             </button>
           )}
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filtros de Gastos"
+        activeCount={(selectedDivisa ? 1 : 0) + (selectedCategoria ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+        onClear={() => {
+          setSelectedCategoria('');
+          setSelectedDivisa('');
+          setFechaDesde('');
+          setFechaHasta('');
+          setSelectedCreador('');
+        }}
+      >
+        {/* Mobile-only visible filters */}
+        <div className="md:hidden space-y-3 pb-3 border-b border-border">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Divisa</label>
+            <CurrencyFilterDropdown value={selectedDivisa} onChange={setSelectedDivisa} currencies={divisasUsadas} className="w-full" />
+          </div>
+          <div>
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          </div>
+        </div>
+
+        {/* Categoría Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Categoría</label>
+          <TableSelectFilter label="Categoría" value={selectedCategoria} onChange={setSelectedCategoria} className="w-full">
+            <option value="">Todas las categorías</option>
+            {categorias.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </TableSelectFilter>
+        </div>
+
+        {/* Creador Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
+          <CreatedByFilter
+            value={selectedCreador}
+            onChange={setSelectedCreador}
+            records={data.gastos}
+            className="w-full"
+          />
+        </div>
+      </FilterModal>
 
       <KpiStrip
         metrics={[

@@ -194,9 +194,9 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
       {/* Filter Bar: Desktop (Search + Fecha + Filtros) | Mobile (Search + Filtros) */}
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 sm:flex-initial sm:w-64 lg:w-72 min-w-[160px]">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
@@ -209,7 +209,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
           {/* Fecha (Desktop only) */}
           <div className="hidden md:block shrink-0">
-            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} compact />
           </div>
 
           {/* Popup Filter Trigger Button */}

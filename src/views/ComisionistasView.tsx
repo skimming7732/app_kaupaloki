@@ -88,9 +88,9 @@ export const ComisionistasView: React.FC = () => {
 
       {/* Filter Bar: Desktop & Mobile (Search + Filtros) */}
       <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
-        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 sm:flex-initial sm:w-64 lg:w-72 min-w-[160px]">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"

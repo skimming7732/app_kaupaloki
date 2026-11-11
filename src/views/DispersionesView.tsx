@@ -163,11 +163,11 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
         </button>)}
       </div>
 
-      {/* Comprehensive Filter Bar */}
+      {/* Filter Bar: Desktop (Search + Fecha + Filtros) | Mobile (Search + Filtros) */}
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Search */}
-          <div className="relative lg:col-span-2">
+          <div className="relative flex-1 sm:flex-initial sm:w-64 lg:w-72 min-w-[160px]">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
@@ -178,24 +178,34 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
             />
           </div>
 
-          {/* Cliente */}
-          <div>
-            <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
+          {/* Fecha (Desktop only) */}
+          <div className="hidden md:block shrink-0">
+            <DateRangeFilter
+              from={fechaDesde}
+              to={fechaHasta}
+              setFrom={setFechaDesde}
+              setTo={setFechaHasta}
+              compact
+            />
           </div>
 
-          {/* Fecha Desde */}
-          <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          {/* Popup Filter Trigger Button */}
+          <FilterTriggerButton
+            onClick={() => setIsFilterOpen(true)}
+            activeCount={(selectedCliente ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+          />
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
           <span>{formatNumber(filteredDispersiones.length)} de {formatNumber(data.dispersiones.length)} registros</span>
-          {(search || selectedCliente || fechaDesde || fechaHasta) && (
+          {(search || selectedCliente || fechaDesde || fechaHasta || selectedCreador) && (
             <button
               onClick={() => {
                 setSearch('');
                 setSelectedCliente('');
                 setFechaDesde('');
                 setFechaHasta('');
+                setSelectedCreador('');
               }}
               type="button"
               className="text-primary hover:underline font-semibold"
@@ -205,6 +215,44 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
           )}
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filtros de Dispersiones"
+        activeCount={(selectedCliente ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+        onClear={() => {
+          setSelectedCliente('');
+          setFechaDesde('');
+          setFechaHasta('');
+          setSelectedCreador('');
+        }}
+      >
+        {/* Mobile-only visible filters */}
+        <div className="md:hidden space-y-3 pb-3 border-b border-border">
+          <div>
+            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+          </div>
+        </div>
+
+        {/* Cliente Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Cliente</label>
+          <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
+        </div>
+
+        {/* Creador Filter */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
+          <CreatedByFilter
+            value={selectedCreador}
+            onChange={setSelectedCreador}
+            records={data.dispersiones}
+            className="w-full"
+          />
+        </div>
+      </FilterModal>
 
       <KpiStrip metrics={[
         { label: 'Dispersiones', value: filteredDispersiones.length },
