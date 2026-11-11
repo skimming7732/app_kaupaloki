@@ -52,11 +52,13 @@ Tu PIN de 4 dígitos es *${link?.pin || ''}*. Vence el ${formatDate(link?.expire
     const finishSound = prepareSuccessSound();
     try {
       const { data, error } = await supabase.rpc('crear_enlace_cliente', { p_client_id: cliente.id });
-      if (error || !data?.token || !data?.pin) throw error;
+      if (error) throw error;
+      if (!data?.token || !data?.pin) throw new Error('No se recibió la información del enlace.');
       setGenerated({ clientId: cliente.id, token: data.token, pin: data.pin, expiresAt: data.expiresAt });
       finishSound(true);
-    } catch {
-      setCopyError('No se pudo generar el enlace seguro.');
+    } catch (err: any) {
+      console.error('Error al generar enlace seguro:', err);
+      setCopyError(err?.message || 'No se pudo generar el enlace seguro.');
     } finally {
       finishSound(false);
       setGenerating(false);
