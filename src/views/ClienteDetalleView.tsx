@@ -14,7 +14,6 @@ import { ShareClientModal } from '../components/modals/ShareClientModal';
 import { AddNegocioModal, type EditableNegocio } from '../components/modals/AddNegocioModal';
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 import { AddEfectivoModal } from '../components/modals/AddEfectivoModal';
-import { SaldoInicialModal } from '../components/modals/SaldoInicialModal';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 
@@ -44,8 +43,6 @@ export const ClienteDetalleView: React.FC = () => {
 
   // Modals state
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isSaldoInicialOpen, setIsSaldoInicialOpen] = useState(false);
-  const isSuperAdmin = profile?.role === 'super_admin';
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isAddNegocioOpen, setIsAddNegocioOpen] = useState(false);
   const [editingNegocio, setEditingNegocio] = useState<EditableNegocio | undefined>(undefined);
@@ -281,11 +278,10 @@ export const ClienteDetalleView: React.FC = () => {
           {isAdmin && (
             <button
               onClick={() => setIsEditOpen(true)}
-              className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-muted text-xs font-semibold text-foreground transition-colors flex items-center gap-1.5 shadow-sm"
-              title="Editar datos del cliente"
+              className="px-3 py-2 rounded-xl border border-border bg-card hover:bg-muted text-xs font-medium text-foreground transition-colors flex items-center gap-1.5"
             >
               <i className="ri-edit-line text-muted-foreground" />
-              <span>Editar Cliente</span>
+              <span>Editar</span>
             </button>
           )}
 
@@ -402,45 +398,6 @@ export const ClienteDetalleView: React.FC = () => {
                     ? 'El cliente debe al sistema'
                     : 'Cuentas perfectamente al día'}
                 </span>
-                {Boolean(cliente.saldoInicialCop) ? (
-                  isSuperAdmin ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsSaldoInicialOpen(true)}
-                      className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted/60 hover:bg-muted text-[11px] font-medium text-muted-foreground transition-colors group cursor-pointer"
-                      title="Clic para editar el saldo inicial de apertura"
-                    >
-                      <i className="ri-scales-3-line text-amber-500" />
-                      <span>Saldo inicial:</span>
-                      <strong className={cliente.saldoInicialCop! < 0 ? 'text-destructive font-mono' : 'text-emerald-600 dark:text-emerald-400 font-mono'}>
-                        {cliente.saldoInicialCop! < 0 ? '- ' : '+ '}{formatCOP(Math.abs(cliente.saldoInicialCop!))}
-                      </strong>
-                      <span className="text-muted-foreground/80">({cliente.conceptoSaldoInicial || 'Saldo inicial'})</span>
-                      <i className="ri-pencil-line text-muted-foreground group-hover:text-primary text-xs ml-0.5" />
-                    </button>
-                  ) : (
-                    <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                      <i className="ri-scales-3-line text-amber-500" />
-                      <span>Saldo inicial:</span>
-                      <strong className={cliente.saldoInicialCop! < 0 ? 'text-destructive font-mono' : 'text-emerald-600 dark:text-emerald-400 font-mono'}>
-                        {cliente.saldoInicialCop! < 0 ? '- ' : '+ '}{formatCOP(Math.abs(cliente.saldoInicialCop!))}
-                      </strong>
-                      <span>({cliente.conceptoSaldoInicial || 'Saldo inicial'})</span>
-                    </div>
-                  )
-                ) : (
-                  isSuperAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => setIsSaldoInicialOpen(true)}
-                      className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:underline transition-colors"
-                      title="Configurar saldo inicial para este cliente"
-                    >
-                      <i className="ri-scales-3-line" />
-                      <span>+ Asignar saldo inicial</span>
-                    </button>
-                  )
-                )}
               </>
             )}
           </div>
@@ -473,7 +430,7 @@ export const ClienteDetalleView: React.FC = () => {
                 {formatCOP(cliente.totalDispersadoCOP)}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {clientDispersiones.length + (Boolean(cliente.saldoInicialCop && cliente.saldoInicialCop < 0) ? 1 : 0)} dispersiones registradas
+                {clientDispersiones.length} dispersiones registradas
               </div>
             </div>
 
@@ -595,7 +552,7 @@ export const ClienteDetalleView: React.FC = () => {
               <i className="ri-money-dollar-box-line text-sm" />
               <span>Movimientos Efectivo</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/15">
-                {clientEfectivo.length + (Boolean(cliente.saldoInicialCop && cliente.saldoInicialCop > 0) ? 1 : 0)}
+                {clientEfectivo.length}
               </span>
             </button>
 
@@ -791,41 +748,7 @@ export const ClienteDetalleView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {Boolean(cliente.saldoInicialCop && cliente.saldoInicialCop < 0) && (
-                    <tr className="bg-amber-500/5 hover:bg-amber-500/10 transition-colors border-b border-border">
-                      <td className="py-3 px-4 font-mono font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                        <i className="ri-scales-3-line" />
-                        <span>SALDO-INICIAL</span>
-                      </td>
-                      <td className="py-3 px-4 font-mono text-muted-foreground">{formatDate(cliente.fechaCreacion || cliente.createdAt)}</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-destructive">
-                        {formatCOP(Math.abs(cliente.saldoInicialCop!))}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-foreground">Apertura contable</td>
-                      <td className="py-3 px-4 text-foreground">
-                        <span className="font-semibold">{cliente.conceptoSaldoInicial || 'Saldo inicial (Deuda del cliente)'}</span>
-                      </td>
-                      <td className="py-3 px-4 text-center text-muted-foreground">—</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                          DEUDA INICIAL
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center text-muted-foreground text-[11px] font-mono">Super Admin</td>
-                      <td className="py-3 px-4 text-center">
-                        {isSuperAdmin && (
-                          <button
-                            onClick={() => setIsSaldoInicialOpen(true)}
-                            className="p-1.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-muted"
-                            title="Editar saldo inicial"
-                          >
-                            <i className="ri-edit-line text-sm" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                  {clientDispersiones.length === 0 && (!cliente.saldoInicialCop || cliente.saldoInicialCop >= 0) ? (
+                  {clientDispersiones.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="py-12 text-center text-muted-foreground">
                         Este cliente no registra dispersiones bancarias.
@@ -927,40 +850,7 @@ export const ClienteDetalleView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {Boolean(cliente.saldoInicialCop && cliente.saldoInicialCop > 0) && (
-                    <tr className="bg-emerald-500/5 hover:bg-emerald-500/10 transition-colors border-b border-border">
-                      <td className="py-3 px-4 font-mono font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                        <i className="ri-scales-3-line" />
-                        <span>SALDO-INICIAL</span>
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">{formatDate(cliente.fechaCreacion || cliente.createdAt)}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          INGRESO INICIAL
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatCOP(cliente.saldoInicialCop!)}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-foreground">Apertura contable</td>
-                      <td className="py-3 px-4 text-foreground">
-                        <span className="font-semibold">{cliente.conceptoSaldoInicial || 'Saldo inicial (A favor del cliente)'}</span>
-                      </td>
-                      <td className="py-3 px-4 text-center text-muted-foreground text-[11px] font-mono">Super Admin</td>
-                      <td className="py-3 px-4 text-center">
-                        {isSuperAdmin && (
-                          <button
-                            onClick={() => setIsSaldoInicialOpen(true)}
-                            className="p-1.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-muted"
-                            title="Editar saldo inicial"
-                          >
-                            <i className="ri-edit-line text-sm" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                  {clientEfectivo.length === 0 && (!cliente.saldoInicialCop || cliente.saldoInicialCop <= 0) ? (
+                  {clientEfectivo.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-12 text-center text-muted-foreground">
                         No hay movimientos de efectivo vinculados a este cliente.
@@ -1283,15 +1173,6 @@ export const ClienteDetalleView: React.FC = () => {
             setIsAddDispersionOpen(false);
             setEditingDispersion(undefined);
           }}
-        />
-      )}
-
-      {/* Saldo Inicial Modal (Solo Super Admin) */}
-      {isSaldoInicialOpen && (
-        <SaldoInicialModal
-          cliente={cliente}
-          isOpen={isSaldoInicialOpen}
-          onClose={() => setIsSaldoInicialOpen(false)}
         />
       )}
 

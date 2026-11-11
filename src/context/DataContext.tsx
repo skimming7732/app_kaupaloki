@@ -135,14 +135,10 @@ export interface NormalizedData {
     totalIngresosCOP: number;
     totalDispersadoCOP: number;
     saldoPendienteCOP: number;
-    saldoCop: number;
-    saldoInicialCop?: number;
-    conceptoSaldoInicial?: string;
     porCobrarCOP: number;
     esComisionista: boolean;
     comisionaDeIds: string[];
     totalComisionesCOP: number;
-    fechaCreacion?: string;
     estado: string;
     dispersionesIds?: string[];
     negociosIds?: string[];
@@ -162,7 +158,6 @@ export interface NormalizedData {
     montoDivisa: number;
     tasaCambio: number;
     ingresoCOP: number;
-    fechaCreacion?: string;
     estado: string;
     raw: any;
   }>;
@@ -181,7 +176,6 @@ export interface NormalizedData {
     origenFondosId?: string;
     referencia?: string;
     comprobanteUrl?: string;
-    fechaCreacion?: string;
     estado: string;
     raw: any;
   }>;
@@ -320,8 +314,8 @@ interface DataContextType {
   updateMovimientoEfectivo: (payload: any) => Promise<boolean>;
   deleteMovimientoEfectivo: (id: string) => Promise<boolean>;
   createGasto: (payload: any) => Promise<boolean>;
-  createCliente: (nombre: string, pais?: string, authorId?: string, saldoInicial?: { monto: number; concepto?: string }) => Promise<any>;
-  updateCliente: (payload: { id: string; nombre?: string; pais?: string; authorId?: string; saldoInicialCop?: number; conceptoSaldoInicial?: string }) => Promise<boolean>;
+  createCliente: (nombre: string, pais?: string, authorId?: string) => Promise<any>;
+  updateCliente: (payload: { id: string; nombre?: string; pais?: string; authorId?: string }) => Promise<boolean>;
   deleteUser: (idOrEmail: string) => Promise<{ success: boolean; error?: string }>;
   sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; actionLink?: string; error?: string }>;
   createTransferenciaInterna: (payload: any) => Promise<boolean>;
@@ -363,8 +357,6 @@ const snapshotTables = {
   pagadoCop: Number(c.pagado_cop || 0),
   pendienteCop: Number(c.pendiente_cop || 0),
   saldoCop: c.saldo_cop == null ? undefined : Number(c.saldo_cop),
-  saldoInicialCop: Number(c.saldo_inicial_cop || 0),
-  conceptoSaldoInicial: c.concepto_saldo_inicial || '',
   estado: c.estado,
   fechaCreacion: c.fecha_creacion,
 }) },
@@ -854,13 +846,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : 0;
       const esComisionista: boolean = Boolean(comisionistaRecord);
 
-      const saldoInicialCop = Number(c.saldoInicialCop ?? c.saldo_inicial_cop ?? 0);
-      const conceptoSaldoInicial = c.conceptoSaldoInicial || c.concepto_saldo_inicial || '';
       const totalNegocios = Math.max(Number(c.totalNegocios || c.total_negocios || 0), dynamicNegociosCount);
       const baseIngresos = Number(c.ingresosCop ?? c.totalIngresosCop ?? c['Total Ingreso'] ?? 0);
       const totalIngresos = Math.max(baseIngresos, dynamicIngresos + totalComisionesCOP);
       const totalDispersado = Number(c.pagadoCop ?? c.totalDispersadoCop ?? c['Total Dispersado'] ?? 0);
-      const saldo = (totalIngresos + saldoInicialCop) - totalDispersado;
+      const saldo = Number(c.saldoCop ?? (totalIngresos - totalDispersado)) + (totalIngresos - baseIngresos);
       const saldoPendiente = Math.max(0, saldo);
       const porCobrarCOP = Math.max(0, -saldo);
       let estado = c.estado || 'SIN ACTIVIDAD';
@@ -868,11 +858,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const up = estado.toUpperCase();
         if (porCobrarCOP > 0) estado = 'DEBE';
         else if (saldoPendiente > 0) estado = 'PENDIENTE';
-        else if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = (totalIngresos > 0 || totalDispersado > 0 || saldoInicialCop !== 0) ? (saldo === 0 ? 'PAGADO' : saldo < 0 ? 'DEBE' : 'PENDIENTE') : 'SIN ACTIVIDAD';
+        else if (up.includes('ACTIVIDAD') || up.includes('INACTIVO')) estado = (totalIngresos > 0 || totalDispersado > 0) ? 'PAGADO' : 'SIN ACTIVIDAD';
         else if (up.includes('PAGADO')) estado = 'PAGADO';
         else if (up.includes('DEBE')) estado = 'DEBE';
-        else if (totalIngresos === 0 && totalDispersado === 0 && saldoInicialCop === 0) estado = 'SIN ACTIVIDAD';
-        else estado = saldo < 0 ? 'DEBE' : saldo > 0 ? 'PENDIENTE' : 'PAGADO';
+        else if (totalIngresos === 0 && totalDispersado === 0) estado = 'SIN ACTIVIDAD';
+        else estado = 'PENDIENTE';
       }
 
       const fullCode = c.codigo || c.idCliente || c.cliente || c['CLIENTE'] || c.nombre || 'C-000';
@@ -894,10 +884,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         totalIngresosCOP: totalIngresos,
         totalDispersadoCOP: totalDispersado,
         saldoPendienteCOP: saldoPendiente,
-        saldoCop: saldo,
-        saldoInicialCop,
-        conceptoSaldoInicial,
-        fechaCreacion: c.fechaCreacion || c.fecha_creacion || c.createdAt || c.created_at,
         porCobrarCOP,
         estado,
         dispersionesIds: Array.isArray(rawDispersionesIds) ? rawDispersionesIds : [rawDispersionesIds],
@@ -1765,25 +1751,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const createCliente = async (nombre: string, pais: string = 'COLOMBIA', authorId?: string, saldoInicial?: { monto: number; concepto?: string }): Promise<any> => {
+  const createCliente = async (nombre: string, pais: string = 'COLOMBIA', authorId?: string): Promise<any> => {
     requireWrite('clients');
     try {
       const id = crypto.randomUUID();
       const author = authorId ? data.usuarios.find((u) => u.id === authorId) : null;
-      const initialAmount = saldoInicial ? Number(saldoInicial.monto) || 0 : 0;
-      const initialConcept = saldoInicial?.concepto?.trim() || (initialAmount !== 0 ? 'Saldo inicial' : null);
       const { data: inserted, error } = await writeDashboardRecord({
         id,
         nombre: nombre.trim().toUpperCase(),
         pais: pais || 'COLOMBIA',
         ingresos_cop: 0,
         pagado_cop: 0,
-        saldo_inicial_cop: initialAmount,
-        concepto_saldo_inicial: initialConcept,
-        pendiente_cop: Math.max(0, initialAmount),
-        saldo_cop: initialAmount,
+        pendiente_cop: 0,
+        saldo_cop: 0,
         total_negocios: 0,
-        estado: initialAmount < 0 ? 'DEBE' : initialAmount > 0 ? 'PENDIENTE' : 'SIN ACTIVIDAD',
+        estado: 'SIN ACTIVIDAD',
         fecha_creacion: new Date().toISOString(),
         ...(authorId ? { created_by: authorId, created_by_name: author?.nombre } : {}),
       }, (fields) => supabase.from('clientes').insert(fields).select('*').single(), {
@@ -1800,16 +1782,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateCliente = async (payload: { id: string; nombre?: string; pais?: string; authorId?: string; saldoInicialCop?: number; conceptoSaldoInicial?: string }): Promise<boolean> => {
+  const updateCliente = async (payload: { id: string; nombre?: string; pais?: string; authorId?: string }): Promise<boolean> => {
     requireWrite('clients');
     try {
       const updates: any = {};
       if (payload.nombre !== undefined) updates.nombre = payload.nombre.trim().toUpperCase();
       if (payload.pais !== undefined) updates.pais = payload.pais.trim();
-      if (payload.saldoInicialCop !== undefined) {
-        updates.saldo_inicial_cop = payload.saldoInicialCop;
-        updates.concepto_saldo_inicial = payload.conceptoSaldoInicial !== undefined ? payload.conceptoSaldoInicial.trim() : 'Saldo inicial';
-      }
       if (payload.authorId !== undefined) {
         updates.created_by = payload.authorId || null;
         const author = payload.authorId ? data.usuarios.find((u) => u.id === payload.authorId) : null;

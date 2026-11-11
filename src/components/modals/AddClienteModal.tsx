@@ -3,7 +3,6 @@ import React, { useId, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { ClientCountrySelect } from '../common/ClientCountrySelect';
-import { formatAmountField, parseAmountInput } from '../../utils/amountInput';
 
 interface AddClienteModalProps {
   isOpen: boolean;
@@ -13,15 +12,8 @@ interface AddClienteModalProps {
 export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClose }) => {
   const { createCliente } = useData();
   const { profile, user } = useAuth();
-  const isSuperAdmin = profile?.role === 'super_admin';
-
   const [nombre, setNombre] = useState('');
   const [pais, setPais] = useState('COLOMBIA');
-  const [hasSaldoInicial, setHasSaldoInicial] = useState(false);
-  const [tipoSaldo, setTipoSaldo] = useState<'a_favor' | 'deuda'>('a_favor');
-  const [montoSaldo, setMontoSaldo] = useState('');
-  const [conceptoSaldo, setConceptoSaldo] = useState('Saldo inicial');
-
   const countryId = useId();
   const nameId = useId();
   const [loading, setLoading] = useState(false);
@@ -39,22 +31,9 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
     const finishSound = prepareSuccessSound();
     try {
       const currentUserId = profile?.id || user?.id;
-      let saldoInicialPayload: { monto: number; concepto?: string } | undefined = undefined;
-      if (isSuperAdmin && hasSaldoInicial) {
-        const parsed = parseAmountInput(montoSaldo);
-        if (Number.isFinite(parsed) && parsed > 0) {
-          saldoInicialPayload = {
-            monto: tipoSaldo === 'deuda' ? -Math.abs(parsed) : Math.abs(parsed),
-            concepto: conceptoSaldo.trim() || 'Saldo inicial',
-          };
-        }
-      }
-
-      const result = await createCliente(nombre.trim(), pais, currentUserId, saldoInicialPayload);
+      const result = await createCliente(nombre.trim(), pais, currentUserId);
       if (!result?.success) throw new Error('No se pudo guardar el cliente.');
       setNombre('');
-      setHasSaldoInicial(false);
-      setMontoSaldo('');
       finishSound(true);
       onClose();
     } catch (err: any) {
@@ -118,79 +97,6 @@ export const AddClienteModal: React.FC<AddClienteModalProps> = ({ isOpen, onClos
               className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
           </div>
-
-          {isSuperAdmin && (
-            <div className="pt-2 border-t border-border space-y-3">
-              <div className="flex items-center justify-between">
-                <label htmlFor="toggle-saldo-inicial" className="text-xs font-semibold text-foreground flex items-center gap-1.5 cursor-pointer">
-                  <i className="ri-scales-3-line text-amber-500" />
-                  <span>¿Asignar saldo inicial?</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    Super Admin
-                  </span>
-                </label>
-                <input
-                  id="toggle-saldo-inicial"
-                  type="checkbox"
-                  checked={hasSaldoInicial}
-                  onChange={(e) => setHasSaldoInicial(e.target.checked)}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer"
-                />
-              </div>
-
-              {hasSaldoInicial && (
-                <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setTipoSaldo('a_favor')}
-                      className={`p-2 rounded-lg border text-left text-xs transition-colors ${
-                        tipoSaldo === 'a_favor'
-                          ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold'
-                          : 'border-border bg-background text-muted-foreground'
-                      }`}
-                    >
-                      Le debemos (+)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTipoSaldo('deuda')}
-                      className={`p-2 rounded-lg border text-left text-xs transition-colors ${
-                        tipoSaldo === 'deuda'
-                          ? 'border-destructive bg-destructive/10 text-destructive font-bold'
-                          : 'border-border bg-background text-muted-foreground'
-                      }`}
-                    >
-                      Nos debe (-)
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-muted-foreground mb-1">Monto (COP) *</label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={montoSaldo}
-                      onChange={(e) => { const value = formatAmountField(e.currentTarget); if (value !== undefined) setMontoSaldo(value); }}
-                      placeholder="0 COP"
-                      className="w-full px-3 py-1.5 rounded-lg border border-input bg-background text-xs font-mono font-bold text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-muted-foreground mb-1">Concepto</label>
-                    <input
-                      type="text"
-                      value={conceptoSaldo}
-                      onChange={(e) => setConceptoSaldo(e.target.value)}
-                      placeholder="Saldo inicial"
-                      className="w-full px-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">
             <button
