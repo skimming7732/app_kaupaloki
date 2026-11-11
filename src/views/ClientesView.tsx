@@ -305,7 +305,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={11} rows={sortedClientes}>{(c) => (
+                <PaginatedRows pageSize={100} columns={11} rows={sortedClientes}>{(c) => (
                   <tr 
                     key={c.id} 
                     onClick={() => navigate(`/clientes/${c.codigo.toLowerCase()}`)}

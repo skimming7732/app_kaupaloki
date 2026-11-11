@@ -1,3 +1,4 @@
+import { readAllRows } from '../utils/supabasePagination';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getTokenState, type CashToken } from '../utils/tokenVoucherGenerator';
@@ -39,8 +40,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const [tokenError, setTokenError] = useState('');
 
   const refreshTokens = useCallback(async () => {
-    const { data: tokens, error } = await supabase.from('cash_tokens').select('*')
-      .not('efectivo_id', 'is', null).order('created_at', { ascending: false });
+    const { data: tokens, error } = await readAllRows(() => supabase.from('cash_tokens').select('*')
+      .not('efectivo_id', 'is', null).order('created_at', { ascending: false }).order('id'));
     if (error) {
       setTokenError('No se pudieron consultar los tokens de pago.');
       return;
@@ -276,7 +277,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={visibleMovements}>{(m) => {
+                <PaginatedRows pageSize={100} columns={10} rows={visibleMovements}>{(m) => {
                   const token = tokenByPayment.get(m.id);
                   const tokenState = token && getTokenState(token);
                   return (

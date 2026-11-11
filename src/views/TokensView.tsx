@@ -1,3 +1,4 @@
+import { readAllRows } from '../utils/supabasePagination';
 import { Link } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
@@ -72,11 +73,11 @@ export const TokensView: React.FC = () => {
   const fetchTokens = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await readAllRows(() => supabase
         .from('cash_tokens')
         .select('*')
         .or('efectivo_id.not.is.null,pago_codigo.not.is.null')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }).order('id'));
 
       if (error) throw error;
       setTokens((data as CashToken[]) || []);
@@ -397,7 +398,7 @@ export const TokensView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows rows={filteredTokens} columns={9}>
+                <PaginatedRows stackedMobile pageSize={100} rows={filteredTokens} columns={9}>
                   {(token) => {
                     const state = getTokenState(token);
                     const badge = tokenBadges[state];

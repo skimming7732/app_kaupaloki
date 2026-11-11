@@ -234,7 +234,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
             <tr>{headings.map((name, index) => <th key={name} scope="col" className={'whitespace-nowrap px-3 py-3 font-semibold ' + (index > 3 && index < 11 ? 'text-right' : '')}>{name}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-border">
-            <PaginatedRows rows={rows} columns={headings.length} resetKey={activePerson + ':' + kindFilter}>{(row) => {
+            <PaginatedRows pageSize={100} rows={rows} columns={headings.length} resetKey={activePerson + ':' + kindFilter}>{(row) => {
               const person = peopleById.get(row.socio_id);
               const a = capitalAmounts(row);
               const kindLabel = row.tipo === 'INTERES'

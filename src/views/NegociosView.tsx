@@ -174,7 +174,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={10} rows={filteredNegocios}>
+                <PaginatedRows pageSize={100} columns={10} rows={filteredNegocios}>
                   {(n) => (
                     <tr key={n.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-medium text-foreground">{n.codigo}</td>

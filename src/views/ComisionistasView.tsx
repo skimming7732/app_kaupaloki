@@ -160,7 +160,7 @@ export const ComisionistasView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filteredComisionistas}>{(c) => (
+                <PaginatedRows pageSize={100} columns={9} rows={filteredComisionistas}>{(c) => (
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{c.codigo}</td>
                     <td className="py-3 px-4 font-bold text-foreground">{c.comisionistaNombre}</td>

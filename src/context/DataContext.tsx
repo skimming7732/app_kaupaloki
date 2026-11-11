@@ -1,3 +1,4 @@
+import { readAllRows } from '../utils/supabasePagination';
 import type { CashToken } from '../utils/tokenVoucherGenerator';
 import { capitalLabels, loadCapitalRows, summarizeCapital, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
@@ -373,20 +374,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })).catch(() => null)
         : Promise.resolve({ rows: [], people: [] });
       const results = await Promise.all([
-        supabase.from('clientes').select('*').order('numero', { ascending: false }),
+        readAllRows(() => supabase.from('clientes').select('*').order('numero', { ascending: false }).order('id')),
         supabase.from('divisas').select('*'),
-        supabase.from('negocios').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
-        supabase.from('dispersiones').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
-        supabase.from('compras_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
-        supabase.from('ventas_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }),
+        readAllRows(() => supabase.from('negocios').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }).order('id')),
+        readAllRows(() => supabase.from('dispersiones').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }).order('id')),
+        readAllRows(() => supabase.from('compras_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }).order('id')),
+        readAllRows(() => supabase.from('ventas_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }).order('id')),
         supabase.from('activos_liquidos').select('*, institution:instituciones(id,name,type,currency,website_url,logo_url,status)'),
         supabase.from('activos_digitales').select('*, institution:instituciones(id,name,type,currency,website_url,logo_url,status)'),
-        supabase.from('efectivo').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }),
-        supabase.from('gastos').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }),
-        supabase.from('transferencias_internas').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }),
+        readAllRows(() => supabase.from('efectivo').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }).order('id')),
+        readAllRows(() => supabase.from('gastos').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }).order('id')),
+        readAllRows(() => supabase.from('transferencias_internas').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }).order('id')),
         supabase.from('resumen_liquidacion').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.rpc('listar_perfiles_dashboard'),
-        supabase.rpc('listar_comisionistas_dashboard'),
+        readAllRows(() => supabase.rpc('listar_comisionistas_dashboard')),
         supabase.rpc('ingresos_mensuales_inicio').then(({ data, error }) => {
           if (error) console.error('Error loading monthly customer income:', error);
           return { data, error: null };

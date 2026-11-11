@@ -272,7 +272,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={11} rows={filteredDispersiones}
+                <PaginatedRows pageSize={100} columns={11} rows={filteredDispersiones}
                   resetKey={JSON.stringify([search, selectedCliente, fechaDesde, fechaHasta])}>{(d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors h-14">
                     <td className="py-2.5 px-4 font-mono font-medium text-foreground whitespace-nowrap">{d.codigo}</td>

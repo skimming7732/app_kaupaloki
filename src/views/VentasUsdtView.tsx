@@ -165,7 +165,7 @@ export const VentasUsdtView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={11} rows={filteredVentas}>
+                <PaginatedRows pageSize={100} columns={11} rows={filteredVentas}>
                   {(v) => (
                     <tr key={v.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-bold text-foreground">{v.codigo}</td>

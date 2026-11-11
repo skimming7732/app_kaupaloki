@@ -256,7 +256,7 @@ export const TransferenciasInternasView: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filtered}>
+                <PaginatedRows pageSize={100} columns={9} rows={filtered}>
                   {(t: TransferenciaInterna) => (
                     <tr key={t.id} className="hover:bg-muted/40 transition-colors">
                       <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">

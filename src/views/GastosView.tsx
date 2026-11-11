@@ -242,7 +242,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={9} rows={filteredGastos}>{(g) => (
+                <PaginatedRows pageSize={100} columns={9} rows={filteredGastos}>{(g) => (
                   <tr key={g.id} className="hover:bg-muted/30 transition-colors h-14">
                     <td className="py-2.5 px-4 font-mono font-medium text-foreground whitespace-nowrap">{g.codigo}</td>
                     <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">{formatDate(g.fecha)}</td>
