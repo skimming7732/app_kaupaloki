@@ -1,5 +1,5 @@
 import { recordButtonClass } from '../components/modals/RecordDialog';
-import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
+import { KpiStrip } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
@@ -14,7 +14,7 @@ import { AttachExpenseReceipt } from '../components/modals/AttachExpenseReceipt'
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import React, { useState, useMemo } from 'react';
 import { useData, type GastoItem } from '../context/DataContext';
-import { formatNumber, formatCOP, formatUSD, formatDate } from '../utils/formatters';
+import { formatNumber, formatCOP, formatUSD, formatDate, formatRate } from '../utils/formatters';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
 
 interface GastosViewProps {
@@ -22,7 +22,8 @@ interface GastosViewProps {
 }
 
 export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
-  const { data, syncData } = useData();
+  const { data, metrics, syncData } = useData();
+  const tasaUsdtCop = metrics?.rateUsdtCop || 3950;
   const [attachingTo, setAttachingTo] = useState<{ id: string; url?: string } | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editing, setEditing] = useState<GastoItem | null>(null);
@@ -112,6 +113,38 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
     });
   }, [data.gastos, search, selectedCategoria, selectedDivisa, fechaDesde, fechaHasta]);
 
+  const divisasUsadas = useMemo(() => {
+    const set = new Set<string>();
+    data.gastos.forEach((g) => {
+      if (g.divisa) set.add(g.divisa.toUpperCase());
+    });
+    if (set.size === 0) {
+      set.add('COP');
+      set.add('USDT');
+    }
+    return Array.from(set).sort();
+  }, [data.gastos]);
+
+  const { totalGastosCOP, totalGastosUSDT, totalGastosConsolidadosCOP } = useMemo(() => {
+    let cop = 0;
+    let usdt = 0;
+    filteredGastos.forEach((g) => {
+      const divisa = (g.divisa || 'COP').toUpperCase();
+      const monto = Number(g.monto) || 0;
+      if (divisa === 'USDT') {
+        usdt += monto;
+      } else {
+        cop += monto;
+      }
+    });
+    const consolidado = cop + (usdt * tasaUsdtCop);
+    return {
+      totalGastosCOP: cop,
+      totalGastosUSDT: usdt,
+      totalGastosConsolidadosCOP: consolidado,
+    };
+  }, [filteredGastos, tasaUsdtCop]);
+
   // Lightbox list for Gastos
   const receiptsList: LightboxItem[] = useMemo(() => {
     const list: LightboxItem[] = [];
@@ -177,7 +210,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
             </TableSelectFilter>
           </div>
 
-          <CurrencyFilterDropdown value={selectedDivisa} onChange={setSelectedDivisa} className="w-full" />
+          <CurrencyFilterDropdown value={selectedDivisa} onChange={setSelectedDivisa} currencies={divisasUsadas} className="w-full" />
           {/* Fecha Desde */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
@@ -201,10 +234,40 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         </div>
       </div>
 
-      <KpiStrip metrics={([
-        ['Gastos', filteredGastos.length],
-        ['Total por divisa', totalsByCurrency(filteredGastos, (g) => g.divisa, (g) => g.monto)],
-      ] as const).map(([label, value]) => ({ label, value }))} />
+      <KpiStrip
+        metrics={[
+          {
+            label: '# Gastos',
+            value: formatNumber(filteredGastos.length),
+            icon: 'ri-file-list-3-line',
+          },
+          {
+            label: 'Gastos COP',
+            value: formatCOP(totalGastosCOP),
+            icon: 'ri-money-dollar-circle-line',
+          },
+          {
+            label: 'Gastos USDT',
+            value: `${formatNumber(totalGastosUSDT, 2, 2)} USDT`,
+            icon: 'ri-copper-coin-line',
+          },
+          {
+            label: 'Total Gastos COP',
+            value: (
+              <div className="flex flex-col">
+                <span>{formatCOP(totalGastosConsolidadosCOP)}</span>
+                {totalGastosUSDT > 0 && (
+                  <span className="text-[11px] font-normal text-muted-foreground mt-0.5">
+                    Tasa: {formatRate(tasaUsdtCop)} COP
+                  </span>
+                )}
+              </div>
+            ),
+            icon: 'ri-calculator-line',
+            featured: true,
+          },
+        ]}
+      />
 
       {/* Gastos Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
