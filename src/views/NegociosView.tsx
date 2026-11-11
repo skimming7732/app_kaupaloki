@@ -96,39 +96,44 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
 
       {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
-          <div className="relative flex-1 sm:flex-initial sm:w-64 lg:w-72 min-w-[160px]">
-            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por código o cliente..."
-              className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+        <div className="flex items-center justify-between gap-2.5">
+          {/* Left: Search + Divisa */}
+          <div className="flex items-center gap-2 flex-1 min-w-0 max-w-2xl">
+            <div className="relative flex-1 min-w-[160px]">
+              <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por código o cliente..."
+                className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+              />
+            </div>
+
+            {/* Divisa (Desktop only) */}
+            <div className="hidden md:block w-40 lg:w-44 shrink-0">
+              <CurrencyFilterDropdown
+                value={selectedDivisa}
+                onChange={setSelectedDivisa}
+                currencies={availableDivisas.map((d) => d.codigo)}
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          {/* Right: Fecha + Filter Trigger Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Fecha (Desktop only) */}
+            <div className="hidden md:block shrink-0">
+              <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} compact />
+            </div>
+
+            {/* Popup Filter Trigger Button */}
+            <FilterTriggerButton
+              onClick={() => setIsFilterOpen(true)}
+              activeCount={(selectedDivisa ? 1 : 0) + (selectedCliente ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
             />
           </div>
-
-          {/* Divisa (Desktop only) */}
-          <div className="hidden md:block w-44 shrink-0">
-            <CurrencyFilterDropdown
-              value={selectedDivisa}
-              onChange={setSelectedDivisa}
-              currencies={availableDivisas.map((d) => d.codigo)}
-              className="w-full"
-            />
-          </div>
-
-          {/* Fecha (Desktop only) */}
-          <div className="hidden md:block shrink-0">
-            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} compact />
-          </div>
-
-          {/* Popup Filter Trigger Button */}
-          <FilterTriggerButton
-            onClick={() => setIsFilterOpen(true)}
-            activeCount={(selectedDivisa ? 1 : 0) + (selectedCliente ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
-          />
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">

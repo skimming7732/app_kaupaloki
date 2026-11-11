@@ -66,41 +66,39 @@ export const ComprasUsdtView: React.FC = () => {
           <h2 className="text-base font-bold text-foreground">Compras USDT</h2>
           <p className="text-xs text-muted-foreground">Registro y custodia de adquisición de Tether en divisas internacionales</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <AddCatalogButton table="compras_usdt" />
-        </div>
-      </div>
+        <div className="flex items-center justify-between gap-2.5">
+          {/* Left: Search + Divisa */}
+          <div className="flex items-center gap-2 flex-1 min-w-0 max-w-2xl">
+            <div className="relative flex-1 min-w-[160px]">
+              <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por código, proveedor o divisa..."
+                className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+              />
+            </div>
 
-      {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
-      <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
-          <div className="relative flex-1 sm:flex-initial sm:w-64 lg:w-72 min-w-[160px]">
-            <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por código, proveedor o divisa..."
-              className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+            {/* Divisa Filter (Desktop only) */}
+            <div className="hidden md:block w-40 lg:w-44 shrink-0">
+              <CurrencyFilterDropdown value={filterDivisa} onChange={setFilterDivisa} className="w-full" />
+            </div>
+          </div>
+
+          {/* Right: Date range + Filter Trigger Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Date range (Desktop only) */}
+            <div className="hidden md:block shrink-0">
+              <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} compact />
+            </div>
+
+            {/* Popup Filter Trigger Button */}
+            <FilterTriggerButton
+              onClick={() => setIsFilterOpen(true)}
+              activeCount={(filterDivisa ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
             />
           </div>
-
-          {/* Divisa Filter (Desktop only) */}
-          <div className="hidden md:block w-44 shrink-0">
-            <CurrencyFilterDropdown value={filterDivisa} onChange={setFilterDivisa} className="w-full" />
-          </div>
-
-          {/* Date range (Desktop only) */}
-          <div className="hidden md:block shrink-0">
-            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} compact />
-          </div>
-
-          {/* Popup Filter Trigger Button */}
-          <FilterTriggerButton
-            onClick={() => setIsFilterOpen(true)}
-            activeCount={(filterDivisa ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
-          />
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">

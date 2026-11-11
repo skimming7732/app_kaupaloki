@@ -165,9 +165,9 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
 
       {/* Filter Bar: Desktop (Search + Fecha + Filtros) | Mobile (Search + Filtros) */}
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
-          <div className="relative flex-1 sm:flex-initial sm:w-64 lg:w-72 min-w-[160px]">
+        <div className="flex items-center justify-between gap-2.5">
+          {/* Left: Search */}
+          <div className="relative flex-1 min-w-[160px] max-w-2xl">
             <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
             <input
               type="text"
@@ -178,22 +178,25 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
             />
           </div>
 
-          {/* Fecha (Desktop only) */}
-          <div className="hidden md:block shrink-0">
-            <DateRangeFilter
-              from={fechaDesde}
-              to={fechaHasta}
-              setFrom={setFechaDesde}
-              setTo={setFechaHasta}
-              compact
+          {/* Right: Fecha + Filter Trigger Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Fecha (Desktop only) */}
+            <div className="hidden md:block shrink-0">
+              <DateRangeFilter
+                from={fechaDesde}
+                to={fechaHasta}
+                setFrom={setFechaDesde}
+                setTo={setFechaHasta}
+                compact
+              />
+            </div>
+
+            {/* Popup Filter Trigger Button */}
+            <FilterTriggerButton
+              onClick={() => setIsFilterOpen(true)}
+              activeCount={(selectedCliente ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
             />
           </div>
-
-          {/* Popup Filter Trigger Button */}
-          <FilterTriggerButton
-            onClick={() => setIsFilterOpen(true)}
-            activeCount={(selectedCliente ? 1 : 0) + (selectedCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
-          />
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">

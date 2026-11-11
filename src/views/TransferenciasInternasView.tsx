@@ -196,46 +196,50 @@ export const TransferenciasInternasView: React.FC = () => {
 
         {/* Filter Bar: Desktop (Search + Divisa + Fecha + Filtros) | Mobile (Search + Filtros) */}
         <div className="p-3.5 bg-muted/20 border-b border-border space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Search */}
-            <div className="relative flex-1 sm:flex-initial sm:w-64 lg:w-72 min-w-[160px]">
-              <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por concepto o cuenta..."
-                className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
-              />
+          <div className="flex items-center justify-between gap-2.5">
+            {/* Left: Search + Divisa */}
+            <div className="flex items-center gap-2 flex-1 min-w-0 max-w-2xl">
+              <div className="relative flex-1 min-w-[160px]">
+                <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por concepto o cuenta..."
+                  className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+                />
+              </div>
+
+              {/* Divisa Selector (Desktop only) */}
+              <div className="hidden md:block w-40 lg:w-44 shrink-0">
+                <CurrencyFilterDropdown
+                  value={filterDivisa}
+                  onChange={setFilterDivisa}
+                  className="w-full"
+                />
+              </div>
             </div>
 
-            {/* Divisa Selector (Desktop only) */}
-            <div className="hidden md:block w-44 shrink-0">
-              <CurrencyFilterDropdown
-                value={filterDivisa}
-                onChange={setFilterDivisa}
-                className="w-full"
+            {/* Right: Date range filter + Filter Trigger Button */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Date range filter (Desktop only) */}
+              <div className="hidden md:block shrink-0">
+                <DateRangeFilter
+                  from={fechaDesde}
+                  to={fechaHasta}
+                  setFrom={setFechaDesde}
+                  setTo={setFechaHasta}
+                  compact
+                />
+              </div>
+
+              {/* Popup Filter Trigger Button */}
+              <FilterTriggerButton
+                onClick={() => setIsFilterOpen(true)}
+                activeCount={(filterDivisa ? 1 : 0) + (filterTipo !== 'TODOS' ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
               />
             </div>
-
-            {/* Date range filter (Desktop only) */}
-            <div className="hidden md:block shrink-0">
-              <DateRangeFilter
-                from={fechaDesde}
-                to={fechaHasta}
-                setFrom={setFechaDesde}
-                setTo={setFechaHasta}
-                compact
-              />
-            </div>
-
-            {/* Popup Filter Trigger Button */}
-            <FilterTriggerButton
-              onClick={() => setIsFilterOpen(true)}
-              activeCount={(filterDivisa ? 1 : 0) + (filterTipo !== 'TODOS' ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
-            />
-          </div>
-        </div>
+          </div></div>
 
         {/* Filter Modal */}
         <FilterModal
