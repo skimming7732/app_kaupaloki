@@ -138,8 +138,8 @@ export const VentasUsdtView: React.FC = () => {
         ).map(([label, value]) => ({ label, value }))}
       />
 
-      {/* Ventas Table */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
@@ -216,6 +216,87 @@ export const VentasUsdtView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Mobile Cards View ("Cajitas") */}
+      <div className="block md:hidden space-y-3">
+        {filteredVentas.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-xs shadow-sm">
+            No hay registros de ventas USDT coincidentes con los filtros
+          </div>
+        ) : (
+          filteredVentas.map((v) => (
+            <div
+              key={v.id}
+              className="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-primary/40 transition-all space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs text-foreground">{v.codigo}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatDate(v.fecha)}</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground mt-0.5">{v.concepto || 'Venta USDT'}</h4>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
+                  -{formatNumber(v.usdtVendido, 0, 2)} USDT
+                </span>
+              </div>
+
+              {/* Origin -> Destination Route */}
+              <div className="flex items-center gap-2 text-xs p-2.5 rounded-xl bg-muted/40 border border-border">
+                <span className="px-1.5 py-0.5 rounded bg-card text-foreground font-semibold text-[10px] truncate max-w-[120px]">
+                  {v.walletOrigen || 'Billetera'}
+                </span>
+                <i className="ri-arrow-right-line text-muted-foreground" />
+                <span className="px-1.5 py-0.5 rounded bg-card text-foreground font-semibold text-[10px] truncate max-w-[120px]">
+                  {v.destinoFondosNombre || 'Cuenta Destino'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-muted/30 p-2 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Tasa Venta</span>
+                  <span className="font-mono font-bold text-foreground text-xs">${formatRate(v.tasa)} COP</span>
+                </div>
+                <div className="bg-muted/30 p-2 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Fee de Envío</span>
+                  <span className="font-mono font-semibold text-muted-foreground text-xs">{formatNumber(v.feeUsdt, 0, 6)} USDT</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+                <span className="text-xs font-semibold text-foreground">Total COP Recibido</span>
+                <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+                  {formatCOP(v.totalCOP)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
+                <CreatedByCell name={v.createdByName} />
+                <div>
+                  <AddCatalogButton
+                    table="ventas_usdt"
+                    edit={{
+                      id: v.id,
+                      historical: !v.walletOrigenId || !v.destinoFondosId,
+                      fields: {
+                        fecha: v.fecha?.slice(0, 10) || '',
+                        concepto: v.concepto,
+                        usdt_vendido: v.usdtVendido,
+                        fee_usdt: v.feeUsdt,
+                        tasa: v.tasa,
+                        wallet_origen_id: v.walletOrigenId || '',
+                        destino_fondos_id: v.destinoFondosId || '',
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
     </div>
   );
 };

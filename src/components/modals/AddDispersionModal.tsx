@@ -37,7 +37,7 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
   const [error, setError] = useState('');
   const accounts = useLegacyAccounts ? data.activosLiquidos as Account[] : remoteAccounts;
 
-  // Inline client creation states
+  // Inline client creation states (popup sobre popup)
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPais, setNewClientPais] = useState('COLOMBIA');
@@ -136,62 +136,15 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
   };
 
   return (
-    <RecordDialog
-      title={isCreatingClient ? "Agregar cliente" : record ? "Editar dispersión" : "Registrar dispersión"}
-      description={isCreatingClient ? "El cliente quedará seleccionado para esta dispersión." : "Registra una transferencia a un cliente desde una cuenta operativa."}
-      icon={isCreatingClient ? "ri-user-add-line" : "ri-send-plane-line"}
-      busy={busy || clientSaving}
-      error={error}
-      onClose={isCreatingClient ? () => setIsCreatingClient(false) : onClose}
-    >
-      {isCreatingClient ? (
-        <form onSubmit={handleCreateClient} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="dispersion-new-client-name" className={recordLabelClass}>
-              <span>Nombre completo o empresa</span>
-              <input
-                id="dispersion-new-client-name"
-                type="text"
-                autoFocus
-                required
-                autoCapitalize="characters"
-                value={newClientName}
-                onChange={(event) => setNewClientName(event.currentTarget.value.toUpperCase())}
-                placeholder="EJ. COMERCIALIZADORA DEL NORTE"
-                className={recordFieldClass + ' uppercase'}
-              />
-            </label>
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="dispersion-new-client-country" className={recordLabelClass}>
-              <span>País</span>
-              <ClientCountrySelect
-                id="dispersion-new-client-country"
-                value={newClientPais}
-                onChange={setNewClientPais}
-                className={recordFieldClass}
-              />
-            </label>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
-            <button
-              type="button"
-              onClick={() => setIsCreatingClient(false)}
-              disabled={clientSaving}
-              className="min-h-11 rounded-xl px-4 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-            >
-              Volver
-            </button>
-            <button
-              type="submit"
-              disabled={clientSaving || !newClientName.trim()}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
-            >
-              {clientSaving ? 'Guardando…' : 'Guardar y seleccionar'}
-            </button>
-          </div>
-        </form>
-      ) : (
+    <>
+      <RecordDialog
+        title={record ? "Editar dispersión" : "Registrar dispersión"}
+        description="Registra una transferencia a un cliente desde una cuenta operativa."
+        icon="ri-send-plane-line"
+        busy={busy}
+        error={error}
+        onClose={onClose}
+      >
         <form onSubmit={submit} className="space-y-4">
           <fieldset disabled={busy} className="space-y-4">
             <div className="space-y-1.5">
@@ -237,7 +190,80 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
           </fieldset>
           <RecordActions busy={busy} label={record ? "Guardar cambios" : "Registrar dispersión"} onClose={onClose} onDelete={record && canDelete ? handleDelete : undefined} deleteLabel="Eliminar dispersión" />
         </form>
+      </RecordDialog>
+
+      {/* Popup sobre popup: Crear Cliente */}
+      {isCreatingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-5 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg">
+                  <i className="ri-user-add-line" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Agregar cliente</h3>
+                  <p className="text-[11px] text-muted-foreground">Quedará seleccionado en esta dispersión</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreatingClient(false)}
+                disabled={clientSaving}
+                className="w-8 h-8 rounded-lg text-muted-foreground hover:bg-muted flex items-center justify-center"
+              >
+                <i className="ri-close-line text-lg" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateClient} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="dispersion-new-client-name" className={recordLabelClass}>
+                  <span>Nombre completo o empresa</span>
+                  <input
+                    id="dispersion-new-client-name"
+                    type="text"
+                    autoFocus
+                    required
+                    autoCapitalize="characters"
+                    value={newClientName}
+                    onChange={(event) => setNewClientName(event.currentTarget.value.toUpperCase())}
+                    placeholder="EJ. DANIEL RAMÍREZ"
+                    className={recordFieldClass + ' uppercase'}
+                  />
+                </label>
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="dispersion-new-client-country" className={recordLabelClass}>
+                  <span>País</span>
+                  <ClientCountrySelect
+                    id="dispersion-new-client-country"
+                    value={newClientPais}
+                    onChange={setNewClientPais}
+                    className={recordFieldClass}
+                  />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingClient(false)}
+                  disabled={clientSaving}
+                  className="min-h-11 rounded-xl px-4 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                >
+                  Volver
+                </button>
+                <button
+                  type="submit"
+                  disabled={clientSaving || !newClientName.trim()}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                >
+                  {clientSaving ? 'Guardando…' : 'Guardar y seleccionar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
-    </RecordDialog>
+    </>
   );
 };

@@ -105,8 +105,8 @@ export const ComprasUsdtView: React.FC = () => {
         ['USDT comprado', formatCurrency(sumRows(filteredCompras, (c) => c.usdtComprado), 'USDT')],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
-      {/* Compras Table */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
@@ -174,6 +174,86 @@ export const ComprasUsdtView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Mobile Cards View ("Cajitas") */}
+      <div className="block md:hidden space-y-3">
+        {filteredCompras.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-xs shadow-sm">
+            No hay registros de compras USDT coincidentes con los filtros
+          </div>
+        ) : (
+          filteredCompras.map((c) => (
+            <div
+              key={c.id}
+              className="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-primary/40 transition-all space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs text-foreground">{c.codigo}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatDate(c.fecha)}</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground mt-0.5">{c.proveedor || 'Sin proveedor'}</h4>
+                </div>
+                <span className="px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px] shrink-0">
+                  {c.divisaCodigo}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
+                <div className="bg-muted/30 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Valor Comprado</span>
+                  <span className="font-bold text-foreground text-xs">
+                    {formatNumber(c.valorComprado, 0, 2)} {c.divisaCodigo}
+                  </span>
+                </div>
+                <div className="bg-muted/30 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Tasa de Compra</span>
+                  <span className="font-mono font-bold text-foreground text-xs">${formatRate(c.tasa)}</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 block">USDT Recibido</span>
+                  <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+                    +{formatNumber(c.usdtComprado, 0, 2)} USDT
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-muted-foreground block">Destino</span>
+                  <span className="text-xs font-semibold text-foreground">
+                    {c.walletDestino || (c.walletDestinoId && data.activosDigitales.find((a) => a.id === c.walletDestinoId)?.activo) || 'Billetera'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
+                <CreatedByCell name={c.createdByName} />
+                <div>
+                  <AddCatalogButton
+                    table="compras_usdt"
+                    edit={{
+                      id: c.id,
+                      historical: false,
+                      fields: {
+                        fecha: c.fecha?.slice(0, 10) || '',
+                        proveedor: c.proveedor || '',
+                        divisa_codigo: c.divisaCodigo,
+                        valor_comprado: c.valorComprado,
+                        tasa: c.tasa !== undefined && c.tasa !== null ? c.tasa : (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0),
+                        usdt_comprado: c.usdtComprado,
+                        wallet_destino_id: c.walletDestinoId || '',
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
     </div>
   );
 };

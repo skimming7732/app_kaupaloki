@@ -273,8 +273,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
         ['Total Comisiones', formatCOP(sumRows(sortedClientes, (c) => c.totalComisionesCOP ?? 0))],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
-      {/* Clientes Table */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
@@ -424,6 +424,108 @@ export const ClientesView: React.FC<ClientesViewProps> = ({ onOpenAddCliente }) 
           </table>
         </div>
       </div>
+
+      {/* Mobile Cards View ("Cajitas") */}
+      <div className="block md:hidden space-y-3">
+        {sortedClientes.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-xs shadow-sm">
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <i className="ri-loader-4-line animate-spin text-lg text-primary" />
+                <span>Cargando clientes...</span>
+              </span>
+            ) : (
+              'No se encontraron clientes'
+            )}
+          </div>
+        ) : (
+          sortedClientes.map((c) => (
+            <div
+              key={c.id}
+              onClick={() => navigate(`/clientes/${c.codigo.toLowerCase()}`)}
+              className="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-primary/40 active:scale-[0.99] transition-all cursor-pointer space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-muted text-muted-foreground border border-border shrink-0">
+                      {getClientCountryIso(c.pais)}
+                    </span>
+                    <h4 className="font-bold text-sm text-foreground truncate">{c.nombre || 'Sin nombre'}</h4>
+                  </div>
+                  <p className="text-xs font-mono text-muted-foreground mt-0.5">{c.codigo}</p>
+                </div>
+                <div className="shrink-0">
+                  {getStatusBadge(c.estado)}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
+                <div className="bg-muted/30 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Ingresos COP</span>
+                  <span className="font-semibold text-foreground text-xs">{formatCOP(c.totalIngresosCOP)}</span>
+                </div>
+                <div className="bg-muted/30 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Pagado COP</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-xs">{formatCOP(c.totalDispersadoCOP)}</span>
+                </div>
+                <div className="bg-muted/30 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Por pagar</span>
+                  <span className="font-bold text-foreground text-xs">{formatCOP(c.saldoPendienteCOP)}</span>
+                </div>
+                <div className={`p-2.5 rounded-xl ${c.porCobrarCOP > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/30 text-muted-foreground'}`}>
+                  <span className="text-[10px] font-medium block">Por cobrar</span>
+                  <span className="font-bold text-xs">{formatCOP(c.porCobrarCOP)}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">
+                    {formatNumber(c.totalNegocios ?? 0)} neg.
+                  </span>
+                  {c.esComisionista && (
+                    <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
+                      Comisionista
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  {canWrite && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingClient(c)}
+                      title="Editar cliente"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <i className="ri-edit-line text-sm" />
+                    </button>
+                  )}
+                  {canWrite && (
+                    <button
+                      type="button"
+                      onClick={() => setSharingClient(c)}
+                      title="Compartir enlace"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                    >
+                      <i className="ri-share-forward-line text-sm" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/cliente/${c.codigo.toLowerCase()}?from=panel-control`)}
+                    title="Ver estado de cuenta"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <i className="ri-external-link-line text-sm" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
 
       {/* Add Cliente Modal */}
       <AddClienteModal

@@ -101,7 +101,8 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+      {/* Desktop Movements Table */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-left text-xs">
           <caption className="sr-only">Movimientos de cambio en {codigo}</caption>
           <thead className="bg-muted/40 text-muted-foreground uppercase tracking-wider font-semibold">
@@ -211,8 +212,8 @@ export const DivisasView: React.FC = () => {
         ['Total pendiente', totalsByCurrency(filteredDivisas, (d) => d.codigo, (d) => d.totalPendiente)],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
-      {/* De-compressed Clean Table */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
@@ -272,6 +273,40 @@ export const DivisasView: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Movements Cards */}
+      <div className="block md:hidden space-y-2.5">
+        {movimientos.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground bg-card border border-border rounded-xl">
+            {rawMovimientos.length === 0
+              ? 'No hay movimientos registrados para esta divisa.'
+              : 'No hay movimientos en el rango de fechas seleccionado.'}
+          </div>
+        ) : (
+          movimientos.map((item) => (
+            <div key={item.tipo + '-' + item.id} className="p-3.5 rounded-xl bg-card border border-border shadow-xs space-y-2 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">{item.tipo}</span>
+                  <span className="font-mono text-[11px] text-muted-foreground">{item.codigo}</span>
+                </div>
+                <span className="font-mono text-[11px] text-muted-foreground">{formatDate(item.fecha)}</span>
+              </div>
+              {item.detalle && (
+                <p className="text-muted-foreground text-[11px] truncate">{item.detalle}</p>
+              )}
+              <div className="flex items-center justify-between pt-1.5 border-t border-border/50 font-mono text-xs font-bold">
+                <span className="text-muted-foreground text-[10px] font-sans">Monto</span>
+                {item.entrada ? (
+                  <span className="text-emerald-600 dark:text-emerald-400">+{formatCurrency(item.entrada, codigo)}</span>
+                ) : (
+                  <span className="text-rose-600 dark:text-rose-400">-{formatCurrency(item.salida, codigo)}</span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

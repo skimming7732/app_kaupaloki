@@ -64,7 +64,7 @@ export const SendInviteModal: React.FC<SendInviteModalProps> = ({ isOpen, user, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 relative">
+      <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 relative max-sm:fixed max-sm:inset-0 max-sm:m-0 max-sm:h-full max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
             <i className="ri-mail-send-line text-xl" />

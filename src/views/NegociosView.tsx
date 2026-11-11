@@ -150,8 +150,8 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
         ).map(([label, value]) => ({ label, value }))}
       />
 
-      {/* Table */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
@@ -220,6 +220,71 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
           </table>
         </div>
       </div>
+
+      {/* Mobile Cards View ("Cajitas") */}
+      <div className="block md:hidden space-y-3">
+        {filteredNegocios.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-xs shadow-sm">
+            No se encontraron operaciones de negocio
+          </div>
+        ) : (
+          filteredNegocios.map((n) => (
+            <div
+              key={n.id}
+              className="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-primary/40 transition-all space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs text-foreground">{n.codigo}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatDate(n.fecha)}</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground mt-0.5 truncate">{n.clienteNombre}</h4>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                  {n.estado || 'Completado'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
+                <div className="bg-muted/30 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Monto en Divisa</span>
+                  <div className="flex items-center gap-1.5 font-bold text-foreground mt-0.5">
+                    <span className="px-1.5 py-0.2 rounded bg-primary/10 text-primary text-[10px] font-bold">
+                      {n.divisaCodigo}
+                    </span>
+                    <span>{formatNumber(n.montoDivisa, 2)}</span>
+                  </div>
+                </div>
+                <div className="bg-muted/30 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Tasa de Cambio</span>
+                  <span className="font-mono font-bold text-foreground text-xs mt-0.5 block">${formatRate(n.tasaCambio)}</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-primary/5 border border-primary/15 flex items-center justify-between">
+                <span className="text-xs font-semibold text-foreground">Ingreso en COP</span>
+                <span className="text-sm font-extrabold font-mono text-primary">{formatCOP(n.ingresoCOP)}</span>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
+                <CreatedByCell name={n.createdByName} />
+                {canWrite && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingNegocio(n)}
+                    className="px-3 py-1.5 rounded-xl border border-border bg-background text-foreground text-xs font-semibold hover:bg-muted transition-colors flex items-center gap-1.5"
+                  >
+                    <i className="ri-edit-line text-sm text-primary" />
+                    <span>Editar</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
 
       {/* Modals */}
       <AddNegocioModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />

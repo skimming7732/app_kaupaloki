@@ -33,18 +33,29 @@ export const RecordDialog = ({ title, description, icon, busy, error, wide, onCl
         event.preventDefault();
         if (!busy) onClose();
       }}
-      className={'m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm ' + (wide ? 'max-w-2xl' : 'max-w-lg')}
+      className={
+        'overflow-y-auto border-border bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm ' +
+        'max-sm:fixed max-sm:inset-0 max-sm:m-0 max-sm:h-full max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 ' +
+        'sm:m-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:rounded-2xl sm:border ' +
+        (wide ? 'sm:max-w-2xl' : 'sm:max-w-lg')
+      }
     >
-      <header className="flex items-start gap-3 border-b border-border p-4 sm:p-6">
+      <header className="flex items-start gap-3 border-b border-border p-4 sm:p-6 sticky top-0 bg-card/95 backdrop-blur-sm z-10">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl text-primary">
           <i className={icon} aria-hidden="true" />
         </span>
-        <div className="flex-1">
-          <h2 id={titleId} className="text-lg font-bold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="flex-1 min-w-0">
+          <h2 id={titleId} className="text-base sm:text-lg font-bold truncate">{title}</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{description}</p>
         </div>
-        <button type="button" onClick={onClose} disabled={busy} aria-label="Cerrar" className="rounded-lg px-2 py-1 text-lg text-muted-foreground hover:bg-muted">
-          <i className="ri-close-line" aria-hidden="true" />
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={busy}
+          aria-label="Cerrar"
+          className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          <i className="ri-close-line text-xl" aria-hidden="true" />
         </button>
       </header>
       {error && <p role="alert" className="mx-4 mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive sm:mx-6">{error}</p>}

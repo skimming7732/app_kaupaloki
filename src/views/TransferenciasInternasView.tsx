@@ -307,6 +307,81 @@ export const TransferenciasInternasView: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards View ("Cajitas") */}
+        <div className="block md:hidden p-3 space-y-3">
+          {filtered.length === 0 ? (
+            <div className="py-8 text-center text-xs text-muted-foreground">
+              No se encontraron transferencias internas con los filtros seleccionados.
+            </div>
+          ) : (
+            filtered.map((t) => (
+              <div
+                key={t.id}
+                className="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-primary/40 transition-all space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono font-bold text-xs text-foreground block">{t.codigo}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatDate(t.fecha)}</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                    t.divisaOrigen === 'COP'
+                      ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                  }`}>
+                    {t.divisaOrigen === 'COP' ? 'Líquido (COP)' : 'Digital (USDT)'}
+                  </span>
+                </div>
+
+                {/* Transfer Path */}
+                <div className="p-2.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between text-xs">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] text-muted-foreground block">Origen</span>
+                    <span className="font-bold text-foreground truncate block">{t.origenNombre || 'Origen'}</span>
+                  </div>
+                  <i className="ri-arrow-right-line text-primary text-base px-2 shrink-0" />
+                  <div className="min-w-0 flex-1 text-right">
+                    <span className="text-[10px] text-muted-foreground block">Destino</span>
+                    <span className="font-bold text-foreground truncate block">{t.destinoNombre || 'Destino'}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-primary/5 border border-primary/15 p-2.5 rounded-xl">
+                    <span className="text-[10px] font-medium text-muted-foreground block">Monto Transferido</span>
+                    <span className="font-extrabold font-mono text-primary text-sm">
+                      {t.divisaOrigen === 'COP' ? formatCOP(t.monto) : `${formatNumber(t.monto, 2, 6)} USDT`}
+                    </span>
+                  </div>
+                  <div className="bg-muted/30 p-2.5 rounded-xl">
+                    <span className="text-[10px] font-medium text-muted-foreground block">Costo / Fee</span>
+                    <span className="font-mono font-bold text-foreground text-xs">
+                      {t.costo > 0
+                        ? t.divisaCosto === 'COP'
+                          ? formatCOP(t.costo)
+                          : `${formatNumber(t.costo, 2, 2)} USDT`
+                        : 'Exento'}
+                    </span>
+                  </div>
+                </div>
+
+                {t.concepto && (
+                  <p className="text-xs text-muted-foreground italic bg-muted/20 px-3 py-1.5 rounded-lg border border-border/50">
+                    "{t.concepto}"
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
+                  <CreatedByCell name={t.createdByName} />
+                  <div>
+                    <AddTransferenciaModal edit={t} />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

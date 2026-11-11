@@ -224,7 +224,8 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
 
       {/* Gastos Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
@@ -338,6 +339,111 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden divide-y divide-border">
+          {filteredGastos.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              No se encontraron gastos registrados
+            </div>
+          ) : (
+            filteredGastos.map((g) => (
+              <div key={g.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono font-bold text-sm text-foreground">{g.codigo}</span>
+                    <div className="text-[11px] text-muted-foreground">{formatDate(g.fecha)}</div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-muted text-foreground border border-border">
+                    <i className={`${getCategoryIcon(g.categoria)} text-primary text-xs`} />
+                    <span>{g.categoria}</span>
+                  </span>
+                </div>
+
+                <div>
+                  <div className="text-xs font-semibold text-foreground">{g.concepto}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    <span className="font-medium text-foreground">Origen:</span> {g.origenFondos || '—'}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl bg-muted/30 p-2.5 text-xs">
+                  <span className="text-muted-foreground font-medium">Monto</span>
+                  <span className="font-bold text-sm text-foreground tabular-nums">
+                    {g.divisa === 'COP' ? formatCOP(g.monto) : formatUSD(g.monto)}
+                  </span>
+                </div>
+
+                {/* Comprobantes & Upload */}
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground font-medium">Comprobante:</span>
+                  {g.comprobanteUrl ? (
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1 overflow-x-auto max-w-[140px]">
+                        {g.comprobanteUrl.split(',').map((u) => u.trim()).filter(Boolean).map((singleUrl, rIdx) => (
+                          <button
+                            key={rIdx}
+                            type="button"
+                            onClick={() => {
+                              const idx = receiptsList.findIndex((item) => item.comprobanteUrl === singleUrl);
+                              if (idx !== -1) setLightboxIndex(idx);
+                            }}
+                            title="Ver comprobante"
+                            className="group relative h-9 w-6 shrink-0 overflow-hidden rounded-md border border-border/80 shadow-xs hover:ring-2 hover:ring-primary transition-all bg-muted"
+                            style={{ aspectRatio: '9/16' }}
+                          >
+                            <ReceiptThumbnail receipt={singleUrl} />
+                            <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] transition-opacity">
+                              <i className="ri-zoom-in-line" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      {canWrite && (
+                        <button
+                          type="button"
+                          onClick={() => openReceiptDialog(g.id, g.comprobanteUrl, true)}
+                          title="Añadir otro comprobante"
+                          className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          <i className="ri-add-line text-sm font-bold" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    canWrite && (
+                      <button
+                        type="button"
+                        onClick={() => openReceiptDialog(g.id, undefined, false)}
+                        className="text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-muted border border-border"
+                      >
+                        <i className="ri-upload-cloud-line text-xs" />
+                        <span>Subir</span>
+                      </button>
+                    )
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between border-t border-border pt-2 text-xs">
+                  <span className="text-[11px] text-muted-foreground">
+                    Por: <span className="font-medium text-foreground">{g.createdByName || '—'}</span>
+                  </span>
+                  {canWrite && (
+                    <button
+                      type="button"
+                      onClick={() => setEditing(g)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
+                    >
+                      <i className="ri-edit-line text-xs" />
+                      <span>Editar</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

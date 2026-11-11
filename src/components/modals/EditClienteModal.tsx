@@ -99,8 +99,8 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center max-sm:p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-card w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 max-sm:flex max-sm:flex-col sm:max-w-md sm:rounded-2xl border border-border shadow-2xl p-5 sm:p-6 relative overflow-y-auto">
         <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">

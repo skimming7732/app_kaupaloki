@@ -30,33 +30,53 @@ export const AddNegocioModal: React.FC<AddNegocioModalProps> = ({ isOpen, onClos
 const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioModalProps, 'isOpen'>) => {
   const { data, createNegocio, createCliente, updateNegocio, deleteNegocio } = useData();
   const { profile } = useAuth();
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const clientField = useRef<HTMLDivElement>(null);
-  const restoreClientFocus = useRef(false);
-  const id = useId();
-
+  const canDelete = canDeleteRole(profile?.role);
+  const isSuperAdmin = profile?.role === 'super_admin';
+  const isAdmin = profile?.role === 'administrador';
+  const isOperador = profile?.role === 'operador';
+  const canAssignAuthor = isSuperAdmin || isAdmin;
   const [clienteId, setClienteId] = useState(() =>
     negocio
       ? data.clientes.find((client) => client.id === negocio.clienteId || client.codigo === negocio.clienteCodigo)?.id
         || negocio.clienteId || ''
       : initialClienteId || ''
   );
-  const [divisaCode, setDivisaCode] = useState(negocio?.divisaCodigo || '');
-  const [monto, setMonto] = useState(() => negocio ? formatAmountInput(String(negocio.montoDivisa)) : '');
-  const [montoFinal, setMontoFinal] = useState('');
-  const [amountMode, setAmountMode] = useState<AmountMode>('initial');
-  const [tasa, setTasa] = useState(negocio ? formatAmountInput(String(negocio.tasaCambio)) : '');
-  const getBogotaToday = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Bogota' }).format(new Date());
-  const [fecha, setFecha] = useState(() => negocio ? negocio.fecha.slice(0, 10) : getBogotaToday());
-  const [showClientModal, setShowClientModal] = useState(false);
-  const [authorId, setAuthorId] = useState('');
+  const [authorId, setAuthorId] = useState(() => negocio?.createdBy || profile?.id || '');
   const [authorSearch, setAuthorSearch] = useState('');
+  const currencies = isOperador
+    ? data.divisas.filter((currency) => (profile?.authorizedCurrencies || []).includes(currency.codigo))
+    : data.divisas;
+  const initialCurrency = negocio?.divisaCodigo || currencies[0]?.codigo || 'USDT';
+  const [divisaCode, setDivisaCode] = useState(initialCurrency);
+  const [fecha, setFecha] = useState(() => negocio?.fecha?.slice(0, 10) || new Date().toISOString().slice(0, 10));
+  const [monto, setMonto] = useState(() => (negocio ? formatAmountInput(String(negocio.montoDivisa)) : ''));
+  const [tasa, setTasa] = useState(() => (negocio ? formatAmountInput(String(negocio.tasaCambio)) : ''));
+  const [amountMode, setAmountMode] = useState<AmountMode>('initial');
+  const [montoFinal, setMontoFinal] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPais, setNewClientPais] = useState('COLOMBIA');
-  const [saving, setSaving] = useState(false);
-  const canDelete = canDeleteRole(profile?.role);
-  const [error, setError] = useState('');
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const clientField = useRef<HTMLDivElement>(null);
+  const restoreClientFocus = useRef(false);
+  const id = useId();
+
+  const selectedCurrency = data.divisas.find((currency) => currency.codigo === divisaCode);
+  const fromFinal = amountMode === 'final';
+  const parsedTasa = parseAmountInput(tasa);
+  const parsedFinal = parseFinalAmount(montoFinal);
+  const parsedMonto = fromFinal
+    ? (Number.isFinite(parsedFinal) && parsedTasa > 0 ? parsedFinal / parsedTasa : NaN)
+    : parseAmountInput(monto);
+  const ingresoCOP = fromFinal
+    ? (Number.isFinite(parsedFinal) ? parsedFinal : 0)
+    : (Number.isFinite(parsedMonto) && parsedMonto > 0 && Number.isFinite(parsedTasa) && parsedTasa > 0 ? parsedMonto * parsedTasa : 0);
+  const validQuote = fromFinal ? Number.isFinite(parsedFinal) && parsedFinal > 0 && parsedTasa > 0 : ingresoCOP > 0;
+  const authorName = data.usuarios.find((user) => user.id === authorId)?.nombre
+    || data.usuarios.find((user) => user.id === negocio?.createdBy)?.nombre
+    || negocio?.createdByName;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -65,62 +85,41 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
   }, []);
 
   useEffect(() => {
-    if (!isCreatingClient && restoreClientFocus.current) {
-      restoreClientFocus.current = false;
-      clientField.current?.querySelector('input')?.focus();
-    }
+    if (isCreatingClient || !restoreClientFocus.current) return;
+    restoreClientFocus.current = false;
+    clientField.current?.querySelector<HTMLElement>('input, button')?.focus();
   }, [isCreatingClient]);
 
-  const authorizedCurrencies = profile?.authorized_currencies;
-  const currencies = ['comercial', 'operador'].includes(profile?.role || '') && Boolean(profile?.authorized_currencies?.length)
-    ? data.divisas.filter((currency) => (authorizedCurrencies || []).includes(currency.codigo))
-    : data.divisas;
-
-  useEffect(() => {
-    if (['comercial', 'operador'].includes(profile?.role || '') && Boolean(profile?.authorized_currencies?.length)) {
-      if (!divisaCode && currencies.length > 0) {
-        setDivisaCode(currencies[0].codigo);
-      } else if (divisaCode && !currencies.some((c) => c.codigo === divisaCode)) {
-        setDivisaCode(currencies[0]?.codigo || '');
-      }
+  const changeAmountMode = (next: AmountMode) => {
+    if (next === amountMode) return;
+    if (next === 'final') {
+      setMontoFinal(Number.isFinite(parsedMonto) && parsedMonto > 0 && parsedTasa > 0 ? formatNumber(ingresoCOP, 0, 2) : '');
+    } else if (Number.isFinite(parsedMonto) && parsedMonto > 0) {
+      setMonto(formatNumber(parsedMonto, 0, 12));
     }
-  }, [profile?.role, currencies, divisaCode]);
-  const selectedCurrency = currencies.find((currency) => currency.codigo === divisaCode);
-  const authorName = negocio?.createdByName?.trim() ||
-    (negocio?.createdBy && (data.usuarios.find((user) => user.id === negocio.createdBy)?.nombre || negocio.createdBy));
-  const canAssignAuthor = Boolean(negocio && !authorName &&
-    (profile?.role === 'administrador' || profile?.role === 'super_admin'));
-  const fromFinal = amountMode === 'final';
-  const parsedTasa = parseAmountInput(tasa);
-  const parsedFinal = parseFinalAmount(montoFinal, 2);
-  const parsedMonto = fromFinal
-    ? (Number.isFinite(parsedTasa) && parsedTasa > 0 ? parsedFinal / parsedTasa : NaN)
-    : parseAmountInput(monto);
-  const ingresoCOP = parsedMonto * parsedTasa;
-  const validQuote = parsedMonto > 0 && parsedTasa >= 0 && Number.isFinite(ingresoCOP);
-  const canSubmit = Boolean(clienteId && selectedCurrency && fecha && validQuote);
-
-  const changeAmountMode = (mode: AmountMode) => {
-    if (mode === amountMode) return;
-    if (mode === 'final' && ingresoCOP > 0 && Number.isFinite(ingresoCOP)) {
-      setMontoFinal(formatNumber(ingresoCOP, 0, 2));
-    } else if (mode === 'initial' && parsedMonto > 0 && Number.isFinite(parsedMonto)) {
-      setMonto(formatNumber(parsedMonto, 0, 20));
-    }
-    setAmountMode(mode);
+    setAmountMode(next);
   };
 
-    const handleDelete = async () => {
-    if (!negocio || !canDelete) return;
+  const canSubmit = Boolean(clienteId && selectedCurrency && fecha && validQuote);
+
+  const handleDelete = async () => {
+    if (!negocio) return;
     if (!window.confirm(`¿Estás seguro de que deseas eliminar el negocio ${negocio.codigo}? Esta acción recalculará automáticamente los saldos de clientes y estadísticas.`)) {
       return;
     }
     setSaving(true);
     setError('');
+    const finishSound = prepareSuccessSound();
     try {
       const ok = await deleteNegocio(negocio.id);
-      if (ok) onClose();
+      if (ok) {
+        finishSound(true);
+        onClose();
+      } else {
+        throw new Error('No se pudo eliminar el negocio.');
+      }
     } catch (err: any) {
+      finishSound(false);
       setError(err?.message || 'Error al eliminar el negocio.');
       setSaving(false);
     }
@@ -140,7 +139,7 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
     const finishSound = prepareSuccessSound();
 
     try {
-      const result = await createCliente(newClientName.trim(), newClientPais.trim());
+      const result = await createCliente(newClientName.trim().toUpperCase(), newClientPais.trim());
       if (!result?.success || !result.id) throw new Error('No se pudo crear el cliente. Inténtalo de nuevo.');
       finishSound(true);
       setClienteId(result.id);
@@ -164,100 +163,66 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
       const fields = {
         fecha,
         clienteId,
+        divisaId: selectedCurrency.id,
         divisaCodigo: selectedCurrency.codigo,
         montoDivisa: parsedMonto,
         tasaCambio: parsedTasa,
-        ingresoCOP,
+        createdBy: canAssignAuthor ? (authorId || undefined) : undefined,
       };
-      const success = negocio
-        ? await updateNegocio({
-          ...fields, id: negocio.id, divisaId: selectedCurrency.id,
-          ...(canAssignAuthor && authorId ? { authorId } : {}),
-        })
-        : await createNegocio(fields);
-      if (!success) throw new Error('No se pudo guardar el negocio.');
+      const ok = negocio ? await updateNegocio(negocio.id, fields) : await createNegocio(fields);
+      if (!ok) throw new Error('No se pudo guardar la operación. Inténtalo de nuevo.');
       finishSound(true);
       onClose();
     } catch (err) {
       finishSound(false);
-      setError(err instanceof Error ? err.message : 'No se pudo registrar el negocio.');
+      setError(err instanceof Error ? err.message : 'Error inesperado al guardar.');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby={id + '-title'}
-      onCancel={(event) => {
-        event.preventDefault();
-        if (saving) return;
-        if (isCreatingClient) backToBusiness();
-        else onClose();
-      }}
-      className="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
-    >
-      <header className="flex items-start gap-3 border-b border-border px-4 py-4 sm:px-6">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl text-primary">
-          <i className={isCreatingClient ? 'ri-user-add-line' : 'ri-exchange-dollar-line'} aria-hidden="true" />
-        </div>
-        <div className="flex-1">
-          <h2 id={id + '-title'} className="text-lg font-bold">
-            {isCreatingClient ? 'Agregar cliente' : negocio ? 'Editar negocio ' + negocio.codigo : 'Registrar negocio'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {isCreatingClient ? 'El cliente quedará seleccionado para esta operación.' : negocio ? 'Actualiza los datos de la operación.' : 'Registra una operación de cambio y consulta el ingreso en COP.'}
+    <>
+      <dialog
+        ref={dialogRef}
+        aria-labelledby={id + '-title'}
+        onCancel={(event) => {
+          event.preventDefault();
+          if (saving) return;
+          if (isCreatingClient) backToBusiness();
+          else onClose();
+        }}
+        className="overflow-y-auto border-border bg-card p-0 text-foreground shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm max-sm:fixed max-sm:inset-0 max-sm:m-0 max-sm:h-full max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:m-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-lg sm:rounded-2xl sm:border"
+      >
+        <header className="flex items-start gap-3 border-b border-border px-4 py-4 sm:px-6 sticky top-0 bg-card/95 backdrop-blur-sm z-10">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl text-primary">
+            <i className="ri-exchange-dollar-line" aria-hidden="true" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 id={id + '-title'} className="text-base sm:text-lg font-bold truncate">
+              {negocio ? 'Editar negocio ' + negocio.codigo : 'Registrar negocio'}
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+              {negocio ? 'Actualiza los datos de la operación.' : 'Registra una operación de cambio y consulta el ingreso en COP.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            aria-label="Cerrar"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <i className="ri-close-line" aria-hidden="true" />
+          </button>
+        </header>
+
+        {error && (
+          <p role="alert" className="mx-4 mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive sm:mx-6">
+            {error}
           </p>
-        </div>
-        <button
-          type="button"
-          onClick={isCreatingClient ? backToBusiness : onClose}
-          disabled={saving}
-          aria-label={isCreatingClient ? 'Volver al negocio' : 'Cerrar'}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <i className="ri-close-line" aria-hidden="true" />
-        </button>
-      </header>
+        )}
 
-      {error && (
-        <p role="alert" className="mx-4 mt-4 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive sm:mx-6">
-          {error}
-        </p>
-      )}
-
-      {isCreatingClient ? (
-        <form onSubmit={handleCreateClient} className="space-y-4 p-4 sm:p-6">
-          <div>
-            <label htmlFor={id + '-name'} className={labelClass}>Nombre completo o empresa</label>
-            <input
-              id={id + '-name'}
-              autoFocus
-              required
-              autoCapitalize="characters"
-              value={newClientName}
-              onChange={(event) => setNewClientName(event.currentTarget.value.toUpperCase())}
-              className={fieldClass}
-            />
-          </div>
-          <div>
-            <label htmlFor={id + '-country'} className={labelClass}>País</label>
-            <ClientCountrySelect
-              id={id + '-country'}
-              value={newClientPais}
-              onChange={setNewClientPais}
-              className={fieldClass}
-            />
-          </div>
-          <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
-            <button type="button" onClick={backToBusiness} disabled={saving} className={secondaryClass}>Volver</button>
-            <button type="submit" disabled={saving || !newClientName.trim()} className={primaryClass}>
-              {saving ? 'Guardando…' : 'Guardar y seleccionar'}
-            </button>
-          </div>
-        </form>
-      ) : (
         <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6">
           {negocio && (
             <div className="flex items-start gap-3">
@@ -273,10 +238,10 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
                     <select aria-label="Elegir usuario" value={authorId} onChange={(event) => setAuthorId(event.target.value)} className={fieldClass}>
                       <option value="">Sin registro</option>
                       {data.usuarios.filter((user) =>
-                        ['administrador', 'super_admin', 'operador', 'dispersor', 'comercial', 'supervisor'].includes(user.rol) &&
-                        (user.id === authorId || normalizeSearch(user.nombre + ' ' + user.correo).includes(normalizeSearch(authorSearch.trim())))
+                        normalizeSearch(user.nombre).includes(normalizeSearch(authorSearch)) ||
+                        normalizeSearch(user.correo).includes(normalizeSearch(authorSearch))
                       ).map((user) => (
-                        <option key={user.id} value={user.id}>{user.nombre}{user.correo ? ' · ' + user.correo : ''}</option>
+                        <option key={user.id} value={user.id}>{user.nombre} ({user.rol})</option>
                       ))}
                     </select>
                   </div>
@@ -299,7 +264,6 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
               inputClassName="min-h-11"
               required
             />
-
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -367,7 +331,64 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
             </div>
           </div>
         </form>
+      </dialog>
+
+      {/* Popup sobre popup: Crear Cliente */}
+      {isCreatingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-5 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg">
+                  <i className="ri-user-add-line" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Agregar cliente</h3>
+                  <p className="text-[11px] text-muted-foreground">Quedará seleccionado en este negocio</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={backToBusiness}
+                disabled={saving}
+                className="w-8 h-8 rounded-lg text-muted-foreground hover:bg-muted flex items-center justify-center"
+              >
+                <i className="ri-close-line text-lg" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateClient} className="space-y-4">
+              <div>
+                <label htmlFor={id + '-name'} className={labelClass}>Nombre completo o empresa</label>
+                <input
+                  id={id + '-name'}
+                  autoFocus
+                  required
+                  autoCapitalize="characters"
+                  value={newClientName}
+                  onChange={(event) => setNewClientName(event.currentTarget.value.toUpperCase())}
+                  placeholder="EJ. DANIEL RAMÍREZ"
+                  className={fieldClass + ' uppercase'}
+                />
+              </div>
+              <div>
+                <label htmlFor={id + '-country'} className={labelClass}>País</label>
+                <ClientCountrySelect
+                  id={id + '-country'}
+                  value={newClientPais}
+                  onChange={setNewClientPais}
+                  className={fieldClass}
+                />
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border pt-4">
+                <button type="button" onClick={backToBusiness} disabled={saving} className={secondaryClass}>Volver</button>
+                <button type="submit" disabled={saving || !newClientName.trim()} className={primaryClass}>
+                  {saving ? 'Guardando…' : 'Guardar y seleccionar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
-    </dialog>
+    </>
   );
 };

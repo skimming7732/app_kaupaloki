@@ -105,8 +105,8 @@ export const ComisionistasView: React.FC = () => {
         ['Comisiones', formatCOP(sumRows(filteredComisionistas, (c) => c.comisionesCOP))],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
-      {/* Table */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
@@ -167,18 +167,29 @@ export const ComisionistasView: React.FC = () => {
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{c.codigo}</td>
                     <td className="py-3 px-4 font-bold text-foreground">{c.comisionistaNombre}</td>
                     <td className="py-3 px-4">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
+                      <div className="flex items-center gap-1 max-w-xs">
                         {c.comisionaDeNombres.length === 0 ? (
                           <span className="text-muted-foreground italic text-[11px]">Sin clientes asignados</span>
                         ) : (
-                          c.comisionaDeNombres.map((name, i) => (
-                            <span
-                              key={i}
-                              className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[10px] font-medium border border-border"
-                            >
-                              {name}
-                            </span>
-                          ))
+                          <>
+                            {c.comisionaDeNombres.slice(0, 2).map((name, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[10px] font-medium border border-border truncate max-w-[110px]"
+                                title={name}
+                              >
+                                {name}
+                              </span>
+                            ))}
+                            {c.comisionaDeNombres.length > 2 && (
+                              <span
+                                title={c.comisionaDeNombres.join(', ')}
+                                className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold border border-purple-500/20 shrink-0 cursor-help"
+                              >
+                                +{c.comisionaDeNombres.length - 2} más
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>
@@ -205,6 +216,83 @@ export const ComisionistasView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Mobile Cards View ("Cajitas") */}
+      <div className="block md:hidden space-y-3">
+        {filteredComisionistas.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-xs shadow-sm">
+            No hay comisionistas registrados aún
+          </div>
+        ) : (
+          filteredComisionistas.map((c) => (
+            <div
+              key={c.id}
+              className="p-4 rounded-2xl bg-card border border-border shadow-xs hover:border-primary/40 transition-all space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs text-foreground">{c.codigo}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatDate(c.fechaCreacion)}</span>
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground mt-0.5">{c.comisionistaNombre}</h4>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
+                  {formatNumber(c.porcentajeComision * 100, 2)}%
+                </span>
+              </div>
+
+              {/* Clientes referidos */}
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-border space-y-1.5 text-xs">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="font-medium">Clientes de los que comisiona:</span>
+                  <span className="font-bold text-foreground">{c.comisionaDeNombres.length} asignados</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {c.comisionaDeNombres.length === 0 ? (
+                    <span className="text-muted-foreground italic text-[11px]">Sin clientes vinculados</span>
+                  ) : (
+                    c.comisionaDeNombres.map((name, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 rounded-md bg-card text-foreground text-[10px] font-medium border border-border"
+                      >
+                        {name}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-muted/30 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-medium text-muted-foreground block">Ingresos Base</span>
+                  <span className="font-mono font-bold text-foreground text-xs">{formatCOP(c.ingresosCOP)}</span>
+                </div>
+                <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl">
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 block">Comisión Ganada</span>
+                  <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-xs">{formatCOP(c.comisionesCOP)}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
+                <CreatedByCell name={c.createdByName} />
+                {canWrite && (
+                  <button
+                    type="button"
+                    onClick={() => setEditing(c)}
+                    className="px-3 py-1.5 rounded-xl border border-border bg-background text-foreground text-xs font-semibold hover:bg-muted transition-colors flex items-center gap-1.5"
+                  >
+                    <i className="ri-edit-line text-sm text-primary" />
+                    <span>Editar</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
 
       <AddComisionistaModal isOpen={isAddOpen || Boolean(editing)} record={editing} onClose={() => { setIsAddOpen(false); setEditing(undefined); }} />
     </div>

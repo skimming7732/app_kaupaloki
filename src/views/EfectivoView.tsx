@@ -255,7 +255,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
       {/* Table */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
@@ -343,6 +344,118 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden divide-y divide-border">
+          {visibleMovements.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              No hay movimientos de efectivo que coincidan con los filtros
+            </div>
+          ) : (
+            visibleMovements.map((m) => {
+              const token = tokenByPayment.get(m.id);
+              const tokenState = token && getTokenState(token);
+              return (
+                <div key={m.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="font-mono font-bold text-sm text-foreground">{m.codigo}</span>
+                      <div className="text-[11px] text-muted-foreground">{formatDate(m.fecha)}</div>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        m.tipo === 'Ingreso'
+                          ? 'bg-emerald-500/10 text-emerald-500'
+                          : 'bg-amber-500/10 text-amber-500'
+                      }`}
+                    >
+                      {m.tipo === 'Ingreso' ? 'Ingreso a caja' : 'Salida de caja'}
+                    </span>
+                  </div>
+
+                  {/* Cliente / Tercero */}
+                  <div className="text-xs">
+                    <span className="text-muted-foreground">Cliente / Tercero: </span>
+                    {m.clienteNombre && m.clienteNombre !== 'Ingreso de Caja' && m.clienteNombre !== 'Movimiento Interno' ? (
+                      <span className="font-semibold text-foreground">{m.clienteNombre}</span>
+                    ) : (
+                      <span className="text-muted-foreground italic">{m.clienteNombre || '—'}</span>
+                    )}
+                  </div>
+
+                  {/* Amounts Grid */}
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/30 p-2.5 text-xs">
+                    <div>
+                      <div className="text-[10px] text-muted-foreground uppercase font-medium">Efectivo COP</div>
+                      <div className="font-bold text-foreground tabular-nums">{formatCOP(m.monto - (m.comisionCop ?? 0))}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-muted-foreground uppercase font-medium">Comisión COP</div>
+                      <div className="font-semibold text-foreground tabular-nums">{m.comisionCop ? formatCOP(m.comisionCop) : '—'}</div>
+                    </div>
+                    <div className="col-span-2 border-t border-border/50 pt-1.5">
+                      <div className="text-[10px] text-muted-foreground uppercase font-medium">Total Cliente COP</div>
+                      <div className="font-bold text-primary tabular-nums">
+                        {m.tipo === 'Pago' && (m.clienteId || m.clienteCodigo) ? formatCOP(m.monto) : '—'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ref & Voucher Token */}
+                  {(m.referencia || (token && tokenState)) && (
+                    <div className="text-xs space-y-1.5">
+                      {m.referencia && (
+                        <div className="text-muted-foreground">
+                          <span className="font-medium text-foreground">Ref:</span> {m.referencia}
+                        </div>
+                      )}
+                      {token && tokenState && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setVoucher(token)}
+                            className={'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold hover:underline ' + (tokenState === 'activo' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground')}
+                          >
+                            <i className="ri-ticket-2-line" aria-hidden="true" /> {tokenLabels[tokenState]}
+                          </button>
+                          {isAdmin && (tokenState === 'expirado' || tokenState === 'cancelado') && (
+                            canWrite && (
+                              <button
+                                type="button"
+                                disabled={Boolean(issuingId)}
+                                onClick={() => void replaceToken(m.id)}
+                                className="font-semibold text-primary hover:underline disabled:opacity-50"
+                              >
+                                {issuingId === m.id ? 'Emitiendo…' : 'Reemitir'}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between border-t border-border pt-2 text-xs">
+                    <span className="text-[11px] text-muted-foreground">
+                      Por: <span className="font-medium text-foreground">{m.createdByName || '—'}</span>
+                    </span>
+                    {canWrite && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingMovimiento(m)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                      >
+                        <i className="ri-edit-line text-xs" />
+                        <span>Editar</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

@@ -86,7 +86,7 @@ const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, '
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-card w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-3xl border border-border shadow-2xl p-6 relative">
+      <div className="bg-card w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-3xl border border-border shadow-2xl p-6 relative max-sm:fixed max-sm:inset-0 max-sm:m-0 max-sm:h-full max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0">
         <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
