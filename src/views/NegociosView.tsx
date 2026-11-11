@@ -4,7 +4,8 @@ import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStr
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -39,6 +40,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
   const [selectedCliente, setSelectedCliente] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [selectedCreador, setSelectedCreador] = useState('');
 
   // Selected negocio for editing
   const [editingNegocio, setEditingNegocio] = useState<any | null>(null);
@@ -66,9 +68,11 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
 
       const matchFecha = matchesDateRange(n.fecha, fechaDesde, fechaHasta);
 
-      return matchSearch && matchDivisa && matchCliente && matchFecha;
+      const matchCreador = !selectedCreador || formatAuthorName(n.createdByName, n.createdBy, data.usuarios).toLowerCase() === selectedCreador.toLowerCase();
+
+      return matchSearch && matchDivisa && matchCliente && matchFecha && matchCreador;
     });
-  }, [data.negocios, search, selectedDivisa, selectedCliente, fechaDesde, fechaHasta, isOperador, authorizedCurrencies]);
+  }, [data.negocios, data.usuarios, search, selectedDivisa, selectedCliente, fechaDesde, fechaHasta, selectedCreador, isOperador, authorizedCurrencies]);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -114,6 +118,16 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
           </div>
 
           <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
+
+          {/* Creador Filter */}
+          <div>
+            <CreatedByFilter
+              value={selectedCreador}
+              onChange={setSelectedCreador}
+              records={data.negocios}
+              className="w-full"
+            />
+          </div>
           {/* Fecha Desde */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
@@ -121,7 +135,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <span>{formatNumber(filteredNegocios.length)} de {formatNumber(totalVisible)} registros</span>
-            {(search || selectedDivisa || selectedCliente || fechaDesde || fechaHasta) && (
+            {(search || selectedDivisa || selectedCliente || fechaDesde || fechaHasta || selectedCreador) && (
               <button
                 onClick={() => {
                   setSearch('');
@@ -129,6 +143,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                   setSelectedCliente('');
                   setFechaDesde('');
                   setFechaHasta('');
+                  setSelectedCreador('');
                 }}
                 type="button"
                 className="text-primary hover:underline font-semibold text-xs"

@@ -4,7 +4,8 @@ import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropd
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { formatDate } from '../utils/formatters';
@@ -15,6 +16,7 @@ export const ComprasUsdtView: React.FC = () => {
   const [filterDivisa, setFilterDivisa] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [filterCreador, setFilterCreador] = useState('');
 
   const { totalOperaciones, divisasUnicas, filteredCompras } = useMemo(() => {
     const divisasSet = new Set<string>();
@@ -32,7 +34,9 @@ export const ComprasUsdtView: React.FC = () => {
 
       const matchFecha = matchesDateRange(c.fecha, fechaDesde, fechaHasta);
 
-      return matchSearch && matchDivisa && matchFecha;
+      const matchCreador = !filterCreador || formatAuthorName(c.createdByName, c.createdBy, data.usuarios).toLowerCase() === filterCreador.toLowerCase();
+
+      return matchSearch && matchDivisa && matchFecha && matchCreador;
     });
 
     return {
@@ -40,7 +44,7 @@ export const ComprasUsdtView: React.FC = () => {
       divisasUnicas: Array.from(divisasSet).sort(),
       filteredCompras: filtered,
     };
-  }, [data.comprasUsdt, search, filterDivisa, fechaDesde, fechaHasta]);
+  }, [data.comprasUsdt, data.usuarios, search, filterDivisa, filterCreador, fechaDesde, fechaHasta]);
 
   const rates = new Map<string, { total: number; count: number }>();
   for (const c of filteredCompras) {
@@ -85,10 +89,37 @@ export const ComprasUsdtView: React.FC = () => {
             <CurrencyFilterDropdown value={filterDivisa} onChange={setFilterDivisa} className="w-full" />
           </div>
 
+          {/* Creador Filter */}
+          <div>
+            <CreatedByFilter
+              value={filterCreador}
+              onChange={setFilterCreador}
+              records={data.comprasUsdt}
+              className="w-full"
+            />
+          </div>
+
           {/* Date range shortcut */}
           <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         </div>
-        <p className="border-t border-border pt-2 text-xs text-muted-foreground" aria-live="polite">{formatNumber(filteredCompras.length)} de {formatNumber(totalOperaciones)} registros</p>
+        <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
+          <span aria-live="polite">{formatNumber(filteredCompras.length)} de {formatNumber(totalOperaciones)} registros</span>
+          {(search || filterDivisa || filterCreador || fechaDesde || fechaHasta) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setFilterDivisa('');
+                setFilterCreador('');
+                setFechaDesde('');
+                setFechaHasta('');
+              }}
+              className="text-primary hover:underline font-semibold"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
       </div>
 
       <KpiStrip metrics={([

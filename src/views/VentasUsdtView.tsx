@@ -5,7 +5,8 @@ import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropd
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
-import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
+import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
+import { CreatedByFilter } from '../components/common/CreatedByFilter';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { formatCOP, formatDate } from '../utils/formatters';
@@ -17,6 +18,7 @@ export const VentasUsdtView: React.FC = () => {
   const [filterDestino, setFilterDestino] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [filterCreador, setFilterCreador] = useState('');
 
   const { destinosUnicos, filteredVentas } = useMemo(() => {
     const destinosSet = new Set<string>();
@@ -39,14 +41,16 @@ export const VentasUsdtView: React.FC = () => {
 
       const matchFecha = matchesDateRange(v.fecha, fechaDesde, fechaHasta);
 
-      return matchSearch && matchDivisa && matchDestino && matchFecha;
+      const matchCreador = !filterCreador || formatAuthorName(v.createdByName, v.createdBy, data.usuarios).toLowerCase() === filterCreador.toLowerCase();
+
+      return matchSearch && matchDivisa && matchDestino && matchFecha && matchCreador;
     });
 
     return {
       destinosUnicos: Array.from(destinosSet).sort(),
       filteredVentas: filtered,
     };
-  }, [data.ventasUsdt, search, filterDivisa, filterDestino, fechaDesde, fechaHasta]);
+  }, [data.ventasUsdt, data.usuarios, search, filterDivisa, filterDestino, filterCreador, fechaDesde, fechaHasta]);
 
   const totalUsdtVendidos = sumRows(filteredVentas, (v) => v.usdtVendido);
   const totalFeeUsdt = sumRows(filteredVentas, (v) => v.feeUsdt);
@@ -88,6 +92,16 @@ export const VentasUsdtView: React.FC = () => {
             <CurrencyFilterDropdown value={filterDivisa} onChange={setFilterDivisa} className="w-full" />
           </div>
 
+          {/* Creador Filter */}
+          <div>
+            <CreatedByFilter
+              value={filterCreador}
+              onChange={setFilterCreador}
+              records={data.ventasUsdt}
+              className="w-full"
+            />
+          </div>
+
           {/* Destino Filter */}
           <div>
             <TableSelectFilter label="Destino" value={filterDestino} onChange={setFilterDestino} className="w-full">
@@ -108,7 +122,7 @@ export const VentasUsdtView: React.FC = () => {
           <span aria-live="polite">
             {formatNumber(filteredVentas.length)} de {formatNumber(data.ventasUsdt.length)} registros
           </span>
-          {(search || filterDivisa || filterDestino || fechaDesde || fechaHasta) && (
+          {(search || filterDivisa || filterDestino || fechaDesde || fechaHasta || filterCreador) && (
             <button
               type="button"
               onClick={() => {
@@ -117,6 +131,7 @@ export const VentasUsdtView: React.FC = () => {
                 setFilterDestino('');
                 setFechaDesde('');
                 setFechaHasta('');
+                setFilterCreador('');
               }}
               className="text-primary hover:underline font-semibold"
             >
