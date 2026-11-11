@@ -8,6 +8,8 @@ export interface Cliente {
   pendienteCop: number;
   pendientePorPagarCop?: number;
   saldoCop?: number;
+  saldoInicialCop?: number;
+  conceptoSaldoInicial?: string;
   estado?: 'PENDIENTE' | 'PAGADO' | 'DEBE' | string;
   fechaCreacion: string;
   numero: number;

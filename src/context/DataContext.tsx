@@ -314,8 +314,8 @@ interface DataContextType {
   updateMovimientoEfectivo: (payload: any) => Promise<boolean>;
   deleteMovimientoEfectivo: (id: string) => Promise<boolean>;
   createGasto: (payload: any) => Promise<boolean>;
-  createCliente: (nombre: string, pais?: string, authorId?: string) => Promise<any>;
-  updateCliente: (payload: { id: string; nombre?: string; pais?: string; authorId?: string }) => Promise<boolean>;
+  createCliente: (nombre: string, pais?: string, authorId?: string, saldoInicial?: { monto: number; concepto?: string }) => Promise<any>;
+  updateCliente: (payload: { id: string; nombre?: string; pais?: string; authorId?: string; saldoInicialCop?: number; conceptoSaldoInicial?: string }) => Promise<boolean>;
   deleteUser: (idOrEmail: string) => Promise<{ success: boolean; error?: string }>;
   sendUserInvite: (email: string, fullName?: string) => Promise<{ success: boolean; actionLink?: string; error?: string }>;
   createTransferenciaInterna: (payload: any) => Promise<boolean>;
@@ -357,6 +357,8 @@ const snapshotTables = {
   pagadoCop: Number(c.pagado_cop || 0),
   pendienteCop: Number(c.pendiente_cop || 0),
   saldoCop: c.saldo_cop == null ? undefined : Number(c.saldo_cop),
+  saldoInicialCop: Number(c.saldo_inicial_cop || 0),
+  conceptoSaldoInicial: c.concepto_saldo_inicial || '',
   estado: c.estado,
   fechaCreacion: c.fecha_creacion,
 }) },
@@ -1751,21 +1753,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const createCliente = async (nombre: string, pais: string = 'COLOMBIA', authorId?: string): Promise<any> => {
+  const createCliente = async (nombre: string, pais: string = 'COLOMBIA', authorId?: string, saldoInicial?: { monto: number; concepto?: string }): Promise<any> => {
     requireWrite('clients');
     try {
       const id = crypto.randomUUID();
       const author = authorId ? data.usuarios.find((u) => u.id === authorId) : null;
+      const initialAmount = saldoInicial ? Number(saldoInicial.monto) || 0 : 0;
+      const initialConcept = saldoInicial?.concepto?.trim() || (initialAmount !== 0 ? 'Saldo inicial' : null);
       const { data: inserted, error } = await writeDashboardRecord({
         id,
         nombre: nombre.trim().toUpperCase(),
         pais: pais || 'COLOMBIA',
         ingresos_cop: 0,
         pagado_cop: 0,
-        pendiente_cop: 0,
-        saldo_cop: 0,
+        saldo_inicial_cop: initialAmount,
+        concepto_saldo_inicial: initialConcept,
+        pendiente_cop: Math.max(0, initialAmount),
+        saldo_cop: initialAmount,
         total_negocios: 0,
-        estado: 'SIN ACTIVIDAD',
+        estado: initialAmount < 0 ? 'DEBE' : initialAmount > 0 ? 'PENDIENTE' : 'SIN ACTIVIDAD',
         fecha_creacion: new Date().toISOString(),
         ...(authorId ? { created_by: authorId, created_by_name: author?.nombre } : {}),
       }, (fields) => supabase.from('clientes').insert(fields).select('*').single(), {
@@ -1782,12 +1788,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateCliente = async (payload: { id: string; nombre?: string; pais?: string; authorId?: string }): Promise<boolean> => {
+  const updateCliente = async (payload: { id: string; nombre?: string; pais?: string; authorId?: string; saldoInicialCop?: number; conceptoSaldoInicial?: string }): Promise<boolean> => {
     requireWrite('clients');
     try {
       const updates: any = {};
       if (payload.nombre !== undefined) updates.nombre = payload.nombre.trim().toUpperCase();
       if (payload.pais !== undefined) updates.pais = payload.pais.trim();
+      if (payload.saldoInicialCop !== undefined) {
+        updates.saldo_inicial_cop = payload.saldoInicialCop;
+        updates.concepto_saldo_inicial = payload.conceptoSaldoInicial !== undefined ? payload.conceptoSaldoInicial.trim() : 'Saldo inicial';
+      }
       if (payload.authorId !== undefined) {
         updates.created_by = payload.authorId || null;
         const author = payload.authorId ? data.usuarios.find((u) => u.id === payload.authorId) : null;

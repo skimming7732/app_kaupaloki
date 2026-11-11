@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { canDeleteRole } from '../../utils/roles';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { ClientCountrySelect } from '../common/ClientCountrySelect';
+import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 
 interface EditClienteModalProps {
   cliente: NormalizedData['clientes'][number] | null;
@@ -21,6 +22,11 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
   const countryId = useId();
   const [authorId, setAuthorId] = useState(() => cliente?.createdBy || '');
   const [authorSearch, setAuthorSearch] = useState('');
+  const isSuperAdmin = profile?.role === 'super_admin';
+  const initialCurrent = Number(cliente?.saldoInicialCop || 0);
+  const [tipoSaldo, setTipoSaldo] = useState<'a_favor' | 'deuda'>(() => (initialCurrent < 0 ? 'deuda' : 'a_favor'));
+  const [montoSaldo, setMontoSaldo] = useState(() => (initialCurrent !== 0 ? formatAmountInput(String(Math.abs(initialCurrent))) : ''));
+  const [conceptoSaldo, setConceptoSaldo] = useState(() => cliente?.conceptoSaldoInicial || 'Saldo inicial');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,11 +76,25 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
     const finishSound = prepareSuccessSound();
 
     try {
+      let finalSaldoInicial: number | undefined = undefined;
+      let finalConcepto: string | undefined = undefined;
+      if (isSuperAdmin) {
+        const parsed = parseAmountInput(montoSaldo);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          finalSaldoInicial = tipoSaldo === 'deuda' ? -Math.abs(parsed) : Math.abs(parsed);
+          finalConcepto = conceptoSaldo.trim() || 'Saldo inicial';
+        } else {
+          finalSaldoInicial = 0;
+          finalConcepto = '';
+        }
+      }
+
       const ok = await updateCliente({
         id: cliente.id,
         nombre: nombre.trim(),
         pais: pais.trim() || 'COLOMBIA',
         authorId: authorId || undefined,
+        ...(isSuperAdmin ? { saldoInicialCop: finalSaldoInicial, conceptoSaldoInicial: finalConcepto } : {}),
       });
 
       if (!ok) throw new Error('No se pudo actualizar el cliente.');
@@ -181,6 +201,67 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
               </select>
             </div>
           </div>
+
+          {isSuperAdmin && (
+            <div className="pt-3 border-t border-border space-y-3">
+              <div className="flex items-center gap-2">
+                <i className="ri-scales-3-line text-amber-500" />
+                <h4 className="text-xs font-bold text-foreground">Saldo Inicial (Solo Super Admin)</h4>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  Super Admin
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTipoSaldo('a_favor')}
+                    className={`p-2 rounded-lg border text-left text-xs transition-colors ${
+                      tipoSaldo === 'a_favor'
+                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold'
+                        : 'border-border bg-background text-muted-foreground'
+                    }`}
+                  >
+                    Le debemos (+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoSaldo('deuda')}
+                    className={`p-2 rounded-lg border text-left text-xs transition-colors ${
+                      tipoSaldo === 'deuda'
+                        ? 'border-destructive bg-destructive/10 text-destructive font-bold'
+                        : 'border-border bg-background text-muted-foreground'
+                    }`}
+                  >
+                    Nos debe (-)
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">Monto (COP) - Dejar en 0 para quitar saldo inicial</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={montoSaldo}
+                    onChange={(e) => formatAmountField(e, setMontoSaldo)}
+                    placeholder="0 COP"
+                    className="w-full px-3 py-1.5 rounded-lg border border-input bg-background text-xs font-mono font-bold text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">Concepto</label>
+                  <input
+                    type="text"
+                    value={conceptoSaldo}
+                    onChange={(e) => setConceptoSaldo(e.target.value)}
+                    placeholder="Saldo inicial"
+                    className="w-full px-3 py-1.5 rounded-lg border border-input bg-background text-xs text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3 pt-4 border-t border-border mt-6">
             <div>

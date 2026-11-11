@@ -81,18 +81,53 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const dispersiones = internalClient ? data.dispersiones.filter(matches) : portal?.dispersiones || [];
   const efectivo = internalClient ? data.efectivo.filter(matches) : portal?.efectivo || [];
 
-  const clientPagos = useMemo(() => [
-    ...dispersiones.filter((item) => item.estado?.trim().toUpperCase() !== 'RECHAZADO').map((item) => ({
-      ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos,
-    })),
-    ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({
-      ...item, tipo: 'Pago en efectivo', origen: item.origenFondos, comprobanteUrl: undefined,
-    })),
-  ].sort(compareChronologicalDesc), [dispersiones, efectivo]);
+  const clientPagos = useMemo(() => {
+    const list: any[] = [
+      ...dispersiones.filter((item) => item.estado?.trim().toUpperCase() !== 'RECHAZADO').map((item) => ({
+        ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos,
+      })),
+      ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({
+        ...item, tipo: 'Pago en efectivo', origen: item.origenFondos, comprobanteUrl: undefined,
+      })),
+    ];
+    const initialBalance = Number((client as any)?.saldoInicialCop ?? (client as any)?.saldo_inicial_cop ?? (client as any)?.saldoInicialCOP ?? 0);
+    const initialConcept = (client as any)?.conceptoSaldoInicial ?? (client as any)?.concepto_saldo_inicial ?? 'Saldo inicial';
+    if (initialBalance < 0) {
+      list.push({
+        id: 'saldo-inicial-deuda',
+        codigo: 'SALDO-INICIAL',
+        fecha: (client as any)?.fechaCreacion || (client as any)?.createdAt || '2026-01-01',
+        tipo: 'Anticipo / Desembolso inicial',
+        monto: Math.abs(initialBalance),
+        origen: 'Apertura contable',
+        cuentaDestino: initialConcept || 'Saldo inicial (Deuda del cliente)',
+        referencia: initialConcept,
+        estado: 'COMPLETADO',
+        comprobanteUrl: undefined,
+      });
+    }
+    return list.sort(compareChronologicalDesc);
+  }, [dispersiones, efectivo, client]);
 
-  const clientIngresos = useMemo(() => efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
-    ...item, concepto: item.referencia || 'Ingreso en efectivo', origen: item.origenFondos,
-  })).sort(compareChronologicalDesc), [efectivo]);
+  const clientIngresos = useMemo(() => {
+    const list: any[] = efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
+      ...item, concepto: item.referencia || 'Ingreso en efectivo', origen: item.origenFondos,
+    }));
+    const initialBalance = Number((client as any)?.saldoInicialCop ?? (client as any)?.saldo_inicial_cop ?? (client as any)?.saldoInicialCOP ?? 0);
+    const initialConcept = (client as any)?.conceptoSaldoInicial ?? (client as any)?.concepto_saldo_inicial ?? 'Saldo inicial';
+    if (initialBalance > 0) {
+      list.push({
+        id: 'saldo-inicial-favor',
+        codigo: 'SALDO-INICIAL',
+        fecha: (client as any)?.fechaCreacion || (client as any)?.createdAt || '2026-01-01',
+        tipo: 'Ingreso inicial',
+        monto: initialBalance,
+        origen: 'Apertura contable',
+        concepto: initialConcept || 'Saldo inicial (A favor del cliente)',
+      });
+    }
+    return list.sort(compareChronologicalDesc);
+  }, [efectivo, client]);
 
   // Available currencies from the client's transactions
   const divisasUnicas = useMemo(() => {
