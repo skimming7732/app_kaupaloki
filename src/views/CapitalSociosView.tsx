@@ -57,6 +57,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
   const [action, setAction] = useState<Action>();
   const [detail, setDetail] = useState<CapitalMovement>();
   const [editingMovement, setEditingMovement] = useState<CapitalMovement>();
+  const [editingPerson, setEditingPerson] = useState<CapitalPerson>();
 
   const reload = useCallback(async () => {
     const request = ++latestReload.current;
@@ -98,6 +99,7 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
     }
     setAction(undefined);
     setEditingMovement(undefined);
+    setEditingPerson(undefined);
     setDetail(undefined);
     void syncData();
   };
@@ -236,10 +238,25 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
       {currentPerson && backLink}
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
         <div className="flex items-center gap-2 flex-wrap">
-          {currentPerson ? <div className="min-w-0 mr-2">
-            <h2 className="break-words text-base font-semibold">{currentPerson.nombre}</h2>
-            <p className="text-xs text-muted-foreground">{currentPerson.tipo === 'SOCIO' ? 'Socio' : 'Inversionista'}</p>
-          </div> : <>
+          {currentPerson ? (
+            <div className="min-w-0 mr-2 flex items-center gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="break-words text-base font-bold text-foreground">{currentPerson.nombre}</h2>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPerson(currentPerson)}
+                    title="Editar nombre del socio o inversionista"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border bg-muted/40 hover:bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <i className="ri-edit-line text-xs" />
+                    <span>Editar nombre</span>
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">{currentPerson.tipo === 'SOCIO' ? 'Socio' : 'Inversionista'}</p>
+              </div>
+            </div>
+          ) : <>
             <label htmlFor="capital-person-filter" className="sr-only">Socio o inversionista</label>
             <select
               id="capital-person-filter"
@@ -269,6 +286,16 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
           </select>
         </div>
         <div className="flex flex-wrap gap-2">
+          {currentPerson && (
+            <button
+              type="button"
+              onClick={() => setEditingPerson(currentPerson)}
+              className="min-h-10 rounded-lg border border-border px-3 text-xs font-semibold hover:bg-muted transition-colors inline-flex items-center gap-1.5"
+            >
+              <i className="ri-edit-line" />
+              <span>Editar {currentPerson.tipo === 'SOCIO' ? 'socio' : 'inversionista'}</span>
+            </button>
+          )}
           {(Object.keys(actionLabels) as Action[]).filter((key) => !currentPerson || key !== 'persona').map((key) => (
             <button type="button" key={key} onClick={() => setAction(key)} disabled={loading || (key !== 'persona' && !people.length)}
               className={key === 'persona' ? recordButtonClass : 'min-h-10 rounded-lg border border-border px-3 text-xs font-semibold hover:bg-muted disabled:opacity-50'}>
@@ -353,6 +380,17 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
       </div>
 
       {action && <CapitalForm action={action} initialPerson={activePerson} people={currentPerson ? [currentPerson] : people} movements={movements} onClose={() => setAction(undefined)} onSaved={saved} />}
+      {editingPerson && (
+        <CapitalForm
+          action="persona"
+          editPerson={editingPerson}
+          initialPerson={editingPerson.id}
+          people={people}
+          movements={movements}
+          onClose={() => setEditingPerson(undefined)}
+          onSaved={saved}
+        />
+      )}
       {editingMovement && (
         <CapitalForm
           action="contrato"
@@ -398,11 +436,13 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
   );
 }
 
-function CapitalForm({ action, editMovement, initialPerson, people, movements, onClose, onSaved }: {
-  action: Action; editMovement?: CapitalMovement; initialPerson: string; people: CapitalPerson[]; movements: CapitalMovement[]; onClose: () => void; onSaved: (change: CapitalChange) => void;
+function CapitalForm({ action, editMovement, editPerson, initialPerson, people, movements, onClose, onSaved }: {
+  action: Action; editMovement?: CapitalMovement; editPerson?: CapitalPerson; initialPerson: string; people: CapitalPerson[]; movements: CapitalMovement[]; onClose: () => void; onSaved: (change: CapitalChange) => void;
 }) {
   const { data, metrics } = useData();
-  const [id] = useState(() => editMovement?.id || crypto.randomUUID());
+  const [id] = useState(() => editPerson?.id || editMovement?.id || crypto.randomUUID());
+  const [personName, setPersonName] = useState(() => editPerson?.nombre || '');
+  const [personType, setPersonType] = useState(() => editPerson?.tipo || 'SOCIO');
   const selectablePeople = action === 'adelanto' ? (people.some((p) => p.tipo === 'SOCIO') ? people.filter((p) => p.tipo === 'SOCIO') : people) : people;
   const [personId, setPersonId] = useState(editMovement?.socio_id || initialPerson || selectablePeople[0]?.id || people[0]?.id || '');
   const initialPersonObj = people.find((row) => row.id === personId);
@@ -451,8 +491,17 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
     const field = (name: string) => String(form.get(name) || '').trim();
     const amount = parseAmountInput(field('monto'));
     const rate = needsAccount && method === 'USDT' ? (kind === 'CONTRATO' ? manualRate : (parseAmountInput(field('tasa')) || manualRate)) : null;
-    if (action === 'persona' && !editMovement ? !field('nombre')
-      : !personId || !Number.isFinite(amount) || amount <= 0 || (rate !== null && (!Number.isFinite(rate) || rate <= 0))
+    if (editPerson) {
+      if (!field('nombre').trim()) {
+        setError('El nombre no puede estar vacío.');
+        return;
+      }
+    } else if (action === 'persona' && !editMovement) {
+      if (!field('nombre').trim()) {
+        setError('El nombre no puede estar vacío.');
+        return;
+      }
+    } else if (!personId || !Number.isFinite(amount) || amount <= 0 || (rate !== null && (!Number.isFinite(rate) || rate <= 0))
         || (needsAccount && !accounts.some((item) => item.id === account)) || (needsContract && !contracts.some((item) => item.id === contract))) {
       setError('Completa los datos y verifica que el monto y la tasa sean mayores que cero.');
       return;
@@ -462,7 +511,18 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
     const finish = prepareSuccessSound();
     try {
       let change: CapitalChange;
-      if (editMovement) {
+      if (editPerson) {
+        const updatedName = field('nombre').trim().toUpperCase();
+        const updatedTipo = field('tipo') || editPerson.tipo;
+        const { data: row, error } = await supabase
+          .from('capital_socios')
+          .update({ nombre: updatedName, tipo: updatedTipo })
+          .eq('id', editPerson.id)
+          .select('*')
+          .single();
+        if (error) throw error;
+        change = { person: row as CapitalPerson };
+      } else if (editMovement) {
         const updatePayload: Record<string, string | number | null> = {
           socio_id: personId,
           fecha: field('fecha'),
@@ -481,7 +541,7 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
       } else {
         const table = action === 'persona' ? 'capital_socios' : 'capital_movimientos';
         const record: Record<string, string | number | null> = action === 'persona'
-          ? { id, nombre: field('nombre'), tipo: field('tipo') }
+          ? { id, nombre: field('nombre').trim().toUpperCase(), tipo: field('tipo') }
           : { id, socio_id: personId, fecha: field('fecha'), tipo: kind, monto: amount, tasa: rate,
               medio: needsAccount ? method : null,
               cuenta_liquida_id: needsAccount && method !== 'USDT' ? account : null,
@@ -510,15 +570,51 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
     }
   };
 
-  return <RecordDialog title={editMovement ? `Editar ${editMovement.codigo}` : actionLabels[action]} description={action === 'persona' && !editMovement ? 'Elige el tipo de participación.' : 'El saldo se expresa en pesos colombianos.'}
+  return <RecordDialog
+    title={editPerson ? `Editar ${editPerson.tipo === 'SOCIO' ? 'socio' : 'inversionista'}` : editMovement ? `Editar ${editMovement.codigo}` : actionLabels[action]}
+    description={editPerson ? 'Actualiza el nombre o la categoría de participación.' : action === 'persona' && !editMovement ? 'Elige el tipo de participación.' : 'El saldo se expresa en pesos colombianos.'}
     icon="ri-safe-line" onClose={onClose} busy={busy || deleting} error={error}>
     <form onSubmit={submit} className="space-y-4">
       <fieldset disabled={busy || deleting} className="space-y-3">
-        {action === 'persona' && !editMovement ? <>
-          <label className={recordLabelClass}>Nombre<input name="nombre" required maxLength={150} className={recordFieldClass} /></label>
-          <label className={recordLabelClass}>Tipo<select name="tipo" className={recordFieldClass}>
-            <option value="SOCIO">Socio</option><option value="INVERSIONISTA">Inversionista</option>
-          </select></label>
+        {editPerson ? <>
+          <label className={recordLabelClass}>Nombre completo
+            <input
+              name="nombre"
+              required
+              maxLength={150}
+              value={personName}
+              onChange={(e) => setPersonName(e.target.value.toUpperCase())}
+              placeholder="Ej: ALBERTO DOMÍNGUEZ"
+              className={recordFieldClass}
+            />
+          </label>
+          <label className={recordLabelClass}>Tipo de participación
+            <select
+              name="tipo"
+              value={personType}
+              onChange={(e) => setPersonType(e.target.value as 'SOCIO' | 'INVERSIONISTA')}
+              className={recordFieldClass}
+            >
+              <option value="SOCIO">Socio</option>
+              <option value="INVERSIONISTA">Inversionista</option>
+            </select>
+          </label>
+        </> : action === 'persona' && !editMovement ? <>
+          <label className={recordLabelClass}>Nombre
+            <input
+              name="nombre"
+              required
+              maxLength={150}
+              onChange={(e) => { e.currentTarget.value = e.currentTarget.value.toUpperCase(); }}
+              placeholder="Ej: ALBERTO DOMÍNGUEZ"
+              className={recordFieldClass}
+            />
+          </label>
+          <label className={recordLabelClass}>Tipo
+            <select name="tipo" className={recordFieldClass}>
+              <option value="SOCIO">Socio</option><option value="INVERSIONISTA">Inversionista</option>
+            </select>
+          </label>
         </> : <>
           <label className={recordLabelClass}>{action === 'adelanto' ? 'Socio' : 'Socio o inversionista'}
             <select required value={personId} className={recordFieldClass} onChange={(event) => {
@@ -668,7 +764,7 @@ function CapitalForm({ action, editMovement, initialPerson, people, movements, o
           </label>}
         </>}
       </fieldset>
-      <RecordActions busy={busy} isDeleting={deleting} onDelete={editMovement ? handleDelete : undefined} label={editMovement ? 'Actualizar' : 'Guardar'} onClose={onClose} />
+      <RecordActions busy={busy} isDeleting={deleting} onDelete={editMovement ? handleDelete : undefined} label={editMovement || editPerson ? 'Actualizar' : 'Guardar'} onClose={onClose} />
     </form>
   </RecordDialog>;
 }
