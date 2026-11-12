@@ -116,6 +116,12 @@ export const ActivosLiquidosView: React.FC = () => {
     });
   }, [selectedActivo?.movimientos, movSearch, fechaDesde, fechaHasta, tipoFilter]);
 
+  const totalEnTransitoActivo = useMemo(() => {
+    return (selectedActivo?.movimientos || [])
+      .filter((m: any) => m.esPendiente && (m.monto || 0) > 0)
+      .reduce((sum: number, m: any) => sum + (Number(m.monto) || 0), 0);
+  }, [selectedActivo?.movimientos]);
+
   const totalIngresos = useMemo(() => {
     return activos.reduce((acc: number, a: any) => acc + (a.ingresosCop || 0), 0);
   }, [activos]);
@@ -123,6 +129,23 @@ export const ActivosLiquidosView: React.FC = () => {
   const totalEgresos = useMemo(() => {
     return activos.reduce((acc: number, a: any) => acc + (a.egresosCop || 0), 0);
   }, [activos]);
+
+
+  const handleMarcarVenta = async (m: any) => {
+    const idOriginal = m.idOriginal;
+    if (!idOriginal) return;
+    if (!window.confirm(`¿Confirmas que los ${formatCOP(m.monto)} de la venta ${m.origen} ya fueron recibidos en esta cuenta?`)) {
+      return;
+    }
+    setReceivingId(idOriginal);
+    try {
+      await marcarVentaRecibida(idOriginal);
+    } catch (err: any) {
+      alert(err?.message || 'No se pudo marcar la venta como recibida.');
+    } finally {
+      setReceivingId(null);
+    }
+  };
 
   const handleExportCSV = (activo: any) => {
     const movements = activo.movimientos || [];
@@ -364,6 +387,21 @@ export const ActivosLiquidosView: React.FC = () => {
                   )}
                 </span>
               </div>
+
+              {totalEnTransitoActivo > 0 && (
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 mb-1 flex items-center gap-1.5">
+                    <i className="ri-time-line text-amber-300" />
+                    <span>Por Recibir (En Tránsito)</span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-amber-300 animate-pulse">
+                    {formatCOP(totalEnTransitoActivo)}
+                  </div>
+                  <span className="text-xs text-amber-200/80 block mt-1">
+                    Fondos en camino (no suman al saldo contable disponible)
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Account Metadata Row */}
@@ -510,7 +548,26 @@ export const ActivosLiquidosView: React.FC = () => {
                             </span>
                           </td>
                           <td className="py-3 px-4 text-foreground min-w-[200px]">
-                            {m.concepto || 'Movimiento'}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {m.esPendiente && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-full animate-pulse">
+                                  <i className="ri-time-line text-[10px]" /> Por recibir
+                                </span>
+                              )}
+                              <span>{m.concepto || 'Movimiento'}</span>
+                              {m.esPendiente && m.tipoOperacion === 'VENTA_USDT' && canWrite && (
+                                <button
+                                  type="button"
+                                  disabled={receivingId === m.idOriginal}
+                                  onClick={() => handleMarcarVenta(m)}
+                                  className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs ml-1 flex items-center gap-1"
+                                  title="Confirmar recepción en cuenta"
+                                >
+                                  <i className={receivingId === m.idOriginal ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
+                                  <span>Recibir</span>
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td
                             className={`py-3 px-4 text-right font-bold whitespace-nowrap ${

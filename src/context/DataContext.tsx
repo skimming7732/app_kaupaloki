@@ -222,6 +222,10 @@ export interface NormalizedData {
     costo: number;
     walletDestino?: string;
     walletDestinoId?: string;
+    estado: 'pendiente' | 'recibido';
+    saldoCompraAplicado?: boolean;
+    fechaRecibido?: string | null;
+    recibidoPor?: string | null;
     raw: any;
   }>;
   ventasUsdt: Array<CreationAudit & {
@@ -237,6 +241,10 @@ export interface NormalizedData {
     walletOrigen?: string;
     walletOrigenId?: string;
     destinoFondosId?: string;
+    estado: 'pendiente' | 'recibido';
+    saldoVentaAplicado?: boolean;
+    fechaRecibido?: string | null;
+    recibidoPor?: string | null;
     raw: any;
   }>;
   comisionistas: Array<CreationAudit & {
@@ -326,6 +334,8 @@ interface DataContextType {
   updateUserPermissions: (payload: any) => Promise<boolean>;
   refreshUsers: () => Promise<void>;
   saveComisionista: (payload: { id?: string; comisionistaId: string; comisionaDeIds: string[]; porcentajeComision: number }) => Promise<boolean>;
+  marcarCompraRecibida: (compraId: string) => Promise<boolean>;
+  marcarVentaRecibida: (ventaId: string) => Promise<boolean>;
 }
 
 const defaultSnapshot: DataSnapshot = {
@@ -428,6 +438,11 @@ const snapshotTables = {
   costo: Number(c.costo || 0),
   walletDestino: c.wallet_destino,
   walletDestinoId: c.wallet_destino_id,
+  estado: ((c.estado || 'recibido').toLowerCase()) as 'pendiente' | 'recibido',
+  saldoCompraAplicado: c.saldo_compra_aplicado ?? true,
+  fechaRecibido: c.fecha_recibido,
+  recibidoPor: c.recibido_por,
+  raw: c,
 }) },
   ventas_usdt: { key: 'ventasUsdt', normalize: (v: any) => ({
   ...creationAudit(v),
@@ -444,6 +459,11 @@ const snapshotTables = {
   walletOrigenId: v.wallet_origen_id,
   destinoFondosId: v.destino_fondos_id,
   destinoFondosNombre: v.destino_fondos_nombre,
+  estado: ((v.estado || 'recibido').toLowerCase()) as 'pendiente' | 'recibido',
+  saldoVentaAplicado: v.saldo_venta_aplicado ?? true,
+  fechaRecibido: v.fecha_recibido,
+  recibidoPor: v.recibido_por,
+  raw: v,
 }) },
   activos_liquidos: { key: 'activosLiquidos', normalize: (a: any) => ({
   ...creationAudit(a),
@@ -1161,7 +1181,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
 
     // Combine stored movements and transactions linked to this specific account.
-    type LinkedMovement = CreationAudit & { fecha: string; origen: string; concepto: string; monto: number; tercero?: string; replaceConcept?: boolean };
+    type LinkedMovement = CreationAudit & {
+      fecha: string;
+      origen: string;
+      concepto: string;
+      monto: number;
+      tercero?: string;
+      replaceConcept?: boolean;
+      estado?: 'pendiente' | 'recibido';
+      esPendiente?: boolean;
+      idOriginal?: string;
+      tipoOperacion?: 'COMPRA_USDT' | 'VENTA_USDT' | 'EFECTIVO' | 'DISPERSION' | 'TRANSFERENCIA';
+    };
     const mergeMovements = (account: any, linked: LinkedMovement[], excludedOrigins: Set<string>) => {
       // Imported statements are newest first, including entries on the same day.
       const existing = Array.isArray(account.movimientos)
@@ -1178,15 +1209,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdBy: existing[index].createdBy ?? movement.createdBy,
             createdByName: existing[index].createdByName ?? movement.createdByName,
             createdAtAudit: existing[index].createdAtAudit ?? movement.createdAtAudit,
+            estado: movement.estado ?? existing[index].estado,
+            esPendiente: movement.esPendiente ?? existing[index].esPendiente,
+            idOriginal: movement.idOriginal ?? existing[index].idOriginal,
+            tipoOperacion: movement.tipoOperacion ?? existing[index].tipoOperacion,
           };
         }
       }
       existing.sort((a, b) => compareChronologicalAsc(a, b, false));
-      const net = existing.reduce((total, entry) => total + Number(entry.monto || 0), 0);
+      const net = existing.reduce((total, entry) => total + (entry.esPendiente ? 0 : Number(entry.monto || 0)), 0);
       const closing = account.saldoCop ?? account.saldoUsdt;
       let balance = account.saldoInicial != null ? Number(account.saldoInicial) : (closing != null ? Number(closing) - net : 0);
       return existing.map((entry) => {
-        balance += Number(entry.monto || 0);
+        if (!entry.esPendiente) {
+          balance += Number(entry.monto || 0);
+        }
         return { ...entry, balance };
       }).reverse();
     };
@@ -1240,7 +1277,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }] : []),
           ]),
         ...ventasUsdt.filter((v) => v.destinoFondosId === account.id)
-          .map((v) => movement(v, 'Venta USDT: ' + v.concepto, v.totalCOP)),
+          .map((v) => ({
+            ...movement(v, 'Venta USDT: ' + v.concepto, v.totalCOP),
+            estado: v.estado,
+            esPendiente: v.estado === 'pendiente',
+            idOriginal: v.id,
+            tipoOperacion: 'VENTA_USDT' as const,
+          })),
         ...transferenciasInternas.filter((t) => t.tipoOrigen === 'ACTIVO_LIQUIDO' && t.origenId === account.id)
           .flatMap((t) => [
             movement(t, 'Transferencia a ' + (t.destinoNombre || 'cuenta') + (t.concepto ? ': ' + t.concepto : ''), -t.monto),
@@ -1269,7 +1312,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...gastos.filter((g) => g.divisa === 'USDT' && matchesAccount(g, account))
           .map((g) => movement(g, 'Gasto USDT: ' + g.concepto, -Math.abs(g.monto))),
         ...comprasUsdt.filter((c) => c.walletDestinoId === account.id)
-          .map((c) => movement(c, 'Compra USDT en ' + c.divisaCodigo, c.usdtComprado)),
+          .map((c) => ({
+            ...movement(c, 'Compra USDT en ' + c.divisaCodigo, c.usdtComprado),
+            estado: c.estado,
+            esPendiente: c.estado === 'pendiente',
+            idOriginal: c.id,
+            tipoOperacion: 'COMPRA_USDT' as const,
+          })),
         ...ventasUsdt.filter((v) => v.walletOrigenId === account.id)
           .flatMap((v) => [
             movement(v, 'Venta USDT: ' + v.concepto, -v.usdtVendido),
@@ -2150,6 +2199,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const marcarCompraRecibida = async (compraId: string): Promise<boolean> => {
+    requireWrite('admin');
+    const { data: res, error } = await supabase.rpc('marcar_compra_usdt_recibida', { p_compra_id: compraId });
+    if (error) throw dashboardWriteError(error, 'No se pudo marcar la compra como recibida.');
+    await scheduleRefresh();
+    return true;
+  };
+
+  const marcarVentaRecibida = async (ventaId: string): Promise<boolean> => {
+    requireWrite('admin');
+    const { data: res, error } = await supabase.rpc('marcar_venta_usdt_recibida', { p_venta_id: ventaId });
+    if (error) throw dashboardWriteError(error, 'No se pudo marcar la venta como recibida.');
+    await scheduleRefresh();
+    return true;
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -2191,6 +2256,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         adminReset2FA,
         sendUserInvite,
         updateUserPermissions,
+        marcarCompraRecibida,
+        marcarVentaRecibida,
       }}
     >
       {children}

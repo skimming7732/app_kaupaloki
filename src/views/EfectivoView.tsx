@@ -28,7 +28,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   onOpenAddGasto,
 }) => {
   const canWrite = useWriteAccess('admin');
-  const { data } = useData();
+  const { data, marcarVentaRecibida } = useData();
+  const [receivingId, setReceivingId] = useState<string | null>(null);
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [movementMode, setMovementMode] = useState<EfectivoMode | null>(null);
@@ -164,6 +165,11 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
     });
   }, [movimientos, data.usuarios, search, filterTipo, selectedCliente, fechaDesde, fechaHasta, filterCreador, paymentId]);
 
+  const totalEnTransitoCaja = visibleMovements
+    .filter((m) => m.raw?.esPendiente)
+    .reduce((sum, m) => sum + (Number(m.monto) || 0), 0);
+  const transitoCount = visibleMovements.filter((m) => m.raw?.esPendiente).length;
+
   const isPending = (id: string) => {
     const token = tokenByPayment.get(id);
     return Boolean(token && getTokenState(token) === 'activo');
@@ -171,6 +177,23 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const pendingCount = filteredMovimientos.filter((row) => isPending(row.id)).length;
   const visibleMovements = pendingOnly ? filteredMovimientos.filter((row) => isPending(row.id)) : filteredMovimientos;
   const tokenLabels = { activo: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado', expirado: 'Vencido' };
+
+  const handleRecibirEnCaja = async (movimiento: any) => {
+    const idOriginal = movimiento.raw?.idOriginal;
+    if (!idOriginal) return;
+    if (!window.confirm(`¿Confirmas que los ${formatCOP(movimiento.monto)} correspondientes a la venta ${movimiento.codigo} ya ingresaron físicamente a la caja de efectivo?`)) {
+      return;
+    }
+    setReceivingId(idOriginal);
+    try {
+      await marcarVentaRecibida(idOriginal);
+    } catch (err: any) {
+      alert(err?.message || 'No se pudo confirmar el ingreso a caja.');
+    } finally {
+      setReceivingId(null);
+    }
+  };
+
   const secondaryAction = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold hover:bg-muted';
   return (
     <div className="space-y-4 animate-fade-in">
@@ -300,7 +323,19 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         ['Entradas COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? m.monto : 0))],
         ['Salidas COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Pago' ? m.monto - (m.comisionCop ?? 0) : 0))],
         ['Comisiones COP', formatCOP(sumRows(visibleMovements, (m) => m.comisionCop ?? 0))],
-        ['Neto COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? m.monto : -(m.monto - (m.comisionCop ?? 0))))],
+        ['Neto COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? (m.raw?.esPendiente ? 0 : m.monto) : -(m.monto - (m.comisionCop ?? 0))))],
+        ['Por recibir en caja', (
+          <div className="flex items-center gap-1.5">
+            <span className={totalEnTransitoCaja > 0 ? "text-amber-400 font-bold" : ""}>
+              {formatCOP(totalEnTransitoCaja)}
+            </span>
+            {transitoCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+                {transitoCount} pend.
+              </span>
+            )}
+          </div>
+        )],
         ['Pendientes', (
           <button type="button" aria-pressed={pendingOnly} aria-label={`Filtrar ${pendingCount} pendientes`}
             onClick={() => setPendingOnly(!pendingOnly)} className="text-destructive hover:underline">
@@ -358,7 +393,11 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                         </span>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        {token && tokenState ? (
+                        {m.raw?.esPendiente ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
+                          <i className="ri-time-line text-xs" /> Por recibir
+                        </span>
+                      ) : token && tokenState ? (
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
@@ -397,6 +436,10 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                               </button>
                             )}
                           </div>
+                        ) : m.raw?.esPendiente ? (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
+                            <i className="ri-time-line text-xs" /> Por recibir
+                          </span>
                         ) : m.tipo === 'Ingreso' ? (
                           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
                             <i className="ri-check-line text-xs" /> Liquidado
@@ -421,6 +464,19 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       </td>
                       <CreatedByCell name={m.createdByName} />
                       <td className="py-2.5 px-4 text-center whitespace-nowrap">
+
+                        {m.raw?.tipoOperacion === 'VENTA_USDT' && m.raw?.esPendiente && canWrite && (
+                          <button
+                            type="button"
+                            disabled={receivingId === m.raw.idOriginal}
+                            onClick={() => handleRecibirEnCaja(m)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-2.5 py-1 text-xs font-semibold text-white shadow-xs transition-colors mr-1.5"
+                            title="Confirmar ingreso de efectivo en caja"
+                          >
+                            <i className={receivingId === m.raw.idOriginal ? "ri-loader-4-line animate-spin text-xs" : "ri-check-line text-xs"} />
+                            <span>Recibir</span>
+                          </button>
+                        )}
                         {canWrite && (<button
                           type="button"
                           onClick={() => setEditingMovimiento(m)}

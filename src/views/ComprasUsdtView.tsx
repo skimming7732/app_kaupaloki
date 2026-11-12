@@ -14,9 +14,11 @@ import { useData } from '../context/DataContext';
 import { formatDate } from '../utils/formatters';
 
 export const ComprasUsdtView: React.FC = () => {
-  const { data } = useData();
+  const { data, marcarCompraRecibida } = useData();
   const [search, setSearch] = useState('');
   const [filterDivisa, setFilterDivisa] = useState('');
+  const [filterEstado, setFilterEstado] = useState<'todos' | 'recibido' | 'pendiente'>('todos');
+  const [receivingId, setReceivingId] = useState<string | null>(null);
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [filterCreador, setFilterCreador] = useState('');
@@ -36,20 +38,26 @@ export const ComprasUsdtView: React.FC = () => {
         c.divisaCodigo.toLowerCase().includes(search.toLowerCase()) ||
         Boolean(c.proveedor && c.proveedor.toLowerCase().includes(search.toLowerCase()));
       const matchDivisa = !filterDivisa || c.divisaCodigo === filterDivisa;
-
+      const matchEstado = filterEstado === 'todos' || c.estado === filterEstado;
       const matchFecha = matchesDateRange(c.fecha, fechaDesde, fechaHasta);
 
       const matchCreador = !filterCreador || formatAuthorName(c.createdByName, c.createdBy, data.usuarios).toLowerCase() === filterCreador.toLowerCase();
 
-      return matchSearch && matchDivisa && matchFecha && matchCreador;
+      return matchSearch && matchDivisa && matchEstado && matchFecha && matchCreador;
     });
+
+    const enTransito = filtered.filter((c) => c.estado === 'pendiente');
+    const recibidas = filtered.filter((c) => c.estado !== 'pendiente');
 
     return {
       totalOperaciones: data.comprasUsdt.length,
       divisasUnicas: Array.from(divisasSet).sort(),
       filteredCompras: filtered,
+      totalUsdtEnTransito: sumRows(enTransito, (c) => c.usdtComprado),
+      totalUsdtRecibido: sumRows(recibidas, (c) => c.usdtComprado),
+      pendientesCount: enTransito.length,
     };
-  }, [data.comprasUsdt, data.usuarios, search, filterDivisa, filterCreador, fechaDesde, fechaHasta]);
+  }, [data.comprasUsdt, data.usuarios, search, filterDivisa, filterEstado, filterCreador, fechaDesde, fechaHasta]);
 
   const rates = new Map<string, { total: number; count: number }>();
   for (const c of filteredCompras) {
@@ -57,6 +65,21 @@ export const ComprasUsdtView: React.FC = () => {
     const rate = rates.get(c.divisaCodigo) || { total: 0, count: 0 };
     rates.set(c.divisaCodigo, { total: rate.total + c.tasa, count: rate.count + 1 });
   }
+
+  const handleMarcarRecibido = async (compra: any) => {
+    if (!window.confirm(`¿Confirmas que los ${formatNumber(compra.usdtComprado, 0, 2)} USDT de la compra ${compra.codigo} ya fueron recibidos en la billetera de destino?`)) {
+      return;
+    }
+    setReceivingId(compra.id);
+    try {
+      await marcarCompraRecibida(compra.id);
+    } catch (err: any) {
+      alert(err?.message || 'No se pudo marcar la compra como recibida.');
+    } finally {
+      setReceivingId(null);
+    }
+  };
+
   const averageRate = [...rates].map(([currency, rate]) =>
     formatRate(rate.total / rate.count) + ' ' + currency + '/USDT'
   );
@@ -178,7 +201,19 @@ export const ComprasUsdtView: React.FC = () => {
             </ul>
           </details>
         )],
-        ['USDT comprado', formatCurrency(sumRows(filteredCompras, (c) => c.usdtComprado), 'USDT')],
+        ['USDT confirmado', formatCurrency(totalUsdtRecibido, 'USDT')],
+        ['Por recibir (En tránsito)', (
+          <div className="flex items-center gap-1.5">
+            <span className={totalUsdtEnTransito > 0 ? "text-amber-400 font-bold" : ""}>
+              {formatCurrency(totalUsdtEnTransito, 'USDT')}
+            </span>
+            {pendientesCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
+                {pendientesCount} pend.
+              </span>
+            )}
+          </div>
+        )],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {/* Desktop Table View */}
@@ -196,6 +231,7 @@ export const ComprasUsdtView: React.FC = () => {
                 <th className="py-3 px-4 text-right">USDT Comprado</th>
                 <th className="py-3 px-4 text-right">Costo</th>
                 <th className="py-3 px-4">Destino</th>
+                <th className="py-3 px-4 text-center">Estado</th>
                 <CreatedByHeader />
                 <th className="py-3 px-4">Acciones</th>
               </tr>
@@ -203,12 +239,12 @@ export const ComprasUsdtView: React.FC = () => {
             <tbody className="divide-y divide-border">
               {filteredCompras.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={12} className="py-12 text-center text-muted-foreground">
                     No hay registros de compras USDT coincidentes con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows pageSize={100} columns={11} rows={filteredCompras}>{(c) => (
+                <PaginatedRows pageSize={100} columns={12} rows={filteredCompras}>{(c) => (
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">{c.codigo}</td>
                     <td className="py-3 px-4 text-muted-foreground">{formatDate(c.fecha)}</td>
@@ -240,6 +276,18 @@ export const ComprasUsdtView: React.FC = () => {
                       <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
                         {c.walletDestino || (c.walletDestinoId && data.activosDigitales.find((a) => a.id === c.walletDestinoId)?.activo) || data.activosDigitales[0]?.activo || 'Sin registro'}
                       </span>
+                    </td>
+
+                    <td className="py-3 px-4 text-center">
+                      {c.estado === 'pendiente' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[11px] animate-pulse">
+                          <i className="ri-time-line text-[11px]" /> Por recibir
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px]">
+                          <i className="ri-checkbox-circle-fill text-[11px]" /> Recibido
+                        </span>
+                      )}
                     </td>
                     <CreatedByCell name={c.createdByName} />
                     <td className="px-4 text-center">

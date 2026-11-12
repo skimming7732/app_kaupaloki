@@ -135,6 +135,14 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
         { name: 'tasa', label: 'Tasa de compra', type: 'number' },
         { name: 'usdt_comprado', label: 'USDT a recibir', type: 'number' },
         { name: 'wallet_destino_id', label: 'Billetera de destino', accounts: wallets },
+        {
+          name: 'estado',
+          label: 'Estado de recepción',
+          options: [
+            { value: 'recibido', label: 'Recibido (Fondos ya disponibles en wallet)' },
+            { value: 'pendiente', label: 'Pendiente (Fondos en tránsito / Por recibir)' },
+          ],
+        },
       ],
     },
     ventas_usdt: {
@@ -146,6 +154,14 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
         { name: 'fee_usdt', label: 'Fee de envío (USDT)', type: 'number', optional: true },
         { name: 'tasa', label: 'Tasa de venta (COP por USDT)', type: 'number' },
         { name: 'destino_fondos_id', label: 'Cuenta de destino en COP', accounts: liquidAccounts },
+        {
+          name: 'estado',
+          label: 'Estado de recepción',
+          options: [
+            { value: 'recibido', label: 'Recibido (Fondos ya disponibles en cuenta)' },
+            { value: 'pendiente', label: 'Pendiente (Fondos en tránsito / Por recibir)' },
+          ],
+        },
       ],
     },
     divisas: {
@@ -154,7 +170,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     },
   };
 
-  const initial = edit?.fields || {};
+  const initial = { estado: 'recibido', ...(edit?.fields || {}) };
   const base = forms[table];
   const form = edit ? {
     ...base,

@@ -55,12 +55,28 @@ export const VentasUsdtView: React.FC = () => {
       destinosUnicos: Array.from(destinosSet).sort(),
       filteredVentas: filtered,
     };
-  }, [data.ventasUsdt, data.usuarios, search, filterDivisa, filterDestino, filterCreador, fechaDesde, fechaHasta]);
+  }, [data.ventasUsdt, data.usuarios, search, filterDivisa, filterDestino, filterEstado, filterCreador, fechaDesde, fechaHasta]);
 
   const totalUsdtVendidos = sumRows(filteredVentas, (v) => v.usdtVendido);
   const totalFeeUsdt = sumRows(filteredVentas, (v) => v.feeUsdt);
-  const totalCopRecibidos = sumRows(filteredVentas, (v) => v.totalCOP);
-  const tasaPromedioVenta = totalUsdtVendidos > 0 ? totalCopRecibidos / totalUsdtVendidos : 0;
+  // totalCopRecibidos and totalCopEnTransito are computed above
+  const totalCopTotal = totalCopRecibidos + totalCopEnTransito;
+  const tasaPromedioVenta = totalUsdtVendidos > 0 ? totalCopTotal / totalUsdtVendidos : 0;
+
+  const handleMarcarRecibido = async (venta: any) => {
+    if (!window.confirm(`¿Confirmas que los ${formatCOP(venta.totalCOP)} de la venta ${venta.codigo} ya fueron recibidos en la cuenta de destino (${venta.destinoFondosNombre || 'cuenta'})?`)) {
+      return;
+    }
+    setReceivingId(venta.id);
+    try {
+      await marcarVentaRecibida(venta.id);
+    } catch (err: any) {
+      alert(err?.message || 'No se pudo marcar la venta como recibida.');
+    } finally {
+      setReceivingId(null);
+    }
+  };
+
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -221,12 +237,12 @@ export const VentasUsdtView: React.FC = () => {
             <tbody className="divide-y divide-border">
               {filteredVentas.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={12} className="py-12 text-center text-muted-foreground">
                     No hay registros de ventas USDT coincidentes con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows pageSize={100} columns={11} rows={filteredVentas}>
+                <PaginatedRows pageSize={100} columns={12} rows={filteredVentas}>
                   {(v) => (
                     <tr key={v.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-bold text-foreground">{v.codigo}</td>
