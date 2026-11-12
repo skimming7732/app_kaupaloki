@@ -14,7 +14,7 @@ import { CreatedByFilter } from '../components/common/CreatedByFilter';
 import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo } from 'react';
 import { useData, type GastoItem } from '../context/DataContext';
-import { formatNumber, formatCOP, formatUSD, formatDate, formatRate } from '../utils/formatters';
+import { formatNumber, formatCOP, formatUSD, formatDate, formatRate, formatCurrency } from '../utils/formatters';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
 
 interface GastosViewProps {
@@ -116,6 +116,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
           codigo: urls.length > 1 ? `${g.codigo} (#${i + 1})` : g.codigo,
           clienteNombre: g.concepto,
           monto: g.monto,
+          montoFormatted: formatCurrency(g.monto, g.divisa || 'COP'),
           comprobanteUrl: url,
         });
       });
@@ -523,6 +524,17 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
       />
+
+      {/* 9:16 Popup Lightbox with Copy, Download & Next/Previous Navigation */}
+      {lightboxIndex !== null && (
+        <ReceiptLightboxModal
+          isOpen={lightboxIndex !== null}
+          currentIndex={lightboxIndex}
+          items={receiptsList}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={(newIdx) => setLightboxIndex(newIdx)}
+        />
+      )}
     </div>
   );
 };

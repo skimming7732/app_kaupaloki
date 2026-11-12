@@ -7,6 +7,7 @@ export interface LightboxItem {
   codigo: string;
   clienteNombre: string;
   monto: number;
+  montoFormatted?: string;
   comprobanteUrl: string;
 }
 
@@ -180,7 +181,7 @@ export const ReceiptLightboxModal: React.FC<ReceiptLightboxModalProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground truncate max-w-[200px]">
-              {current.clienteNombre} · <span className="font-semibold text-foreground">{formatCOP(current.monto)}</span>
+              {current.clienteNombre} · <span className="font-semibold text-foreground">{current.montoFormatted || formatCOP(current.monto)}</span>
             </p>
           </div>
           <div className="flex items-center gap-1">
