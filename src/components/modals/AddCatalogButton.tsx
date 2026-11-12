@@ -50,6 +50,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
   const [amountMode, setAmountMode] = useState<AmountMode>('initial');
   const [rateInput, setRateInput] = useState('');
   const [feeInput, setFeeInput] = useState('');
+  const [selectedEstado, setSelectedEstado] = useState<'recibido' | 'pendiente'>('recibido');
 
   const isPurchase = table === 'compras_usdt';
   const isSale = table === 'ventas_usdt';
@@ -246,10 +247,15 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
       }
     }
 
+    if (isUsdt) {
+      record.estado = selectedEstado;
+    }
+
     for (const field of form.fields) {
       if (isUsdt && field.accounts) continue;
       if (isSale && edit?.historical && field.name === 'fee_usdt') continue;
       if (isPurchase && (field.name === 'usdt_comprado' || field.name === 'divisa_codigo')) continue;
+      if (isUsdt && field.name === 'estado') continue;
       if (isUsdt && field.name === amountField) {
         record[amountField] = numericAmount;
         continue;
@@ -405,6 +411,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
           setCurrency(fallbackCurrency);
           setRateInput(initialRate);
           setFeeInput(isSale && initial.fee_usdt ? formatNumber(Number(initial.fee_usdt), 0, 6) : '');
+          setSelectedEstado((initial.estado as 'recibido' | 'pendiente') || 'recibido');
           setOpen(true);
         }}>
         <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
@@ -461,6 +468,52 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
 
                   <section aria-label="Datos de la operación" className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
                     {isPurchase ? renderFields('fecha', 'proveedor') : renderFields('fecha', 'concepto')}
+                  </section>
+
+                  <section aria-label="Estado de recepción" className="space-y-2 border-t border-border pt-4">
+                    <label className={recordLabelClass}>
+                      <span>Estado de recepción en destino</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEstado('recibido')}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          selectedEstado === 'recibido'
+                            ? 'bg-emerald-500/15 border-emerald-500/60 shadow-xs ring-2 ring-emerald-500/30'
+                            : 'bg-card border-border hover:border-border/80 opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <i className="ri-checkbox-circle-fill text-base text-emerald-500" />
+                          <span className="font-bold text-xs text-foreground">Recibido (Por defecto)</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {isPurchase
+                            ? 'USDT ya disponibles en la wallet. Suma de inmediato al saldo de la billetera.'
+                            : 'COP ya disponibles en la cuenta. Suma de inmediato al saldo contable.'}
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEstado('pendiente')}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          selectedEstado === 'pendiente'
+                            ? 'bg-amber-500/15 border-amber-500/60 shadow-xs ring-2 ring-amber-500/30'
+                            : 'bg-card border-border hover:border-border/80 opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <i className="ri-time-line text-base text-amber-500" />
+                          <span className="font-bold text-xs text-foreground">En tránsito / Pendiente</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {isPurchase
+                            ? 'Origen entregado, pero USDT aún en camino. No suma al saldo de la wallet hasta confirmar recepción.'
+                            : 'USDT debitados de la wallet, pero COP aún en camino. No suma a la cuenta bancaria hasta confirmar recepción.'}
+                        </p>
+                      </button>
+                    </div>
                   </section>
                 </div>
               ) : (

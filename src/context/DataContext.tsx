@@ -336,6 +336,8 @@ interface DataContextType {
   saveComisionista: (payload: { id?: string; comisionistaId: string; comisionaDeIds: string[]; porcentajeComision: number }) => Promise<boolean>;
   marcarCompraRecibida: (compraId: string) => Promise<boolean>;
   marcarVentaRecibida: (ventaId: string) => Promise<boolean>;
+  marcarCompraPendiente: (compraId: string) => Promise<boolean>;
+  marcarVentaPendiente: (ventaId: string) => Promise<boolean>;
 }
 
 const defaultSnapshot: DataSnapshot = {
@@ -2215,6 +2217,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const marcarCompraPendiente = async (compraId: string): Promise<boolean> => {
+    requireWrite('admin');
+    const { data: res, error } = await supabase.rpc('marcar_compra_usdt_pendiente', { p_compra_id: compraId });
+    if (error) throw dashboardWriteError(error, 'No se pudo pasar la compra a estado pendiente.');
+    await scheduleRefresh();
+    return true;
+  };
+
+  const marcarVentaPendiente = async (ventaId: string): Promise<boolean> => {
+    requireWrite('admin');
+    const { data: res, error } = await supabase.rpc('marcar_venta_usdt_pendiente', { p_venta_id: ventaId });
+    if (error) throw dashboardWriteError(error, 'No se pudo pasar la venta a estado pendiente.');
+    await scheduleRefresh();
+    return true;
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -2258,6 +2276,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateUserPermissions,
         marcarCompraRecibida,
         marcarVentaRecibida,
+        marcarCompraPendiente,
+        marcarVentaPendiente,
       }}
     >
       {children}

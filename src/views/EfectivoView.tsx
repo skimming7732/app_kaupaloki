@@ -394,10 +394,34 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         {m.raw?.esPendiente ? (
-                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
-                          <i className="ri-time-line text-xs" /> Por recibir
-                        </span>
-                      ) : token && tokenState ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
+                              <i className="ri-time-line text-xs" /> Por recibir
+                            </span>
+                            {canWrite && m.raw?.tipoOperacion === 'VENTA_USDT' && m.raw?.idOriginal && (
+                              <button
+                                type="button"
+                                disabled={receivingId === m.raw.idOriginal}
+                                onClick={async () => {
+                                  if (!window.confirm('¿Confirmas que los fondos en efectivo ya fueron recibidos en la caja? Sumará al saldo de efectivo.')) return;
+                                  setReceivingId(m.raw.idOriginal);
+                                  try {
+                                    await marcarVentaRecibida(m.raw.idOriginal);
+                                  } catch (err: any) {
+                                    alert(err?.message || 'Error al marcar como recibido.');
+                                  } finally {
+                                    setReceivingId(null);
+                                  }
+                                }}
+                                className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
+                                title="Confirmar recepción en caja"
+                              >
+                                <i className={receivingId === m.raw.idOriginal ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
+                                <span>Recibir</span>
+                              </button>
+                            )}
+                          </div>
+                        ) : token && tokenState ? (
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
@@ -522,7 +546,35 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       >
                         {m.tipo === 'Ingreso' ? 'Ingreso a caja' : 'Salida de caja'}
                       </span>
-                      {token && tokenState ? (
+                      {m.raw?.esPendiente ? (
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
+                            <i className="ri-time-line text-xs" /> Por recibir
+                          </span>
+                          {canWrite && m.raw?.tipoOperacion === 'VENTA_USDT' && m.raw?.idOriginal && (
+                            <button
+                              type="button"
+                              disabled={receivingId === m.raw.idOriginal}
+                              onClick={async () => {
+                                if (!window.confirm('¿Confirmas que los fondos en efectivo ya fueron recibidos en la caja? Sumará al saldo de efectivo.')) return;
+                                setReceivingId(m.raw.idOriginal);
+                                try {
+                                  await marcarVentaRecibida(m.raw.idOriginal);
+                                } catch (err: any) {
+                                  alert(err?.message || 'Error al marcar como recibido.');
+                                } finally {
+                                  setReceivingId(null);
+                                }
+                              }}
+                              className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
+                              title="Confirmar recepción en caja"
+                            >
+                              <i className={receivingId === m.raw.idOriginal ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
+                              <span>Recibir</span>
+                            </button>
+                          )}
+                        </div>
+                      ) : token && tokenState ? (
                         <button
                           type="button"
                           onClick={() => setVoucher(token)}

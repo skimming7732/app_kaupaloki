@@ -12,10 +12,14 @@ import { UsdtVoucherModal } from '../components/modals/UsdtVoucherModal';
 import { UsdtTransactionVoucherData } from '../utils/usdtVoucherGenerator';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
+import { isAuditorRole } from '../utils/roles';
 import { formatCOP, formatDate } from '../utils/formatters';
 
 export const VentasUsdtView: React.FC = () => {
-  const { data, marcarVentaRecibida } = useData();
+  const { data, marcarVentaRecibida, marcarVentaPendiente } = useData();
+  const { profile } = useAuth();
+  const canWrite = !isAuditorRole(profile?.role);
   const [search, setSearch] = useState('');
   const [filterDivisa, setFilterDivisa] = useState('');
   const [filterDestino, setFilterDestino] = useState('');
@@ -26,6 +30,28 @@ export const VentasUsdtView: React.FC = () => {
   const [filterCreador, setFilterCreador] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<UsdtTransactionVoucherData | null>(null);
+
+  const handleToggleEstado = async (id: string, currentEstado: string) => {
+    if (receivingId) return;
+    const newEstado = currentEstado === 'pendiente' ? 'recibido' : 'pendiente';
+    const confirmMsg = newEstado === 'recibido'
+      ? '¿Confirmas que los COP ya fueron recibidos en la cuenta de destino? Sumará al saldo de la cuenta.'
+      : '¿Deseas cambiar el estado a "Por recibir (En tránsito)"? Se restará de la cuenta destino hasta que sea recibido.';
+    if (!window.confirm(confirmMsg)) return;
+
+    setReceivingId(id);
+    try {
+      if (newEstado === 'recibido') {
+        await marcarVentaRecibida(id);
+      } else {
+        await marcarVentaPendiente(id);
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error al cambiar el estado.');
+    } finally {
+      setReceivingId(null);
+    }
+  };
 
   const {
     destinosUnicos,
@@ -245,19 +271,20 @@ export const VentasUsdtView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Tasa Venta (COP)</th>
                 <th className="py-3 px-4 text-right">Total (COP)</th>
                 <th className="py-3 px-4">Destino Fondos</th>
+                <th className="py-3 px-4 text-center">Estado</th>
                 <CreatedByHeader />
-                <th className="py-3 px-4">Acciones</th>
+                <th className="py-3 px-4 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredVentas.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={13} className="py-12 text-center text-muted-foreground">
                     No hay registros de ventas USDT coincidentes con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows pageSize={100} columns={12} rows={filteredVentas}>
+                <PaginatedRows pageSize={100} columns={13} rows={filteredVentas}>
                   {(v) => (
                     <tr key={v.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-bold text-foreground">{v.codigo}</td>
@@ -280,6 +307,43 @@ export const VentasUsdtView: React.FC = () => {
                         <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
                           {v.destinoFondosNombre || 'Sin registro'}
                         </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {v.estado === 'pendiente' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[11px] animate-pulse">
+                              <i className="ri-time-line text-[11px]" /> Por recibir
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px]">
+                              <i className="ri-checkbox-circle-fill text-[11px]" /> Recibido
+                            </span>
+                          )}
+                          {canWrite && (
+                            v.estado === 'pendiente' ? (
+                              <button
+                                type="button"
+                                disabled={receivingId === v.id}
+                                onClick={() => handleToggleEstado(v.id, v.estado)}
+                                className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
+                                title="Marcar como recibido en cuenta"
+                              >
+                                <i className={receivingId === v.id ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
+                                <span>Recibir</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={receivingId === v.id}
+                                onClick={() => handleToggleEstado(v.id, v.estado)}
+                                className="p-1 text-[11px] text-muted-foreground hover:text-amber-400 rounded hover:bg-muted transition-colors"
+                                title="Pasar a Por recibir (En tránsito)"
+                              >
+                                <i className={receivingId === v.id ? "ri-loader-4-line animate-spin" : "ri-arrow-go-back-line"} />
+                              </button>
+                            )
+                          )}
+                        </div>
                       </td>
                       <CreatedByCell name={v.createdByName} />
                       <td className="px-4 text-center">
@@ -318,6 +382,7 @@ export const VentasUsdtView: React.FC = () => {
                                 tasa: v.tasa,
                                 wallet_origen_id: v.walletOrigenId || '',
                                 destino_fondos_id: v.destinoFondosId || '',
+                                estado: v.estado,
                               },
                             }}
                           />
@@ -352,9 +417,44 @@ export const VentasUsdtView: React.FC = () => {
                   </div>
                   <h4 className="font-bold text-sm text-foreground mt-0.5">{v.concepto || 'Venta USDT'}</h4>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
-                  -{formatNumber(v.usdtVendido, 0, 2)} USDT
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                    -{formatNumber(v.usdtVendido, 0, 2)} USDT
+                  </span>
+                  {v.estado === 'pendiente' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] animate-pulse">
+                      <i className="ri-time-line text-[10px]" /> Por recibir
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px]">
+                      <i className="ri-checkbox-circle-fill text-[10px]" /> Recibido
+                    </span>
+                  )}
+                  {canWrite && (
+                    v.estado === 'pendiente' ? (
+                      <button
+                        type="button"
+                        disabled={receivingId === v.id}
+                        onClick={() => handleToggleEstado(v.id, v.estado)}
+                        className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
+                        title="Marcar como recibido en cuenta"
+                      >
+                        <i className={receivingId === v.id ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
+                        <span>Recibir</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={receivingId === v.id}
+                        onClick={() => handleToggleEstado(v.id, v.estado)}
+                        className="p-1 text-[10px] text-muted-foreground hover:text-amber-400 rounded hover:bg-muted transition-colors"
+                        title="Pasar a Por recibir (En tránsito)"
+                      >
+                        <i className={receivingId === v.id ? "ri-loader-4-line animate-spin" : "ri-arrow-go-back-line"} />
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
 
               {/* Origin -> Destination Route */}
@@ -424,6 +524,7 @@ export const VentasUsdtView: React.FC = () => {
                         tasa: v.tasa,
                         wallet_origen_id: v.walletOrigenId || '',
                         destino_fondos_id: v.destinoFondosId || '',
+                        estado: v.estado,
                       },
                     }}
                   />

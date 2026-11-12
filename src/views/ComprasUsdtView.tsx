@@ -11,10 +11,14 @@ import { UsdtVoucherModal } from '../components/modals/UsdtVoucherModal';
 import { UsdtTransactionVoucherData } from '../utils/usdtVoucherGenerator';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
+import { isAuditorRole } from '../utils/roles';
 import { formatDate } from '../utils/formatters';
 
 export const ComprasUsdtView: React.FC = () => {
-  const { data, marcarCompraRecibida } = useData();
+  const { data, marcarCompraRecibida, marcarCompraPendiente } = useData();
+  const { profile } = useAuth();
+  const canWrite = !isAuditorRole(profile?.role);
   const [search, setSearch] = useState('');
   const [filterDivisa, setFilterDivisa] = useState('');
   const [filterEstado, setFilterEstado] = useState<'todos' | 'recibido' | 'pendiente'>('todos');
@@ -24,6 +28,28 @@ export const ComprasUsdtView: React.FC = () => {
   const [filterCreador, setFilterCreador] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<UsdtTransactionVoucherData | null>(null);
+
+  const handleToggleEstado = async (id: string, currentEstado: string) => {
+    if (receivingId) return;
+    const newEstado = currentEstado === 'pendiente' ? 'recibido' : 'pendiente';
+    const confirmMsg = newEstado === 'recibido'
+      ? '¿Confirmas que los USDT ya fueron recibidos en la wallet de destino? Sumará al saldo de la billetera.'
+      : '¿Deseas cambiar el estado a "Por recibir (En tránsito)"? Se restará de la billetera destino hasta que sea recibido.';
+    if (!window.confirm(confirmMsg)) return;
+
+    setReceivingId(id);
+    try {
+      if (newEstado === 'recibido') {
+        await marcarCompraRecibida(id);
+      } else {
+        await marcarCompraPendiente(id);
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error al cambiar el estado.');
+    } finally {
+      setReceivingId(null);
+    }
+  };
 
   const {
     totalOperaciones,
@@ -286,15 +312,41 @@ export const ComprasUsdtView: React.FC = () => {
                     </td>
 
                     <td className="py-3 px-4 text-center">
-                      {c.estado === 'pendiente' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[11px] animate-pulse">
-                          <i className="ri-time-line text-[11px]" /> Por recibir
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px]">
-                          <i className="ri-checkbox-circle-fill text-[11px]" /> Recibido
-                        </span>
-                      )}
+                      <div className="flex items-center justify-center gap-1.5">
+                        {c.estado === 'pendiente' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[11px] animate-pulse">
+                            <i className="ri-time-line text-[11px]" /> Por recibir
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px]">
+                            <i className="ri-checkbox-circle-fill text-[11px]" /> Recibido
+                          </span>
+                        )}
+                        {canWrite && (
+                          c.estado === 'pendiente' ? (
+                            <button
+                              type="button"
+                              disabled={receivingId === c.id}
+                              onClick={() => handleToggleEstado(c.id, c.estado)}
+                              className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
+                              title="Marcar como recibido en wallet"
+                            >
+                              <i className={receivingId === c.id ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
+                              <span>Recibir</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={receivingId === c.id}
+                              onClick={() => handleToggleEstado(c.id, c.estado)}
+                              className="p-1 text-[11px] text-muted-foreground hover:text-amber-400 rounded hover:bg-muted transition-colors"
+                              title="Pasar a Por recibir (En tránsito)"
+                            >
+                              <i className={receivingId === c.id ? "ri-loader-4-line animate-spin" : "ri-arrow-go-back-line"} />
+                            </button>
+                          )
+                        )}
+                      </div>
                     </td>
                     <CreatedByCell name={c.createdByName} />
                     <td className="px-4 text-center">
@@ -318,7 +370,7 @@ export const ComprasUsdtView: React.FC = () => {
                         >
                           <i className="ri-file-text-line text-sm" />
                         </button>
-                        <AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: false, fields: { fecha: c.fecha?.slice(0, 10) || '', proveedor: c.proveedor || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, tasa: c.tasa !== undefined && c.tasa !== null ? c.tasa : (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0), usdt_comprado: c.usdtComprado, wallet_destino_id: c.walletDestinoId || '' } }} />
+                        <AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: false, fields: { fecha: c.fecha?.slice(0, 10) || '', proveedor: c.proveedor || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, tasa: c.tasa !== undefined && c.tasa !== null ? c.tasa : (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0), usdt_comprado: c.usdtComprado, wallet_destino_id: c.walletDestinoId || '', estado: c.estado } }} />
                       </div>
                     </td>
                   </tr>
@@ -349,9 +401,44 @@ export const ComprasUsdtView: React.FC = () => {
                   </div>
                   <h4 className="font-bold text-sm text-foreground mt-0.5">{c.proveedor || 'Sin proveedor'}</h4>
                 </div>
-                <span className="px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px] shrink-0">
-                  {c.divisaCodigo}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  <span className="px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px]">
+                    {c.divisaCodigo}
+                  </span>
+                  {c.estado === 'pendiente' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] animate-pulse">
+                      <i className="ri-time-line text-[10px]" /> Por recibir
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px]">
+                      <i className="ri-checkbox-circle-fill text-[10px]" /> Recibido
+                    </span>
+                  )}
+                  {canWrite && (
+                    c.estado === 'pendiente' ? (
+                      <button
+                        type="button"
+                        disabled={receivingId === c.id}
+                        onClick={() => handleToggleEstado(c.id, c.estado)}
+                        className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
+                        title="Marcar como recibido en wallet"
+                      >
+                        <i className={receivingId === c.id ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
+                        <span>Recibir</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={receivingId === c.id}
+                        onClick={() => handleToggleEstado(c.id, c.estado)}
+                        className="p-1 text-[10px] text-muted-foreground hover:text-amber-400 rounded hover:bg-muted transition-colors"
+                        title="Pasar a Por recibir (En tránsito)"
+                      >
+                        <i className={receivingId === c.id ? "ri-loader-4-line animate-spin" : "ri-arrow-go-back-line"} />
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
@@ -418,6 +505,7 @@ export const ComprasUsdtView: React.FC = () => {
                         tasa: c.tasa !== undefined && c.tasa !== null ? c.tasa : (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0),
                         usdt_comprado: c.usdtComprado,
                         wallet_destino_id: c.walletDestinoId || '',
+                        estado: c.estado,
                       },
                     }}
                   />
