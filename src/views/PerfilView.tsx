@@ -1458,7 +1458,7 @@ export const PerfilView: React.FC = () => {
                 </p>
               </div>
               <span className="text-xs font-semibold text-muted-foreground">
-                {versionsList.length} versiones registradas
+                Mostrando las últimas {Math.min(3, versionsList.length)} notificaciones
               </span>
             </div>
 
@@ -1482,7 +1482,7 @@ export const PerfilView: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {versionsList.map((ver) => {
+                {versionsList.slice(0, 3).map((ver) => {
                   const isConfirmed = confirmedVersionIds.has(ver.id);
                   return (
                     <div
