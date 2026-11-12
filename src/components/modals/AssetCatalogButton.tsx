@@ -89,7 +89,7 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
   const title = asset ? digital ? 'Editar datos de la billetera' : 'Editar datos de la cuenta'
     : digital ? 'Agregar billetera USDT' : 'Agregar activo líquido';
   const icon = digital ? 'ri-wallet-3-line' : 'ri-bank-line';
-  const initialHolder = asset?.titular || asset?.empresa || '';
+  const initialHolder = asset?.titular || asset?.empresa || asset?.activo || '';
   const legacyInstitution = asset?.institucion || '';
 
   const countryOptions = useMemo(() => {
@@ -141,17 +141,16 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
     const values = new FormData(event.currentTarget);
     const text = (key: string) => String(values.get(key) ?? '').trim();
     const titular = text('titular');
-    const activoName = text('activo');
     if (!asset && !institution) {
       setError('Selecciona una institución del catálogo.');
       return;
     }
     if (!titular) {
-      setError('Completa el nombre del titular.');
+      setError(digital ? 'Completa el titular de la billetera.' : 'Completa el titular o empresa.');
       return;
     }
     const pais = text('pais') || 'Colombia';
-    const finalActivo = activoName || assetName(institution?.name || legacyInstitution, titular);
+    const finalActivo = digital ? titular : assetName(institution?.name || legacyInstitution, titular);
     const record: Record<string, string | number> = {
       activo: finalActivo,
       titular,
@@ -262,22 +261,14 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
               )}
 
               <label className={recordLabelClass}>
-                <span>{digital ? 'Nombre de la billetera / activo' : 'Nombre de la cuenta / activo'}</span>
+                <span>{digital ? 'Titular de la billetera' : 'Titular o empresa'}</span>
                 <input
-                  name="activo"
-                  defaultValue={asset?.activo || assetName(institution?.name || legacyInstitution, initialHolder)}
-                  placeholder={digital ? 'Ej: TronLink OTC Principal' : 'Ej: Bancolombia Ahorros Principal'}
+                  name="titular"
+                  defaultValue={initialHolder}
+                  placeholder={digital ? 'Ej: Juan Perez / Billetera OTC' : 'Ej: Empresa S.A.S.'}
                   required
                   className={recordFieldClass}
                 />
-                <span className="text-[11px] text-muted-foreground block mt-0.5">
-                  Identificador visible en extractos, tarjetas y listados.
-                </span>
-              </label>
-
-              <label className={recordLabelClass}>
-                <span>{digital ? 'Titular de la billetera' : 'Titular o empresa'}</span>
-                <input name="titular" defaultValue={initialHolder} required className={recordFieldClass} />
               </label>
 
               <label className={recordLabelClass}>

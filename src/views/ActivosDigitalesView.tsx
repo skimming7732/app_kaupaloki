@@ -753,7 +753,7 @@ export const ActivosDigitalesView: React.FC = () => {
                           <span className="block truncate text-[10px] font-extrabold uppercase tracking-wider text-white/80">
                             {w.institution ? w.institution.name + ' · ' : ''}{isPoly ? 'POLYGON' : (w.red || 'TRC20')}
                           </span>
-                          <h4 title={w.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-emerald-200 transition-colors">{w.activo}</h4>
+                          <h4 title={w.titular || w.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-emerald-200 transition-colors">{w.titular || w.activo}</h4>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -834,7 +834,7 @@ export const ActivosDigitalesView: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
                   <tr>
-                    <th className="py-3 px-4">Billetera / Activo</th>
+                    <th className="py-3 px-4">Titular de la Billetera</th>
                     <th className="py-3 px-4">Jurisdicción</th>
                     <th className="py-3 px-4">Red</th>
                     <th className="py-3 px-4">Dirección pública</th>
@@ -864,7 +864,7 @@ export const ActivosDigitalesView: React.FC = () => {
                           <span className="flex items-center gap-2 whitespace-nowrap">
                             <InstitutionLogo name={w.institution?.name || 'Institución sin vincular'} logoUrl={w.institution?.logo_url}
                             fallbackIcon="ri-wallet-3-line" sizeClass="size-5" />
-                            {w.activo}
+                            {w.titular || w.activo}
                           </span>
                         </td>
                         <td className="py-3 px-4">
