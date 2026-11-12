@@ -305,7 +305,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                         {d.origenFondos || 'Bancolombia'}
                       </span>
                     </td>
-                    <td className="py-2 px-2.5 font-mono text-muted-foreground text-[11px] max-w-[130px] break-all leading-tight">{d.referencia || '—'}</td>
+                    <td className="py-2 px-2.5 font-mono text-muted-foreground text-[11px] max-w-[130px] break-all leading-tight uppercase">{d.referencia || '—'}</td>
 
                     {/* Receipt previews and '+' button */}
                     <td className="py-2 px-2 text-center whitespace-nowrap">

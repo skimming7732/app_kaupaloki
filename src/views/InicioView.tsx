@@ -12,6 +12,29 @@ export interface DailyIngreso {
   txCount: number;
 }
 
+function toDateKey(raw: any): string | null {
+  if (!raw) return null;
+  if (raw instanceof Date) {
+    const y = raw.getFullYear();
+    const m = String(raw.getMonth() + 1).padStart(2, '0');
+    const d = String(raw.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(raw).trim();
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return null;
+}
+
 /**
  * Genera los 90 nodos diarios correspondientes a los últimos 90 días naturales.
  * Agrupa los ingresos de negocios registrados por fecha sin requerir filtros manuales.
@@ -20,8 +43,9 @@ function buildLast90DaysIngresos(negocios: Array<{ fecha?: string; ingresoCop?: 
   const mapByDate = new Map<string, { monto: number; count: number }>();
   for (const n of negocios || []) {
     if (!n.fecha) continue;
-    const dateStr = String(n.fecha).substring(0, 10);
-    const amount = Number(n.ingresoCop ?? n.montoCop ?? 0) || 0;
+    const dateStr = toDateKey(n.fecha);
+    if (!dateStr) continue;
+    const amount = Number(n.ingresoCop ?? n.montoCop ?? (n as any).ingreso_cop ?? (n as any).monto_cop ?? 0) || 0;
     const current = mapByDate.get(dateStr) || { monto: 0, count: 0 };
     current.monto += amount;
     current.count += 1;
@@ -65,6 +89,12 @@ const buildSmoothPath = (points: { x: number; y: number }[]) => {
     const p2 = points[i + 1];
     const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
 
+    // Si ambos puntos están en la base plana (sin ingresos), mantener línea recta perfecta
+    if (p1.y === p2.y) {
+      d += ` L ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+      continue;
+    }
+
     const cp1x = p1.x + (p2.x - p0.x) / 5;
     const cp1y = p1.y;
     const cp2x = p2.x - (p3.x - p1.x) / 5;
@@ -93,8 +123,15 @@ const GrowthChart = ({ negocios, loading }: { negocios: any[]; loading: boolean 
   const total = amounts.reduce((sum, amount) => sum + amount, 0);
   const average = total / 90;
 
-  // Nodo activo (por defecto el último día / hoy)
-  const activeIdx = selectedIdx !== null && selectedIdx >= 0 && selectedIdx < dailyData.length ? selectedIdx : dailyData.length - 1;
+  // Por defecto seleccionar el día con transacciones más reciente o hoy
+  const defaultIdx = useMemo(() => {
+    for (let i = dailyData.length - 1; i >= 0; i--) {
+      if (dailyData[i].montoCop > 0) return i;
+    }
+    return dailyData.length - 1;
+  }, [dailyData]);
+
+  const activeIdx = selectedIdx !== null && selectedIdx >= 0 && selectedIdx < dailyData.length ? selectedIdx : defaultIdx;
   const activeDay = dailyData[activeIdx] || dailyData[dailyData.length - 1];
 
   // Dimensiones SVG con espacio óptimo para 90 nodos

@@ -130,7 +130,7 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
         origenFondosId: account.id,
         origenFondos: accountLabel(account),
         fecha: fields.get('fecha'),
-        referencia: String(fields.get('referencia')).trim(),
+        referencia: String(fields.get('referencia') || '').trim().toUpperCase(),
         comprobanteUrl: record ? undefined : await uploadReceipt(fields.get('comprobante'), 'dispersiones'),
       });
       if (!success) throw new Error();
@@ -192,7 +192,13 @@ const DispersionForm = ({ onClose, record, initialClienteId }: Pick<AddDispersio
               </label>
               <label className={recordLabelClass}>
                 <span>Referencia (opcional)</span>
-                <input name="referencia" defaultValue={record?.referencia} className={recordFieldClass} />
+                <input
+                  name="referencia"
+                  defaultValue={record?.referencia}
+                  onChange={(e) => { e.currentTarget.value = e.currentTarget.value.toUpperCase(); }}
+                  className={recordFieldClass + ' uppercase'}
+                  placeholder="REFERENCIA O DESTINATARIO"
+                />
               </label>
             </div>
             {!record && <ReceiptInput disabled={busy} />}
