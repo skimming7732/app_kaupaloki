@@ -20,6 +20,7 @@ export const TransferenciasInternasView: React.FC = () => {
   const [filterTipo, setFilterTipo] = useState<string>('TODOS');
   const [filterCreador, setFilterCreador] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const formatTransferCode = (c?: string) => (c || '').replace(/^TRF-\d{8}-/, 'TRF-') || 'TRF-—';
 
   // Filtered rows
   const filtered = useMemo(() => {
@@ -332,7 +333,7 @@ export const TransferenciasInternasView: React.FC = () => {
                         {formatDate(t.fecha)}
                       </td>
                       <td className="py-3 px-4 font-mono font-semibold text-foreground whitespace-nowrap">
-                        {t.codigo}
+                        {formatTransferCode(t.codigo)}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5">
@@ -391,7 +392,7 @@ export const TransferenciasInternasView: React.FC = () => {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="font-mono font-bold text-xs text-foreground block">{t.codigo}</span>
+                    <span className="font-mono font-bold text-xs text-foreground block">{formatTransferCode(t.codigo)}</span>
                     <span className="text-[11px] text-muted-foreground">{formatDate(t.fecha)}</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${

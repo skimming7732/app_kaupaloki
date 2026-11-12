@@ -170,7 +170,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   };
   const pendingCount = filteredMovimientos.filter((row) => isPending(row.id)).length;
   const visibleMovements = pendingOnly ? filteredMovimientos.filter((row) => isPending(row.id)) : filteredMovimientos;
-  const tokenLabels = { activo: 'Pendiente de entrega', entregado: 'Entregado', cancelado: 'Cancelado', expirado: 'Vencido' };
+  const tokenLabels = { activo: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado', expirado: 'Vencido' };
   const secondaryAction = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold hover:bg-muted';
   return (
     <div className="space-y-4 animate-fade-in">
@@ -301,8 +301,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         ['Salidas COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Pago' ? m.monto - (m.comisionCop ?? 0) : 0))],
         ['Comisiones COP', formatCOP(sumRows(visibleMovements, (m) => m.comisionCop ?? 0))],
         ['Neto COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? m.monto : -(m.monto - (m.comisionCop ?? 0))))],
-        ['Pendientes de entrega', (
-          <button type="button" aria-pressed={pendingOnly} aria-label={`Filtrar ${pendingCount} pendientes de entrega`}
+        ['Pendientes', (
+          <button type="button" aria-pressed={pendingOnly} aria-label={`Filtrar ${pendingCount} pendientes`}
             onClick={() => setPendingOnly(!pendingOnly)} className="text-destructive hover:underline">
             {formatNumber(pendingCount)} <i className="ri-filter-3-line text-sm" aria-hidden="true" />
           </button>
@@ -321,6 +321,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <th className="py-3 px-4">Código</th>
                 <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Tipo</th>
+                <th className="py-3 px-4">Estado</th>
                 <th className="py-3 px-4">Cliente / tercero</th>
                 <th className="py-3 px-4 text-right">Efectivo (COP)</th>
                 <th className="py-3 px-4 text-right">Comisión (COP)</th>
@@ -333,12 +334,12 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             <tbody className="divide-y divide-border">
               {visibleMovements.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
                     No hay movimientos de efectivo que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows pageSize={100} columns={10} rows={visibleMovements}>{(m) => {
+                <PaginatedRows pageSize={100} columns={11} rows={visibleMovements}>{(m) => {
                   const token = tokenByPayment.get(m.id);
                   const tokenState = token && getTokenState(token);
                   return (
@@ -356,6 +357,54 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                           {m.tipo === 'Ingreso' ? 'Ingreso' : 'Salida'}
                         </span>
                       </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {token && tokenState ? (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setVoucher(token)}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-all shadow-xs ${
+                                tokenState === 'activo'
+                                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/25'
+                                  : tokenState === 'entregado'
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
+                                  : tokenState === 'cancelado'
+                                  ? 'bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25'
+                                  : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
+                              }`}
+                              title={`Ver vale de retiro (${tokenLabels[tokenState]})`}
+                            >
+                              <i className={
+                                tokenState === 'activo'
+                                  ? 'ri-time-line text-xs'
+                                  : tokenState === 'entregado'
+                                  ? 'ri-checkbox-circle-fill text-xs'
+                                  : tokenState === 'cancelado'
+                                  ? 'ri-close-circle-line text-xs'
+                                  : 'ri-alert-line text-xs'
+                              } />
+                              <span>{tokenLabels[tokenState]}</span>
+                            </button>
+                            {isAdmin && (tokenState === 'expirado' || tokenState === 'cancelado') && canWrite && (
+                              <button
+                                type="button"
+                                disabled={Boolean(issuingId)}
+                                onClick={() => void replaceToken(m.id)}
+                                className="text-[10px] font-bold text-primary hover:underline disabled:opacity-50 ml-0.5"
+                                title="Reemitir token"
+                              >
+                                {issuingId === m.id ? '…' : 'Reemitir'}
+                              </button>
+                            )}
+                          </div>
+                        ) : m.tipo === 'Ingreso' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                            <i className="ri-check-line text-xs" /> Liquidado
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
                       {/* Exact Client Name from {CLIENTE} column */}
                       <td className="py-3 px-4 font-semibold text-foreground">
                         {m.clienteNombre && m.clienteNombre !== 'Ingreso de Caja' && m.clienteNombre !== 'Movimiento Interno' ? (
@@ -369,20 +418,6 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums">{m.tipo === 'Pago' && (m.clienteId || m.clienteCodigo) ? formatCOP(m.monto) : '—'}</td>
                       <td className="py-3 px-4 text-muted-foreground">
                         <span>{m.referencia || '—'}</span>
-                        {token && tokenState && (
-                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                            <button type="button" onClick={() => setVoucher(token)}
-                              className={'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold hover:underline ' + (tokenState === 'activo' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground')}>
-                              <i className="ri-ticket-2-line" aria-hidden="true" /> {tokenLabels[tokenState]}
-                            </button>
-                            {isAdmin && (tokenState === 'expirado' || tokenState === 'cancelado') && (
-                              canWrite && (<button type="button" disabled={Boolean(issuingId)} onClick={() => void replaceToken(m.id)}
-                                className="font-semibold text-primary hover:underline disabled:opacity-50">
-                                {issuingId === m.id ? 'Emitiendo…' : 'Reemitir'}
-                              </button>)
-                            )}
-                          </div>
-                        )}
                       </td>
                       <CreatedByCell name={m.createdByName} />
                       <td className="py-2.5 px-4 text-center whitespace-nowrap">
@@ -421,15 +456,47 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       <span className="font-mono font-bold text-sm text-foreground">{m.codigo}</span>
                       <div className="text-[11px] text-muted-foreground">{formatDate(m.fecha)}</div>
                     </div>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        m.tipo === 'Ingreso'
-                          ? 'bg-emerald-500/10 text-emerald-500'
-                          : 'bg-amber-500/10 text-amber-500'
-                      }`}
-                    >
-                      {m.tipo === 'Ingreso' ? 'Ingreso a caja' : 'Salida de caja'}
-                    </span>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          m.tipo === 'Ingreso'
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : 'bg-amber-500/10 text-amber-500'
+                        }`}
+                      >
+                        {m.tipo === 'Ingreso' ? 'Ingreso a caja' : 'Salida de caja'}
+                      </span>
+                      {token && tokenState ? (
+                        <button
+                          type="button"
+                          onClick={() => setVoucher(token)}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all shadow-xs ${
+                            tokenState === 'activo'
+                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                              : tokenState === 'entregado'
+                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                              : tokenState === 'cancelado'
+                              ? 'bg-destructive/15 text-destructive border border-destructive/30'
+                              : 'bg-muted text-muted-foreground border border-border'
+                          }`}
+                        >
+                          <i className={
+                            tokenState === 'activo'
+                              ? 'ri-time-line text-xs'
+                              : tokenState === 'entregado'
+                              ? 'ri-checkbox-circle-fill text-xs'
+                              : tokenState === 'cancelado'
+                              ? 'ri-close-circle-line text-xs'
+                              : 'ri-alert-line text-xs'
+                          } />
+                          <span>{tokenLabels[tokenState]}</span>
+                        </button>
+                      ) : m.tipo === 'Ingreso' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                          <i className="ri-check-line text-xs" /> Liquidado
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
                   {/* Cliente / Tercero */}

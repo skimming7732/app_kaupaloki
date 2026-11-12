@@ -94,7 +94,7 @@ export async function generateTokenVoucherDataUrl(token: CashToken, preview = fa
   const state = getTokenState(token);
   const delivered = state === 'entregado';
   const badge = {
-    activo: { label: 'PENDIENTE DE ENTREGA', color: '#7dd3fc', background: '#12324b' },
+    activo: { label: 'PENDIENTE', color: '#7dd3fc', background: '#12324b' },
     entregado: { label: 'ENTREGADO', color: '#86efac', background: '#153b35' },
     cancelado: { label: 'CANCELADO', color: '#fecaca', background: '#492736' },
     expirado: { label: 'EXPIRADO', color: '#cbd5e1', background: '#293649' },

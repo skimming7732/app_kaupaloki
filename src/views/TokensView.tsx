@@ -17,7 +17,7 @@ const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 
 const iconButton = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-base hover:bg-muted sm:h-9 sm:w-9';
 
 const tokenBadges = {
-  activo: { label: 'Pendiente de entrega', style: 'bg-primary/10 text-primary' },
+  activo: { label: 'Pendiente', style: 'bg-primary/10 text-primary' },
   entregado: { label: 'Entregado', style: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' },
   cancelado: { label: 'Cancelado', style: 'bg-destructive/10 text-destructive' },
   expirado: { label: 'Expirado', style: 'bg-muted text-muted-foreground' },
@@ -300,7 +300,7 @@ export const TokensView: React.FC = () => {
             className="bg-background border border-border min-w-0 rounded-lg px-2 h-9 text-xs text-foreground focus:outline-none focus:border-primary transition-colors"
           >
             <option value="all">Todos los estados</option>
-            <option value="activo">Pendientes de entrega</option>
+            <option value="activo">Pendientes</option>
             <option value="entregado">Entregados</option>
             <option value="cancelado">Cancelados</option>
             <option value="expirado">Expirados</option>
