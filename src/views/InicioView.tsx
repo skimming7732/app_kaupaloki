@@ -183,8 +183,8 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
 
   const activePoint = points[activeIdx] || points[points.length - 1];
   const activeAmount = activeDay?.montoCop || 0;
-  const tooltipText = `${activeDay?.fullDate}: ${formatCOP(activeAmount)}`;
-  const pillWidth = Math.max(115, tooltipText.length * 6.8 + 20);
+  const tooltipText = formatCOP(activeAmount);
+  const pillWidth = Math.max(85, tooltipText.length * 6.5 + 16);
   const tooltipX = activePoint ? Math.max(pillWidth / 2 + 8, Math.min(width - pillWidth / 2 - 8, activePoint.x)) : 360;
 
   // Interacción suave deslizando el cursor o dedo por los nodos
@@ -245,7 +245,7 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mt-2">
           <div>
             <h2 id="growth-heading" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Ingresos de clientes
+              Ingresos de clientes ({daysRange} días)
             </h2>
             <p className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground mt-0.5 font-mono">
               {formatCOP(total)}
@@ -256,7 +256,7 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
               {selectedIdx !== null ? 'Día seleccionado' : 'Última actividad'}
             </span>
             <span className="text-xs sm:text-sm font-bold font-mono text-primary">
-              {activeDay?.fullDate} • {formatCOP(activeDay?.montoCop || 0)}
+              {activeDay?.fullDate}
             </span>
           </div>
         </div>

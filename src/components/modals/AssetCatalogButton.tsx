@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { normalizeSearch } from '../../utils/formatters';
 import { TYPE_LABELS, type AssetInstitution } from '../../utils/institutions';
 import { isTronAddress, isTronNetwork } from '../../utils/tronUsdtBalance';
+import { isPolygonAddress, isPolygonNetwork } from '../../utils/polygonUsdtBalance';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { AssetInstitutionLogo } from '../common/InstitutionLogo';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
@@ -137,11 +138,15 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
       const red = text('red');
       const wallet = text('wallet');
       if (!red) {
-        setError('Completa la red de la billetera.');
+        setError('Selecciona la red de la billetera.');
         return;
       }
       if (wallet && isTronNetwork(red) && (wallet !== asset?.wallet || red !== asset?.red) && !isTronAddress(wallet)) {
-        setError('Ingresa una dirección pública válida de la red TRON.');
+        setError('Ingresa una dirección pública válida de la red TRON (comienza con T).');
+        return;
+      }
+      if (wallet && isPolygonNetwork(red) && (wallet !== asset?.wallet || red !== asset?.red) && !isPolygonAddress(wallet)) {
+        setError('Ingresa una dirección pública válida de la red Polygon (comienza con 0x y 40 caracteres).');
         return;
       }
       record.red = red;
@@ -218,9 +223,20 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
                 {catalogStatus === 'error' && <p role="status" className="text-xs text-destructive">No se pudo consultar el catálogo. Vuelve a abrir el formulario para reintentar.</p>}
               </div>
 
-              {digital && <label className={recordLabelClass}><span>Red</span>
-                <input name="red" defaultValue={asset?.red || 'TRC20'} required className={recordFieldClass} />
-              </label>}
+              {digital && (
+                <label className={recordLabelClass}>
+                  <span>Red de la billetera</span>
+                  <select
+                    name="red"
+                    defaultValue={isPolygonNetwork(asset?.red) ? 'POLYGON' : 'TRC20'}
+                    required
+                    className={recordFieldClass + ' cursor-pointer bg-card'}
+                  >
+                    <option value="TRC20">TRON (TRC20)</option>
+                    <option value="POLYGON">Polygon (MATIC / PoS)</option>
+                  </select>
+                </label>
+              )}
               <label className={recordLabelClass}>
                 <span>{digital ? 'Titular de la billetera' : 'Titular o empresa'}</span>
                 <input name="titular" defaultValue={initialHolder} required className={recordFieldClass} />

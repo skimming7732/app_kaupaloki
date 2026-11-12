@@ -8,6 +8,7 @@ import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { isTronAddress, isTronNetwork } from '../utils/tronUsdtBalance';
+import { isPolygonAddress, isPolygonNetwork } from '../utils/polygonUsdtBalance';
 import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
@@ -21,13 +22,17 @@ export const ActivosDigitalesView: React.FC = () => {
 
   const recordedWallets = data.activosDigitales;
   const { balances: chainBalances, loading: isChainRefreshing, refresh: refreshBalances } = useTronUsdtBalances(
-    recordedWallets.filter((wallet) => isTronNetwork(wallet.red)).map((wallet) => String(wallet.wallet || '')),
+    recordedWallets.map((wallet) => ({ address: String(wallet.wallet || ''), red: wallet.red })),
   );
 
-  const wallets = useMemo(() => recordedWallets.map((wallet) => ({
-    ...wallet,
-    saldoReal: isTronNetwork(wallet.red) ? chainBalances[String(wallet.wallet || '').trim()] ?? null : null,
-  })), [recordedWallets, chainBalances]);
+  const wallets = useMemo(() => recordedWallets.map((wallet) => {
+    const rawAddr = String(wallet.wallet || '').trim();
+    const addrKey = isPolygonNetwork(wallet.red) ? rawAddr.toLowerCase() : rawAddr;
+    return {
+      ...wallet,
+      saldoReal: chainBalances[addrKey] ?? null,
+    };
+  }), [recordedWallets, chainBalances]);
 
   // Statement (Extracto) mode and filters state
   const [balanceMode, setBalanceMode] = React.useState<'contable' | 'real'>('contable');
@@ -42,12 +47,16 @@ export const ActivosDigitalesView: React.FC = () => {
   }, [wallets, selectedWalletId]);
 
   const selectedAddress = String(selectedWallet?.wallet || '').trim();
-  const selectedTronAddress = isTronNetwork(selectedWallet?.red) && isTronAddress(selectedAddress);
-  const chainLoading = isChainRefreshing || (selectedTronAddress && chainBalances[selectedAddress] === undefined);
-  const chainMessage = chainLoading ? 'Consultando TRON…'
+  const isPolygon = isPolygonNetwork(selectedWallet?.red);
+  const isTron = isTronNetwork(selectedWallet?.red) || !isPolygon;
+  const isChainSupported = (isPolygon && isPolygonAddress(selectedAddress)) || (isTron && isTronAddress(selectedAddress));
+  const chainAddrKey = isPolygon ? selectedAddress.toLowerCase() : selectedAddress;
+  const chainLoading = isChainRefreshing || (isChainSupported && chainBalances[chainAddrKey] === undefined);
+  const networkName = isPolygon ? 'Polygon' : 'TRON';
+  const chainMessage = chainLoading ? `Consultando ${networkName}…`
     : !selectedAddress ? 'Sin dirección registrada'
-    : !selectedTronAddress ? 'Verificación TRON no disponible'
-    : 'No se pudo consultar TRON';
+    : !isChainSupported ? `Dirección ${networkName} no válida`
+    : `No se pudo consultar ${networkName}`;
 
   // Filtered movements for statement with filters BEFORE table
   const filteredMovimientos = useMemo(() => {
@@ -109,9 +118,16 @@ export const ActivosDigitalesView: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const getTronscanUrl = (address: string) => {
+  const getExplorerUrl = (address: string, red?: string) => {
     const clean = address.trim();
+    if (isPolygonNetwork(red)) {
+      return `https://polygonscan.com/address/${encodeURIComponent(clean)}`;
+    }
     return `https://tronscan.org/#/address/${encodeURIComponent(clean)}`;
+  };
+
+  const getTronscanUrl = (address: string) => {
+    return getExplorerUrl(address, 'TRC20');
   };
 
   const formatShortWallet = (address: string) => {
@@ -121,7 +137,12 @@ export const ActivosDigitalesView: React.FC = () => {
   };
 
   // Card background gradients for crypto wallets (vibrant in light theme, deep in dark theme)
-  const getCardGradient = (index: number) => {
+  const getCardGradient = (index: number, red?: string) => {
+    if (isPolygonNetwork(red)) {
+      return isDark
+        ? 'linear-gradient(135deg, #5b21b6 0%, #2e1065 100%)'
+        : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+    }
     const lightGradients = [
       'linear-gradient(135deg, #059669 0%, #047857 100%)', // TRON Emerald Vibrant
       'linear-gradient(135deg, #4318FF 0%, #2563EB 100%)', // Crypto Royal Blue
@@ -160,8 +181,12 @@ export const ActivosDigitalesView: React.FC = () => {
                   <InstitutionLogo name={selectedWallet.institution?.name || 'Institución sin vincular'} logoUrl={selectedWallet.institution?.logo_url}
                     fallbackIcon="ri-wallet-3-line" sizeClass="size-6" />
                   <span className="truncate" title={selectedWallet.activo}>Extracto: {selectedWallet.activo}</span>
-                  <span className="max-w-24 shrink-0 truncate text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                    {selectedWallet.red || 'TRON (TRC20)'}
+                  <span className={`max-w-32 shrink-0 truncate text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+                    isPolygon
+                      ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                      : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                  }`}>
+                    {isPolygon ? 'Polygon (PoS)' : (selectedWallet.red || 'TRON (TRC20)')}
                   </span>
                 </h2>
                 <p className="text-xs text-muted-foreground">Movimientos en cadena, saldo contable y saldo real auditado</p>
@@ -170,11 +195,15 @@ export const ActivosDigitalesView: React.FC = () => {
 
             <div className="flex flex-wrap items-center gap-2">
               <AssetCatalogButton table="activos_digitales" asset={selectedWallet} />
-              {selectedTronAddress && (
-                <a href={getTronscanUrl(selectedAddress)} target="_blank" rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-600/30 text-emerald-600 font-bold text-xs flex items-center gap-1.5 transition-all">
+              {isChainSupported && (
+                <a href={getExplorerUrl(selectedAddress, selectedWallet.red)} target="_blank" rel="noopener noreferrer"
+                  className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all border ${
+                    isPolygon
+                      ? 'bg-purple-600/10 hover:bg-purple-600/20 border-purple-600/30 text-purple-600 dark:text-purple-400'
+                      : 'bg-emerald-600/10 hover:bg-emerald-600/20 border-emerald-600/30 text-emerald-600'
+                  }`}>
                   <i className="ri-external-link-line text-sm" />
-                  <span>Ver en Tronscan</span>
+                  <span>{isPolygon ? 'Ver en Polygonscan' : 'Ver en Tronscan'}</span>
                 </a>
               )}
               <button
@@ -236,18 +265,18 @@ export const ActivosDigitalesView: React.FC = () => {
                   }
                 >
                   <i className="ri-shield-check-line text-sm" />
-                  <span>Saldo real en TRON</span>
+                  <span>Saldo real en {networkName}</span>
                   {(selectedWallet.saldoReal === null || selectedWallet.saldoReal === undefined || !Number.isFinite(selectedWallet.saldoReal)) && (
                     <span className="text-[10px] ml-1 opacity-75">({chainMessage})</span>
                   )}
                 </button>
               </div>
 
-              {selectedTronAddress && (
+              {isChainSupported && (
                 <button type="button" disabled={chainLoading} onClick={refreshBalances}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 disabled:opacity-50">
                   <i className={chainLoading ? "ri-loader-4-line animate-spin" : "ri-refresh-line"} aria-hidden="true" />
-                  <span>{chainLoading ? 'Consultando en cadena...' : 'Actualizar saldo TRON'}</span>
+                  <span>{chainLoading ? 'Consultando en cadena...' : `Actualizar saldo ${networkName}`}</span>
                 </button>
               )}
 
@@ -580,10 +609,13 @@ export const ActivosDigitalesView: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {wallets.map((w: any, idx: number) => {
-                const bgGradient = getCardGradient(idx);
+                const isPoly = isPolygonNetwork(w.red);
+                const bgGradient = getCardGradient(idx, w.red);
                 const address = String(w.wallet || '').trim();
-                const tronAddress = isTronNetwork(w.red) && isTronAddress(address);
+                const isTr = isTronNetwork(w.red) || !isPoly;
+                const validChain = (isPoly && isPolygonAddress(address)) || (isTr && isTronAddress(address));
                 const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
+                const expUrl = getExplorerUrl(address, w.red);
 
                 return (
                   <div
@@ -600,15 +632,15 @@ export const ActivosDigitalesView: React.FC = () => {
                             fallbackIcon="ri-wallet-3-line" sizeClass="size-8" />
                         <div className="min-w-0">
                           <span className="block truncate text-[10px] font-extrabold uppercase tracking-wider text-white/80">
-                            {w.institution ? w.institution.name + ' · ' : ''}{w.red || 'TRC20'}
+                            {w.institution ? w.institution.name + ' · ' : ''}{isPoly ? 'POLYGON' : (w.red || 'TRC20')}
                           </span>
                           <h4 title={w.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-emerald-200 transition-colors">{w.activo}</h4>
                         </div>
                       </div>
-                      {tronAddress && (
-                        <a href={getTronscanUrl(address)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                      {validChain && (
+                        <a href={expUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                           className="shrink-0 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-cyan-300 text-[11px] font-mono font-semibold flex items-center gap-1 transition-colors border border-white/10 shadow-sm"
-                          aria-label="Ver dirección en Tronscan" title={address}>
+                          aria-label={isPoly ? "Ver dirección en Polygonscan" : "Ver dirección en Tronscan"} title={address}>
                           <span className="hidden sm:inline">{formatShortWallet(address)}</span>
                           <i className="ri-external-link-line text-xs" aria-hidden="true" />
                         </a>
@@ -658,7 +690,7 @@ export const ActivosDigitalesView: React.FC = () => {
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-foreground">Detalle de Billeteras Digitales</h3>
-                <p className="text-xs text-muted-foreground">Monitoreo de saldos contables, balances en cadena y enlaces a Tronscan</p>
+                <p className="text-xs text-muted-foreground">Monitoreo de saldos contables, balances en cadena y enlaces a exploradores blockchain (Tronscan / Polygonscan)</p>
               </div>
             </div>
 
@@ -679,7 +711,10 @@ export const ActivosDigitalesView: React.FC = () => {
                 <tbody className="divide-y divide-border">
                   {<PaginatedRows columns={8} rows={wallets}>{(w: any) => {
                     const address = String(w.wallet || '').trim();
-                    const tronAddress = isTronNetwork(w.red) && isTronAddress(address);
+                    const isPoly = isPolygonNetwork(w.red);
+                    const isTr = isTronNetwork(w.red) || !isPoly;
+                    const validChain = (isPoly && isPolygonAddress(address)) || (isTr && isTronAddress(address));
+                    const expUrl = getExplorerUrl(address, w.red);
                     const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
                     return (
                       <tr
@@ -695,15 +730,19 @@ export const ActivosDigitalesView: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                            {w.red || 'TRC20'}
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isPoly
+                              ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
+                              : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                          }`}>
+                            {isPoly ? 'POLYGON' : (w.red || 'TRC20')}
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          {tronAddress ? (
-                            <a href={getTronscanUrl(address)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                          {validChain ? (
+                            <a href={expUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                               className="font-mono text-xs text-primary hover:underline inline-flex items-center gap-1"
-                              title="Abrir balance en Tronscan">
+                              title={isPoly ? "Abrir balance en Polygonscan" : "Abrir balance en Tronscan"}>
                               <span>{address}</span>
                               <i className="ri-external-link-line text-xs" />
                             </a>
