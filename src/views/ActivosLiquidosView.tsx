@@ -63,20 +63,22 @@ export const ActivosLiquidosView: React.FC = () => {
   const sinSaldoCount = useMemo(() => activos.filter((a: any) => (a.saldoCop || 0) <= 0).length, [activos]);
 
   const filteredActivosCards = useMemo(() => {
-    return activos.filter((a: any) => {
-      const saldo = a.saldoCop || 0;
-      if (cardSaldoFilter === 'con_saldo' && saldo <= 0) return false;
-      if (cardSaldoFilter === 'sin_saldo' && saldo > 0) return false;
-      if (cardInstitutions.length > 0) {
-        const instName = a.institution?.name || a.institucion;
-        if (!cardInstitutions.includes(instName)) return false;
-      }
-      if (cardCountries.length > 0) {
-        const jur = formatJurisdiction(a.pais);
-        if (!cardCountries.includes(jur.name)) return false;
-      }
-      return true;
-    });
+    return activos
+      .filter((a: any) => {
+        const saldo = a.saldoCop || 0;
+        if (cardSaldoFilter === 'con_saldo' && saldo <= 0) return false;
+        if (cardSaldoFilter === 'sin_saldo' && saldo > 0) return false;
+        if (cardInstitutions.length > 0) {
+          const instName = a.institution?.name || a.institucion;
+          if (!cardInstitutions.includes(instName)) return false;
+        }
+        if (cardCountries.length > 0) {
+          const jur = formatJurisdiction(a.pais);
+          if (!cardCountries.includes(jur.name)) return false;
+        }
+        return true;
+      })
+      .sort((a: any, b: any) => (b.saldoCop || 0) - (a.saldoCop || 0));
   }, [activos, cardSaldoFilter, cardInstitutions, cardCountries]);
 
   const isFilterActive = cardSaldoFilter !== 'todos' || cardInstitutions.length > 0 || cardCountries.length > 0;

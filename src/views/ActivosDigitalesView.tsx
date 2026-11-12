@@ -78,20 +78,22 @@ export const ActivosDigitalesView: React.FC = () => {
   const sinSaldoCount = useMemo(() => wallets.filter((w: any) => (w.saldoUsdt || 0) <= 0 && (!w.saldoReal || w.saldoReal <= 0)).length, [wallets]);
 
   const filteredWalletsCards = useMemo(() => {
-    return wallets.filter((w: any) => {
-      const hasBalance = (w.saldoUsdt || 0) > 0 || (w.saldoReal || 0) > 0;
-      if (cardSaldoFilter === 'con_saldo' && !hasBalance) return false;
-      if (cardSaldoFilter === 'sin_saldo' && hasBalance) return false;
-      if (cardInstitutions.length > 0) {
-        const instName = w.institution?.name || (isPolygonNetwork(w.red) ? 'Polygon' : 'TronLink');
-        if (!cardInstitutions.includes(instName)) return false;
-      }
-      if (cardCountries.length > 0) {
-        const jur = formatJurisdiction(w.pais);
-        if (!cardCountries.includes(jur.name)) return false;
-      }
-      return true;
-    });
+    return wallets
+      .filter((w: any) => {
+        const hasBalance = (w.saldoUsdt || 0) > 0 || (w.saldoReal || 0) > 0;
+        if (cardSaldoFilter === 'con_saldo' && !hasBalance) return false;
+        if (cardSaldoFilter === 'sin_saldo' && hasBalance) return false;
+        if (cardInstitutions.length > 0) {
+          const instName = w.institution?.name || (isPolygonNetwork(w.red) ? 'Polygon' : 'TronLink');
+          if (!cardInstitutions.includes(instName)) return false;
+        }
+        if (cardCountries.length > 0) {
+          const jur = formatJurisdiction(w.pais);
+          if (!cardCountries.includes(jur.name)) return false;
+        }
+        return true;
+      })
+      .sort((a: any, b: any) => (b.saldoUsdt || 0) - (a.saldoUsdt || 0));
   }, [wallets, cardSaldoFilter, cardInstitutions, cardCountries]);
 
   const isFilterActive = cardSaldoFilter !== 'todos' || cardInstitutions.length > 0 || cardCountries.length > 0;
