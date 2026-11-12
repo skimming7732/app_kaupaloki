@@ -11,6 +11,7 @@ export interface InstitutionOption {
 export interface CountryOption {
   name: string;
   flag: string;
+  flagUrl?: string;
   count: number;
 }
 
@@ -346,7 +347,18 @@ export const AssetCardsFilterBar: React.FC<AssetCardsFilterBarProps> = ({
                                 onChange={() => toggleCountry(opt.name)}
                                 className="rounded border-border text-primary focus:ring-primary size-3.5"
                               />
-                              <span className="text-base leading-none shrink-0">{opt.flag}</span>
+                              {opt.flagUrl ? (
+                                <img
+                                  src={opt.flagUrl}
+                                  alt=""
+                                  className="w-4 h-2.5 rounded-xs object-cover shrink-0"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-base leading-none shrink-0">{opt.flag}</span>
+                              )}
                               <span className="truncate font-medium text-foreground">{opt.name}</span>
                             </div>
                             <span className="text-[10px] font-mono font-semibold text-muted-foreground px-1.5 py-0.5 rounded bg-muted">

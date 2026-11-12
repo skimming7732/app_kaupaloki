@@ -5,6 +5,7 @@ import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCe
 import { AssetCatalogButton } from '../components/modals/AssetCatalogButton';
 import { AssetInstitutionLogo } from '../components/common/InstitutionLogo';
 import { formatJurisdiction } from '../utils/countryJurisdiction';
+import { JurisdictionFlag } from '../components/common/JurisdictionFlag';
 import { getInstitutionCardGradient } from '../utils/institutionGradient';
 import { AssetCardsFilterBar, type InstitutionOption, type CountryOption } from '../components/common/AssetCardsFilterBar';
 import React, { useMemo, useState } from 'react';
@@ -47,14 +48,14 @@ export const ActivosLiquidosView: React.FC = () => {
   }, [activos]);
 
   const countryOptions = useMemo<CountryOption[]>(() => {
-    const counts = new Map<string, { count: number; flag: string }>();
+    const counts = new Map<string, { count: number; flag: string; flagUrl?: string }>();
     for (const a of activos) {
       const jur = formatJurisdiction(a.pais);
-      const prev = counts.get(jur.name) || { count: 0, flag: jur.flag };
-      counts.set(jur.name, { count: prev.count + 1, flag: jur.flag });
+      const prev = counts.get(jur.name) || { count: 0, flag: jur.flag, flagUrl: jur.flagUrl };
+      counts.set(jur.name, { count: prev.count + 1, flag: jur.flag, flagUrl: jur.flagUrl });
     }
     return Array.from(counts.entries())
-      .map(([name, { count, flag }]) => ({ name, flag, count }))
+      .map(([name, { count, flag, flagUrl }]) => ({ name, flag, flagUrl, count }))
       .sort((a, b) => b.count - a.count);
   }, [activos]);
 
@@ -190,8 +191,8 @@ export const ActivosLiquidosView: React.FC = () => {
                   {(() => {
                     const jur = formatJurisdiction(selectedActivo.pais);
                     return (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted border border-border text-foreground">
-                        <span className="text-sm leading-none">{jur.flag}</span>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted border border-border text-foreground">
+                        <JurisdictionFlag countryName={selectedActivo.pais} />
                         <span>{jur.name}</span>
                       </span>
                     );
@@ -385,7 +386,7 @@ export const ActivosLiquidosView: React.FC = () => {
                   Jurisdicción
                 </span>
                 <span className="text-xs sm:text-sm font-semibold text-white truncate flex items-center gap-1.5">
-                  <span className="text-base leading-none">{formatJurisdiction(selectedActivo.pais).flag}</span>
+                  <JurisdictionFlag countryName={selectedActivo.pais} className="w-4 h-3 rounded-xs object-cover shrink-0 shadow-xs" />
                   <span>{formatJurisdiction(selectedActivo.pais).name}</span>
                 </span>
               </div>
@@ -641,55 +642,71 @@ export const ActivosLiquidosView: React.FC = () => {
                     >
                     <div className="absolute right-[-20px] top-[-20px] w-36 h-36 rounded-full bg-white/10 pointer-events-none group-hover:scale-110 transition-transform duration-300" />
 
-                    {/* Top Row: Institution badge & Currency */}
+                    {/* Top Row: Institution, Currency & Jurisdiction */}
                     <div className="flex justify-between items-start gap-2 relative z-10">
                       <div className="flex min-w-0 items-center gap-2">
                         <AssetInstitutionLogo institution={a.institution} name={a.institucion} sizeClass="size-8" />
                         <div className="min-w-0">
-                          <span className="block truncate text-[10px] font-extrabold uppercase tracking-wider text-white/80">{a.institution?.name || a.institucion}</span>
-                          <h4 title={a.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-indigo-200 transition-colors">{a.activo}</h4>
+                          <span className="block truncate text-[10px] font-extrabold uppercase tracking-wider text-white/80">
+                            {a.institution?.name || a.institucion} - {a.divisa || 'COP'}
+                          </span>
+                          <h4 title={a.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-indigo-200 transition-colors">
+                            {a.activo}
+                          </h4>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {(() => {
                           const jur = formatJurisdiction(a.pais);
                           return (
-                            <span className="text-[11px] font-medium text-white/95 bg-black/25 backdrop-blur-sm border border-white/10 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm" title={`Jurisdicción: ${jur.name}`}>
-                              <span className="text-sm leading-none">{jur.flag}</span>
-                              <span className="truncate max-w-[85px]">{jur.name}</span>
+                            <span className="text-[11px] font-medium text-white/95 bg-black/25 backdrop-blur-sm border border-white/10 px-2 py-0.5 rounded-lg flex items-center gap-1.5 shadow-sm" title={`Jurisdicción: ${jur.name}`}>
+                              <JurisdictionFlag countryName={a.pais} className="w-4 h-2.5 rounded-xs object-cover shadow-xs inline-block shrink-0" />
+                              <span className="truncate max-w-[95px]">{jur.name}</span>
                             </span>
                           );
                         })()}
-                        <span className="text-[11px] font-mono font-bold text-white/80 bg-black/20 px-2 py-0.5 rounded">
-                          COP
-                        </span>
                       </div>
                     </div>
 
-                    {/* Middle Row: Balances */}
-                    <div className="my-4 relative z-10">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block mb-0.5">
-                        Saldo Disponible
-                      </span>
-                      <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white">
-                        {formatCOP(a.saldoCop)}
-                      </div>
-                    </div>
-
-                    {/* Bottom Row: Metadata & Extract Prompt */}
-                    <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 relative z-10 text-[11px]">
+                    {/* Middle Row: Saldo Contable & Saldo Real */}
+                    <div className="my-3 flex items-end justify-between gap-3 relative z-10">
                       <div>
-                        <span className="text-slate-300 block text-[10px]">Cuenta</span>
-                        <span className="font-mono font-semibold text-white">{a.cuenta || 'Principal'}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div onClick={(event) => event.stopPropagation()}>
-                          <AssetCatalogButton table="activos_liquidos" asset={a} allowDelete={false}
-                            buttonClassName="inline-flex min-h-10 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 font-semibold text-white hover:bg-white/20" />
-                        </div>
-                        <span className="flex items-center gap-1 font-semibold text-indigo-200">
-                          Ver extracto <i className="ri-arrow-right-line text-xs" aria-hidden="true" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 block mb-0.5">
+                          Saldo Contable
                         </span>
+                        <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white">
+                          {formatCOP(a.saldoCop)}
+                        </div>
+                      </div>
+
+                      <div className="text-right flex flex-col items-end justify-end">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-white/60 block mb-1">
+                          Saldo Real
+                        </span>
+                        <div className="text-xs sm:text-sm font-semibold font-mono text-cyan-200/90 bg-black/25 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 inline-flex items-center gap-1 shadow-xs">
+                          {a.saldoReal !== null && a.saldoReal !== undefined && Number.isFinite(a.saldoReal) ? (
+                            formatCOP(a.saldoReal)
+                          ) : (
+                            <span className="text-white/40 font-sans text-xs font-normal">Sin sincronizar</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Row: Account ID & Minimal Extract Arrow */}
+                    <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3 relative z-10 text-[11px]">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <i className="ri-bank-card-line text-xs text-white/60 shrink-0" />
+                        <span className="font-mono text-xs font-semibold text-white/90 truncate" title={a.apiId ? `Identificador API: ${a.apiId}` : (a.cuenta || undefined)}>
+                          {a.apiId || a.cuenta || 'Sin identificador'}
+                        </span>
+                      </div>
+
+                      <div
+                        className="size-7 rounded-full bg-white/10 hover:bg-white/20 text-white/80 group-hover:text-white flex items-center justify-center transition-all group-hover:translate-x-0.5 border border-white/10 shrink-0 shadow-sm"
+                        title="Ver extracto"
+                      >
+                        <i className="ri-arrow-right-line text-sm" />
                       </div>
                     </div>
                   </div>
@@ -797,7 +814,7 @@ export const ActivosLiquidosView: React.FC = () => {
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted/60 text-foreground border border-border whitespace-nowrap">
-                          <span className="text-sm leading-none">{jur.flag}</span>
+                          <JurisdictionFlag countryName={a.pais} />
                           <span>{jur.name}</span>
                         </span>
                       </td>

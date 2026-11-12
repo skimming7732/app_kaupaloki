@@ -12,6 +12,7 @@ import { isPolygonAddress, isPolygonNetwork } from '../utils/polygonUsdtBalance'
 import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 import { formatJurisdiction } from '../utils/countryJurisdiction';
+import { JurisdictionFlag } from '../components/common/JurisdictionFlag';
 import { getInstitutionCardGradient } from '../utils/institutionGradient';
 import { AssetCardsFilterBar, type InstitutionOption, type CountryOption } from '../components/common/AssetCardsFilterBar';
 
@@ -62,14 +63,14 @@ export const ActivosDigitalesView: React.FC = () => {
   }, [wallets]);
 
   const countryOptions = useMemo<CountryOption[]>(() => {
-    const counts = new Map<string, { count: number; flag: string }>();
+    const counts = new Map<string, { count: number; flag: string; flagUrl?: string }>();
     for (const w of wallets) {
       const jur = formatJurisdiction(w.pais);
-      const prev = counts.get(jur.name) || { count: 0, flag: jur.flag };
-      counts.set(jur.name, { count: prev.count + 1, flag: jur.flag });
+      const prev = counts.get(jur.name) || { count: 0, flag: jur.flag, flagUrl: jur.flagUrl };
+      counts.set(jur.name, { count: prev.count + 1, flag: jur.flag, flagUrl: jur.flagUrl });
     }
     return Array.from(counts.entries())
-      .map(([name, { count, flag }]) => ({ name, flag, count }))
+      .map(([name, { count, flag, flagUrl }]) => ({ name, flag, flagUrl, count }))
       .sort((a, b) => b.count - a.count);
   }, [wallets]);
 
@@ -292,8 +293,8 @@ export const ActivosDigitalesView: React.FC = () => {
                   {(() => {
                     const jur = formatJurisdiction(selectedWallet.pais);
                     return (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted border border-border text-foreground">
-                        <span className="text-sm leading-none">{jur.flag}</span>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted border border-border text-foreground">
+                        <JurisdictionFlag countryName={selectedWallet.pais} />
                         <span>{jur.name}</span>
                       </span>
                     );
@@ -494,7 +495,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   Jurisdicción
                 </span>
                 <span className="text-xs sm:text-sm font-semibold text-white truncate flex items-center gap-1.5">
-                  <span className="text-base leading-none">{formatJurisdiction(selectedWallet.pais).flag}</span>
+                  <JurisdictionFlag countryName={selectedWallet.pais} className="w-4 h-3 rounded-xs object-cover shrink-0 shadow-xs" />
                   <span>{formatJurisdiction(selectedWallet.pais).name}</span>
                 </span>
               </div>
@@ -790,7 +791,7 @@ export const ActivosDigitalesView: React.FC = () => {
                             fallbackIcon="ri-wallet-3-line" sizeClass="size-8" />
                         <div className="min-w-0">
                           <span className="block truncate text-[10px] font-extrabold uppercase tracking-wider text-white/80">
-                            {w.institution ? w.institution.name + ' · ' : ''}{isPoly ? 'POLYGON' : (w.red || 'TRC20')}
+                            {w.institution?.name || (isPoly ? 'POLYGON' : (w.red || 'TRC20'))} - USDT
                           </span>
                           <h4 title={w.titular || w.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-emerald-200 transition-colors">{w.titular || w.activo}</h4>
                         </div>
@@ -799,58 +800,64 @@ export const ActivosDigitalesView: React.FC = () => {
                         {(() => {
                           const jur = formatJurisdiction(w.pais);
                           return (
-                            <span className="text-[11px] font-medium text-white/95 bg-black/25 backdrop-blur-sm border border-white/10 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm" title={`Jurisdicción: ${jur.name}`}>
-                              <span className="text-sm leading-none">{jur.flag}</span>
-                              <span className="truncate max-w-[85px]">{jur.name}</span>
+                            <span className="text-[11px] font-medium text-white/95 bg-black/25 backdrop-blur-sm border border-white/10 px-2 py-0.5 rounded-lg flex items-center gap-1.5 shadow-sm" title={`Jurisdicción: ${jur.name}`}>
+                              <JurisdictionFlag countryName={w.pais} className="w-4 h-2.5 rounded-xs object-cover shadow-xs inline-block shrink-0" />
+                              <span className="truncate max-w-[95px]">{jur.name}</span>
                             </span>
                           );
                         })()}
-                        {validChain && (
-                          <a href={expUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-                            className="shrink-0 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-cyan-300 text-[11px] font-mono font-semibold flex items-center gap-1 transition-colors border border-white/10 shadow-sm"
-                            aria-label={isPoly ? "Ver dirección en Polygonscan" : "Ver dirección en Tronscan"} title={address}>
-                            <span className="hidden sm:inline">{formatShortWallet(address)}</span>
-                            <i className="ri-external-link-line text-xs" aria-hidden="true" />
-                          </a>
-                        )}
                       </div>
                     </div>
 
                     {/* Middle Row: Saldo Contable & Saldo Real */}
-                    <div className="my-3 grid grid-cols-2 gap-2 relative z-10">
+                    <div className="my-3 flex items-end justify-between gap-3 relative z-10">
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block mb-0.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 block mb-0.5">
                           Saldo Contable
                         </span>
-                        <div className="text-xl sm:text-2xl font-extrabold font-mono tracking-tight text-white">
+                        <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white">
                           {formatUSD(w.saldoUsdt || 0)}
                         </div>
                       </div>
 
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 block mb-0.5">
+                      <div className="text-right flex flex-col items-end justify-end">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-white/60 block mb-1">
                           Saldo Real
                         </span>
-                        <div className="text-xl sm:text-2xl font-extrabold font-mono tracking-tight text-cyan-300">
-                          {hasReal ? formatUSD(w.saldoReal) : <span className="text-white/40 font-sans text-sm font-normal">—</span>}
+                        <div className="text-xs sm:text-sm font-semibold font-mono text-cyan-200/90 bg-black/25 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 inline-flex items-center gap-1 shadow-xs">
+                          {hasReal ? formatUSD(w.saldoReal) : <span className="text-white/40 font-sans text-xs font-normal">Sin sincronizar</span>}
                         </div>
                       </div>
                     </div>
 
-                    {/* Bottom Row: Metadata & Extract Prompt */}
-                    <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 relative z-10 text-[11px]">
-                      <div>
-                        <span className="text-slate-300 block text-[10px]">Titular</span>
-                        <span className="font-semibold text-white">{w.titular || w.activo}</span>
+                    {/* Bottom Row: Wallet Address & Minimal Extract Arrow */}
+                    <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3 relative z-10 text-[11px]">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <i className="ri-wallet-3-line text-xs text-white/60 shrink-0" />
+                        {validChain && address ? (
+                          <a
+                            href={expUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-mono text-xs font-semibold text-cyan-300 hover:text-cyan-200 hover:underline flex items-center gap-1 transition-colors truncate"
+                            title={isPoly ? `Ver en Polygonscan: ${address}` : `Ver en Tronscan: ${address}`}
+                          >
+                            <span className="truncate">{formatShortWallet(address)}</span>
+                            <i className="ri-external-link-line text-[10px] shrink-0" />
+                          </a>
+                        ) : (
+                          <span className="font-mono text-xs text-white/70 truncate" title={address || undefined}>
+                            {address ? formatShortWallet(address) : 'Sin dirección'}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <AssetCatalogButton table="activos_digitales" asset={w} allowDelete={false}
-                            buttonClassName="inline-flex min-h-8 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-1 font-semibold text-white hover:bg-white/20 transition-colors" />
-                        </div>
-                        <span className="flex items-center gap-1 font-semibold text-emerald-200">
-                          Ver extracto <i className="ri-arrow-right-line text-xs" aria-hidden="true" />
-                        </span>
+
+                      <div
+                        className="size-7 rounded-full bg-white/10 hover:bg-white/20 text-white/80 group-hover:text-white flex items-center justify-center transition-all group-hover:translate-x-0.5 border border-white/10 shrink-0 shadow-sm"
+                        title="Ver extracto"
+                      >
+                        <i className="ri-arrow-right-line text-sm" />
                       </div>
                     </div>
                   </div>
@@ -961,7 +968,7 @@ export const ActivosDigitalesView: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted/60 text-foreground border border-border whitespace-nowrap">
-                            <span className="text-sm leading-none">{jur.flag}</span>
+                            <JurisdictionFlag countryName={w.pais} />
                             <span>{jur.name}</span>
                           </span>
                         </td>

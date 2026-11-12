@@ -10,7 +10,7 @@ import { isPolygonAddress, isPolygonNetwork } from '../../utils/polygonUsdtBalan
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { AssetInstitutionLogo } from '../common/InstitutionLogo';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
-import { JURISDICTION_COUNTRIES, getCountryFlag } from '../../utils/countryJurisdiction';
+import { JURISDICTION_COUNTRIES, getCountryFlag, getCountryCode, getCountryFlagUrl } from '../../utils/countryJurisdiction';
 
 type Asset = {
   id: string;
@@ -103,6 +103,8 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
           value: p,
           label: p,
           flag: getCountryFlag(p),
+          code: getCountryCode(p),
+          flagUrl: getCountryFlagUrl(p),
         });
       }
     }
