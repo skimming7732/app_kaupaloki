@@ -1,0 +1,25 @@
+{
+  "name": "Kaupaloki - Gestión Cambiaria y Financiera",
+  "short_name": "Kaupaloki",
+  "description": "Plataforma privada de gestión contable y operaciones de divisas",
+  "start_url": "/inicio",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1437",
+  "theme_color": "#4318ff",
+  "icons": [
+    {
+      "src": "/icono-social.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icono-social.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -15,6 +15,18 @@ import {
   registerMobileBiometric,
   setLocalBiometricCredentialId,
 } from '../utils/biometricAuth';
+import {
+  canOfferPushOnCurrentDevice,
+  getDeviceFriendlyName,
+  getPushPermission,
+  subscribeToPush,
+  unsubscribeFromPush,
+  checkIsSubscribedLocally,
+  sendLocalTestNotification,
+  isMobileDevice,
+  isStandaloneApp,
+} from '../utils/pushNotificationService';
+import type { AppVersion } from '../components/modals/WhatsNewModal';
 
 export const PerfilView: React.FC = () => {
   const { user, profile, refreshProfile } = useAuth();
@@ -23,11 +35,13 @@ export const PerfilView: React.FC = () => {
 
   // Determine active tab from URL path
   const currentPath = location.pathname.replace(/\/$/, '');
-  const activeTab: 'resumen' | 'datos' | 'seguridad' =
+  const activeTab: 'resumen' | 'datos' | 'seguridad' | 'notificaciones' =
     currentPath === '/perfil/datos'
       ? 'datos'
       : currentPath === '/perfil/seguridad'
       ? 'seguridad'
+      : currentPath === '/perfil/notificaciones'
+      ? 'notificaciones'
       : 'resumen';
 
   // --- TAB 2: DATOS PERSONALES STATE ---
@@ -64,6 +78,15 @@ export const PerfilView: React.FC = () => {
 
   const biometricCredentials = normalizeBiometricCredentials(profile?.biometric_credentials);
   const isThisDeviceEnrolled = isCurrentDeviceEnrolled(user?.id, biometricCredentials);
+
+  // --- TAB 4: NOVEDADES & NOTIFICACIONES STATE ---
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [savingPush, setSavingPush] = useState(false);
+  const [pushMessage, setPushMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [versionsList, setVersionsList] = useState<AppVersion[]>([]);
+  const [confirmedVersionIds, setConfirmedVersionIds] = useState<Set<string>>(new Set());
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -141,13 +164,120 @@ export const PerfilView: React.FC = () => {
   }, [profile]);
 
   // Handle Tab Click
-  const handleTabClick = (tab: 'resumen' | 'datos' | 'seguridad') => {
+  const handleTabClick = (tab: 'resumen' | 'datos' | 'seguridad' | 'notificaciones') => {
     setDataMessage(null);
     setPwdMessage(null);
     setMfaMessage(null);
+    setPushMessage(null);
     if (tab === 'resumen') navigate('/perfil');
     else if (tab === 'datos') navigate('/perfil/datos');
     else if (tab === 'seguridad') navigate('/perfil/seguridad');
+    else if (tab === 'notificaciones') navigate('/perfil/notificaciones');
+  };
+
+  // Carga de estado para la pestaña de Novedades & Notificaciones
+  useEffect(() => {
+    if (activeTab !== 'notificaciones') return;
+
+    setPushPermission(getPushPermission());
+    void checkIsSubscribedLocally().then((sub) => setIsPushSubscribed(sub));
+
+    const loadHistory = async () => {
+      setLoadingVersions(true);
+      try {
+        const { data: vData } = await supabase
+          .from('app_versions')
+          .select('*')
+          .eq('is_published', true)
+          .order('version_code', { ascending: false });
+
+        if (vData) setVersionsList(vData as AppVersion[]);
+
+        if (user) {
+          const { data: cData } = await supabase
+            .from('user_version_confirmations')
+            .select('version_id')
+            .eq('user_id', user.id);
+
+          if (cData) {
+            setConfirmedVersionIds(new Set(cData.map((c: any) => c.version_id)));
+          }
+        }
+      } catch (err) {
+        console.error('Error cargando historial de versiones:', err);
+      } finally {
+        setLoadingVersions(false);
+      }
+    };
+
+    void loadHistory();
+  }, [activeTab, user]);
+
+  const handleEnablePush = async () => {
+    if (!user) return;
+    setSavingPush(true);
+    setPushMessage(null);
+    try {
+      const res = await subscribeToPush(user.id);
+      if (res.success) {
+        setIsPushSubscribed(true);
+        setPushPermission('granted');
+        await sendLocalTestNotification();
+        setPushMessage({
+          text: '¡Notificaciones push activadas exitosamente en este dispositivo!',
+          type: 'success',
+        });
+      } else {
+        setPushMessage({
+          text: res.error || 'No se pudieron activar las notificaciones.',
+          type: 'error',
+        });
+      }
+    } catch (err: any) {
+      setPushMessage({
+        text: err?.message || 'Error al solicitar permisos de notificación.',
+        type: 'error',
+      });
+    } finally {
+      setSavingPush(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    if (!user) return;
+    setSavingPush(true);
+    setPushMessage(null);
+    try {
+      await unsubscribeFromPush(user.id);
+      setIsPushSubscribed(false);
+      setPushMessage({
+        text: 'Notificaciones desactivadas para este dispositivo.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      setPushMessage({
+        text: err?.message || 'Error al desactivar notificaciones.',
+        type: 'error',
+      });
+    } finally {
+      setSavingPush(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    setPushMessage(null);
+    const ok = await sendLocalTestNotification();
+    if (ok) {
+      setPushMessage({
+        text: 'Notificación de prueba emitida en este dispositivo.',
+        type: 'success',
+      });
+    } else {
+      setPushMessage({
+        text: 'No se pudo emitir la notificación de prueba. Verifica los permisos del navegador.',
+        type: 'error',
+      });
+    }
   };
 
   // --- GUARDAR DATOS PERSONALES (Requiere Contraseña Actual) ---
@@ -402,11 +532,11 @@ export const PerfilView: React.FC = () => {
         </div>
 
         {/* TAB NAVIGATION BAR */}
-        <div className="flex border-t border-border bg-muted/20 px-4">
+        <div className="flex border-t border-border bg-muted/20 px-2 sm:px-4 overflow-x-auto scrollbar-none">
           <button
             type="button"
             onClick={() => handleTabClick('resumen')}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition-all ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-3.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'resumen'
                 ? 'border-primary text-primary bg-primary/5'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -419,7 +549,7 @@ export const PerfilView: React.FC = () => {
           <button
             type="button"
             onClick={() => handleTabClick('datos')}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition-all ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-3.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'datos'
                 ? 'border-primary text-primary bg-primary/5'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -432,7 +562,7 @@ export const PerfilView: React.FC = () => {
           <button
             type="button"
             onClick={() => handleTabClick('seguridad')}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition-all ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-3.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'seguridad'
                 ? 'border-primary text-primary bg-primary/5'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -440,6 +570,19 @@ export const PerfilView: React.FC = () => {
           >
             <i className="ri-shield-keyhole-line text-sm" />
             <span>Seguridad & 2FA</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabClick('notificaciones')}
+            className={`flex items-center gap-2 px-4 sm:px-5 py-3.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === 'notificaciones'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <i className="ri-notification-3-line text-sm" />
+            <span>Novedades & Notificaciones</span>
           </button>
         </div>
       </div>
@@ -1160,6 +1303,255 @@ export const PerfilView: React.FC = () => {
                   <strong className="text-foreground block mb-0.5">Configuración exclusiva desde tu teléfono móvil</strong>
                   Para vincular o volver a configurar Face ID en un teléfono nuevo, abre <strong>app.kaupaloki.co</strong> desde el navegador de tu celular, inicia sesión con tu código 2FA y entra a esta sección de <strong>Seguridad &amp; 2FA</strong>. En computador siempre se solicitará tu código 2FA de 6 dígitos.
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* TAB 4: NOVEDADES & NOTIFICACIONES (/perfil/notificaciones)  */}
+      {/* ============================================================ */}
+      {activeTab === 'notificaciones' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Card 1: Estado de Notificaciones Push de este Dispositivo */}
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg">
+                  <i className="ri-notification-3-fill" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">
+                    Notificaciones Push en este Dispositivo
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {getDeviceFriendlyName()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div>
+                {isMobileDevice() && !isStandaloneApp() ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <i className="ri-information-line" />
+                    Requiere App Instalada
+                  </span>
+                ) : pushPermission === 'granted' && isPushSubscribed ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <i className="ri-checkbox-circle-fill" />
+                    Activas en este Dispositivo
+                  </span>
+                ) : pushPermission === 'denied' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20">
+                    <i className="ri-close-circle-fill" />
+                    Bloqueadas en el Navegador
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground border border-border">
+                    <i className="ri-time-line" />
+                    No Configuradas
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Mensajes de feedback */}
+            {pushMessage && (
+              <div
+                className={`p-3.5 rounded-xl text-xs font-medium flex items-center gap-2 ${
+                  pushMessage.type === 'success'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                    : 'bg-destructive/10 text-destructive border border-destructive/20'
+                }`}
+              >
+                <i className={pushMessage.type === 'success' ? 'ri-checkbox-circle-line text-sm' : 'ri-error-warning-line text-sm'} />
+                <span>{pushMessage.text}</span>
+              </div>
+            )}
+
+            {/* Explicación / Condiciones de activación */}
+            {isMobileDevice() && !isStandaloneApp() ? (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                  <i className="ri-alert-line text-sm" />
+                  <span>Uso exclusivo en App instalada</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  En iPhone y Android, las notificaciones push únicamente se habilitan cuando la aplicación se ejecuta como app instalada (añadida a la pantalla de inicio). Desde navegadores móviles convencionales esta opción no está disponible.
+                </p>
+              </div>
+            ) : pushPermission === 'denied' ? (
+              <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-destructive">
+                  <i className="ri-error-warning-line text-sm" />
+                  <span>Permiso bloqueado en este navegador</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Has bloqueado los permisos de notificación en este navegador. Para activarlas, pulsa el ícono de candado o configuración del sitio en la barra de direcciones de tu navegador y cambia el permiso de «Notificaciones» a «Permitir».
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+                <p className="text-xs text-muted-foreground max-w-lg leading-relaxed">
+                  {isPushSubscribed
+                    ? 'Tu navegador está suscrito al canal de notificaciones. Puedes emitir una prueba para comprobar que se reciban correctamente en tu pantalla.'
+                    : 'Activa las notificaciones en este dispositivo para recibir resúmenes breves de nuevas versiones y avisos contables importantes.'}
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isPushSubscribed ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleTestNotification}
+                        className="px-3.5 py-2 rounded-xl bg-muted text-foreground hover:bg-muted/80 text-xs font-semibold border border-border transition-colors flex items-center gap-1.5"
+                      >
+                        <i className="ri-notification-badge-line" />
+                        <span>Probar Notificación</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisablePush}
+                        disabled={savingPush}
+                        className="px-3.5 py-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-semibold border border-destructive/20 transition-colors flex items-center gap-1.5"
+                      >
+                        <i className="ri-notification-off-line" />
+                        <span>Desactivar</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleEnablePush}
+                      disabled={savingPush}
+                      className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-primary/20 hover:opacity-95 transition-all whitespace-nowrap disabled:opacity-50"
+                    >
+                      {savingPush ? (
+                        <>
+                          <i className="ri-loader-4-line animate-spin text-sm" />
+                          <span>Activando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="ri-notification-3-line text-sm" />
+                          <span>Activar Notificaciones Push</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2: Historial de Versiones y Novedades del Sistema */}
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-border">
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <i className="ri-history-line text-primary" />
+                  <span>Historial de Versiones y Novedades</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Registro cronológico de actualizaciones del sistema Kaupaloki
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-muted-foreground">
+                {versionsList.length} versiones registradas
+              </span>
+            </div>
+
+            {/* Aviso explicativo */}
+            <div className="p-3.5 rounded-xl bg-muted/30 border border-border/80 flex items-start gap-2.5">
+              <i className="ri-shield-check-line text-primary text-sm mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Confirmación por cuenta: </strong>
+                Las novedades no confirmadas se presentan en un pop-up obligatorio en tiempo real al iniciar sesión. Recibir o abrir una notificación push no marca las novedades como leídas; la confirmación queda registrada únicamente tras pulsar «Entendido».
+              </p>
+            </div>
+
+            {loadingVersions ? (
+              <div className="py-12 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
+                <i className="ri-loader-4-line animate-spin text-base" />
+                <span>Cargando historial de versiones...</span>
+              </div>
+            ) : versionsList.length === 0 ? (
+              <div className="py-10 text-center text-muted-foreground text-xs">
+                No hay versiones registradas.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {versionsList.map((ver) => {
+                  const isConfirmed = confirmedVersionIds.has(ver.id);
+                  return (
+                    <div
+                      key={ver.id}
+                      className="rounded-2xl border border-border bg-background p-4 sm:p-5 space-y-3 hover:border-primary/30 transition-colors"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                            {ver.version}
+                          </span>
+                          <h4 className="text-sm font-bold text-foreground">{ver.title}</h4>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {isConfirmed ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <i className="ri-checkbox-circle-fill text-[11px]" />
+                              Confirmada en tu cuenta
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <i className="ri-time-fill text-[11px]" />
+                              Pendiente de confirmación
+                            </span>
+                          )}
+                          {ver.released_at && (
+                            <span className="text-[11px] font-mono text-muted-foreground">
+                              {new Date(ver.released_at).toLocaleDateString('es-CO', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {ver.summary && (
+                        <p className="text-xs text-muted-foreground leading-relaxed bg-card p-3 rounded-xl border border-border/60">
+                          {ver.summary}
+                        </p>
+                      )}
+
+                      {/* Lista de cambios */}
+                      {Array.isArray(ver.changes) && ver.changes.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                          {ver.changes.map((item, cIdx) => (
+                            <div
+                              key={cIdx}
+                              className="p-2.5 rounded-xl bg-card border border-border/80 flex items-start gap-2 text-xs"
+                            >
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0 mt-0.5 bg-primary/10 text-primary border border-primary/20">
+                                {item.category || 'Novedad'}
+                              </span>
+                              <div className="min-w-0">
+                                <span className="font-semibold text-foreground mr-1">
+                                  {item.title}:
+                                </span>
+                                <span className="text-muted-foreground leading-relaxed">
+                                  {item.description}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

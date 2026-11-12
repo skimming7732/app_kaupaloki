@@ -42,6 +42,8 @@ import { AddDispersionModal } from './components/modals/AddDispersionModal';
 import { AddGastoModal } from './components/modals/AddGastoModal';
 import { AddUserModal } from './components/modals/AddUserModal';
 import { AiAssistantBubble } from './components/ai/AiAssistantBubble';
+import { WhatsNewModal } from './components/modals/WhatsNewModal';
+import { PushPermissionPrompt } from './components/modals/PushPermissionPrompt';
 
 function PageLoading({ authSurface = false }: { authSurface?: boolean }) {
   return (
@@ -115,6 +117,7 @@ const AppLayout: React.FC<{
   const { user, is2faVerified, loading } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
 
   if (loading) {
     return <PageLoading />;
@@ -154,6 +157,12 @@ const AppLayout: React.FC<{
 
       {/* AI Financial Auditor Assistant (Only visible to Admin & Super Admin) */}
       <AiAssistantBubble />
+
+      {/* Pop-up Obligatorio de Novedades (Tiempo Real, Bloqueante, Confirmación por Cuenta) */}
+      <WhatsNewModal onVisibilityChange={(open) => setIsWhatsNewOpen(open)} />
+
+      {/* Oferta de Notificaciones Push Post-2FA (Standalone en Móviles, o Desktop) */}
+      <PushPermissionPrompt isWhatsNewOpen={isWhatsNewOpen} />
     </div>
   );
 };
@@ -310,6 +319,7 @@ export const App: React.FC = () => {
             <Route path="/perfil" element={renderWithLayout(<PerfilView />)} />
             <Route path="/perfil/datos" element={renderWithLayout(<PerfilView />)} />
             <Route path="/perfil/seguridad" element={renderWithLayout(<PerfilView />)} />
+            <Route path="/perfil/notificaciones" element={renderWithLayout(<PerfilView />)} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/inicio" replace />} />
