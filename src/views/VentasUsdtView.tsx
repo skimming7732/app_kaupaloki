@@ -15,10 +15,12 @@ import { useData } from '../context/DataContext';
 import { formatCOP, formatDate } from '../utils/formatters';
 
 export const VentasUsdtView: React.FC = () => {
-  const { data } = useData();
+  const { data, marcarVentaRecibida } = useData();
   const [search, setSearch] = useState('');
   const [filterDivisa, setFilterDivisa] = useState('');
   const [filterDestino, setFilterDestino] = useState('');
+  const [filterEstado, setFilterEstado] = useState<'todos' | 'recibido' | 'pendiente'>('todos');
+  const [receivingId, setReceivingId] = useState<string | null>(null);
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [filterCreador, setFilterCreador] = useState('');
