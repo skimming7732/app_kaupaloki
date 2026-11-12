@@ -9,6 +9,7 @@ import { CreatedByFilter } from '../components/common/CreatedByFilter';
 import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import { UsdtVoucherModal } from '../components/modals/UsdtVoucherModal';
 import { UsdtTransactionVoucherData } from '../utils/usdtVoucherGenerator';
+import { EstadoTransitoSelect } from '../components/common/EstadoTransitoSelect';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -312,41 +313,18 @@ export const ComprasUsdtView: React.FC = () => {
                     </td>
 
                     <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {c.estado === 'pendiente' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[11px] animate-pulse">
-                            <i className="ri-time-line text-[11px]" /> Por recibir
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px]">
-                            <i className="ri-checkbox-circle-fill text-[11px]" /> Recibido
-                          </span>
-                        )}
-                        {canWrite && (
-                          c.estado === 'pendiente' ? (
-                            <button
-                              type="button"
-                              disabled={receivingId === c.id}
-                              onClick={() => handleToggleEstado(c.id, c.estado)}
-                              className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
-                              title="Marcar como recibido en wallet"
-                            >
-                              <i className={receivingId === c.id ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
-                              <span>Recibir</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={receivingId === c.id}
-                              onClick={() => handleToggleEstado(c.id, c.estado)}
-                              className="p-1 text-[11px] text-muted-foreground hover:text-amber-400 rounded hover:bg-muted transition-colors"
-                              title="Pasar a Por recibir (En tránsito)"
-                            >
-                              <i className={receivingId === c.id ? "ri-loader-4-line animate-spin" : "ri-arrow-go-back-line"} />
-                            </button>
-                          )
-                        )}
-                      </div>
+                      <EstadoTransitoSelect
+                        estado={c.estado}
+                        tipo="compra"
+                        disabled={!canWrite}
+                        onCambiarEstado={async (nuevo) => {
+                          if (nuevo === 'recibido') {
+                            await marcarCompraRecibida(c.id);
+                          } else {
+                            await marcarCompraPendiente(c.id);
+                          }
+                        }}
+                      />
                     </td>
                     <CreatedByCell name={c.createdByName} />
                     <td className="px-4 text-center">
@@ -405,39 +383,18 @@ export const ComprasUsdtView: React.FC = () => {
                   <span className="px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px]">
                     {c.divisaCodigo}
                   </span>
-                  {c.estado === 'pendiente' ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] animate-pulse">
-                      <i className="ri-time-line text-[10px]" /> Por recibir
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px]">
-                      <i className="ri-checkbox-circle-fill text-[10px]" /> Recibido
-                    </span>
-                  )}
-                  {canWrite && (
-                    c.estado === 'pendiente' ? (
-                      <button
-                        type="button"
-                        disabled={receivingId === c.id}
-                        onClick={() => handleToggleEstado(c.id, c.estado)}
-                        className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
-                        title="Marcar como recibido en wallet"
-                      >
-                        <i className={receivingId === c.id ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
-                        <span>Recibir</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={receivingId === c.id}
-                        onClick={() => handleToggleEstado(c.id, c.estado)}
-                        className="p-1 text-[10px] text-muted-foreground hover:text-amber-400 rounded hover:bg-muted transition-colors"
-                        title="Pasar a Por recibir (En tránsito)"
-                      >
-                        <i className={receivingId === c.id ? "ri-loader-4-line animate-spin" : "ri-arrow-go-back-line"} />
-                      </button>
-                    )
-                  )}
+                  <EstadoTransitoSelect
+                    estado={c.estado}
+                    tipo="compra"
+                    disabled={!canWrite}
+                    onCambiarEstado={async (nuevo) => {
+                      if (nuevo === 'recibido') {
+                        await marcarCompraRecibida(c.id);
+                      } else {
+                        await marcarCompraPendiente(c.id);
+                      }
+                    }}
+                  />
                 </div>
               </div>
 

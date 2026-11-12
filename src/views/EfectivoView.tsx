@@ -19,6 +19,11 @@ import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatCOP, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { AddEfectivoModal, type EfectivoMode } from '../components/modals/AddEfectivoModal';
 import { AddGastoModal } from '../components/modals/AddGastoModal';
+import { AddDispersionModal } from '../components/modals/AddDispersionModal';
+import { AddTransferenciaModal } from '../components/modals/AddTransferenciaModal';
+import { AddCatalogButton } from '../components/modals/AddCatalogButton';
+import { EstadoTransitoSelect } from '../components/common/EstadoTransitoSelect';
+import { useData, type NormalizedData, type GastoItem } from '../context/DataContext';
 
 interface EfectivoViewProps {
   onOpenAddGasto?: () => void;
@@ -28,13 +33,15 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   onOpenAddGasto,
 }) => {
   const canWrite = useWriteAccess('admin');
-  const { data, marcarVentaRecibida } = useData();
+  const { data, marcarVentaRecibida, marcarVentaPendiente } = useData();
   const [receivingId, setReceivingId] = useState<string | null>(null);
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const [movementMode, setMovementMode] = useState<EfectivoMode | null>(null);
   const [isAddGastoOpen, setIsAddGastoOpen] = useState(false);
   const [editingMovimiento, setEditingMovimiento] = useState<NormalizedData['efectivo'][number] | null>(null);
+  const [editingGasto, setEditingGasto] = useState<GastoItem | null>(null);
+  const [editingDispersion, setEditingDispersion] = useState<NormalizedData['dispersiones'][number] | null>(null);
 
   const [params, setParams] = useSearchParams();
   const paymentId = params.get('pago');
@@ -377,6 +384,19 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <PaginatedRows pageSize={100} columns={11} rows={visibleMovements}>{(m) => {
                   const token = tokenByPayment.get(m.id);
                   const tokenState = token && getTokenState(token);
+
+                  const isGasto = m.codigo.startsWith('G') || m.referencia?.startsWith('Gasto') || m.raw?.concepto?.startsWith('Gasto');
+                  const matchingGasto = isGasto ? data.gastos.find((g) => g.codigo === m.codigo || g.id === m.id || (m.raw && m.raw.id === g.id)) : null;
+
+                  const isVentaUsdt = m.raw?.tipoOperacion === 'VENTA_USDT' || m.codigo.startsWith('VNT-') || data.ventasUsdt.some((v) => v.codigo === m.codigo || v.id === m.raw?.idOriginal);
+                  const matchingVenta = isVentaUsdt ? data.ventasUsdt.find((v) => v.codigo === m.codigo || v.id === m.raw?.idOriginal || v.id === m.id) : null;
+
+                  const isDispersion = m.codigo.startsWith('DISP-') || data.dispersiones.some((d) => d.codigo === m.codigo || d.id === m.id || d.codigo === m.raw?.origen);
+                  const matchingDispersion = isDispersion ? data.dispersiones.find((d) => d.codigo === m.codigo || d.id === m.id || d.codigo === m.raw?.origen) : null;
+
+                  const isTransferencia = m.codigo.startsWith('TRF-') || (data.transferenciasInternas || []).some((t: any) => t.codigo === m.codigo || t.id === m.id || t.codigo === m.raw?.origen);
+                  const matchingTransferencia = isTransferencia ? (data.transferenciasInternas || []).find((t: any) => t.codigo === m.codigo || t.id === m.id || t.codigo === m.raw?.origen) : null;
+
                   return (
                     <tr key={m.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-medium text-foreground">{m.codigo}</td>
@@ -393,34 +413,25 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                         </span>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        {m.raw?.esPendiente ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
-                              <i className="ri-time-line text-xs" /> Por recibir
-                            </span>
-                            {canWrite && m.raw?.tipoOperacion === 'VENTA_USDT' && m.raw?.idOriginal && (
-                              <button
-                                type="button"
-                                disabled={receivingId === m.raw.idOriginal}
-                                onClick={async () => {
-                                  if (!window.confirm('¿Confirmas que los fondos en efectivo ya fueron recibidos en la caja? Sumará al saldo de efectivo.')) return;
-                                  setReceivingId(m.raw.idOriginal);
-                                  try {
-                                    await marcarVentaRecibida(m.raw.idOriginal);
-                                  } catch (err: any) {
-                                    alert(err?.message || 'Error al marcar como recibido.');
-                                  } finally {
-                                    setReceivingId(null);
-                                  }
-                                }}
-                                className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
-                                title="Confirmar recepción en caja"
-                              >
-                                <i className={receivingId === m.raw.idOriginal ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
-                                <span>Recibir</span>
-                              </button>
-                            )}
-                          </div>
+                        {isVentaUsdt ? (
+                          <EstadoTransitoSelect
+                            estado={matchingVenta?.estado || (m.raw?.esPendiente ? 'pendiente' : 'recibido')}
+                            tipo="venta"
+                            disabled={!canWrite}
+                            onCambiarEstado={async (nuevo) => {
+                              const ventaId = matchingVenta?.id || m.raw?.idOriginal;
+                              if (!ventaId) return;
+                              if (nuevo === 'recibido') {
+                                await marcarVentaRecibida(ventaId);
+                              } else {
+                                await marcarVentaPendiente(ventaId);
+                              }
+                            }}
+                          />
+                        ) : m.raw?.esPendiente ? (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
+                            <i className="ri-time-line text-xs" /> Por recibir
+                          </span>
                         ) : token && tokenState ? (
                           <div className="flex items-center gap-1.5">
                             <button
@@ -488,28 +499,71 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       </td>
                       <CreatedByCell name={m.createdByName} />
                       <td className="py-2.5 px-4 text-center whitespace-nowrap">
-
-                        {m.raw?.tipoOperacion === 'VENTA_USDT' && m.raw?.esPendiente && canWrite && (
-                          <button
-                            type="button"
-                            disabled={receivingId === m.raw.idOriginal}
-                            onClick={() => handleRecibirEnCaja(m)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-2.5 py-1 text-xs font-semibold text-white shadow-xs transition-colors mr-1.5"
-                            title="Confirmar ingreso de efectivo en caja"
-                          >
-                            <i className={receivingId === m.raw.idOriginal ? "ri-loader-4-line animate-spin text-xs" : "ri-check-line text-xs"} />
-                            <span>Recibir</span>
-                          </button>
+                        {canWrite && (
+                          matchingVenta ? (
+                            <AddCatalogButton
+                              table="ventas_usdt"
+                              edit={{
+                                id: matchingVenta.id,
+                                historical: !matchingVenta.walletOrigenId || !matchingVenta.destinoFondosId,
+                                fields: {
+                                  fecha: matchingVenta.fecha?.slice(0, 10) || '',
+                                  concepto: matchingVenta.concepto,
+                                  usdt_vendido: matchingVenta.usdtVendido,
+                                  fee_usdt: matchingVenta.feeUsdt,
+                                  tasa: matchingVenta.tasa,
+                                  wallet_origen_id: matchingVenta.walletOrigenId || '',
+                                  destino_fondos_id: matchingVenta.destinoFondosId || '',
+                                  estado: matchingVenta.estado,
+                                },
+                              }}
+                            />
+                          ) : matchingTransferencia ? (
+                            <AddTransferenciaModal
+                              edit={matchingTransferencia}
+                              trigger={
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                                  title="Editar transferencia interna"
+                                >
+                                  <i className="ri-edit-line text-xs" />
+                                  <span>Editar</span>
+                                </button>
+                              }
+                            />
+                          ) : matchingDispersion ? (
+                            <button
+                              type="button"
+                              onClick={() => setEditingDispersion(matchingDispersion)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                              title="Editar dispersión"
+                            >
+                              <i className="ri-edit-line text-xs" />
+                              <span>Editar</span>
+                            </button>
+                          ) : matchingGasto ? (
+                            <button
+                              type="button"
+                              onClick={() => setEditingGasto(matchingGasto)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                              title="Editar gasto"
+                            >
+                              <i className="ri-edit-line text-xs" />
+                              <span>Editar</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setEditingMovimiento(m)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                              title={isAdmin ? 'Editar o eliminar movimiento' : 'Editar movimiento'}
+                            >
+                              <i className="ri-edit-line text-xs" />
+                              <span>Editar</span>
+                            </button>
+                          )
                         )}
-                        {canWrite && (<button
-                          type="button"
-                          onClick={() => setEditingMovimiento(m)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                          title={isAdmin ? 'Editar o eliminar movimiento' : 'Editar movimiento'}
-                        >
-                          <i className="ri-edit-line text-xs" />
-                          <span>Editar</span>
-                        </button>)}
                       </td>
                     </tr>
                   );
@@ -529,6 +583,19 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             visibleMovements.map((m) => {
               const token = tokenByPayment.get(m.id);
               const tokenState = token && getTokenState(token);
+
+              const isGasto = m.codigo.startsWith('G') || m.referencia?.startsWith('Gasto') || m.raw?.concepto?.startsWith('Gasto');
+              const matchingGasto = isGasto ? data.gastos.find((g) => g.codigo === m.codigo || g.id === m.id || (m.raw && m.raw.id === g.id)) : null;
+
+              const isVentaUsdt = m.raw?.tipoOperacion === 'VENTA_USDT' || m.codigo.startsWith('VNT-') || data.ventasUsdt.some((v) => v.codigo === m.codigo || v.id === m.raw?.idOriginal);
+              const matchingVenta = isVentaUsdt ? data.ventasUsdt.find((v) => v.codigo === m.codigo || v.id === m.raw?.idOriginal || v.id === m.id) : null;
+
+              const isDispersion = m.codigo.startsWith('DISP-') || data.dispersiones.some((d) => d.codigo === m.codigo || d.id === m.id || d.codigo === m.raw?.origen);
+              const matchingDispersion = isDispersion ? data.dispersiones.find((d) => d.codigo === m.codigo || d.id === m.id || d.codigo === m.raw?.origen) : null;
+
+              const isTransferencia = m.codigo.startsWith('TRF-') || (data.transferenciasInternas || []).some((t: any) => t.codigo === m.codigo || t.id === m.id || t.codigo === m.raw?.origen);
+              const matchingTransferencia = isTransferencia ? (data.transferenciasInternas || []).find((t: any) => t.codigo === m.codigo || t.id === m.id || t.codigo === m.raw?.origen) : null;
+
               return (
                 <div key={m.id} className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -546,34 +613,25 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       >
                         {m.tipo === 'Ingreso' ? 'Ingreso a caja' : 'Salida de caja'}
                       </span>
-                      {m.raw?.esPendiente ? (
-                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
-                            <i className="ri-time-line text-xs" /> Por recibir
-                          </span>
-                          {canWrite && m.raw?.tipoOperacion === 'VENTA_USDT' && m.raw?.idOriginal && (
-                            <button
-                              type="button"
-                              disabled={receivingId === m.raw.idOriginal}
-                              onClick={async () => {
-                                if (!window.confirm('¿Confirmas que los fondos en efectivo ya fueron recibidos en la caja? Sumará al saldo de efectivo.')) return;
-                                setReceivingId(m.raw.idOriginal);
-                                try {
-                                  await marcarVentaRecibida(m.raw.idOriginal);
-                                } catch (err: any) {
-                                  alert(err?.message || 'Error al marcar como recibido.');
-                                } finally {
-                                  setReceivingId(null);
-                                }
-                              }}
-                              className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white shadow-xs flex items-center gap-1 transition-colors"
-                              title="Confirmar recepción en caja"
-                            >
-                              <i className={receivingId === m.raw.idOriginal ? "ri-loader-4-line animate-spin" : "ri-check-line"} />
-                              <span>Recibir</span>
-                            </button>
-                          )}
-                        </div>
+                      {isVentaUsdt ? (
+                        <EstadoTransitoSelect
+                          estado={matchingVenta?.estado || (m.raw?.esPendiente ? 'pendiente' : 'recibido')}
+                          tipo="venta"
+                          disabled={!canWrite}
+                          onCambiarEstado={async (nuevo) => {
+                            const ventaId = matchingVenta?.id || m.raw?.idOriginal;
+                            if (!ventaId) return;
+                            if (nuevo === 'recibido') {
+                              await marcarVentaRecibida(ventaId);
+                            } else {
+                              await marcarVentaPendiente(ventaId);
+                            }
+                          }}
+                        />
+                      ) : m.raw?.esPendiente ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-amber-500 bg-amber-500/15 border border-amber-500/30 animate-pulse">
+                          <i className="ri-time-line text-xs" /> Por recibir
+                        </span>
                       ) : token && tokenState ? (
                         <button
                           type="button"
@@ -675,14 +733,67 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       Por: <span className="font-medium text-foreground">{m.createdByName || '—'}</span>
                     </span>
                     {canWrite && (
-                      <button
-                        type="button"
-                        onClick={() => setEditingMovimiento(m)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                      >
-                        <i className="ri-edit-line text-xs" />
-                        <span>Editar</span>
-                      </button>
+                      matchingVenta ? (
+                        <AddCatalogButton
+                          table="ventas_usdt"
+                          buttonClassName="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                          edit={{
+                            id: matchingVenta.id,
+                            historical: !matchingVenta.walletOrigenId || !matchingVenta.destinoFondosId,
+                            fields: {
+                              fecha: matchingVenta.fecha?.slice(0, 10) || '',
+                              concepto: matchingVenta.concepto,
+                              usdt_vendido: matchingVenta.usdtVendido,
+                              fee_usdt: matchingVenta.feeUsdt,
+                              tasa: matchingVenta.tasa,
+                              wallet_origen_id: matchingVenta.walletOrigenId || '',
+                              destino_fondos_id: matchingVenta.destinoFondosId || '',
+                              estado: matchingVenta.estado,
+                            },
+                          }}
+                        />
+                      ) : matchingTransferencia ? (
+                        <AddTransferenciaModal
+                          edit={matchingTransferencia}
+                          trigger={
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                              title="Editar transferencia interna"
+                            >
+                              <i className="ri-edit-line text-xs" />
+                              <span>Editar</span>
+                            </button>
+                          }
+                        />
+                      ) : matchingDispersion ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditingDispersion(matchingDispersion)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                        >
+                          <i className="ri-edit-line text-xs" />
+                          <span>Editar</span>
+                        </button>
+                      ) : matchingGasto ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditingGasto(matchingGasto)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                        >
+                          <i className="ri-edit-line text-xs" />
+                          <span>Editar</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingMovimiento(m)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                        >
+                          <i className="ri-edit-line text-xs" />
+                          <span>Editar</span>
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
@@ -706,10 +817,21 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       />
       <TokenVoucherModal isOpen={Boolean(voucher)} token={voucher} onClose={() => setVoucher(null)} />
       <AddGastoModal
-        isOpen={isAddGastoOpen}
-        onClose={() => setIsAddGastoOpen(false)}
+        isOpen={isAddGastoOpen || Boolean(editingGasto)}
+        record={editingGasto || undefined}
+        onClose={() => {
+          setIsAddGastoOpen(false);
+          setEditingGasto(null);
+        }}
         isCashContext={true}
       />
+      {editingDispersion && (
+        <AddDispersionModal
+          isOpen
+          record={editingDispersion}
+          onClose={() => setEditingDispersion(null)}
+        />
+      )}
     </div>
   );
 };
