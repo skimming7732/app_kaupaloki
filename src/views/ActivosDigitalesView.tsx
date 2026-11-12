@@ -13,7 +13,7 @@ import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 import { formatJurisdiction } from '../utils/countryJurisdiction';
 import { getInstitutionCardGradient } from '../utils/institutionGradient';
-import { AssetCardsFilterBar, type InstitutionOption } from '../components/common/AssetCardsFilterBar';
+import { AssetCardsFilterBar, type InstitutionOption, type CountryOption } from '../components/common/AssetCardsFilterBar';
 
 export const ActivosDigitalesView: React.FC = () => {
   const { data, metrics, loading: dataLoading } = useData();
@@ -44,9 +44,10 @@ export const ActivosDigitalesView: React.FC = () => {
   const [fechaHasta, setFechaHasta] = React.useState('');
   const [tipoFilter, setTipoFilter] = React.useState<'todos' | 'entradas' | 'salidas'>('todos');
 
-  // Horizon Cards interactive filters (con saldo / sin saldo, multi-institución)
+  // Horizon Cards interactive filters (con saldo / sin saldo, multi-institución, jurisdicción)
   const [cardSaldoFilter, setCardSaldoFilter] = React.useState<'todos' | 'con_saldo' | 'sin_saldo'>('todos');
   const [cardInstitutions, setCardInstitutions] = React.useState<string[]>([]);
+  const [cardCountries, setCardCountries] = React.useState<string[]>([]);
 
   const institutionOptions = useMemo<InstitutionOption[]>(() => {
     const counts = new Map<string, { count: number; logoUrl?: string | null }>();
@@ -57,6 +58,18 @@ export const ActivosDigitalesView: React.FC = () => {
     }
     return Array.from(counts.entries())
       .map(([name, { count, logoUrl }]) => ({ name, count, logoUrl, icon: 'ri-wallet-3-line' }))
+      .sort((a, b) => b.count - a.count);
+  }, [wallets]);
+
+  const countryOptions = useMemo<CountryOption[]>(() => {
+    const counts = new Map<string, { count: number; flag: string }>();
+    for (const w of wallets) {
+      const jur = formatJurisdiction(w.pais);
+      const prev = counts.get(jur.name) || { count: 0, flag: jur.flag };
+      counts.set(jur.name, { count: prev.count + 1, flag: jur.flag });
+    }
+    return Array.from(counts.entries())
+      .map(([name, { count, flag }]) => ({ name, flag, count }))
       .sort((a, b) => b.count - a.count);
   }, [wallets]);
 
@@ -72,9 +85,13 @@ export const ActivosDigitalesView: React.FC = () => {
         const instName = w.institution?.name || (isPolygonNetwork(w.red) ? 'Polygon' : 'TronLink');
         if (!cardInstitutions.includes(instName)) return false;
       }
+      if (cardCountries.length > 0) {
+        const jur = formatJurisdiction(w.pais);
+        if (!cardCountries.includes(jur.name)) return false;
+      }
       return true;
     });
-  }, [wallets, cardSaldoFilter, cardInstitutions]);
+  }, [wallets, cardSaldoFilter, cardInstitutions, cardCountries]);
 
   const selectedWallet = useMemo(() => {
     if (!selectedWalletId) return null;
@@ -697,6 +714,9 @@ export const ActivosDigitalesView: React.FC = () => {
               selectedInstitutions={cardInstitutions}
               setSelectedInstitutions={setCardInstitutions}
               institutionOptions={institutionOptions}
+              selectedCountries={cardCountries}
+              setSelectedCountries={setCardCountries}
+              countryOptions={countryOptions}
               totalCount={wallets.length}
               conSaldoCount={conSaldoCount}
               sinSaldoCount={sinSaldoCount}
@@ -713,6 +733,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   onClick={() => {
                     setCardSaldoFilter('todos');
                     setCardInstitutions([]);
+                    setCardCountries([]);
                   }}
                   className="mt-2 text-xs font-semibold text-primary hover:underline"
                 >
