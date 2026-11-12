@@ -12,7 +12,7 @@ import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
-  const { data } = useData();
+  const { data, metrics } = useData();
   const { theme } = useAuth();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
@@ -80,6 +80,11 @@ export const ActivosDigitalesView: React.FC = () => {
     }
     return { totalIngresos, totalEgresos };
   }, [recordedWallets]);
+
+  const totalSaldoUsdt = useMemo(() => {
+    const sum = wallets.reduce((acc, w) => acc + (Number(w.saldoUsdt) || 0), 0);
+    return sum || metrics?.totalActivosDigitales || 0;
+  }, [wallets, metrics?.totalActivosDigitales]);
 
   const handleExportCSV = (wallet: any) => {
     const movements = wallet.movimientos || [];
@@ -508,28 +513,48 @@ export const ActivosDigitalesView: React.FC = () => {
             <AssetCatalogButton table="activos_digitales" />
           </div>
 
-          <section aria-label="Movimientos consolidados en USDT"
+          {/* Consolidated Summary Banner */}
+          <div
             style={{
               background: 'linear-gradient(135deg, #0b1437 0%, #1b254b 100%)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
             }}
             className="rounded-3xl p-6 sm:p-7 text-white shadow-xl flex flex-wrap justify-between items-center gap-4"
           >
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-300">
-              <i className="ri-wallet-3-line text-indigo-400" aria-hidden="true" />
-              Movimientos consolidados en USDT
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-indigo-300 mb-1 flex items-center gap-1.5">
+                <i className="ri-wallet-3-line text-indigo-400" />
+                <span>Tesorería y Custodia Consolidada</span>
+              </div>
+              <div className="text-3xl sm:text-4xl font-extrabold font-mono tracking-tight text-white flex items-baseline gap-2">
+                <span>{formatUSD(totalSaldoUsdt)}</span>
+                <span className="text-lg sm:text-xl font-bold text-slate-300">USDT</span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1">
+                Dinero total disponible en billeteras cripto (Haz clic en una tarjeta para ver su extracto)
+              </p>
             </div>
-            <dl className="grid min-w-0 grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-right backdrop-blur-md sm:px-4">
-                <dt className="block text-[10px] font-bold uppercase tracking-wider text-slate-300">Total ingresos</dt>
-                <dd className="break-words font-mono text-base font-extrabold text-emerald-400 sm:text-lg">{formatNumber(totalIngresos, 2, 6)} USDT</dd>
+
+            <div className="flex items-center gap-3">
+              <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-right">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block">
+                  Total Ingresos
+                </span>
+                <span className="text-base sm:text-lg font-extrabold font-mono text-emerald-400">
+                  {formatNumber(totalIngresos, 2, 2)} USDT
+                </span>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-right backdrop-blur-md sm:px-4">
-                <dt className="block text-[10px] font-bold uppercase tracking-wider text-slate-300">Total egresos</dt>
-                <dd className="break-words font-mono text-base font-extrabold text-rose-400 sm:text-lg">{formatNumber(totalEgresos, 2, 6)} USDT</dd>
+
+              <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-right">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300 block">
+                  Total Egresos
+                </span>
+                <span className="text-base sm:text-lg font-extrabold font-mono text-rose-400">
+                  {formatNumber(totalEgresos, 2, 2)} USDT
+                </span>
               </div>
-            </dl>
-          </section>
+            </div>
+          </div>
 
           {/* GRID TIPO TARJETAS (HORIZON UI CRYPTO WALLET CARDS) */}
           <div>
