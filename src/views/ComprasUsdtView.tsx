@@ -25,7 +25,14 @@ export const ComprasUsdtView: React.FC = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<UsdtTransactionVoucherData | null>(null);
 
-  const { totalOperaciones, divisasUnicas, filteredCompras } = useMemo(() => {
+  const {
+    totalOperaciones,
+    divisasUnicas,
+    filteredCompras,
+    totalUsdtEnTransito,
+    totalUsdtRecibido,
+    pendientesCount,
+  } = useMemo(() => {
     const divisasSet = new Set<string>();
 
     data.comprasUsdt.forEach((c) => {

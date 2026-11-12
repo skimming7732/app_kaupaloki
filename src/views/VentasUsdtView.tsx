@@ -25,7 +25,13 @@ export const VentasUsdtView: React.FC = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<UsdtTransactionVoucherData | null>(null);
 
-  const { destinosUnicos, filteredVentas } = useMemo(() => {
+  const {
+    destinosUnicos,
+    filteredVentas,
+    totalCopRecibidos,
+    totalCopEnTransito,
+    pendientesCount,
+  } = useMemo(() => {
     const destinosSet = new Set<string>();
 
     data.ventasUsdt.forEach((v) => {
@@ -44,16 +50,23 @@ export const VentasUsdtView: React.FC = () => {
         (filterDivisa.toUpperCase() === 'USDT' && v.usdtVendido > 0);
       const matchDestino = !filterDestino || v.destinoFondosNombre === filterDestino;
 
+      const matchEstado = filterEstado === 'todos' || v.estado === filterEstado;
       const matchFecha = matchesDateRange(v.fecha, fechaDesde, fechaHasta);
 
       const matchCreador = !filterCreador || formatAuthorName(v.createdByName, v.createdBy, data.usuarios).toLowerCase() === filterCreador.toLowerCase();
 
-      return matchSearch && matchDivisa && matchDestino && matchFecha && matchCreador;
+      return matchSearch && matchDivisa && matchDestino && matchEstado && matchFecha && matchCreador;
     });
+
+    const enTransito = filtered.filter((v) => v.estado === 'pendiente');
+    const recibidas = filtered.filter((v) => v.estado !== 'pendiente');
 
     return {
       destinosUnicos: Array.from(destinosSet).sort(),
       filteredVentas: filtered,
+      totalCopRecibidos: sumRows(recibidas, (v) => v.totalCOP),
+      totalCopEnTransito: sumRows(enTransito, (v) => v.totalCOP),
+      pendientesCount: enTransito.length,
     };
   }, [data.ventasUsdt, data.usuarios, search, filterDivisa, filterDestino, filterEstado, filterCreador, fechaDesde, fechaHasta]);
 
