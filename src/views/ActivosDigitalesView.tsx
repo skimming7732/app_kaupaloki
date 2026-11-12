@@ -13,7 +13,7 @@ import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 
 export const ActivosDigitalesView: React.FC = () => {
-  const { data, metrics } = useData();
+  const { data, metrics, loading: dataLoading } = useData();
   const { theme } = useAuth();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
@@ -157,6 +157,37 @@ export const ActivosDigitalesView: React.FC = () => {
     ];
     return isDark ? darkGradients[index % darkGradients.length] : lightGradients[index % lightGradients.length];
   };
+
+  if (selectedWalletId && dataLoading && recordedWallets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[350px] p-8 space-y-3 rounded-2xl border border-border bg-card">
+        <i className="ri-loader-4-line text-3xl text-primary animate-spin" />
+        <p className="text-xs font-semibold text-muted-foreground">Cargando datos de la billetera digital...</p>
+      </div>
+    );
+  }
+
+  if (selectedWalletId && !dataLoading && recordedWallets.length > 0 && !selectedWallet) {
+    return (
+      <div className="p-8 text-center space-y-4 rounded-2xl border border-border bg-card">
+        <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center text-2xl">
+          <i className="ri-error-warning-line" />
+        </div>
+        <h2 className="text-base font-bold text-foreground">Billetera no encontrada</h2>
+        <p className="text-xs text-muted-foreground max-w-md mx-auto">
+          No se encontró ninguna billetera digital registrada con el identificador <code className="font-mono text-primary bg-muted px-1.5 py-0.5 rounded">{selectedWalletId}</code>.
+        </p>
+        <button
+          type="button"
+          onClick={() => setSelectedWalletId(null)}
+          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-semibold text-xs inline-flex items-center gap-1.5 shadow-sm"
+        >
+          <i className="ri-arrow-left-line" />
+          <span>Volver a Activos Digitales</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -305,7 +336,7 @@ export const ActivosDigitalesView: React.FC = () => {
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-1 flex items-center gap-1.5">
                   <i className={balanceMode === 'contable' ? "ri-coin-line text-emerald-400" : "ri-shield-check-line text-cyan-400"} />
-                  <span>{balanceMode === 'contable' ? 'Saldo Contable USDT' : 'Saldo Real Blockchain (TRON)'}</span>
+                  <span>{balanceMode === 'contable' ? 'Saldo Contable USDT' : `Saldo Real Blockchain (${networkName})`}</span>
                 </div>
                 <div className={`text-3xl sm:text-4xl font-extrabold font-mono tracking-tight ${balanceMode === 'contable' ? 'text-white' : 'text-cyan-300'}`}>
                   {balanceMode === 'contable'
@@ -318,7 +349,7 @@ export const ActivosDigitalesView: React.FC = () => {
                   {balanceMode === 'contable'
                     ? 'Registrado en contabilidad interna Kaupaloki'
                     : (selectedWallet.saldoReal !== null && selectedWallet.saldoReal !== undefined && Number.isFinite(selectedWallet.saldoReal))
-                    ? 'USDT confirmado en la red TRON'
+                    ? `USDT confirmado en la red ${networkName}`
                     : chainMessage}
                 </span>
               </div>
@@ -392,10 +423,10 @@ export const ActivosDigitalesView: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70 block mb-1">
                   Dirección pública
                 </span>
-                {selectedTronAddress ? (
-                  <a href={getTronscanUrl(selectedAddress)} target="_blank" rel="noopener noreferrer"
+                {isChainSupported ? (
+                  <a href={getExplorerUrl(selectedAddress, selectedWallet.red)} target="_blank" rel="noopener noreferrer"
                     className="text-xs font-mono font-semibold text-cyan-300 hover:text-cyan-200 hover:underline flex items-center gap-1"
-                    title="Abrir balances en Tronscan">
+                    title={isPolygon ? "Abrir balances en Polygonscan" : "Abrir balances en Tronscan"}>
                     <span className="truncate">{selectedAddress}</span>
                     <i className="ri-external-link-line text-xs shrink-0" />
                   </a>

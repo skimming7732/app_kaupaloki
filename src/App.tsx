@@ -44,6 +44,7 @@ import { AddUserModal } from './components/modals/AddUserModal';
 import { AiAssistantBubble } from './components/ai/AiAssistantBubble';
 import { WhatsNewModal } from './components/modals/WhatsNewModal';
 import { PushPermissionPrompt } from './components/modals/PushPermissionPrompt';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 function PageLoading({ authSurface = false }: { authSurface?: boolean }) {
   return (
@@ -145,7 +146,9 @@ const AppLayout: React.FC<{
           onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
         />
         <main className="flex-1 p-3 sm:p-5 md:p-6 lg:p-8 overflow-y-auto pb-24 md:pb-8">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
 
