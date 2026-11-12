@@ -37,15 +37,41 @@ function toDateKey(raw: any): string | null {
 
 /**
  * Genera los 90 nodos diarios correspondientes a los últimos 90 días naturales.
- * Agrupa los ingresos de negocios registrados por fecha sin requerir filtros manuales.
+ * Agrupa los ingresos de negocios y efectivo registrados por fecha sin requerir filtros manuales.
  */
-function buildLast90DaysIngresos(negocios: Array<{ fecha?: string; ingresoCop?: number; montoCop?: number }>): DailyIngreso[] {
+function buildLast90DaysIngresos(
+  negocios: Array<any>,
+  efectivo: Array<any> = []
+): DailyIngreso[] {
   const mapByDate = new Map<string, { monto: number; count: number }>();
+
   for (const n of negocios || []) {
-    if (!n.fecha) continue;
-    const dateStr = toDateKey(n.fecha);
+    if (!n) continue;
+    const dateStr = toDateKey(n.fecha || n.fechaRegistro || n.raw?.fecha);
     if (!dateStr) continue;
-    const amount = Number(n.ingresoCop ?? n.montoCop ?? (n as any).ingreso_cop ?? (n as any).monto_cop ?? 0) || 0;
+    const amount = Number(
+      n.ingresoCOP ??
+      n.ingresoCop ??
+      n.montoCop ??
+      n.raw?.ingreso_cop ??
+      n.raw?.monto_cop ??
+      (n as any).ingreso_cop ??
+      (n as any).monto_cop ??
+      0
+    ) || 0;
+    const current = mapByDate.get(dateStr) || { monto: 0, count: 0 };
+    current.monto += amount;
+    current.count += 1;
+    mapByDate.set(dateStr, current);
+  }
+
+  for (const e of efectivo || []) {
+    if (!e) continue;
+    const tipo = String(e.tipo || e.raw?.tipo || '').toUpperCase();
+    if (tipo !== 'INGRESO') continue;
+    const dateStr = toDateKey(e.fecha || e.raw?.fecha);
+    if (!dateStr) continue;
+    const amount = Number(e.monto ?? e.montoCop ?? e.raw?.monto ?? 0) || 0;
     const current = mapByDate.get(dateStr) || { monto: 0, count: 0 };
     current.monto += amount;
     current.count += 1;
@@ -105,8 +131,8 @@ const buildSmoothPath = (points: { x: number; y: number }[]) => {
   return d;
 };
 
-const GrowthChart = ({ negocios, loading }: { negocios: any[]; loading: boolean }) => {
-  const dailyData = useMemo(() => buildLast90DaysIngresos(negocios), [negocios]);
+const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; efectivo?: any[]; loading: boolean }) => {
+  const dailyData = useMemo(() => buildLast90DaysIngresos(negocios, efectivo), [negocios, efectivo]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   if (loading) {
@@ -180,9 +206,9 @@ const GrowthChart = ({ negocios, loading }: { negocios: any[]; loading: boolean 
       <div>
         <div className="flex items-center justify-between pb-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-primary/10 text-primary text-xs font-bold border border-primary/20">
               <i className="ri-calendar-line text-xs" />
-              <span>Últimos 90 días (90 registros diarios)</span>
+              <span>Últimos 90 días</span>
             </span>
             <span className="text-[11px] text-muted-foreground hidden sm:inline">
               Promedio diario: <strong className="font-mono text-foreground">{formatCOP(average)}</strong>
@@ -196,7 +222,7 @@ const GrowthChart = ({ negocios, loading }: { negocios: any[]; loading: boolean 
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mt-2">
           <div>
             <h2 id="growth-heading" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Ingresos de clientes (90 días)
+              Ingresos de clientes
             </h2>
             <p className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground mt-0.5 font-mono">
               {formatCOP(total)}
@@ -204,7 +230,7 @@ const GrowthChart = ({ negocios, loading }: { negocios: any[]; loading: boolean 
           </div>
           <div className="text-left sm:text-right">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-              Día seleccionado
+              {selectedIdx !== null ? 'Día seleccionado' : 'Última actividad'}
             </span>
             <span className="text-xs sm:text-sm font-bold font-mono text-primary">
               {activeDay?.fullDate} • {formatCOP(activeDay?.montoCop || 0)}
@@ -364,7 +390,7 @@ export const InicioView = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
         {/* Chart takes 75% of width */}
         <div className="lg:col-span-3">
-          <GrowthChart negocios={data.negocios || []} loading={loading} />
+          <GrowthChart negocios={data.negocios || []} efectivo={data.efectivo || []} loading={loading} />
         </div>
 
         {/* KPIs stacked vertically taking 25% of width */}
