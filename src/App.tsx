@@ -1,6 +1,6 @@
 import { supervisorCanRead, auditorCanRead, type StaffRole } from './utils/roles';
 import { CapitalSociosView, SociosInversionistasView } from './views/CapitalSociosView';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
@@ -119,6 +119,10 @@ const AppLayout: React.FC<{
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
 
+  const handleWhatsNewVisibility = useCallback((open: boolean) => {
+    setIsWhatsNewOpen(open);
+  }, []);
+
   if (loading) {
     return <PageLoading />;
   }
@@ -159,7 +163,7 @@ const AppLayout: React.FC<{
       <AiAssistantBubble />
 
       {/* Pop-up Obligatorio de Novedades (Tiempo Real, Bloqueante, Confirmación por Cuenta) */}
-      <WhatsNewModal onVisibilityChange={(open) => setIsWhatsNewOpen(open)} />
+      <WhatsNewModal onVisibilityChange={handleWhatsNewVisibility} />
 
       {/* Oferta de Notificaciones Push Post-2FA (Standalone en Móviles, o Desktop) */}
       <PushPermissionPrompt isWhatsNewOpen={isWhatsNewOpen} />

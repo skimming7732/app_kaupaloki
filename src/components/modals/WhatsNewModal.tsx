@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
@@ -31,6 +31,12 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ onVisibilityChange
   const [confirming, setConfirming] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
+  // Mantener la referencia a onVisibilityChange sin re-disparar el fetch
+  const onVisibilityChangeRef = useRef(onVisibilityChange);
+  useEffect(() => {
+    onVisibilityChangeRef.current = onVisibilityChange;
+  }, [onVisibilityChange]);
+
   // Consulta novedades pendientes no confirmadas por la cuenta actual
   const fetchPendingVersions = useCallback(async () => {
     if (!user) return;
@@ -46,18 +52,18 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ onVisibilityChange
         const sorted = [...data].sort((a, b) => b.version_code - a.version_code);
         setPendingVersions(sorted);
         setIsOpen(true);
-        onVisibilityChange?.(true);
+        onVisibilityChangeRef.current?.(true);
       } else {
         setPendingVersions([]);
         setIsOpen(false);
-        onVisibilityChange?.(false);
+        onVisibilityChangeRef.current?.(false);
       }
     } catch (err) {
       console.warn('[WhatsNewModal] Excepción consultando versiones:', err);
     } finally {
       setLoading(false);
     }
-  }, [user, onVisibilityChange]);
+  }, [user]);
 
   // Al montar o cambiar de usuario, buscar versiones pendientes
   useEffect(() => {
@@ -115,12 +121,12 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ onVisibilityChange
 
       setPendingVersions([]);
       setIsOpen(false);
-      onVisibilityChange?.(false);
+      onVisibilityChangeRef.current?.(false);
     } catch (err) {
       console.error('[WhatsNewModal] Error confirmando versiones:', err);
       // Cerrar localmente para no bloquear al usuario si hubo un micro-error de red
       setIsOpen(false);
-      onVisibilityChange?.(false);
+      onVisibilityChangeRef.current?.(false);
     } finally {
       setConfirming(false);
     }
