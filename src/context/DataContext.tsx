@@ -457,6 +457,8 @@ const snapshotTables = {
   empresa: a.empresa,
   cuenta: a.cuenta,
   divisa: a.divisa,
+  pais: a.pais || 'Colombia',
+  apiId: a.api_id || a.identificador_api || '',
   tarifas: a.tarifas,
   saldoCop: Number(a.saldo_cop || 0),
   saldoReal: (a.saldo_real !== null && a.saldo_real !== undefined && a.saldo_real !== '' && (a.institucion || '').toUpperCase() !== 'EFECTIVO' && !(a.activo || '').toUpperCase().includes('EFECTIVO'))
@@ -478,6 +480,7 @@ const snapshotTables = {
   wallet: d.wallet,
   red: d.red,
   titular: d.titular,
+  pais: d.pais || 'Colombia',
   tarifas: d.tarifas,
   saldoUsdt: Number(d.saldo_usdt || 0),
   saldoReal: (d.saldo_real !== null && d.saldo_real !== undefined && d.saldo_real !== '')

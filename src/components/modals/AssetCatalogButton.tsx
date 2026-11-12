@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, useMemo, type FormEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { canDeleteRole } from '../../utils/roles';
 import { useData } from '../../context/DataContext';
@@ -15,6 +15,7 @@ type Asset = {
   id: string;
   activo?: string;
   institucion?: string;
+  institucion_id?: string;
   institution?: AssetInstitution | null;
   titular?: string;
   empresa?: string;
@@ -22,7 +23,25 @@ type Asset = {
   red?: string;
   wallet?: string;
   tarifas?: string;
+  pais?: string;
+  apiId?: string;
+  api_id?: string;
 };
+
+const OPERATION_COUNTRIES = [
+  { value: 'Colombia', label: 'Colombia (COP)', flag: '🇨🇴' },
+  { value: 'Perú', label: 'Perú (PEN)', flag: '🇵🇪' },
+  { value: 'Estados Unidos', label: 'Estados Unidos (USD)', flag: '🇺🇸' },
+  { value: 'Brasil', label: 'Brasil (BRL)', flag: '🇧🇷' },
+  { value: 'México', label: 'México (MXN)', flag: '🇲🇽' },
+  { value: 'Chile', label: 'Chile (CLP)', flag: '🇨🇱' },
+  { value: 'Argentina', label: 'Argentina (ARS)', flag: '🇦🇷' },
+  { value: 'Ecuador', label: 'Ecuador (USD)', flag: '🇪🇨' },
+  { value: 'Panamá', label: 'Panamá (USD)', flag: '🇵🇦' },
+  { value: 'Uruguay', label: 'Uruguay (UYU)', flag: '🇺🇾' },
+  { value: 'Venezuela', label: 'Venezuela (VES)', flag: '🇻🇪' },
+  { value: 'Internacional / Cripto', label: 'Internacional / Cripto (Global)', flag: '🌐' },
+];
 
 const assetName = (institution: string, holder: string) => [institution, holder].filter(Boolean).join(' · ');
 
@@ -70,7 +89,7 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
   buttonClassName?: string;
 }) {
   const { profile } = useAuth();
-  const { createCatalogRecord, deleteCatalogRecord } = useData();
+  const { createCatalogRecord, deleteCatalogRecord, data } = useData();
   const [open, setOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -86,6 +105,23 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
   const icon = digital ? 'ri-wallet-3-line' : 'ri-bank-line';
   const initialHolder = asset?.titular || asset?.empresa || '';
   const legacyInstitution = asset?.institucion || '';
+
+  const countryOptions = useMemo(() => {
+    const list = [...OPERATION_COUNTRIES];
+    const seen = new Set(list.map((c) => c.value.toLowerCase()));
+    for (const d of data.divisas || []) {
+      const p = d.pais ? String(d.pais).replace(/\s*\([^)]*\)\s*$/, '').trim() : '';
+      if (p && !seen.has(p.toLowerCase())) {
+        seen.add(p.toLowerCase());
+        list.push({
+          value: p,
+          label: `${p} (${d.codigo})`,
+          flag: '🏳️',
+        });
+      }
+    }
+    return list;
+  }, [data.divisas]);
 
   useEffect(() => {
     if (!open) return;
@@ -127,7 +163,12 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
       setError('Completa el nombre del titular.');
       return;
     }
-    const record: Record<string, string | number> = { titular, tarifas: text('tarifas') };
+    const pais = text('pais') || 'Colombia';
+    const record: Record<string, string | number> = {
+      titular,
+      pais,
+      tarifas: text('tarifas'),
+    };
     const previousName = assetName(asset?.institution?.name || legacyInstitution, initialHolder);
     if (!asset || (institution && asset.activo === previousName)) {
       record.activo = assetName(institution?.name || legacyInstitution, titular);
@@ -152,12 +193,9 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
       record.red = red;
       record.wallet = wallet;
     } else {
-      const reference = text('cuenta');
-      if (!reference && (!asset || asset.cuenta)) {
-        setError('Completa la referencia.');
-        return;
-      }
-      record.cuenta = reference;
+      const apiId = text('api_id');
+      if (apiId) record.api_id = apiId;
+      if (asset?.cuenta) record.cuenta = asset.cuenta;
       if (institution) record.institucion = institution.name;
     }
 
@@ -237,21 +275,58 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
                   </select>
                 </label>
               )}
+
               <label className={recordLabelClass}>
                 <span>{digital ? 'Titular de la billetera' : 'Titular o empresa'}</span>
                 <input name="titular" defaultValue={initialHolder} required className={recordFieldClass} />
               </label>
+
+              <label className={recordLabelClass}>
+                <span>País de uso / fondos</span>
+                <select
+                  name="pais"
+                  defaultValue={asset?.pais || 'Colombia'}
+                  className={recordFieldClass + ' cursor-pointer bg-card font-medium'}
+                >
+                  {countryOptions.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.flag} {c.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] text-muted-foreground block mt-0.5">
+                  País o jurisdicción donde se suelen recibir o dispersar los fondos de esta cuenta/billetera.
+                </span>
+              </label>
+
               {digital ? (
                 <label className={recordLabelClass}>
                   <span>Dirección de billetera <small className="text-muted-foreground">(opcional)</small></span>
-                  <input name="wallet" defaultValue={asset?.wallet || ''} autoComplete="off" autoCapitalize="none" spellCheck={false}
-                    className={recordFieldClass + ' font-mono'} />
+                  <input
+                    name="wallet"
+                    defaultValue={asset?.wallet || ''}
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="Dirección pública en red (T... o 0x...)"
+                    className={recordFieldClass + ' font-mono'}
+                  />
                 </label>
               ) : (
-                <label className={recordLabelClass}><span>Referencia</span>
-                  <input name="cuenta" defaultValue={asset?.cuenta || ''} required={!asset || Boolean(asset.cuenta)} className={recordFieldClass} />
+                <label className={recordLabelClass}>
+                  <span>Identificador API <small className="text-muted-foreground">(opcional)</small></span>
+                  <input
+                    name="api_id"
+                    defaultValue={asset?.apiId || asset?.api_id || ''}
+                    placeholder="Ej: bancolombia-api, licoin-pen-otc"
+                    className={recordFieldClass + ' font-mono text-xs'}
+                  />
+                  <span className="text-[11px] text-muted-foreground block mt-0.5">
+                    Identificador técnico para integración API bancaria y comparación de saldos a largo plazo.
+                  </span>
                 </label>
               )}
+
               <label className={recordLabelClass}>
                 <span>Descripción de tarifas <small className="text-muted-foreground">(opcional)</small></span>
                 <input name="tarifas" defaultValue={asset?.tarifas || ''} placeholder={digital ? '$1 USD X TRX' : '$1000 X Dispersión'} className={recordFieldClass} />
