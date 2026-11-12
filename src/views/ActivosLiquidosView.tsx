@@ -5,7 +5,9 @@ import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCe
 import { AssetCatalogButton } from '../components/modals/AssetCatalogButton';
 import { AssetInstitutionLogo } from '../components/common/InstitutionLogo';
 import { formatJurisdiction } from '../utils/countryJurisdiction';
-import React, { useMemo } from 'react';
+import { getInstitutionCardGradient } from '../utils/institutionGradient';
+import { AssetCardsFilterBar, type InstitutionOption } from '../components/common/AssetCardsFilterBar';
+import React, { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
@@ -26,6 +28,38 @@ export const ActivosLiquidosView: React.FC = () => {
   const [fechaDesde, setFechaDesde] = React.useState('');
   const [fechaHasta, setFechaHasta] = React.useState('');
   const [tipoFilter, setTipoFilter] = React.useState<'todos' | 'entradas' | 'salidas'>('todos');
+
+  // Horizon Cards interactive filters (con saldo / sin saldo, multi-institución)
+  const [cardSaldoFilter, setCardSaldoFilter] = useState<'todos' | 'con_saldo' | 'sin_saldo'>('todos');
+  const [cardInstitutions, setCardInstitutions] = useState<string[]>([]);
+
+  const institutionOptions = useMemo<InstitutionOption[]>(() => {
+    const counts = new Map<string, { count: number; logoUrl?: string | null }>();
+    for (const a of activos) {
+      const name = a.institution?.name || a.institucion || 'Sin Institución';
+      const prev = counts.get(name) || { count: 0, logoUrl: a.institution?.logo_url };
+      counts.set(name, { count: prev.count + 1, logoUrl: a.institution?.logo_url || prev.logoUrl });
+    }
+    return Array.from(counts.entries())
+      .map(([name, { count, logoUrl }]) => ({ name, count, logoUrl }))
+      .sort((a, b) => b.count - a.count);
+  }, [activos]);
+
+  const conSaldoCount = useMemo(() => activos.filter((a: any) => (a.saldoCop || 0) > 0).length, [activos]);
+  const sinSaldoCount = useMemo(() => activos.filter((a: any) => (a.saldoCop || 0) <= 0).length, [activos]);
+
+  const filteredActivosCards = useMemo(() => {
+    return activos.filter((a: any) => {
+      const saldo = a.saldoCop || 0;
+      if (cardSaldoFilter === 'con_saldo' && saldo <= 0) return false;
+      if (cardSaldoFilter === 'sin_saldo' && saldo > 0) return false;
+      if (cardInstitutions.length > 0) {
+        const instName = a.institution?.name || a.institucion;
+        if (!cardInstitutions.includes(instName)) return false;
+      }
+      return true;
+    });
+  }, [activos, cardSaldoFilter, cardInstitutions]);
 
   const selectedActivo = useMemo(() => {
     if (!selectedActivoId) return null;
@@ -519,25 +553,58 @@ export const ActivosLiquidosView: React.FC = () => {
 
           {/* GRID TIPO TARJETAS (HORIZON UI BANK CARDS) */}
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <i className="ri-bank-card-line text-sm" />
                 <span>Instituciones y Cuentas Operativas</span>
               </h3>
-              <span className="text-xs text-muted-foreground">{activos.length} cuentas registradas</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {activos.map((a: any, idx: number) => {
-                const bgGradient = getCardGradient(idx);
+            <AssetCardsFilterBar
+              saldoFilter={cardSaldoFilter}
+              setSaldoFilter={setCardSaldoFilter}
+              selectedInstitutions={cardInstitutions}
+              setSelectedInstitutions={setCardInstitutions}
+              institutionOptions={institutionOptions}
+              totalCount={activos.length}
+              conSaldoCount={conSaldoCount}
+              sinSaldoCount={sinSaldoCount}
+              filteredCount={filteredActivosCards.length}
+              itemLabel="cuentas"
+            />
 
-                return (
-                  <div
-                    key={a.id}
-                    onClick={() => setSelectedActivoId(a.id)}
-                    style={{ background: bgGradient }}
-                    className="relative rounded-3xl p-6 text-white shadow-lg flex flex-col justify-between min-h-[210px] overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl group select-none border border-white/10"
-                  >
+            {filteredActivosCards.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl border border-dashed border-border bg-card/50">
+                <i className="ri-filter-off-line text-2xl text-muted-foreground mb-1 block" />
+                <p className="text-xs text-muted-foreground">No hay cuentas que coincidan con los filtros seleccionados.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCardSaldoFilter('todos');
+                    setCardInstitutions([]);
+                  }}
+                  className="mt-2 text-xs font-semibold text-primary hover:underline"
+                >
+                  Restablecer filtros
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredActivosCards.map((a: any, idx: number) => {
+                  const bgGradient = getInstitutionCardGradient({
+                    color: a.institution?.color,
+                    institutionName: a.institution?.name || a.institucion,
+                    fallbackIndex: idx,
+                    isDark,
+                  });
+
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => setSelectedActivoId(a.id)}
+                      style={{ background: bgGradient }}
+                      className="relative rounded-3xl p-6 text-white shadow-lg flex flex-col justify-between min-h-[210px] overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl group select-none border border-white/10"
+                    >
                     <div className="absolute right-[-20px] top-[-20px] w-36 h-36 rounded-full bg-white/10 pointer-events-none group-hover:scale-110 transition-transform duration-300" />
 
                     {/* Top Row: Institution badge & Currency */}
@@ -595,6 +662,7 @@ export const ActivosLiquidosView: React.FC = () => {
                 );
               })}
             </div>
+            )}
           </div>
 
           {/* Table List of Instituciones */}

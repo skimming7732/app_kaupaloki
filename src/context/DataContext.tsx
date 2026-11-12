@@ -619,8 +619,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         readAllRows(() => supabase.from('dispersiones').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }).order('id')),
         readAllRows(() => supabase.from('compras_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }).order('id')),
         readAllRows(() => supabase.from('ventas_usdt').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('numero', { ascending: false }).order('id')),
-        supabase.from('activos_liquidos').select('*, institution:instituciones(id,name,type,currency,website_url,logo_url,status)'),
-        supabase.from('activos_digitales').select('*, institution:instituciones(id,name,type,currency,website_url,logo_url,status)'),
+        supabase.from('activos_liquidos').select('*, institution:instituciones(id,name,type,currency,website_url,logo_url,color,status)'),
+        supabase.from('activos_digitales').select('*, institution:instituciones(id,name,type,currency,website_url,logo_url,color,status)'),
         readAllRows(() => supabase.from('efectivo').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }).order('id')),
         readAllRows(() => supabase.from('gastos').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }).order('id')),
         readAllRows(() => supabase.from('transferencias_internas').select('*').order('fecha', { ascending: false }).order('created_at_audit', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false, nullsFirst: false }).order('id')),
@@ -766,7 +766,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshSavedRow = async (table: SnapshotTable, id: string) => {
     const fields = table === 'activos_liquidos' || table === 'activos_digitales'
-      ? '*, institution:instituciones(id,name,type,currency,website_url,logo_url,status)' : '*';
+      ? '*, institution:instituciones(id,name,type,currency,website_url,logo_url,color,status)' : '*';
     const { data: row, error } = await supabase.from(table).select(fields).eq('id', id).single();
     if (error) {
       // The write succeeded. A failed refresh must not invite a duplicate retry.

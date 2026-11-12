@@ -115,7 +115,7 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
     void (async () => {
       try {
         const { data, error } = await supabase.from('instituciones')
-          .select('id,name,type,currency,logo_url,website_url,status')
+          .select('id,name,type,currency,logo_url,website_url,color,status')
           .eq('currency', currency).eq('status', 'active').order('name').abortSignal(controller.signal);
         if (controller.signal.aborted) return;
         if (error) throw error;

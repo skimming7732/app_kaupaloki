@@ -12,6 +12,8 @@ import { isPolygonAddress, isPolygonNetwork } from '../utils/polygonUsdtBalance'
 import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
 import { formatJurisdiction } from '../utils/countryJurisdiction';
+import { getInstitutionCardGradient } from '../utils/institutionGradient';
+import { AssetCardsFilterBar, type InstitutionOption } from '../components/common/AssetCardsFilterBar';
 
 export const ActivosDigitalesView: React.FC = () => {
   const { data, metrics, loading: dataLoading } = useData();
@@ -41,6 +43,38 @@ export const ActivosDigitalesView: React.FC = () => {
   const [fechaDesde, setFechaDesde] = React.useState('');
   const [fechaHasta, setFechaHasta] = React.useState('');
   const [tipoFilter, setTipoFilter] = React.useState<'todos' | 'entradas' | 'salidas'>('todos');
+
+  // Horizon Cards interactive filters (con saldo / sin saldo, multi-institución)
+  const [cardSaldoFilter, setCardSaldoFilter] = React.useState<'todos' | 'con_saldo' | 'sin_saldo'>('todos');
+  const [cardInstitutions, setCardInstitutions] = React.useState<string[]>([]);
+
+  const institutionOptions = useMemo<InstitutionOption[]>(() => {
+    const counts = new Map<string, { count: number; logoUrl?: string | null }>();
+    for (const w of wallets) {
+      const name = w.institution?.name || (isPolygonNetwork(w.red) ? 'Polygon' : 'TronLink');
+      const prev = counts.get(name) || { count: 0, logoUrl: w.institution?.logo_url };
+      counts.set(name, { count: prev.count + 1, logoUrl: w.institution?.logo_url || prev.logoUrl });
+    }
+    return Array.from(counts.entries())
+      .map(([name, { count, logoUrl }]) => ({ name, count, logoUrl, icon: 'ri-wallet-3-line' }))
+      .sort((a, b) => b.count - a.count);
+  }, [wallets]);
+
+  const conSaldoCount = useMemo(() => wallets.filter((w: any) => (w.saldoUsdt || 0) > 0 || (w.saldoReal || 0) > 0).length, [wallets]);
+  const sinSaldoCount = useMemo(() => wallets.filter((w: any) => (w.saldoUsdt || 0) <= 0 && (!w.saldoReal || w.saldoReal <= 0)).length, [wallets]);
+
+  const filteredWalletsCards = useMemo(() => {
+    return wallets.filter((w: any) => {
+      const hasBalance = (w.saldoUsdt || 0) > 0 || (w.saldoReal || 0) > 0;
+      if (cardSaldoFilter === 'con_saldo' && !hasBalance) return false;
+      if (cardSaldoFilter === 'sin_saldo' && hasBalance) return false;
+      if (cardInstitutions.length > 0) {
+        const instName = w.institution?.name || (isPolygonNetwork(w.red) ? 'Polygon' : 'TronLink');
+        if (!cardInstitutions.includes(instName)) return false;
+      }
+      return true;
+    });
+  }, [wallets, cardSaldoFilter, cardInstitutions]);
 
   const selectedWallet = useMemo(() => {
     if (!selectedWalletId) return null;
@@ -650,31 +684,65 @@ export const ActivosDigitalesView: React.FC = () => {
 
           {/* GRID TIPO TARJETAS (HORIZON UI CRYPTO WALLET CARDS) */}
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <i className="ri-wallet-3-line text-sm" />
                 <span>Billeteras Cripto en Custodia</span>
               </h3>
-              <span className="text-xs text-muted-foreground">{formatNumber(wallets.length)} billeteras operativas</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {wallets.map((w: any, idx: number) => {
-                const isPoly = isPolygonNetwork(w.red);
-                const bgGradient = getCardGradient(idx, w.red);
-                const address = String(w.wallet || '').trim();
-                const isTr = isTronNetwork(w.red) || !isPoly;
-                const validChain = (isPoly && isPolygonAddress(address)) || (isTr && isTronAddress(address));
-                const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
-                const expUrl = getExplorerUrl(address, w.red);
+            <AssetCardsFilterBar
+              saldoFilter={cardSaldoFilter}
+              setSaldoFilter={setCardSaldoFilter}
+              selectedInstitutions={cardInstitutions}
+              setSelectedInstitutions={setCardInstitutions}
+              institutionOptions={institutionOptions}
+              totalCount={wallets.length}
+              conSaldoCount={conSaldoCount}
+              sinSaldoCount={sinSaldoCount}
+              filteredCount={filteredWalletsCards.length}
+              itemLabel="billeteras"
+            />
 
-                return (
-                  <div
-                    key={w.id}
-                    onClick={() => setSelectedWalletId(w.id)}
-                    style={{ background: bgGradient }}
-                    className="relative rounded-3xl p-6 text-white shadow-lg flex flex-col justify-between min-h-[220px] overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl group select-none border border-white/10"
-                  >
+            {filteredWalletsCards.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl border border-dashed border-border bg-card/50">
+                <i className="ri-filter-off-line text-2xl text-muted-foreground mb-1 block" />
+                <p className="text-xs text-muted-foreground">No hay billeteras que coincidan con los filtros seleccionados.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCardSaldoFilter('todos');
+                    setCardInstitutions([]);
+                  }}
+                  className="mt-2 text-xs font-semibold text-primary hover:underline"
+                >
+                  Restablecer filtros
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredWalletsCards.map((w: any, idx: number) => {
+                  const isPoly = isPolygonNetwork(w.red);
+                  const bgGradient = getInstitutionCardGradient({
+                    color: w.institution?.color,
+                    institutionName: w.institution?.name || (isPoly ? 'Polygon' : (w.red || 'TRON')),
+                    network: w.red,
+                    fallbackIndex: idx,
+                    isDark,
+                  });
+                  const address = String(w.wallet || '').trim();
+                  const isTr = isTronNetwork(w.red) || !isPoly;
+                  const validChain = (isPoly && isPolygonAddress(address)) || (isTr && isTronAddress(address));
+                  const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
+                  const expUrl = getExplorerUrl(address, w.red);
+
+                  return (
+                    <div
+                      key={w.id}
+                      onClick={() => setSelectedWalletId(w.id)}
+                      style={{ background: bgGradient }}
+                      className="relative rounded-3xl p-6 text-white shadow-lg flex flex-col justify-between min-h-[220px] overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl group select-none border border-white/10"
+                    >
                     <div className="absolute right-[-20px] top-[-20px] w-36 h-36 rounded-full bg-white/10 pointer-events-none group-hover:scale-110 transition-transform duration-300" />
 
                     <div className="flex justify-between items-start gap-2 relative z-10">
@@ -750,6 +818,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 );
               })}
             </div>
+            )}
           </div>
 
           {/* Table List of Digital Wallets */}

@@ -15,6 +15,7 @@ import {
   recordLabelClass,
 } from '../components/modals/RecordDialog';
 import { fallbackBanderaUrl, formatNumber } from '../utils/formatters';
+import { POPULAR_PRESET_COLORS, getInstitutionCardGradient, resolveBrandColor } from '../utils/institutionGradient';
 
 const TYPE_BADGE_CLASSES: Record<InstitutionType, string> = {
   bank: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -72,6 +73,7 @@ export const InstitucionesView: React.FC = () => {
   const [formCurrency, setFormCurrency] = useState('COP');
   const [formCountry, setFormCountry] = useState('Colombia');
   const [formWebsite, setFormWebsite] = useState('');
+  const [formColor, setFormColor] = useState('#4318FF');
   const [formStatus, setFormStatus] = useState<InstitutionStatus>('active');
   const [logoMode, setLogoMode] = useState<'auto' | 'url' | 'upload'>('auto');
   const [manualLogoUrl, setManualLogoUrl] = useState('');
@@ -167,6 +169,7 @@ export const InstitucionesView: React.FC = () => {
     setFormCurrency(defaultCurr);
     setFormCountry(cleanCountryFromDivisa(matchedDivisa?.pais, defaultCurr));
     setFormWebsite('');
+    setFormColor(defaultCurr === 'USDT' ? '#10B981' : '#4318FF');
     setFormStatus('active');
     setLogoMode('auto');
     setManualLogoUrl('');
@@ -181,6 +184,7 @@ export const InstitucionesView: React.FC = () => {
     setFormCurrency(inst.currency.toUpperCase());
     setFormCountry(inst.country || cleanCountryFromDivisa(divisaMap.get(inst.currency.toUpperCase())?.pais, inst.currency));
     setFormWebsite(inst.website_url || '');
+    setFormColor(inst.color || resolveBrandColor({ institutionName: inst.name, network: inst.currency }));
     setFormStatus(inst.status);
 
     const autoUrl = buildAutoLogoUrl(inst.website_url);
@@ -247,22 +251,35 @@ export const InstitucionesView: React.FC = () => {
       country: formCountry.trim() || cleanCountryFromDivisa(matchedDivisa?.pais, formCurrency),
       website_url: formWebsite.trim() || null,
       logo_url: finalLogoUrl,
+      color: formColor.trim() || '#4318FF',
       status: formStatus,
     };
 
     try {
       if (editing) {
-        const { data: updated, error } = await supabase
+        let { data: updated, error } = await supabase
           .from('instituciones')
           .update(payload)
           .eq('id', editing.id)
           .select('*').single();
+        if (error && error.message?.toLowerCase().includes('color')) {
+          delete (payload as any).color;
+          const retry = await supabase.from('instituciones').update(payload).eq('id', editing.id).select('*').single();
+          updated = retry.data;
+          error = retry.error;
+        }
         if (error) throw error;
         latestFetch.current++;
         setLoading(false);
         setInstitutions((current) => current.map((row) => row.id === updated.id ? updated as InstitucionRecord : row));
       } else {
-        const { data: inserted, error } = await supabase.from('instituciones').insert(payload).select('*').single();
+        let { data: inserted, error } = await supabase.from('instituciones').insert(payload).select('*').single();
+        if (error && error.message?.toLowerCase().includes('color')) {
+          delete (payload as any).color;
+          const retry = await supabase.from('instituciones').insert(payload).select('*').single();
+          inserted = retry.data;
+          error = retry.error;
+        }
         if (error) throw error;
         latestFetch.current++;
         setLoading(false);
@@ -553,7 +570,14 @@ export const InstitucionesView: React.FC = () => {
                               sizeClass="w-8 h-8"
                             />
                             <div className="min-w-0">
-                              <div className="font-bold text-foreground truncate">{inst.name}</div>
+                              <div className="flex items-center gap-1.5 font-bold text-foreground truncate">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10 shadow-xs"
+                                  style={{ backgroundColor: inst.color || resolveBrandColor({ institutionName: inst.name, network: inst.currency }) }}
+                                  title={`Color institucional: ${inst.color || 'Auto'}`}
+                                />
+                                <span className="truncate">{inst.name}</span>
+                              </div>
                               {domain && (
                                 <div className="text-[11px] text-muted-foreground font-mono truncate">
                                   {domain}
@@ -839,6 +863,65 @@ export const InstitucionesView: React.FC = () => {
                   className="block w-full text-xs text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                 />
               )}
+            </div>
+
+            {/* Color Institucional & Card Preview */}
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold text-foreground">Color Institucional de Tarjeta</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Define la identidad de las tarjetas en Activos Líquidos y Digitales con contraste optimizado.
+                  </div>
+                </div>
+                <div
+                  className="w-12 h-8 rounded-lg shadow-sm border border-white/20 flex items-center justify-center text-[10px] font-mono text-white"
+                  style={{ background: getInstitutionCardGradient({ color: formColor, isDark: true }) }}
+                  title="Vista previa del gradiente de tarjeta"
+                >
+                  <span className="text-xs font-bold leading-none">Aa</span>
+                </div>
+              </div>
+
+              {/* Presets Grid */}
+              <div className="flex flex-wrap gap-1.5">
+                {POPULAR_PRESET_COLORS.map((p) => {
+                  const isSelected = formColor.toUpperCase() === p.hex.toUpperCase();
+                  return (
+                    <button
+                      key={p.hex}
+                      type="button"
+                      onClick={() => setFormColor(p.hex)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary/30 font-bold bg-background text-foreground'
+                          : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full border border-black/20" style={{ backgroundColor: p.hex }} />
+                      <span>{p.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Color Input */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="color"
+                  value={formColor.startsWith('#') && formColor.length === 7 ? formColor : '#4318FF'}
+                  onChange={(e) => setFormColor(e.target.value)}
+                  className="w-9 h-8 p-0.5 rounded-lg border border-border bg-background cursor-pointer"
+                  title="Selector de color personalizado"
+                />
+                <input
+                  type="text"
+                  value={formColor}
+                  onChange={(e) => setFormColor(e.target.value)}
+                  placeholder="#4318FF"
+                  className={recordFieldClass + ' font-mono text-xs uppercase'}
+                />
+              </div>
             </div>
 
             <RecordActions

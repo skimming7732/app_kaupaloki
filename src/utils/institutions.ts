@@ -18,6 +18,7 @@ export interface InstitucionRecord {
   country: string;
   website_url: string | null;
   logo_url: string | null;
+  color?: string | null;
   status: InstitutionStatus;
   created_at: string;
   updated_at: string;
@@ -36,4 +37,4 @@ export const TYPE_LABELS: Record<InstitutionType, string> = {
   payment_system: 'Sistema de Pagos',
 };
 
-export type AssetInstitution = Pick<InstitucionRecord, 'id' | 'name' | 'type' | 'currency' | 'website_url' | 'logo_url' | 'status'>;
+export type AssetInstitution = Pick<InstitucionRecord, 'id' | 'name' | 'type' | 'currency' | 'website_url' | 'logo_url' | 'color' | 'status'>;
