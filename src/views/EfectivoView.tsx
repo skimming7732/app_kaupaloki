@@ -165,17 +165,17 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
     });
   }, [movimientos, data.usuarios, search, filterTipo, selectedCliente, fechaDesde, fechaHasta, filterCreador, paymentId]);
 
-  const totalEnTransitoCaja = visibleMovements
-    .filter((m) => m.raw?.esPendiente)
-    .reduce((sum, m) => sum + (Number(m.monto) || 0), 0);
-  const transitoCount = visibleMovements.filter((m) => m.raw?.esPendiente).length;
-
   const isPending = (id: string) => {
     const token = tokenByPayment.get(id);
     return Boolean(token && getTokenState(token) === 'activo');
   };
   const pendingCount = filteredMovimientos.filter((row) => isPending(row.id)).length;
   const visibleMovements = pendingOnly ? filteredMovimientos.filter((row) => isPending(row.id)) : filteredMovimientos;
+
+  const totalEnTransitoCaja = visibleMovements
+    .filter((m) => m.raw?.esPendiente)
+    .reduce((sum, m) => sum + (Number(m.monto) || 0), 0);
+  const transitoCount = visibleMovements.filter((m) => m.raw?.esPendiente).length;
   const tokenLabels = { activo: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado', expirado: 'Vencido' };
 
   const handleRecibirEnCaja = async (movimiento: any) => {
