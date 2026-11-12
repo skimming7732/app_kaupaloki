@@ -585,6 +585,20 @@ export const AiAssistantBubble: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Filtrar clientes clave para auditoría sin desbordar el límite de tokens de Groq (8000 TPM)
+      const allClients = data.clientes || [];
+      const indebted = allClients.filter((c) => Number(c.porCobrarCOP || 0) > 0);
+      const pendingDispersal = allClients.filter((c) => Number(c.saldoPendienteCOP || 0) > 0);
+      const topTurnover = [...allClients]
+        .sort((a, b) => Number(b.totalIngresosCOP || 0) - Number(a.totalIngresosCOP || 0))
+        .slice(0, 10);
+
+      const clientMap = new Map<string, any>();
+      [...indebted, ...pendingDispersal, ...topTurnover].forEach((c) => {
+        clientMap.set(c.codigo || c.nombre, c);
+      });
+      const keyClients = Array.from(clientMap.values()).slice(0, 25);
+
       const contextData: ViewContextData = {
         pathname: location.pathname,
         tabTitle: currentViewDetails.title,
@@ -599,9 +613,9 @@ export const AiAssistantBubble: React.FC = () => {
           rateUsdtCop: metrics.rateUsdtCop,
           saldoPendienteClientes: metrics.saldoPendienteClientes,
         },
-        recordsSummary: currentViewDetails.records,
+        recordsSummary: (currentViewDetails.records || []).slice(0, 20),
         globalSnapshot: {
-          clientes: (data.clientes || []).map((c) => ({
+          clientes: keyClients.map((c) => ({
             codigo: c.codigo,
             nombre: c.nombre,
             porCobrarCOP: Number(c.porCobrarCOP || 0),
@@ -611,7 +625,7 @@ export const AiAssistantBubble: React.FC = () => {
             totalNegocios: c.totalNegocios || 0,
             estado: c.estado || 'SIN ACTIVIDAD',
           })),
-          ultimosNegocios: (data.negocios || []).slice(0, 30).map((n) => ({
+          ultimosNegocios: (data.negocios || []).slice(0, 8).map((n) => ({
             cliente: n.clienteNombre,
             ingresoCOP: n.ingresoCOP,
             montoDivisa: n.montoDivisa,
@@ -619,14 +633,14 @@ export const AiAssistantBubble: React.FC = () => {
             tasa: n.tasaCambio,
             fecha: n.fecha,
           })),
-          ultimosGastos: (data.gastos || []).slice(0, 30).map((g) => ({
+          ultimosGastos: (data.gastos || []).slice(0, 8).map((g) => ({
             concepto: g.concepto,
             categoria: g.categoria,
             monto: g.monto,
             divisa: g.divisa,
             fecha: g.fecha,
           })),
-          ultimasDispersiones: (data.dispersiones || []).slice(0, 30).map((d) => ({
+          ultimasDispersiones: (data.dispersiones || []).slice(0, 8).map((d) => ({
             cliente: d.clienteNombre,
             monto: d.monto,
             fecha: d.fecha,

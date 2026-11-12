@@ -25,97 +25,101 @@ Deno.serve(async (req: Request) => {
     const { pathname, tabTitle, metrics, recordsSummary, globalSnapshot } = context || {};
 
     const metricsString = metrics
-      ? `
-MÉTRICAS GLOBALES ACTUALES DE KAUPALOKI:
-- Total Activos Líquidos (Bancos/Caja): COP ${Number(metrics.totalActivosLiquidos || 0).toLocaleString('es-CO')}
-- Total Activos Digitales: USDT ${Number(metrics.totalActivosDigitales || 0).toLocaleString('es-CO')}
-- Tasa USDT/COP Referencia: ${Number(metrics.rateUsdtCop || 0).toLocaleString('es-CO')}
-- Liquidez Esperada en COP (Digitales * Tasa): COP ${Number(metrics.liquidezEsperada || 0).toLocaleString('es-CO')}
-- Total Negocios COP: COP ${Number(metrics.totalNegocioCOP || 0).toLocaleString('es-CO')}
-- Total Ventas USDT en COP: COP ${Number(metrics.totalVentasUSDT || 0).toLocaleString('es-CO')}
-- Total Gastos COP: COP ${Number(metrics.totalGastosCOP || 0).toLocaleString('es-CO')}
-- Saldo Pendiente Clientes: COP ${Number(metrics.saldoPendienteClientes || 0).toLocaleString('es-CO')}
-- GANANCIA ESPERADA ACTUAL: COP ${Number(metrics.gananciaEsperada || 0).toLocaleString('es-CO')}
-`
+      ? `MÉTRICAS GLOBALES:
+Activos Líquidos: COP ${Number(metrics.totalActivosLiquidos || 0).toLocaleString('es-CO')} | Activos Digitales: USDT ${Number(metrics.totalActivosDigitales || 0).toLocaleString('es-CO')}
+Tasa USDT/COP: ${Number(metrics.rateUsdtCop || 0).toLocaleString('es-CO')} | Liquidez Esperada: COP ${Number(metrics.liquidezEsperada || 0).toLocaleString('es-CO')}
+Total Negocios: COP ${Number(metrics.totalNegocioCOP || 0).toLocaleString('es-CO')} | Total Ventas USDT: COP ${Number(metrics.totalVentasUSDT || 0).toLocaleString('es-CO')}
+Total Gastos: COP ${Number(metrics.totalGastosCOP || 0).toLocaleString('es-CO')} | Saldo Pendiente Clientes: COP ${Number(metrics.saldoPendienteClientes || 0).toLocaleString('es-CO')}
+GANANCIA ESPERADA: COP ${Number(metrics.gananciaEsperada || 0).toLocaleString('es-CO')}`
       : 'Métricas no disponibles.';
 
+    // Compact records in screen (max 20 items to stay safely below Groq 8000 TPM limit)
     let recordsString = '';
     if (recordsSummary && recordsSummary.length > 0) {
-      const sample = recordsSummary.slice(0, 70);
-      recordsString = `
-REGISTROS EN PANTALLA (Pestaña ${tabTitle}, ${sample.length} registros cargados):
-${JSON.stringify(sample, null, 2)}
-`;
+      const sample = recordsSummary.slice(0, 20);
+      recordsString = `\nREGISTROS EN PANTALLA (${tabTitle || 'Actual'}, ${sample.length} registros):\n` +
+        JSON.stringify(sample);
     }
 
+    // Compact global data
     let globalDataString = '';
     if (globalSnapshot) {
       if (globalSnapshot.clientes && globalSnapshot.clientes.length > 0) {
-        globalDataString += `\nESTADO Y SALDOS DE CLIENTES (${globalSnapshot.clientes.length} clientes registrados):\n` +
-          JSON.stringify(globalSnapshot.clientes, null, 2) + '\n';
+        // Prioritize clients with active balances or debt
+        const relevantClients = globalSnapshot.clientes
+          .filter((c: any) => (c.porCobrarCOP > 0) || (c.porPagarCOP > 0) || (c.ingresosCOP > 0))
+          .slice(0, 25)
+          .map((c: any) => ({
+            cod: c.codigo || c.id,
+            nom: c.nombre,
+            porCobrar: c.porCobrarCOP || 0,
+            porPagar: c.porPagarCOP || 0,
+            ingresos: c.ingresosCOP || 0,
+            est: c.estado
+          }));
+
+        globalDataString += `\nCLIENTES Y SALDOS (${relevantClients.length} relevantes):\n` +
+          JSON.stringify(relevantClients);
       }
       if (globalSnapshot.ultimosNegocios && globalSnapshot.ultimosNegocios.length > 0) {
-        globalDataString += `\nNEGOCIOS Y OPERACIONES RECIENTES:\n` +
-          JSON.stringify(globalSnapshot.ultimosNegocios, null, 2) + '\n';
+        const sampleNeg = globalSnapshot.ultimosNegocios.slice(0, 8).map((n: any) => ({
+          cli: n.cliente,
+          cop: n.ingresoCOP,
+          usdt: n.montoDivisa,
+          fec: n.fecha
+        }));
+        globalDataString += `\nÚLTIMOS NEGOCIOS:\n` + JSON.stringify(sampleNeg);
       }
       if (globalSnapshot.ultimosGastos && globalSnapshot.ultimosGastos.length > 0) {
-        globalDataString += `\nGASTOS OPERATIVOS RECIENTES:\n` +
-          JSON.stringify(globalSnapshot.ultimosGastos, null, 2) + '\n';
+        const sampleGastos = globalSnapshot.ultimosGastos.slice(0, 8).map((g: any) => ({
+          con: g.concepto,
+          monto: g.monto,
+          div: g.divisa,
+          fec: g.fecha
+        }));
+        globalDataString += `\nÚLTIMOS GASTOS:\n` + JSON.stringify(sampleGastos);
       }
       if (globalSnapshot.ultimasDispersiones && globalSnapshot.ultimasDispersiones.length > 0) {
-        globalDataString += `\nDISPERSIONES RECIENTES:\n` +
-          JSON.stringify(globalSnapshot.ultimasDispersiones, null, 2) + '\n';
+        const sampleDisp = globalSnapshot.ultimasDispersiones.slice(0, 8).map((d: any) => ({
+          cli: d.cliente,
+          monto: d.monto,
+          fec: d.fecha
+        }));
+        globalDataString += `\nÚLTIMAS DISPERSIONES:\n` + JSON.stringify(sampleDisp);
       }
     }
 
-    const systemPrompt = `Eres el Auditor Financiero y Asistente Analítico Inteligente de Kaupaloki, la plataforma de operaciones financieras y mesa OTC (divisas y USDT).
+    const systemPrompt = `Eres el Auditor Financiero y Asistente Analítico Inteligente de Kaupaloki (mesa OTC de divisas y USDT).
+ESTADO DE PERMISOS: Solo lectura, exclusivo para Administradores y Super Administradores.
+RESPUESTAS CONCISAS: Sé directo y breve. Usa tablas Markdown para listados.
 
-FILOSOFÍA DE AUDITORÍA CRÍTICA (TOLERANCIA CERO A JUSTIFICAR ERRORES):
-1. ERES UN AUDITOR FINANCIERO CRÍTICO Y ESCÉPTICO, NO UN DEFENSOR DEL SISTEMA.
-   - NUNCA inventes explicaciones hipotéticas ("son fondos sin asignar", "conceptos diferentes", "operaciones futuras", "diferencias contables esperadas") para justificar números que no cuadran con las transacciones reales.
-   - Si la suma de las transacciones reales NO coincide con un total acumulado reportado en una fila o dashboard, TU DEBER PRINCIPAL ES ALERTARLO COMO UN ERROR O DESFASE EN EL DASHBOARD / BASE DE DATOS.
-   - Si el usuario te indica que la suma da un valor diferente al de la pantalla, o te pregunta si tiene sentido, valida de inmediato las filas reales. Si hay inconsistencia, admítelo con claridad:
-     "⚠️ DESCUADRE / ERROR EN DASHBOARD DETECTADO:
-     Efectivamente, la suma real de los registros suma X, pero el campo acumulado muestra Y. Hay una discrepancia de Z que no corresponde a ninguna transacción registrada."
+FILOSOFÍA DE AUDITORÍA CRÍTICA:
+- Eres crítico y riguroso. NUNCA justifiques números incoherentes inventando fondos no asignados u operaciones futuras.
+- Si las transacciones individuales no cuadran con los acumulados del dashboard, alerta de inmediato un DESCUADRE/ERROR EN DASHBOARD.
 
 DISTINCIÓN VITAL EN CUENTAS DE CLIENTES:
 1. "¿QUÉ CLIENTES NOS DEBEN?" / "¿QUIÉN NOS DEBE?" / "¿CUÁL ES LA DEUDA POR COBRAR?":
-   - Se refiere estrictamente a la columna "Por cobrar" (campo \`porCobrarCOP\` > 0 o clientes con estado "DEBE").
-   - Significa que el cliente tiene una deuda hacia Kaupaloki (se le dispersó más de lo ingresado o tiene sobregiro).
-   - El cliente que más debe es el que tenga el mayor valor en \`porCobrarCOP\` (por ejemplo, clientes con código como C0101-TEST).
-   - Lista siempre el código del cliente (ej. C0101-TEST), nombre completo y el valor exacto adeudado en \`porCobrarCOP\`. NUNCA confundas esto con los saldos que Kaupaloki le debe al cliente.
+   - Columna "Por cobrar" (campo 'porCobrar' > 0 o estado "DEBE"). Es dinero que el cliente debe a Kaupaloki.
+   - El cliente que más debe es el que tenga el mayor valor en 'porCobrar' (por ejemplo C0101-TEST).
+   - Muestra siempre una tabla Markdown con: Código | Nombre del cliente | Por cobrar (COP).
 2. "¿A QUÉ CLIENTES LE DEBEMOS?" / "¿QUÉ TENEMOS PENDIENTE POR PAGAR?":
-   - Se refiere a la columna "Por pagar" (campo \`porPagarCOP\` / \`saldoPendienteCOP\` > 0 o clientes con estado "PENDIENTE").
-   - Significa saldo a favor del cliente que Kaupaloki tiene pendiente por dispersar.
+   - Columna "Por pagar" (campo 'porPagar' > 0 o estado "PENDIENTE"). Saldo a favor del cliente pendiente por dispersar.
 3. "¿CUÁL ES EL CLIENTE QUE MÁS FACTURA O MÁS RENTABLE?":
-   - Revisa \`ingresosCOP\` de los clientes y señala directamente al que tenga el mayor valor acumulado.
+   - Revisa 'ingresos' y señala al cliente con mayor monto acumulado.
 
-ESTADO DE PERMISOS Y SEGURIDAD:
-1. MODO ESTRICTO DE SOLO LECTURA: NO tienes autorización ni capacidad para alterar, editar, eliminar o insertar datos en Supabase.
-2. Eres un asesor exclusivo para Administradores y Super Administradores de Kaupaloki.
-3. Tus opiniones, sumas, análisis y auditorías deben ser matemáticamente rigurosos, transparentes y comprensibles.
+FÓRMULA DE LIQUIDACIÓN:
+- Ganancia Esperada = (Total Ventas USDT [COP] + Liquidez Esperada [COP]) - Total Negocios [COP] - Total Gastos [COP]
+- Donde Liquidez Esperada = Total Activos Digitales (USDT) * Tasa USDT/COP
 
-CONTEXTO ACTUAL DEL USUARIO:
-- Ruta actual: ${pathname || 'general'}
-- Pestaña que está viendo el usuario: "${tabTitle || 'General'}"
+CONTEXTO ACTUAL:
+Pestaña: "${tabTitle || 'General'}" (${pathname || '/'})
 ${metricsString}
 ${recordsString}
 ${globalDataString}
-
-FÓRMULA CRÍTICA DE LIQUIDACIÓN DE KAUPALOKI:
-- Ganancia Esperada = (Total Ventas USDT [COP] + Liquidez Esperada [COP]) - Total Negocios [COP] - Total Gastos [COP]
-- Donde Liquidez Esperada = Total Activos Digitales (USDT) * Tasa USDT/COP
-- Si el usuario te pregunta por qué da un valor o por qué no da la ganancia esperada, desglosa la fórmula paso a paso con los números reales listados arriba.
-
-FORMATO Y REGLAS DE RESPUESTA:
-- RESPUESTAS CONCISAS Y DIRECTAS: Sé breve, conciso y ve directo al grano. Sin introducciones ni despedidas largas.
-- TABLAS MARKDOWN: Cuando el usuario te pida una tabla, resumen de clientes, cuentas o comparativas, crea tablas en formato Markdown estándar (| Encabezado 1 | Encabezado 2 |) para que la interfaz las dibuje como tablas HTML limpias.
-- ESTRICTA PROHIBICIÓN DE EDICIÓN: Si el usuario te pide editar o cambiar cualquier dato o saldo, responde de forma tajante que eres un asistente de SOLO LECTURA y no puedes modificar la base de datos.
-- FILTRADOS Y SUMAS POR FECHA: Suma únicamente los registros solicitados y muestra el resultado exacto.
-- Formatea siempre las sumas en moneda con separadores de miles (ej. COP $10.500.000 o 5.000 USDT).
 `;
 
-    const conversationMessages = (history || []).slice(-8).map((m: any) => ({
+    // Only last 4 messages to save tokens
+    const conversationMessages = (history || []).slice(-4).map((m: any) => ({
       role: m.role,
       content: m.content,
     }));
@@ -126,45 +130,50 @@ FORMATO Y REGLAS DE RESPUESTA:
       { role: 'user', content: prompt },
     ];
 
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${groqApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: messagesPayload,
-        temperature: 0.2,
-        max_tokens: 1800,
-      }),
-    });
-
-    if (!groqRes.ok) {
-      const fallbackRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const callGroq = async (model: string, maxTokens: number = 600) => {
+      return await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${groqApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'qwen/qwen3.8-27b',
+          model,
           messages: messagesPayload,
           temperature: 0.2,
-          max_tokens: 1800,
+          max_tokens: maxTokens,
         }),
       });
+    };
 
-      if (!fallbackRes.ok) {
-        throw new Error(`Error en Groq API`);
+    // Model cascading: 120b -> qwen 27b -> 20b
+    let groqRes = await callGroq('openai/gpt-oss-120b', 600);
+
+    if (!groqRes.ok) {
+      console.warn('Fallback a qwen3.8-27b...');
+      groqRes = await callGroq('qwen/qwen3.8-27b', 600);
+    }
+
+    if (!groqRes.ok) {
+      console.warn('Fallback a openai/gpt-oss-20b...');
+      groqRes = await callGroq('openai/gpt-oss-20b', 500);
+    }
+
+    if (!groqRes.ok) {
+      const errJson = await groqRes.json().catch(() => ({}));
+      const errCode = errJson?.error?.code || '';
+      const errMsg = errJson?.error?.message || '';
+
+      if (errCode === 'rate_limit_exceeded' || errMsg.includes('tokens per minute')) {
+        return new Response(
+          JSON.stringify({
+            reply: '⚠️ **Límite de velocidad de Groq alcanzado:** Se ha superado temporalmente la cuota de tokens por minuto. Por favor espera **10 segundos** y vuelve a enviar tu pregunta.',
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
-      const fbData = await fallbackRes.json();
-      let content = fbData.choices?.[0]?.message?.content || fbData.choices?.[0]?.message?.reasoning || '';
-      content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-      return new Response(JSON.stringify({ reply: content }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      throw new Error(`Error en el servicio de IA (${groqRes.status}): ${errMsg || 'Servicio no disponible'}`);
     }
 
     const data = await groqRes.json();
