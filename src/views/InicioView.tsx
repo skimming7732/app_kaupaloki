@@ -1,23 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useData, type IngresoMensual } from '../context/DataContext';
+import { useData } from '../context/DataContext';
 import { formatNumber, formatCOP, fallbackBanderaUrl } from '../utils/formatters';
 
-const monthLabel = new Intl.DateTimeFormat('es-CO', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+export interface DailyIngreso {
+  dia: string;       // YYYY-MM-DD
+  label: string;     // '12 nov'
+  fullDate: string;  // '12 nov 2026'
+  montoCop: number;
+  txCount: number;
+}
+
+/**
+ * Genera los 90 nodos diarios correspondientes a los últimos 90 días naturales.
+ * Agrupa los ingresos de negocios registrados por fecha sin requerir filtros manuales.
+ */
+function buildLast90DaysIngresos(negocios: Array<{ fecha?: string; ingresoCop?: number; montoCop?: number }>): DailyIngreso[] {
+  const mapByDate = new Map<string, { monto: number; count: number }>();
+  for (const n of negocios || []) {
+    if (!n.fecha) continue;
+    const dateStr = String(n.fecha).substring(0, 10);
+    const amount = Number(n.ingresoCop ?? n.montoCop ?? 0) || 0;
+    const current = mapByDate.get(dateStr) || { monto: 0, count: 0 };
+    current.monto += amount;
+    current.count += 1;
+    mapByDate.set(dateStr, current);
+  }
+
+  const result: DailyIngreso[] = [];
+  const today = new Date();
+
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateKey = `${yyyy}-${mm}-${dd}`;
+
+    const monthName = d.toLocaleDateString('es-CO', { month: 'short' }).replace('.', '');
+    const label = `${d.getDate()} ${monthName}`;
+    const fullDate = d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+    const stat = mapByDate.get(dateKey) || { monto: 0, count: 0 };
+
+    result.push({
+      dia: dateKey,
+      label,
+      fullDate,
+      montoCop: stat.monto,
+      txCount: stat.count,
+    });
+  }
+
+  return result;
+}
 
 const buildSmoothPath = (points: { x: number; y: number }[]) => {
   if (points.length < 2) return '';
-  let d = `M ${points[0].x},${points[0].y}`;
+  let d = `M ${points[0].x.toFixed(2)},${points[0].y.toFixed(2)}`;
   for (let i = 0; i < points.length - 1; i++) {
     const p0 = points[i === 0 ? 0 : i - 1];
     const p1 = points[i];
     const p2 = points[i + 1];
     const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
 
-    const cp1x = p1.x + (p2.x - p0.x) / 5.5;
+    const cp1x = p1.x + (p2.x - p0.x) / 5;
     const cp1y = p1.y;
-    const cp2x = p2.x - (p3.x - p1.x) / 5.5;
+    const cp2x = p2.x - (p3.x - p1.x) / 5;
     const cp2y = p2.y;
 
     d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
@@ -25,28 +75,34 @@ const buildSmoothPath = (points: { x: number; y: number }[]) => {
   return d;
 };
 
-const GrowthChart = ({ meses, loading }: { meses: IngresoMensual[]; loading: boolean }) => {
-  const [selectedMonth, setSelectedMonth] = useState<string>();
+const GrowthChart = ({ negocios, loading }: { negocios: any[]; loading: boolean }) => {
+  const dailyData = useMemo(() => buildLast90DaysIngresos(negocios), [negocios]);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
   if (loading) {
     return (
-      <section className="h-full min-h-[280px] rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm flex flex-col items-center justify-center gap-3">
+      <section className="h-full min-h-[300px] rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm flex flex-col items-center justify-center gap-3">
         <i className="ri-loader-4-line text-2xl text-primary animate-spin" />
-        <span className="text-xs text-muted-foreground font-semibold">Cargando métricas y gráfica...</span>
+        <span className="text-xs text-muted-foreground font-semibold">Cargando métricas y gráfica diaria...</span>
       </section>
     );
   }
-  const amounts = meses.map((month) => month.montoCop);
+
+  const amounts = dailyData.map((d) => d.montoCop);
   const max = Math.max(1, ...amounts);
   const total = amounts.reduce((sum, amount) => sum + amount, 0);
-  const selectedIndex = meses.findIndex((month) => month.mes === selectedMonth);
-  const activeIdx = selectedIndex < 0 ? meses.length - 1 : selectedIndex;
+  const average = total / 90;
 
-  // SVG dimensions
-  const width = 640;
-  const height = 180;
-  const padX = 42;
-  const padTop = 45;
-  const padBottom = 25;
+  // Nodo activo (por defecto el último día / hoy)
+  const activeIdx = selectedIdx !== null && selectedIdx >= 0 && selectedIdx < dailyData.length ? selectedIdx : dailyData.length - 1;
+  const activeDay = dailyData[activeIdx] || dailyData[dailyData.length - 1];
+
+  // Dimensiones SVG con espacio óptimo para 90 nodos
+  const width = 720;
+  const height = 185;
+  const padX = 32;
+  const padTop = 42;
+  const padBottom = 24;
   const plotWidth = width - padX * 2;
   const plotHeight = height - padTop - padBottom;
 
@@ -56,141 +112,193 @@ const GrowthChart = ({ meses, loading }: { meses: IngresoMensual[]; loading: boo
   }));
 
   const linePath = buildSmoothPath(points);
-  const activePoint = points[activeIdx] || points[points.length - 1];
+  const areaPath = points.length > 1
+    ? `${linePath} L ${points[points.length - 1].x.toFixed(2)},${(height - padBottom).toFixed(2)} L ${points[0].x.toFixed(2)},${(height - padBottom).toFixed(2)} Z`
+    : '';
 
-  const activeAmount = amounts[activeIdx] || 0;
-  const tooltipText = formatCOP(activeAmount);
-  const pillWidth = Math.max(90, tooltipText.length * 7.5 + 24);
-  const tooltipX = activePoint ? Math.max(pillWidth / 2 + 8, Math.min(width - pillWidth / 2 - 8, activePoint.x)) : 320;
+  const activePoint = points[activeIdx] || points[points.length - 1];
+  const activeAmount = activeDay?.montoCop || 0;
+  const tooltipText = `${activeDay?.label}: ${formatCOP(activeAmount)}`;
+  const pillWidth = Math.max(115, tooltipText.length * 6.8 + 20);
+  const tooltipX = activePoint ? Math.max(pillWidth / 2 + 8, Math.min(width - pillWidth / 2 - 8, activePoint.x)) : 360;
+
+  // Interacción suave deslizando el cursor o dedo por los 90 nodos
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const ratio = clientX / rect.width;
+    const svgX = ratio * width;
+    const relativeX = svgX - padX;
+    const index = Math.round((relativeX / plotWidth) * (dailyData.length - 1));
+    const clamped = Math.max(0, Math.min(dailyData.length - 1, index));
+    setSelectedIdx(clamped);
+  };
+
+  // Marcadores de fecha distribuidos a lo largo de los 90 días
+  const tickIndices = [0, 18, 36, 54, 72, 89];
 
   return (
     <section className="h-full rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm transition-all flex flex-col justify-between" aria-labelledby="growth-heading">
       {/* Top Header Card Info */}
       <div>
         <div className="flex items-center justify-between pb-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/60 text-xs font-semibold text-foreground border border-border/50">
-              <i className="ri-calendar-line text-muted-foreground text-xs" />
-              <span>Últimos 3 meses</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+              <i className="ri-calendar-line text-xs" />
+              <span>Últimos 90 días (90 registros diarios)</span>
+            </span>
+            <span className="text-[11px] text-muted-foreground hidden sm:inline">
+              Promedio diario: <strong className="font-mono text-foreground">{formatCOP(average)}</strong>
             </span>
           </div>
           <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
-            <i className="ri-bar-chart-2-fill" />
+            <i className="ri-line-chart-line" />
           </div>
         </div>
-        <h2 id="growth-heading" className="mt-2 text-sm font-semibold text-muted-foreground">Ingresos de clientes</h2>
-        {meses.length > 0 && <p className="text-2xl font-bold tabular-nums">{formatCOP(total)}</p>}
-      </div>
 
-      {meses.length === 0 ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">Los ingresos del período no están disponibles.</p>
-      ) : (
-      <div>
-      <div className="relative w-full pt-1">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          aria-hidden="true"
-          className="w-full h-44 sm:h-52 select-none"
-        >
-          <defs>
-            <linearGradient id="curveStrokeGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#4f46e5" />
-              <stop offset="60%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#7c3aed" />
-            </linearGradient>
-          </defs>
-
-          {/* Glow shadow line (safe across all mobile GPUs) */}
-          <path
-            d={linePath}
-            pathLength={1}
-            className="inicio-income-path"
-            fill="none"
-            stroke="#6366f1"
-            strokeWidth="7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.18"
-          />
-
-          {/* Smooth Single Spline Line */}
-          <path
-            d={linePath}
-            pathLength={1}
-            className="inicio-income-path"
-            fill="none"
-            stroke="url(#curveStrokeGrad)"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Interactive Node Anchors */}
-          {points.map((p, i) => (
-            <g key={i}>
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r="20"
-                fill="transparent"
-                className="cursor-pointer"
-                onMouseEnter={() => setSelectedMonth(meses[i].mes)}
-                onClick={() => setSelectedMonth(meses[i].mes)}
-                onTouchStart={() => setSelectedMonth(meses[i].mes)}
-              />
-            </g>
-          ))}
-
-          {/* Active Highlight Node matching user design */}
-          {activePoint && (
-            <g className="transition-all duration-200">
-              <circle cx={activePoint.x} cy={activePoint.y} r="5.5" fill="#ffffff" stroke="#6366f1" strokeWidth="3" />
-
-              {/* Tooltip Pill directly above point */}
-              <g transform={`translate(${tooltipX}, ${activePoint.y - 32})`}>
-                <rect x={-pillWidth / 2} y="-11" width={pillWidth} height="22" rx="6" fill="#4f46e5" />
-                <polygon points="-4,11 4,11 0,15" fill="#4f46e5" />
-                <text
-                  x="0"
-                  y="3.5"
-                  textAnchor="middle"
-                  fill="#ffffff"
-                  fontSize="11"
-                  fontWeight="600"
-                  letterSpacing="0.02em"
-                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                >
-                  {tooltipText}
-                </text>
-              </g>
-            </g>
-          )}
-        </svg>
-
-        <div className="flex justify-between gap-2 px-1 pt-2 sm:px-4">
-          {meses.map((month, i) => (
-            <button
-              key={month.mes}
-              type="button"
-              aria-pressed={i === activeIdx}
-              onClick={() => setSelectedMonth(month.mes)}
-              className="flex min-w-0 flex-col gap-0.5 rounded-lg px-1.5 py-1 text-left text-[10px] text-muted-foreground hover:bg-muted aria-pressed:bg-primary/10 aria-pressed:text-primary sm:px-2 sm:text-xs"
-            >
-              <span className="capitalize">{monthLabel.format(new Date(month.mes + 'T00:00:00Z'))}</span>
-              <strong className="break-all tabular-nums">{formatCOP(month.montoCop)}</strong>
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mt-2">
+          <div>
+            <h2 id="growth-heading" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Ingresos de clientes (90 días)
+            </h2>
+            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground mt-0.5 font-mono">
+              {formatCOP(total)}
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+              Día seleccionado
+            </span>
+            <span className="text-xs sm:text-sm font-bold font-mono text-primary">
+              {activeDay?.fullDate} • {formatCOP(activeDay?.montoCop || 0)}
+            </span>
+          </div>
         </div>
       </div>
+
+      <div className="pt-2">
+        <div className="relative w-full">
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            aria-hidden="true"
+            className="w-full h-44 sm:h-56 select-none cursor-crosshair touch-none"
+            onPointerMove={handlePointerMove}
+            onPointerLeave={() => setSelectedIdx(null)}
+          >
+            <defs>
+              <linearGradient id="curveStrokeGrad90" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#4318ff" />
+                <stop offset="50%" stopColor="#6366f1" />
+                <stop offset="100%" stopColor="#06b6d4" />
+              </linearGradient>
+              <linearGradient id="curveAreaGrad90" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6366f1" stopOpacity="0.22" />
+                <stop offset="85%" stopColor="#6366f1" stopOpacity="0.03" />
+                <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+
+            {/* Guías horizontales tenues */}
+            <line x1={padX} y1={padTop} x2={width - padX} y2={padTop} stroke="currentColor" strokeOpacity="0.08" strokeDasharray="3 3" />
+            <line x1={padX} y1={padTop + plotHeight * 0.5} x2={width - padX} y2={padTop + plotHeight * 0.5} stroke="currentColor" strokeOpacity="0.08" strokeDasharray="3 3" />
+            <line x1={padX} y1={height - padBottom} x2={width - padX} y2={height - padBottom} stroke="currentColor" strokeOpacity="0.12" />
+
+            {/* Relleno de área degradada */}
+            {areaPath && <path d={areaPath} fill="url(#curveAreaGrad90)" />}
+
+            {/* Curva continua de 90 nodos diarios */}
+            <path
+              d={linePath}
+              fill="none"
+              stroke="url(#curveStrokeGrad90)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Micro nodos a lo largo de los 90 días */}
+            {points.map((p, i) => {
+              const hasAmount = amounts[i] > 0;
+              if (!hasAmount && i % 3 !== 0) return null;
+              return (
+                <circle
+                  key={i}
+                  cx={p.x}
+                  cy={p.y}
+                  r={hasAmount ? 2.5 : 1.2}
+                  fill={hasAmount ? '#6366f1' : 'currentColor'}
+                  opacity={hasAmount ? 0.9 : 0.25}
+                />
+              );
+            })}
+
+            {/* Línea vertical de seguimiento interactiva */}
+            {activePoint && (
+              <line
+                x1={activePoint.x}
+                y1={padTop}
+                x2={activePoint.x}
+                y2={height - padBottom}
+                stroke="#6366f1"
+                strokeWidth="1.5"
+                strokeDasharray="3 3"
+                opacity="0.75"
+              />
+            )}
+
+            {/* Nodo activo con halo y tooltip interactivo */}
+            {activePoint && (
+              <g className="transition-all duration-75">
+                <circle cx={activePoint.x} cy={activePoint.y} r="8" fill="#6366f1" opacity="0.25" />
+                <circle cx={activePoint.x} cy={activePoint.y} r="4.5" fill="#ffffff" stroke="#4318ff" strokeWidth="2.5" />
+
+                {/* Tooltip con fecha y monto del día */}
+                <g transform={`translate(${tooltipX}, ${Math.max(16, activePoint.y - 28)})`}>
+                  <rect x={-pillWidth / 2} y="-11" width={pillWidth} height="22" rx="7" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1" />
+                  <polygon points="-4,11 4,11 0,15" fill="#1e1b4b" />
+                  <text
+                    x="0"
+                    y="3.5"
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    fontSize="10.5"
+                    fontWeight="700"
+                    letterSpacing="0.01em"
+                    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                  >
+                    {tooltipText}
+                  </text>
+                </g>
+              </g>
+            )}
+          </svg>
+
+          {/* Marcadores de fecha en el eje X */}
+          <div className="flex justify-between items-center text-[10px] text-muted-foreground font-mono px-2 pt-1 border-t border-border/40">
+            {tickIndices.map((idx) => {
+              const day = dailyData[idx];
+              if (!day) return null;
+              return (
+                <span
+                  key={day.dia}
+                  className="hover:text-foreground cursor-pointer transition-colors"
+                  onClick={() => setSelectedIdx(idx)}
+                  title={day.fullDate}
+                >
+                  {day.label}
+                </span>
+              );
+            })}
+          </div>
+        </div>
       </div>
-      )}
     </section>
   );
 };
 
 export const InicioView = () => {
   const { user, profile } = useAuth();
-  const { data, loading, metrics, snapshot } = useData();
+  const { data, loading, metrics } = useData();
   const admin = profile?.role === 'administrador' || profile?.role === 'super_admin';
   const canSeeNegocios = admin || ['comercial', 'operador', 'supervisor'].includes(profile?.role || '');
   const authorized = profile?.authorized_currencies || [];
@@ -215,11 +323,11 @@ export const InicioView = () => {
         </div>
       </div>
 
-      {/* 75% Chart / 25% Stacked KPIs Layout — Visible para TODOS los usuarios */}
+      {/* 75% Chart / 25% Stacked KPIs Layout — Gráfica de 90 Nodos Diarios */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
         {/* Chart takes 75% of width */}
         <div className="lg:col-span-3">
-          <GrowthChart meses={snapshot.ingresosMensuales || []} loading={loading} />
+          <GrowthChart negocios={data.negocios || []} loading={loading} />
         </div>
 
         {/* KPIs stacked vertically taking 25% of width */}

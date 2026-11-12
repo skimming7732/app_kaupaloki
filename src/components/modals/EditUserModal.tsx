@@ -301,10 +301,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
                   type="button"
                   onClick={handleDelete}
                   disabled={loading}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                  className="px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center justify-center gap-1.5"
+                  title="Eliminar usuario"
+                  aria-label="Eliminar usuario"
                 >
                   <i className="ri-delete-bin-line" />
-                  <span>Eliminar usuario</span>
+                  <span className="hidden sm:inline">Eliminar usuario</span>
                 </button>
               )}
             </div>

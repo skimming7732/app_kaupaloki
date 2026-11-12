@@ -318,10 +318,12 @@ const NegocioDialog = ({ onClose, negocio, initialClienteId }: Omit<AddNegocioMo
                   type="button"
                   onClick={handleDelete}
                   disabled={saving}
-                  className="min-h-11 rounded-xl px-4 text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                  className="min-h-11 rounded-xl px-3 sm:px-4 text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center justify-center gap-1.5"
+                  title="Eliminar negocio"
+                  aria-label="Eliminar negocio"
                 >
-                  <i className="ri-delete-bin-line" />
-                  <span>Eliminar negocio</span>
+                  <i className="ri-delete-bin-line text-sm" />
+                  <span className="hidden sm:inline">Eliminar negocio</span>
                 </button>
               )}
             </div>

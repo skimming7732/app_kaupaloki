@@ -186,16 +186,17 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
             <div>
               {canDelete && (
                 hasRelatedRecords ? (
-                  <div className="flex items-center gap-2" title="No se puede eliminar: el cliente tiene registros o movimientos asociados">
+                  <div className="flex items-center gap-1.5" title="No se puede eliminar: el cliente tiene registros o movimientos asociados">
                     <button
                       type="button"
                       disabled
-                      className="px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground bg-muted/40 border border-border cursor-not-allowed flex items-center gap-1.5 opacity-60"
+                      className="px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-muted-foreground bg-muted/40 border border-border cursor-not-allowed flex items-center justify-center gap-1.5 opacity-60"
+                      title="No se puede eliminar: tiene movimientos"
                     >
                       <i className="ri-lock-line" />
-                      <span>Eliminar cliente</span>
+                      <span className="hidden sm:inline">Eliminar cliente</span>
                     </button>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-muted-foreground hidden sm:inline">
                       (Tiene movimientos asociados)
                     </span>
                   </div>
@@ -204,10 +205,12 @@ export const EditClienteModal: React.FC<EditClienteModalProps> = ({ cliente, isO
                     type="button"
                     onClick={handleDelete}
                     disabled={loading}
-                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                    className="px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center justify-center gap-1.5"
+                    title="Eliminar cliente"
+                    aria-label="Eliminar cliente"
                   >
                     <i className="ri-delete-bin-line" />
-                    <span>Eliminar cliente</span>
+                    <span className="hidden sm:inline">Eliminar cliente</span>
                   </button>
                 )
               )}

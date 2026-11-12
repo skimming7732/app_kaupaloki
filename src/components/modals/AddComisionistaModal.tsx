@@ -186,10 +186,12 @@ const ComisionistaForm = ({ onClose, record }: Omit<AddComisionistaModalProps, '
                   type="button"
                   onClick={handleDelete}
                   disabled={loading}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+                  className="px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center justify-center gap-1.5"
+                  title="Eliminar comisionista"
+                  aria-label="Eliminar comisionista"
                 >
-                  <i className="ri-delete-bin-line" />
-                  <span>Eliminar comisionista</span>
+                  <i className="ri-delete-bin-line text-sm" />
+                  <span className="hidden sm:inline">Eliminar comisionista</span>
                 </button>
               )}
             </div>

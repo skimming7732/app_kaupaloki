@@ -88,10 +88,12 @@ export const RecordActions = ({
           type="button"
           onClick={onDelete}
           disabled={busy || isDeleting}
-          className="min-h-11 rounded-xl px-4 text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center gap-1.5"
+          className="min-h-11 rounded-xl px-3 sm:px-4 text-xs font-semibold text-destructive hover:bg-destructive/10 border border-destructive/20 transition-colors flex items-center justify-center gap-1.5"
+          title={deleteLabel}
+          aria-label={deleteLabel}
         >
-          {isDeleting ? <i className="ri-loader-4-line animate-spin" /> : <i className="ri-delete-bin-line" />}
-          <span>{deleteLabel}</span>
+          {isDeleting ? <i className="ri-loader-4-line animate-spin text-sm" /> : <i className="ri-delete-bin-line text-sm" />}
+          <span className="hidden sm:inline">{deleteLabel}</span>
         </button>
       )}
     </div>

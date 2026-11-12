@@ -269,17 +269,17 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
-                <th className="py-3 px-4">Código</th>
-                <th className="py-3 px-4">Fecha</th>
-                <th className="py-3 px-4">Cliente</th>
-                <th className="py-3 px-4 text-right">Monto</th>
-                <th className="py-3 px-4 text-right whitespace-nowrap">Costo (COP)</th>
-                <th className="py-3 px-4">Institución / Origen</th>
-                <th className="py-3 px-4">Referencia</th>
-                <th className="py-3 px-4 text-center">Comprobante</th>
-                <th className="py-3 px-4 text-center">Estado</th>
-                <CreatedByHeader />
-                <th scope="col" className="px-4 py-3 text-center">Acciones</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Código</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Fecha</th>
+                <th className="py-2.5 px-2.5">Cliente</th>
+                <th className="py-2.5 px-2.5 text-right whitespace-nowrap">Monto</th>
+                <th className="py-2.5 px-2 text-right whitespace-nowrap">Costo (COP)</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Institución</th>
+                <th className="py-2.5 px-2.5">Referencia</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Comprobante</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Estado</th>
+                <CreatedByHeader className="whitespace-nowrap px-2.5 py-2.5" />
+                <th scope="col" className="px-2.5 py-2.5 text-center whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -293,22 +293,22 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                 <PaginatedRows pageSize={100} columns={11} rows={filteredDispersiones}
                   resetKey={JSON.stringify([search, selectedCliente, fechaDesde, fechaHasta])}>{(d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors h-14">
-                    <td className="py-2.5 px-4 font-mono font-medium text-foreground whitespace-nowrap">{d.codigo}</td>
-                    <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">{formatDate(d.fecha)}</td>
-                    <td className="py-2.5 px-4 font-semibold text-foreground whitespace-nowrap">{d.clienteNombre}</td>
-                    <td className="py-2.5 px-4 text-right font-bold text-foreground whitespace-nowrap">
+                    <td className="py-2 px-2.5 font-mono font-medium text-foreground whitespace-nowrap">{d.codigo}</td>
+                    <td className="py-2 px-2.5 text-muted-foreground whitespace-nowrap">{formatDate(d.fecha)}</td>
+                    <td className="py-2 px-2.5 font-semibold text-foreground max-w-[140px] truncate" title={d.clienteNombre}>{d.clienteNombre}</td>
+                    <td className="py-2 px-2.5 text-right font-bold text-foreground whitespace-nowrap">
                       {formatCOP(d.monto)}
                     </td>
-                    <td className="py-2.5 px-4 text-right tabular-nums whitespace-nowrap">{formatCOP(d.costoCop)}</td>
-                    <td className="py-2.5 px-4 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
+                    <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-[11px]">{formatCOP(d.costoCop)}</td>
+                    <td className="py-2 px-2.5 whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[10px] font-medium border border-border">
                         {d.origenFondos || 'Bancolombia'}
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 font-mono text-muted-foreground whitespace-nowrap">{d.referencia || '—'}</td>
+                    <td className="py-2 px-2.5 font-mono text-muted-foreground text-[11px] max-w-[130px] break-all leading-tight">{d.referencia || '—'}</td>
 
                     {/* Receipt previews and '+' button */}
-                    <td className="py-2.5 px-4 text-center whitespace-nowrap">
+                    <td className="py-2 px-2 text-center whitespace-nowrap">
                       {d.comprobanteUrl ? (
                         <div className="flex items-center justify-center gap-1.5 h-10">
                           {/* Thumbnails (split by comma if multiple) */}
@@ -366,11 +366,11 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
                       )}
                     </td>
 
-                    <td className="py-2.5 px-4 text-center whitespace-nowrap">
+                    <td className="py-2 px-2 text-center whitespace-nowrap">
                       <DispersionStatusSelect dispersion={d} onSaved={syncData} />
                     </td>
-                    <CreatedByCell name={d.createdByName} />
-                    <td className="px-4 py-2.5 text-center whitespace-nowrap">
+                    <CreatedByCell name={d.createdByName} className="whitespace-nowrap px-2.5 py-2 text-[11px]" />
+                    <td className="px-2.5 py-2 text-center whitespace-nowrap">
                       {canWrite && (<button
                         type="button"
                         onClick={() => setEditing(d)}
