@@ -10,6 +10,7 @@ import {
   registerMobileBiometric,
   verifyMobileBiometric,
 } from '../utils/biometricAuth';
+import { checkCurrentIpSecurityStatus, authorizeCurrentIp, type IpStatusResult } from '../utils/ipSecurityService';
 
 export const TwoFactorView: React.FC = () => {
   const { user, profile, loading: authLoading, is2faVerified, verify2FASession, refreshProfile, theme, toggleTheme, logout } = useAuth();
@@ -59,6 +60,14 @@ export const TwoFactorView: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // IP Anomaly Detection states
+  const [ipStatus, setIpStatus] = useState<IpStatusResult | null>(null);
+  const [checkingIp, setCheckingIp] = useState(false);
+  const [anomalyEmailCode, setAnomalyEmailCode] = useState('');
+  const [anomalyEmailSent, setAnomalyEmailSent] = useState(false);
+  const [sendingAnomalyOtp, setSendingAnomalyOtp] = useState(false);
+  const [anomalyOtpCooldown, setAnomalyOtpCooldown] = useState(0);
 
   // Status & Messaging states
   const [loading, setLoading] = useState(false);
@@ -116,6 +125,66 @@ export const TwoFactorView: React.FC = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  // Anomaly email OTP cooldown timer
+  useEffect(() => {
+    if (anomalyOtpCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setAnomalyOtpCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [anomalyOtpCooldown]);
+
+  // Enviar código de seguridad al correo por IP nueva
+  const sendAnomalyEmailOtp = async (targetIp?: string) => {
+    const userEmail = (user?.email || profile?.email || '').trim();
+    if (!userEmail) return;
+    setSendingAnomalyOtp(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: userEmail,
+        options: { shouldCreateUser: false },
+      });
+      if (otpError) {
+        console.warn('Error al despachar código de correo para IP nueva:', otpError);
+      } else {
+        setAnomalyEmailSent(true);
+        setAnomalyOtpCooldown(60);
+      }
+    } catch (err) {
+      console.warn('Fallo de red al despachar código de correo:', err);
+    } finally {
+      setSendingAnomalyOtp(false);
+    }
+  };
+
+  // Evaluar IP al entrar a modo verify
+  useEffect(() => {
+    if (mode !== 'verify' || !user || !profile) return;
+    let isCancelled = false;
+
+    async function evaluateIp() {
+      setCheckingIp(true);
+      try {
+        const result = await checkCurrentIpSecurityStatus();
+        if (isCancelled) return;
+        setIpStatus(result);
+        if (result.requires_email_otp && !anomalyEmailSent) {
+          void sendAnomalyEmailOtp(result.client_ip);
+        }
+      } catch (err) {
+        console.warn('Evaluación de IP:', err);
+      } finally {
+        if (!isCancelled) setCheckingIp(false);
+      }
+    }
+
+    void evaluateIp();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [mode, user, profile]);
+
   const initSetup = (forceNew = false) => {
     // Persist pending secret in sessionStorage so switching tabs on mobile does NOT change the secret
     let activeSecret = !forceNew ? sessionStorage.getItem('kpl_pending_2fa_secret') : null;
@@ -171,12 +240,12 @@ export const TwoFactorView: React.FC = () => {
       hasRegisteredBiometrics &&
       isThisDeviceEnrolled &&
       !showManualCodeOnMobile &&
-      !autoBiometricTriggered.current
+      !autoBiometricTriggered.current && !ipStatus?.requires_email_otp
     ) {
       autoBiometricTriggered.current = true;
       void handleVerifyBiometric();
     }
-  }, [mode, hasRegisteredBiometrics, isThisDeviceEnrolled, showManualCodeOnMobile]);
+  }, [mode, hasRegisteredBiometrics, isThisDeviceEnrolled, showManualCodeOnMobile, ipStatus?.requires_email_otp]);
 
   const handleEnrollBiometricOnLogin = async () => {
     if (!user) return;
@@ -227,19 +296,48 @@ export const TwoFactorView: React.FC = () => {
     setLoading(true);
 
     try {
+      // 1. Si se detectó anomalía de IP nueva (post 3 días), validar código recibido en el correo
+      if (ipStatus?.requires_email_otp) {
+        if (!anomalyEmailCode.trim() || anomalyEmailCode.trim().length !== 6) {
+          setError('Ingresa el código de 6 dígitos enviado a tu correo para autorizar esta nueva IP.');
+          setLoading(false);
+          return;
+        }
+
+        const userEmail = (user?.email || profile?.email || '').trim();
+        const { error: otpVerifyErr } = await supabase.auth.verifyOtp({
+          email: userEmail,
+          token: anomalyEmailCode.trim(),
+          type: 'email',
+        });
+
+        if (otpVerifyErr) {
+          setError('El código de verificación del correo es incorrecto o ha expirado.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Validar código TOTP de la aplicación autenticadora
       const isValid = await verifyTotp(code.trim(), activeSecret);
       if (!isValid) {
-        setError('Código incorrecto o expirado. Ingresa el código actual de 6 dígitos.');
-      } else if (mobileBiometricSupported && !isThisDeviceEnrolled) {
-        // Ofrecer vincular Face ID en este teléfono móvil (nuevo o cambiado)
-        setError(null);
-        setSuccessMsg('Código 2FA verificado correctamente.');
-        setMode('enroll_biometric');
-      } else if (!verify2FASession()) {
-        setError('La sesión cambió mientras verificábamos el código. Ingresa el código actual e inténtalo de nuevo.');
+        setError('Código de autenticador (TOTP) incorrecto o expirado.');
+      } else {
+        // 3. Registrar la nueva IP como autorizada en Supabase
+        if (ipStatus?.requires_email_otp && ipStatus?.client_ip) {
+          await authorizeCurrentIp(ipStatus.client_ip);
+        }
+
+        if (mobileBiometricSupported && !isThisDeviceEnrolled) {
+          setError(null);
+          setSuccessMsg('Verificación de seguridad exitosa. IP autorizada.');
+          setMode('enroll_biometric');
+        } else if (!verify2FASession()) {
+          setError('La sesión cambió mientras verificábamos el código. Ingresa el código actual e inténtalo de nuevo.');
+        }
       }
     } catch {
-      setError('Error al validar el código 2FA');
+      setError('Error al validar la seguridad de acceso');
     } finally {
       setLoading(false);
     }
@@ -267,7 +365,29 @@ export const TwoFactorView: React.FC = () => {
     }
 
     try {
-      // Consume the backup code (remove it from array in DB)
+      // 1. Si se detectó anomalía de IP nueva, validar código de correo primero
+      if (ipStatus?.requires_email_otp) {
+        if (!anomalyEmailCode.trim() || anomalyEmailCode.trim().length !== 6) {
+          setError('Ingresa el código de 6 dígitos enviado a tu correo para autorizar esta nueva IP.');
+          setLoading(false);
+          return;
+        }
+
+        const userEmail = (user?.email || profile?.email || '').trim();
+        const { error: otpVerifyErr } = await supabase.auth.verifyOtp({
+          email: userEmail,
+          token: anomalyEmailCode.trim(),
+          type: 'email',
+        });
+
+        if (otpVerifyErr) {
+          setError('El código de verificación del correo es incorrecto o ha expirado.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Consume the backup code (remove it from array in DB)
       const remainingCodes = savedBackupCodes.filter((_, idx) => idx !== matchedIndex);
       const { error: updateError } = await supabase
         .from('profiles')
@@ -279,6 +399,11 @@ export const TwoFactorView: React.FC = () => {
       // Clean up pending storage once successfully saved
       sessionStorage.removeItem('kpl_pending_2fa_secret');
       sessionStorage.removeItem('kpl_pending_backup_codes');
+
+      // 3. Registrar la nueva IP como autorizada en Supabase
+      if (ipStatus?.requires_email_otp && ipStatus?.client_ip) {
+        await authorizeCurrentIp(ipStatus.client_ip);
+      }
 
       if (refreshProfile) {
         await refreshProfile();
@@ -654,7 +779,7 @@ export const TwoFactorView: React.FC = () => {
         {/* ============================================================== */}
         {mode === 'verify' && (
           <div className="space-y-4">
-            {hasRegisteredBiometrics && !showManualCodeOnMobile ? (
+            {hasRegisteredBiometrics && !showManualCodeOnMobile && !ipStatus?.requires_email_otp ? (
               <div className="space-y-4">
                 <div className="p-5 rounded-2xl border border-primary/25 bg-primary/5 flex flex-col items-center text-center gap-3">
                   <div className="w-16 h-16 rounded-2xl bg-primary/15 text-primary flex items-center justify-center text-3xl shadow-inner">
@@ -700,7 +825,19 @@ export const TwoFactorView: React.FC = () => {
               </div>
             ) : (
               <form onSubmit={handleVerifyExisting} className="space-y-4">
-                {hasRegisteredBiometrics && (
+                {ipStatus?.requires_email_otp && (
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-950 dark:text-amber-200 space-y-2 text-left">
+                    <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
+                      <i className="ri-error-warning-fill text-base" />
+                      <span>Nueva ubicación o IP detectada ({ipStatus.client_ip || 'IP no habitual'})</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Por seguridad, detectamos que estás ingresando desde una red o IP no registrada previamente. Hemos enviado un código de 6 dígitos a tu correo <strong className="font-mono text-foreground">{user?.email || profile?.email}</strong>.
+                    </p>
+                  </div>
+                )}
+
+                {hasRegisteredBiometrics && !ipStatus?.requires_email_otp && (
                   <button
                     type="button"
                     disabled={biometricLoading || loading}
@@ -716,12 +853,50 @@ export const TwoFactorView: React.FC = () => {
                   </button>
                 )}
 
+                {ipStatus?.requires_email_otp && (
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1 text-left">
+                      1. Código enviado a tu correo (6 dígitos)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        autoFocus
+                        value={anomalyEmailCode}
+                        onChange={(e) => setAnomalyEmailCode(e.target.value.replace(/\D/g, ''))}
+                        placeholder="000000"
+                        className="flex-1 text-center text-2xl tracking-[0.25em] font-mono font-bold py-2.5 px-3 rounded-xl border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                      />
+                      <button
+                        type="button"
+                        disabled={sendingAnomalyOtp || anomalyOtpCooldown > 0}
+                        onClick={() => void sendAnomalyEmailOtp(ipStatus.client_ip)}
+                        className="px-3.5 py-2 text-xs font-semibold rounded-xl border border-border bg-card hover:bg-muted text-foreground disabled:opacity-50 shrink-0 transition-colors"
+                        title="Reenviar código de correo"
+                      >
+                        {sendingAnomalyOtp ? (
+                          <i className="ri-loader-4-line animate-spin text-sm" />
+                        ) : anomalyOtpCooldown > 0 ? (
+                          <span className="font-mono">{anomalyOtpCooldown}s</span>
+                        ) : (
+                          <span className="flex items-center gap-1"><i className="ri-refresh-line" /> Reenviar</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 text-left">
+                    {ipStatus?.requires_email_otp ? '2. Código de tu aplicación autenticadora (TOTP)' : 'Código de 6 dígitos del autenticador'}
+                  </label>
                   <input
                     type="text"
                     inputMode="numeric"
                     maxLength={6}
-                    autoFocus
+                    autoFocus={!ipStatus?.requires_email_otp}
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="000000"
@@ -731,11 +906,11 @@ export const TwoFactorView: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={loading || code.length !== 6}
+                  disabled={loading || code.length !== 6 || (!!ipStatus?.requires_email_otp && anomalyEmailCode.length !== 6)}
                   className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
                   {loading && <i className="ri-loader-4-line animate-spin" />}
-                  <span>Verificar y Continuar</span>
+                  <span>{ipStatus?.requires_email_otp ? 'Verificar y Autorizar Nueva IP' : 'Verificar y Continuar'}</span>
                 </button>
               </form>
             )}
@@ -832,6 +1007,48 @@ export const TwoFactorView: React.FC = () => {
         {/* ============================================================== */}
         {mode === 'verify_backup' && (
           <form onSubmit={handleVerifyBackupCode} className="space-y-4">
+            {ipStatus?.requires_email_otp && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-950 dark:text-amber-200 space-y-2 text-left">
+                <div className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
+                  <i className="ri-error-warning-fill text-base" />
+                  <span>Nueva ubicación o IP detectada ({ipStatus.client_ip || 'IP no habitual'})</span>
+                </div>
+                <p className="leading-relaxed">
+                  Para autorizar esta nueva IP, también debes ingresar el código de 6 dígitos enviado a tu correo <strong className="font-mono text-foreground">{user?.email || profile?.email}</strong>.
+                </p>
+                <div className="pt-1">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1 text-left">
+                    Código del correo (6 dígitos)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={anomalyEmailCode}
+                      onChange={(e) => setAnomalyEmailCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000"
+                      className="flex-1 text-center text-xl tracking-[0.25em] font-mono font-bold py-2 px-3 rounded-xl border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={sendingAnomalyOtp || anomalyOtpCooldown > 0}
+                      onClick={() => void sendAnomalyEmailOtp(ipStatus.client_ip)}
+                      className="px-3.5 py-2 text-xs font-semibold rounded-xl border border-border bg-card hover:bg-muted text-foreground disabled:opacity-50 shrink-0 transition-colors"
+                      title="Reenviar código de correo"
+                    >
+                      {sendingAnomalyOtp ? (
+                        <i className="ri-loader-4-line animate-spin text-sm" />
+                      ) : anomalyOtpCooldown > 0 ? (
+                        <span className="font-mono">{anomalyOtpCooldown}s</span>
+                      ) : (
+                        <span className="flex items-center gap-1"><i className="ri-refresh-line" /> Reenviar</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1 text-center">
                 Código de Respaldo (con o sin guión)
@@ -852,7 +1069,7 @@ export const TwoFactorView: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading || code.replace(/[^A-Za-z0-9]/g, '').length < 8}
+              disabled={loading || code.replace(/[^A-Za-z0-9]/g, '').length < 8 || (!!ipStatus?.requires_email_otp && anomalyEmailCode.length !== 6)}
               className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
               {loading && <i className="ri-loader-4-line animate-spin" />}
