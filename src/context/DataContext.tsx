@@ -1735,7 +1735,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const insertData: any = {
         fecha: payload.fecha || new Date().toISOString().split('T')[0],
-        concepto: payload.concepto || 'Gasto Operativo',
+        concepto: String(payload.concepto || 'GASTO OPERATIVO').trim().toUpperCase(),
         categoria: payload.categoria || 'Otros Gastos Operativos',
         divisa: payload.divisa || 'COP',
         monto: montoNum,
@@ -1892,7 +1892,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateGasto = async (payload: any) => {
     requireWrite('admin');
     const { data: saved, error } = await supabase.from('gastos').update({
-      concepto: payload.concepto, categoria: payload.categoria, divisa: payload.divisa, monto: payload.monto,
+      concepto: String(payload.concepto || '').trim().toUpperCase(), categoria: payload.categoria, divisa: payload.divisa, monto: payload.monto,
       origen_fondos: payload.origenFondos, origen_fondos_id: payload.origenFondosId, fecha: payload.fecha,
     }).eq('id', payload.id).select('*').single();
     if (error) throw dashboardWriteError(error, 'No se pudo editar el gasto.');

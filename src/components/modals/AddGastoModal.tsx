@@ -37,6 +37,7 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
   }, [data.activosLiquidos]);
 
   const [divisa, setDivisa] = useState<string>(isCashContext ? 'COP' : (record?.divisa || 'COP'));
+  const [concepto, setConcepto] = useState<string>(() => (record?.concepto || '').toUpperCase());
   const [categoria, setCategoria] = useState<string>(record?.categoria || '');
   const [accountId, setAccountId] = useState<string>(() => {
     if (record?.origenFondosId) return record.origenFondosId;
@@ -68,9 +69,9 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
     if (busy) return;
     const fields = new FormData(event.currentTarget);
     const monto = parseAmountInput(String(fields.get('monto') ?? ''));
-    const concepto = String(fields.get('concepto')).trim();
+    const conceptoClean = concepto.trim().toUpperCase();
     const account = accounts.find((item) => item.id === accountId || (!accountId && accountLabel(item) === record?.origenFondos));
-    if (!account || !concepto || !Number.isFinite(monto) || monto <= 0) {
+    if (!account || !conceptoClean || !Number.isFinite(monto) || monto <= 0) {
       setError('Completa el concepto, selecciona el origen e ingresa un monto mayor que cero.');
       return;
     }
@@ -81,7 +82,7 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
     try {
       const success = await (record ? updateGasto : createGasto)({
         id: record?.id,
-        concepto, divisa, monto, origenFondos: accountLabel(account), origenFondosId: account.id,
+        concepto: conceptoClean, divisa, monto, origenFondos: accountLabel(account), origenFondosId: account.id,
         categoria: categoria || String(fields.get('categoria') || ''), fecha: fields.get('fecha'),
         comprobanteUrl: record ? undefined : await uploadReceipt(fields.get('comprobante'), 'gastos'),
       });
@@ -102,7 +103,7 @@ const GastoForm = ({ onClose, record, isCashContext, defaultOrigenFondos }: Omit
         <fieldset disabled={busy} className="space-y-4">
           <label className={recordLabelClass}>
             <span>Concepto</span>
-            <input name="concepto" defaultValue={record?.concepto} required className={recordFieldClass} />
+            <input name="concepto" value={concepto} onChange={(e) => setConcepto(e.target.value.toUpperCase())} placeholder="EJ: SERVICIO DE INTERNET" required className={`${recordFieldClass} uppercase`} />
           </label>
           <div className="space-y-1.5">
             <label className={recordLabelClass}>Categoría contable</label>
