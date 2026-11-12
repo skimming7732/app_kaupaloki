@@ -4,6 +4,7 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
 import { AssetCatalogButton } from '../components/modals/AssetCatalogButton';
 import { AssetInstitutionLogo } from '../components/common/InstitutionLogo';
+import { formatJurisdiction } from '../utils/countryJurisdiction';
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -122,6 +123,15 @@ export const ActivosLiquidosView: React.FC = () => {
                   <span className="max-w-24 shrink-0 truncate text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                     {selectedActivo.institucion}
                   </span>
+                  {(() => {
+                    const jur = formatJurisdiction(selectedActivo.pais);
+                    return (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted border border-border text-foreground">
+                        <span className="text-sm leading-none">{jur.flag}</span>
+                        <span>{jur.name}</span>
+                      </span>
+                    );
+                  })()}
                 </h2>
                 <p className="text-xs text-muted-foreground">Historial de movimientos y saldo en custodia institucional</p>
               </div>
@@ -287,7 +297,7 @@ export const ActivosLiquidosView: React.FC = () => {
             </div>
 
             {/* Account Metadata Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 relative z-10">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 pt-6 relative z-10">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                   Titular
@@ -303,6 +313,16 @@ export const ActivosLiquidosView: React.FC = () => {
                 </span>
                 <span className="text-xs sm:text-sm font-semibold text-white uppercase truncate block">
                   {selectedActivo.institucion}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  Jurisdicción
+                </span>
+                <span className="text-xs sm:text-sm font-semibold text-white truncate flex items-center gap-1.5">
+                  <span className="text-base leading-none">{formatJurisdiction(selectedActivo.pais).flag}</span>
+                  <span>{formatJurisdiction(selectedActivo.pais).name}</span>
                 </span>
               </div>
 
@@ -529,9 +549,20 @@ export const ActivosLiquidosView: React.FC = () => {
                           <h4 title={a.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-indigo-200 transition-colors">{a.activo}</h4>
                         </div>
                       </div>
-                      <span className="text-[11px] font-mono font-bold text-white/80 bg-black/20 px-2 py-0.5 rounded">
-                        COP
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {(() => {
+                          const jur = formatJurisdiction(a.pais);
+                          return (
+                            <span className="text-[11px] font-medium text-white/95 bg-black/25 backdrop-blur-sm border border-white/10 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm" title={`Jurisdicción: ${jur.name}`}>
+                              <span className="text-sm leading-none">{jur.flag}</span>
+                              <span className="truncate max-w-[85px]">{jur.name}</span>
+                            </span>
+                          );
+                        })()}
+                        <span className="text-[11px] font-mono font-bold text-white/80 bg-black/20 px-2 py-0.5 rounded">
+                          COP
+                        </span>
+                      </div>
                     </div>
 
                     {/* Middle Row: Balances */}
@@ -582,6 +613,7 @@ export const ActivosLiquidosView: React.FC = () => {
                   <tr>
                     <th className="py-3 px-4">Institución</th>
                     <th className="py-3 px-4">Activo / Cuenta</th>
+                    <th className="py-3 px-4">Jurisdicción</th>
                     <th className="py-3 px-4">Titular</th>
                     <th className="py-3 px-4 text-right">Ingresos</th>
                     <th className="py-3 px-4 text-right">Egresos</th>
@@ -591,7 +623,9 @@ export const ActivosLiquidosView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {<PaginatedRows columns={8} rows={activos}>{(a: any) => (
+                  {<PaginatedRows columns={9} rows={activos}>{(a: any) => {
+                    const jur = formatJurisdiction(a.pais);
+                    return (
                     <tr
                       key={a.id}
                       onClick={() => setSelectedActivoId(a.id)}
@@ -605,6 +639,12 @@ export const ActivosLiquidosView: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 font-medium text-foreground">
                         {a.activo}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted/60 text-foreground border border-border whitespace-nowrap">
+                          <span className="text-sm leading-none">{jur.flag}</span>
+                          <span>{jur.name}</span>
+                        </span>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">
                         {a.titular || a.empresa}
@@ -633,7 +673,7 @@ export const ActivosLiquidosView: React.FC = () => {
                       </td>
                       <CreatedByCell name={a.createdByName} />
                     </tr>
-                  )}</PaginatedRows>}
+                  );}}</PaginatedRows>}
                 </tbody>
               </table>
             </div>

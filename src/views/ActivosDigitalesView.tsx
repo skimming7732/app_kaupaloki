@@ -11,6 +11,7 @@ import { isTronAddress, isTronNetwork } from '../utils/tronUsdtBalance';
 import { isPolygonAddress, isPolygonNetwork } from '../utils/polygonUsdtBalance';
 import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
 import { formatCOP, formatNumber, formatRate, formatUSD, formatDate } from '../utils/formatters';
+import { formatJurisdiction } from '../utils/countryJurisdiction';
 
 export const ActivosDigitalesView: React.FC = () => {
   const { data, metrics, loading: dataLoading } = useData();
@@ -219,6 +220,15 @@ export const ActivosDigitalesView: React.FC = () => {
                   }`}>
                     {isPolygon ? 'Polygon (PoS)' : (selectedWallet.red || 'TRON (TRC20)')}
                   </span>
+                  {(() => {
+                    const jur = formatJurisdiction(selectedWallet.pais);
+                    return (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted border border-border text-foreground">
+                        <span className="text-sm leading-none">{jur.flag}</span>
+                        <span>{jur.name}</span>
+                      </span>
+                    );
+                  })()}
                 </h2>
                 <p className="text-xs text-muted-foreground">Movimientos en cadena, saldo contable y saldo real auditado</p>
               </div>
@@ -400,13 +410,23 @@ export const ActivosDigitalesView: React.FC = () => {
             </div>
 
             {/* Wallet Metadata Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6 relative z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-6 relative z-10">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70 block mb-1">
                   Wallet / Titular
                 </span>
                 <span className="text-xs sm:text-sm font-semibold text-white truncate block">
                   {selectedWallet.titular || selectedWallet.activo}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/70 block mb-1">
+                  Jurisdicción
+                </span>
+                <span className="text-xs sm:text-sm font-semibold text-white truncate flex items-center gap-1.5">
+                  <span className="text-base leading-none">{formatJurisdiction(selectedWallet.pais).flag}</span>
+                  <span>{formatJurisdiction(selectedWallet.pais).name}</span>
                 </span>
               </div>
 
@@ -668,14 +688,25 @@ export const ActivosDigitalesView: React.FC = () => {
                           <h4 title={w.activo} className="truncate text-base font-bold text-white tracking-tight group-hover:text-emerald-200 transition-colors">{w.activo}</h4>
                         </div>
                       </div>
-                      {validChain && (
-                        <a href={expUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-                          className="shrink-0 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-cyan-300 text-[11px] font-mono font-semibold flex items-center gap-1 transition-colors border border-white/10 shadow-sm"
-                          aria-label={isPoly ? "Ver dirección en Polygonscan" : "Ver dirección en Tronscan"} title={address}>
-                          <span className="hidden sm:inline">{formatShortWallet(address)}</span>
-                          <i className="ri-external-link-line text-xs" aria-hidden="true" />
-                        </a>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {(() => {
+                          const jur = formatJurisdiction(w.pais);
+                          return (
+                            <span className="text-[11px] font-medium text-white/95 bg-black/25 backdrop-blur-sm border border-white/10 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm" title={`Jurisdicción: ${jur.name}`}>
+                              <span className="text-sm leading-none">{jur.flag}</span>
+                              <span className="truncate max-w-[85px]">{jur.name}</span>
+                            </span>
+                          );
+                        })()}
+                        {validChain && (
+                          <a href={expUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                            className="shrink-0 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-cyan-300 text-[11px] font-mono font-semibold flex items-center gap-1 transition-colors border border-white/10 shadow-sm"
+                            aria-label={isPoly ? "Ver dirección en Polygonscan" : "Ver dirección en Tronscan"} title={address}>
+                            <span className="hidden sm:inline">{formatShortWallet(address)}</span>
+                            <i className="ri-external-link-line text-xs" aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
                     </div>
 
                     {/* Middle Row: Saldo Contable & Saldo Real */}
@@ -730,6 +761,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
                   <tr>
                     <th className="py-3 px-4">Billetera / Activo</th>
+                    <th className="py-3 px-4">Jurisdicción</th>
                     <th className="py-3 px-4">Red</th>
                     <th className="py-3 px-4">Dirección pública</th>
                     <th className="py-3 px-4 text-right">Saldo Contable (USDT)</th>
@@ -740,13 +772,14 @@ export const ActivosDigitalesView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {<PaginatedRows columns={8} rows={wallets}>{(w: any) => {
+                  {<PaginatedRows columns={9} rows={wallets}>{(w: any) => {
                     const address = String(w.wallet || '').trim();
                     const isPoly = isPolygonNetwork(w.red);
                     const isTr = isTronNetwork(w.red) || !isPoly;
                     const validChain = (isPoly && isPolygonAddress(address)) || (isTr && isTronAddress(address));
                     const expUrl = getExplorerUrl(address, w.red);
                     const hasReal = w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal);
+                    const jur = formatJurisdiction(w.pais);
                     return (
                       <tr
                         key={w.id}
@@ -758,6 +791,12 @@ export const ActivosDigitalesView: React.FC = () => {
                             <InstitutionLogo name={w.institution?.name || 'Institución sin vincular'} logoUrl={w.institution?.logo_url}
                             fallbackIcon="ri-wallet-3-line" sizeClass="size-5" />
                             {w.activo}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted/60 text-foreground border border-border whitespace-nowrap">
+                            <span className="text-sm leading-none">{jur.flag}</span>
+                            <span>{jur.name}</span>
                           </span>
                         </td>
                         <td className="py-3 px-4">

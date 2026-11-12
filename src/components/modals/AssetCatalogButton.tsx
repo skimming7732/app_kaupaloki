@@ -10,6 +10,7 @@ import { isPolygonAddress, isPolygonNetwork } from '../../utils/polygonUsdtBalan
 import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { AssetInstitutionLogo } from '../common/InstitutionLogo';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
+import { JURISDICTION_COUNTRIES, getCountryFlag } from '../../utils/countryJurisdiction';
 
 type Asset = {
   id: string;
@@ -27,21 +28,6 @@ type Asset = {
   apiId?: string;
   api_id?: string;
 };
-
-const OPERATION_COUNTRIES = [
-  { value: 'Colombia', label: 'Colombia (COP)', flag: '🇨🇴' },
-  { value: 'Perú', label: 'Perú (PEN)', flag: '🇵🇪' },
-  { value: 'Estados Unidos', label: 'Estados Unidos (USD)', flag: '🇺🇸' },
-  { value: 'Brasil', label: 'Brasil (BRL)', flag: '🇧🇷' },
-  { value: 'México', label: 'México (MXN)', flag: '🇲🇽' },
-  { value: 'Chile', label: 'Chile (CLP)', flag: '🇨🇱' },
-  { value: 'Argentina', label: 'Argentina (ARS)', flag: '🇦🇷' },
-  { value: 'Ecuador', label: 'Ecuador (USD)', flag: '🇪🇨' },
-  { value: 'Panamá', label: 'Panamá (USD)', flag: '🇵🇦' },
-  { value: 'Uruguay', label: 'Uruguay (UYU)', flag: '🇺🇾' },
-  { value: 'Venezuela', label: 'Venezuela (VES)', flag: '🇻🇪' },
-  { value: 'Internacional / Cripto', label: 'Internacional / Cripto (Global)', flag: '🌐' },
-];
 
 const assetName = (institution: string, holder: string) => [institution, holder].filter(Boolean).join(' · ');
 
@@ -107,7 +93,7 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
   const legacyInstitution = asset?.institucion || '';
 
   const countryOptions = useMemo(() => {
-    const list = [...OPERATION_COUNTRIES];
+    const list = [...JURISDICTION_COUNTRIES];
     const seen = new Set(list.map((c) => c.value.toLowerCase()));
     for (const d of data.divisas || []) {
       const p = d.pais ? String(d.pais).replace(/\s*\([^)]*\)\s*$/, '').trim() : '';
@@ -115,8 +101,8 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
         seen.add(p.toLowerCase());
         list.push({
           value: p,
-          label: `${p} (${d.codigo})`,
-          flag: '🏳️',
+          label: p,
+          flag: getCountryFlag(p),
         });
       }
     }
@@ -282,7 +268,7 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
               </label>
 
               <label className={recordLabelClass}>
-                <span>País de uso / fondos</span>
+                <span>País de jurisdicción</span>
                 <select
                   name="pais"
                   defaultValue={asset?.pais || 'Colombia'}
@@ -295,7 +281,7 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
                   ))}
                 </select>
                 <span className="text-[11px] text-muted-foreground block mt-0.5">
-                  País o jurisdicción donde se suelen recibir o dispersar los fondos de esta cuenta/billetera.
+                  Jurisdicción legal o territorio de operación de los fondos.
                 </span>
               </label>
 
