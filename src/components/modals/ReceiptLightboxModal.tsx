@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { receiptPreviewUrl } from '../../utils/receipts';
 import { formatCOP } from '../../utils/formatters';
+import { downloadBlobOrDataUrl } from '../../utils/fileDownloadHelper';
 
 export interface LightboxItem {
   id: string;
@@ -114,15 +115,9 @@ export const ReceiptLightboxModal: React.FC<ReceiptLightboxModalProps> = ({
     try {
       const res = await fetch(resolvedUrl);
       const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
       const ext = blob.type.includes('pdf') ? 'pdf' : 'png';
-      a.download = `Comprobante_${current.codigo}.${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      const filename = `Comprobante_${current.codigo}.${ext}`;
+      await downloadBlobOrDataUrl(blob, filename, `Comprobante ${current.codigo}`);
     } catch {
       window.open(resolvedUrl, '_blank');
     }

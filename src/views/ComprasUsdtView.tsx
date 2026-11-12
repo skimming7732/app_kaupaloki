@@ -7,6 +7,8 @@ import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/common/CreatedByCell';
 import { CreatedByFilter } from '../components/common/CreatedByFilter';
 import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
+import { UsdtVoucherModal } from '../components/modals/UsdtVoucherModal';
+import { UsdtTransactionVoucherData } from '../utils/usdtVoucherGenerator';
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { formatDate } from '../utils/formatters';
@@ -19,6 +21,7 @@ export const ComprasUsdtView: React.FC = () => {
   const [fechaHasta, setFechaHasta] = useState('');
   const [filterCreador, setFilterCreador] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedVoucher, setSelectedVoucher] = useState<UsdtTransactionVoucherData | null>(null);
 
   const { totalOperaciones, divisasUnicas, filteredCompras } = useMemo(() => {
     const divisasSet = new Set<string>();
@@ -239,7 +242,30 @@ export const ComprasUsdtView: React.FC = () => {
                       </span>
                     </td>
                     <CreatedByCell name={c.createdByName} />
-                    <td className="px-4"><AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: false, fields: { fecha: c.fecha?.slice(0, 10) || '', proveedor: c.proveedor || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, tasa: c.tasa !== undefined && c.tasa !== null ? c.tasa : (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0), usdt_comprado: c.usdtComprado, wallet_destino_id: c.walletDestinoId || '' } }} /></td>
+                    <td className="px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedVoucher({
+                            tipo: 'COMPRA',
+                            codigo: c.codigo,
+                            fecha: c.fecha?.slice(0, 10) || '',
+                            contraparte: c.proveedor || 'Sin proveedor',
+                            divisa: c.divisaCodigo,
+                            montoDivisa: c.valorComprado,
+                            usdtMonto: c.usdtComprado,
+                            tasa: c.tasa !== undefined && c.tasa !== null ? c.tasa : (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0),
+                            wallet: c.walletDestino || (c.walletDestinoId && data.activosDigitales.find((a) => a.id === c.walletDestinoId)?.activo) || data.activosDigitales[0]?.activo || 'Billetera',
+                            createdByName: c.createdByName,
+                          })}
+                          className="p-1.5 rounded-lg border border-border bg-card hover:bg-muted text-primary hover:text-primary transition-colors"
+                          title="Ver comprobante de operación"
+                        >
+                          <i className="ri-file-text-line text-sm" />
+                        </button>
+                        <AddCatalogButton table="compras_usdt" edit={{ id: c.id, historical: false, fields: { fecha: c.fecha?.slice(0, 10) || '', proveedor: c.proveedor || '', divisa_codigo: c.divisaCodigo, valor_comprado: c.valorComprado, tasa: c.tasa !== undefined && c.tasa !== null ? c.tasa : (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0), usdt_comprado: c.usdtComprado, wallet_destino_id: c.walletDestinoId || '' } }} />
+                      </div>
+                    </td>
                   </tr>
                 )}</PaginatedRows>
               )}
@@ -303,7 +329,27 @@ export const ComprasUsdtView: React.FC = () => {
 
               <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
                 <CreatedByCell name={c.createdByName} />
-                <div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedVoucher({
+                      tipo: 'COMPRA',
+                      codigo: c.codigo,
+                      fecha: c.fecha?.slice(0, 10) || '',
+                      contraparte: c.proveedor || 'Sin proveedor',
+                      divisa: c.divisaCodigo,
+                      montoDivisa: c.valorComprado,
+                      usdtMonto: c.usdtComprado,
+                      tasa: c.tasa !== undefined && c.tasa !== null ? c.tasa : (c.usdtComprado > 0 ? c.valorComprado / c.usdtComprado : 0),
+                      wallet: c.walletDestino || (c.walletDestinoId && data.activosDigitales.find((a) => a.id === c.walletDestinoId)?.activo) || data.activosDigitales[0]?.activo || 'Billetera',
+                      createdByName: c.createdByName,
+                    })}
+                    className="p-1.5 rounded-lg border border-border bg-card hover:bg-muted text-primary hover:text-primary transition-colors text-xs flex items-center gap-1"
+                    title="Ver comprobante de operación"
+                  >
+                    <i className="ri-file-text-line text-sm" />
+                    <span className="hidden sm:inline">Comprobante</span>
+                  </button>
                   <AddCatalogButton
                     table="compras_usdt"
                     edit={{
@@ -327,6 +373,7 @@ export const ComprasUsdtView: React.FC = () => {
         )}
       </div>
 
+      <UsdtVoucherModal isOpen={Boolean(selectedVoucher)} onClose={() => setSelectedVoucher(null)} data={selectedVoucher} />
     </div>
   );
 };

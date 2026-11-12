@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { downloadBlobOrDataUrl } from './fileDownloadHelper';
 
 export interface TokenVoucherData {
   codigo?: string;
@@ -190,11 +191,7 @@ export async function generateTokenVoucherDataUrl(token: CashToken, preview = fa
  */
 export async function downloadTokenVoucher(token: CashToken, precomputedDataUrl?: string) {
   const dataUrl = precomputedDataUrl || (await generateTokenVoucherDataUrl(token));
-  const link = document.createElement('a');
   const cleanCode = (token.codigo || token.token_code || 'token').replace(/[^a-zA-Z0-9_-]/g, '_');
-  link.download = `Token_${cleanCode}_${token.estado || 'activo'}.png`;
-  link.href = dataUrl;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const filename = `Token_${cleanCode}_${token.estado || 'activo'}.png`;
+  await downloadBlobOrDataUrl(dataUrl, filename, `Vale de retiro ${token.codigo || token.token_code}`);
 }

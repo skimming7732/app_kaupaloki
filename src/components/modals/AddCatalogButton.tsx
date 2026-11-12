@@ -129,7 +129,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
       title: 'Registrar compra USDT', description: 'Indica la divisa entregada, el proveedor y la billetera que recibe los USDT.', icon: 'ri-shopping-cart-2-line',
       fields: [
         dateField,
-        { name: 'proveedor', label: 'Proveedor', optional: true },
+        { name: 'proveedor', label: 'Proveedor' },
         { name: 'divisa_codigo', label: 'Divisa entregada' },
         { name: 'valor_comprado', label: 'Monto entregado', type: 'number' },
         { name: 'tasa', label: 'Tasa de compra', type: 'number' },
@@ -255,7 +255,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
         }
         record[field.name] = number;
       } else if (value) {
-        record[field.name] = value;
+        record[field.name] = (field.name === 'proveedor' || field.name === 'concepto') ? value.toUpperCase() : value;
       } else if (edit && field.optional) {
         record[field.name] = '';
       }
@@ -308,6 +308,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     const isAmount = isUsdt && field.name === amountField;
     const isRate = isUsdt && field.name === 'tasa';
     const isFee = isSale && field.name === 'fee_usdt';
+    const isUppercase = field.name === 'proveedor' || field.name === 'concepto';
     const unit = isAmount ? (fromFinal ? finalUnit : sourceCurrency) : isRate && isPurchase && currency ? currency + ' por USDT' : '';
     return (
       <div className="min-w-0 space-y-1.5" key={field.name}>
@@ -330,14 +331,16 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
                 if (isAmount) (fromFinal ? setFinalAmount : setAmount)(value);
                 if (isRate) setRateInput(value);
                 if (isFee) setFeeInput(value);
+              } : isUppercase ? (event) => {
+                event.currentTarget.value = event.currentTarget.value.toUpperCase();
               } : undefined}
               aria-invalid={(isAmount && (exceedsBalance || (fromFinal && Boolean(finalAmount) && !Number.isFinite(parsedFinal)))) || (isFee && !validFee) || undefined}
               name={isAmount && fromFinal ? 'monto_final' : field.name}
               type={field.type === 'date' ? 'date' : 'text'}
               inputMode={field.type === 'number' ? 'decimal' : undefined}
-              placeholder={isRate ? '0.0000' : isAmount || isFee ? '0.00' : field.name === 'proveedor' ? 'Nombre o empresa del proveedor' : undefined}
+              placeholder={isRate ? '0.0000' : isAmount || isFee ? '0.00' : field.name === 'proveedor' ? 'NOMBRE O EMPRESA DEL PROVEEDOR' : field.name === 'concepto' ? 'CONCEPTO DE LA OPERACIÓN' : undefined}
               required={!field.optional}
-              className={recordFieldClass}
+              className={`${recordFieldClass} ${isUppercase ? 'uppercase' : ''}`}
             />
           )}
         </label>

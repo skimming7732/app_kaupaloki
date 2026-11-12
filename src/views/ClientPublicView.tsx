@@ -504,7 +504,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4 text-right">Ingreso COP</th>
                 </tr>
               </thead>
-              <tbody className="divide-y border-border">
+              <tbody className="divide-y divide-border">
                 {filteredNegocios.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-muted-foreground">
@@ -556,7 +556,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4 text-right">Monto Pagado (COP)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y border-border">
+              <tbody className="divide-y divide-border">
                 {filteredPagos.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-muted-foreground">
@@ -603,7 +603,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4 text-right">Monto Ingresado (COP)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y border-border">
+              <tbody className="divide-y divide-border">
                 {filteredIngresos.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-10 text-center text-muted-foreground">
@@ -643,7 +643,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4 text-right">Total Comisiones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y border-border">
+              <tbody className="divide-y divide-border">
                 {clientComisiones.map((item) => (
                   <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-foreground">
@@ -662,6 +662,29 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           </div>
         </div>
       )}
+
+      {/* Footer Legal & AML Disclaimer */}
+      <footer className="mt-8 pt-6 border-t border-border">
+        <div className="rounded-2xl border border-border/80 bg-muted/20 dark:bg-muted/10 p-4 sm:p-5 text-center">
+          <div className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-foreground mb-2">
+            <i className="ri-shield-check-line text-primary" />
+            <span>Aviso Legal y de Cumplimiento Normativo</span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground max-w-4xl mx-auto">
+            Kaupaloki opera como una plataforma tecnológica de gestión contable privada en fase de Producto Mínimo Viable (MVP).
+            No somos una entidad financiera, establecimiento bancario, captadora de recursos del público ni intermediario del mercado cambiario (IMC)
+            vigilado por la Superintendencia Financiera de Colombia. La información expuesta es confidencial, de carácter estrictamente informativo
+            y para consulta privada entre las partes. En cumplimiento de las buenas prácticas de prevención de lavado de activos y financiación del terrorismo
+            (SAGRILAFT / PTEE / LA/FT/FPADM) conforme al ordenamiento jurídico colombiano, todos los fondos y operaciones registrados deben provenir
+            exclusivamente de fuentes lícitas y verificables.
+          </p>
+          <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-muted-foreground/80 font-mono">
+            <span>© {new Date().getFullYear()} Kaupaloki Technology</span>
+            <span>•</span>
+            <span>Privacidad & Cumplimiento</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

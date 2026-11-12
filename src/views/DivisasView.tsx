@@ -261,7 +261,7 @@ export const DivisasView: React.FC = () => {
                 <th className="py-3 px-4 text-center">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y border-border">
+            <tbody className="divide-y divide-border">
               {filteredDivisas.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-muted-foreground">

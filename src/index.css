@@ -100,6 +100,16 @@ html, body {
   width: 100%;
 }
 
+/* Ensure table rows and dividers adapt smoothly to dark mode */
+.divide-y > :not([hidden]) ~ :not([hidden]),
+.divide-x > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-main);
+}
+
+html.dark table tbody tr {
+  border-color: var(--border-main);
+}
+
 img, svg, video, canvas, audio, iframe, embed, object {
   max-width: 100%;
 }
