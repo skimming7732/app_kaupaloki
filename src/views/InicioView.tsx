@@ -36,12 +36,13 @@ function toDateKey(raw: any): string | null {
 }
 
 /**
- * Genera los 90 nodos diarios correspondientes a los últimos 90 días naturales.
+ * Genera los nodos diarios correspondientes al período seleccionado (30 o 90 días naturales).
  * Agrupa los ingresos de negocios y efectivo registrados por fecha sin requerir filtros manuales.
  */
-function buildLast90DaysIngresos(
+function buildDailyIngresos(
   negocios: Array<any>,
-  efectivo: Array<any> = []
+  efectivo: Array<any> = [],
+  daysCount: number = 30
 ): DailyIngreso[] {
   const mapByDate = new Map<string, { monto: number; count: number }>();
 
@@ -81,17 +82,17 @@ function buildLast90DaysIngresos(
   const result: DailyIngreso[] = [];
   const today = new Date();
 
-  for (let i = 89; i >= 0; i--) {
+  for (let i = daysCount - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
+    const yy = String(yyyy).slice(-2);
     const dateKey = `${yyyy}-${mm}-${dd}`;
+    const fullDate = `${dd}/${mm}/${yy}`; // e.g. "12/11/26"
+    const label = `${dd}/${mm}`;
 
-    const monthName = d.toLocaleDateString('es-CO', { month: 'short' }).replace('.', '');
-    const label = `${d.getDate()} ${monthName}`;
-    const fullDate = d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
     const stat = mapByDate.get(dateKey) || { monto: 0, count: 0 };
 
     result.push({
@@ -132,7 +133,8 @@ const buildSmoothPath = (points: { x: number; y: number }[]) => {
 };
 
 const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; efectivo?: any[]; loading: boolean }) => {
-  const dailyData = useMemo(() => buildLast90DaysIngresos(negocios, efectivo), [negocios, efectivo]);
+  const [daysRange, setDaysRange] = useState<30 | 90>(30);
+  const dailyData = useMemo(() => buildDailyIngresos(negocios, efectivo, daysRange), [negocios, efectivo, daysRange]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   if (loading) {
@@ -147,7 +149,7 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
   const amounts = dailyData.map((d) => d.montoCop);
   const max = Math.max(1, ...amounts);
   const total = amounts.reduce((sum, amount) => sum + amount, 0);
-  const average = total / 90;
+  const average = total / daysRange;
 
   // Por defecto seleccionar el día con transacciones más reciente o hoy
   const defaultIdx = useMemo(() => {
@@ -160,7 +162,7 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
   const activeIdx = selectedIdx !== null && selectedIdx >= 0 && selectedIdx < dailyData.length ? selectedIdx : defaultIdx;
   const activeDay = dailyData[activeIdx] || dailyData[dailyData.length - 1];
 
-  // Dimensiones SVG con espacio óptimo para 90 nodos
+  // Dimensiones SVG con espacio óptimo para 30 o 90 nodos
   const width = 720;
   const height = 185;
   const padX = 32;
@@ -181,11 +183,11 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
 
   const activePoint = points[activeIdx] || points[points.length - 1];
   const activeAmount = activeDay?.montoCop || 0;
-  const tooltipText = `${activeDay?.label}: ${formatCOP(activeAmount)}`;
+  const tooltipText = `${activeDay?.fullDate}: ${formatCOP(activeAmount)}`;
   const pillWidth = Math.max(115, tooltipText.length * 6.8 + 20);
   const tooltipX = activePoint ? Math.max(pillWidth / 2 + 8, Math.min(width - pillWidth / 2 - 8, activePoint.x)) : 360;
 
-  // Interacción suave deslizando el cursor o dedo por los 90 nodos
+  // Interacción suave deslizando el cursor o dedo por los nodos
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const clientX = e.clientX - rect.left;
@@ -197,8 +199,8 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
     setSelectedIdx(clamped);
   };
 
-  // Marcadores de fecha distribuidos a lo largo de los 90 días
-  const tickIndices = [0, 18, 36, 54, 72, 89];
+  // Marcadores de fecha distribuidos a lo largo del período seleccionado
+  const tickIndices = daysRange === 30 ? [0, 6, 12, 18, 24, 29] : [0, 18, 36, 54, 72, 89];
 
   return (
     <section className="h-full rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm transition-all flex flex-col justify-between" aria-labelledby="growth-heading">
@@ -206,10 +208,31 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
       <div>
         <div className="flex items-center justify-between pb-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-primary/10 text-primary text-xs font-bold border border-primary/20">
-              <i className="ri-calendar-line text-xs" />
-              <span>Últimos 90 días</span>
-            </span>
+            {/* Toggle 30 días vs 90 días */}
+            <div className="inline-flex items-center p-0.5 rounded-xl bg-muted/60 border border-border">
+              <button
+                type="button"
+                onClick={() => { setDaysRange(30); setSelectedIdx(null); }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  daysRange === 30
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                30 días
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDaysRange(90); setSelectedIdx(null); }}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  daysRange === 90
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                90 días
+              </button>
+            </div>
             <span className="text-[11px] text-muted-foreground hidden sm:inline">
               Promedio diario: <strong className="font-mono text-foreground">{formatCOP(average)}</strong>
             </span>
@@ -279,16 +302,16 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
               strokeLinejoin="round"
             />
 
-            {/* Micro nodos a lo largo de los 90 días */}
+            {/* Micro nodos a lo largo de los días */}
             {points.map((p, i) => {
               const hasAmount = amounts[i] > 0;
-              if (!hasAmount && i % 3 !== 0) return null;
+              if (!hasAmount && i % (daysRange === 30 ? 1 : 3) !== 0) return null;
               return (
                 <circle
                   key={i}
                   cx={p.x}
                   cy={p.y}
-                  r={hasAmount ? 2.5 : 1.2}
+                  r={hasAmount ? (daysRange === 30 ? 3.5 : 2.5) : (daysRange === 30 ? 1.8 : 1.2)}
                   fill={hasAmount ? '#6366f1' : 'currentColor'}
                   opacity={hasAmount ? 0.9 : 0.25}
                 />
@@ -346,9 +369,9 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
                   key={day.dia}
                   className="hover:text-foreground cursor-pointer transition-colors"
                   onClick={() => setSelectedIdx(idx)}
-                  title={day.fullDate}
+                  title={`${day.fullDate}: ${formatCOP(day.montoCop)}`}
                 >
-                  {day.label}
+                  {day.fullDate}
                 </span>
               );
             })}
