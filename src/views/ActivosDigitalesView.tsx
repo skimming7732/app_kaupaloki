@@ -731,14 +731,19 @@ export const ActivosDigitalesView: React.FC = () => {
                     </div>
 
                     {/* Bottom Row: Metadata & Extract Prompt */}
-                    <div className="pt-3 border-t border-white/10 flex items-center justify-between relative z-10 text-[11px]">
+                    <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 relative z-10 text-[11px]">
                       <div>
                         <span className="text-slate-300 block text-[10px]">Titular</span>
                         <span className="font-semibold text-white">{w.titular || w.activo}</span>
                       </div>
-                      <div className="flex items-center gap-1 font-semibold text-emerald-200 group-hover:translate-x-1 transition-transform">
-                        <span>Ver extracto</span>
-                        <i className="ri-arrow-right-line text-xs" />
+                      <div className="flex items-center gap-2">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <AssetCatalogButton table="activos_digitales" asset={w} allowDelete={false}
+                            buttonClassName="inline-flex min-h-8 items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-1 font-semibold text-white hover:bg-white/20 transition-colors" />
+                        </div>
+                        <span className="flex items-center gap-1 font-semibold text-emerald-200">
+                          Ver extracto <i className="ri-arrow-right-line text-xs" aria-hidden="true" />
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -828,17 +833,17 @@ export const ActivosDigitalesView: React.FC = () => {
                           ${formatRate(w.rateFinal || 3200)}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedWalletId(w.id);
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-[11px] inline-flex items-center gap-1 transition-colors"
-                          >
-                            <span>Extracto</span>
-                            <i className="ri-arrow-right-line" />
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedWalletId(w.id)}
+                              className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-[11px] inline-flex items-center gap-1 transition-colors"
+                            >
+                              <span>Extracto</span>
+                              <i className="ri-arrow-right-line" />
+                            </button>
+                            <AssetCatalogButton table="activos_digitales" asset={w} allowDelete />
+                          </div>
                         </td>
                         <CreatedByCell name={w.createdByName} />
                       </tr>
