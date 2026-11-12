@@ -78,6 +78,19 @@ export const ActivosLiquidosView: React.FC = () => {
     });
   }, [activos, cardSaldoFilter, cardInstitutions, cardCountries]);
 
+  const isFilterActive = cardSaldoFilter !== 'todos' || cardInstitutions.length > 0 || cardCountries.length > 0;
+
+  const filteredTotals = useMemo(() => {
+    return filteredActivosCards.reduce(
+      (acc: { saldo: number; ingresos: number; egresos: number }, a: any) => ({
+        saldo: acc.saldo + (a.saldoCop || 0),
+        ingresos: acc.ingresos + (a.ingresosCop || 0),
+        egresos: acc.egresos + (a.egresosCop || 0),
+      }),
+      { saldo: 0, ingresos: 0, egresos: 0 }
+    );
+  }, [filteredActivosCards]);
+
   const selectedActivo = useMemo(() => {
     if (!selectedActivoId) return null;
     return activos.find((a: any) => a.id === selectedActivoId) || null;
@@ -683,6 +696,59 @@ export const ActivosLiquidosView: React.FC = () => {
                 );
               })}
             </div>
+            )}
+
+            {/* Sum of filtered cards when filter is active */}
+            {isFilterActive && filteredActivosCards.length > 0 && (
+              <div className="mt-4 p-4 rounded-2xl bg-card border border-primary/30 shadow-sm animate-fade-in flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl shrink-0">
+                    <i className="ri-calculator-line" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-foreground uppercase tracking-wide">
+                        Suma Total Seleccionada
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                        {filteredActivosCards.length} {filteredActivosCards.length === 1 ? 'cuenta' : 'cuentas'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Total acumulado de los activos filtrados por {cardInstitutions.length > 0 && cardCountries.length > 0 ? 'institución y jurisdicción' : cardInstitutions.length > 0 ? 'institución' : cardCountries.length > 0 ? 'jurisdicción' : 'saldo'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Saldo Disponible
+                    </span>
+                    <span className="text-xl sm:text-2xl font-extrabold font-mono text-primary">
+                      {formatCOP(filteredTotals.saldo)}
+                    </span>
+                  </div>
+
+                  <div className="border-l border-border pl-4 sm:pl-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Ingresos
+                    </span>
+                    <span className="text-sm sm:text-base font-bold font-mono text-emerald-500">
+                      {formatCOP(filteredTotals.ingresos)}
+                    </span>
+                  </div>
+
+                  <div className="border-l border-border pl-4 sm:pl-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Egresos
+                    </span>
+                    <span className="text-sm sm:text-base font-bold font-mono text-rose-500">
+                      {formatCOP(filteredTotals.egresos)}
+                    </span>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

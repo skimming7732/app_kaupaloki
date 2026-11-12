@@ -93,6 +93,24 @@ export const ActivosDigitalesView: React.FC = () => {
     });
   }, [wallets, cardSaldoFilter, cardInstitutions, cardCountries]);
 
+  const isFilterActive = cardSaldoFilter !== 'todos' || cardInstitutions.length > 0 || cardCountries.length > 0;
+
+  const filteredDigitalTotals = useMemo(() => {
+    return filteredWalletsCards.reduce(
+      (acc: { contableUsdt: number; realUsdt: number; copTotal: number }, w: any) => {
+        const contable = w.saldoUsdt || 0;
+        const real = (w.saldoReal !== null && w.saldoReal !== undefined && Number.isFinite(w.saldoReal)) ? w.saldoReal : contable;
+        const rate = w.rateFinal || 3950;
+        return {
+          contableUsdt: acc.contableUsdt + contable,
+          realUsdt: acc.realUsdt + real,
+          copTotal: acc.copTotal + (contable * rate),
+        };
+      },
+      { contableUsdt: 0, realUsdt: 0, copTotal: 0 }
+    );
+  }, [filteredWalletsCards]);
+
   const selectedWallet = useMemo(() => {
     if (!selectedWalletId) return null;
     return wallets.find((w: any) => w.id === selectedWalletId) || null;
@@ -839,6 +857,59 @@ export const ActivosDigitalesView: React.FC = () => {
                 );
               })}
             </div>
+            )}
+
+            {/* Sum of filtered cards when filter is active */}
+            {isFilterActive && filteredWalletsCards.length > 0 && (
+              <div className="mt-4 p-4 rounded-2xl bg-card border border-emerald-500/30 shadow-sm animate-fade-in flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xl shrink-0">
+                    <i className="ri-calculator-line" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-foreground uppercase tracking-wide">
+                        Suma Total Seleccionada
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        {filteredWalletsCards.length} {filteredWalletsCards.length === 1 ? 'billetera' : 'billeteras'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Total acumulado de las billeteras filtradas por {cardInstitutions.length > 0 && cardCountries.length > 0 ? 'institución y jurisdicción' : cardInstitutions.length > 0 ? 'institución' : cardCountries.length > 0 ? 'jurisdicción' : 'saldo'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Saldo Contable (USDT)
+                    </span>
+                    <span className="text-xl sm:text-2xl font-extrabold font-mono text-emerald-500">
+                      {formatUSD(filteredDigitalTotals.contableUsdt)}
+                    </span>
+                  </div>
+
+                  <div className="border-l border-border pl-4 sm:pl-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Saldo Real Auditado
+                    </span>
+                    <span className="text-sm sm:text-base font-bold font-mono text-cyan-500">
+                      {formatUSD(filteredDigitalTotals.realUsdt)}
+                    </span>
+                  </div>
+
+                  <div className="border-l border-border pl-4 sm:pl-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Liquidez Estimada (COP)
+                    </span>
+                    <span className="text-sm sm:text-base font-bold font-mono text-foreground">
+                      {formatCOP(filteredDigitalTotals.copTotal)}
+                    </span>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
