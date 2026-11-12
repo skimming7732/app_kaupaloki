@@ -219,10 +219,13 @@ export const ActivosLiquidosView: React.FC = () => {
           {/* Master Horizon Bank Statement Card */}
           <div
             style={{
-              background: isDark
-                ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
-                : 'linear-gradient(135deg, #4318FF 0%, #2563EB 50%, #1D4ED8 100%)',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(67, 24, 255, 0.25)',
+              background: getInstitutionCardGradient({
+                color: selectedActivo.institution?.color,
+                institutionName: selectedActivo.institution?.name || selectedActivo.institucion,
+                fallbackIndex: 0,
+                isDark,
+              }),
+              border: '1px solid rgba(255, 255, 255, 0.12)',
             }}
             className="rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden"
           >

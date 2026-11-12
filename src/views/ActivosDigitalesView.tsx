@@ -331,10 +331,14 @@ export const ActivosDigitalesView: React.FC = () => {
           {/* Master Horizon Crypto Card */}
           <div
             style={{
-              background: isDark
-                ? 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)'
-                : 'linear-gradient(135deg, #059669 0%, #047857 50%, #065F46 100%)',
-              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(5, 150, 105, 0.25)',
+              background: getInstitutionCardGradient({
+                color: selectedWallet.institution?.color,
+                institutionName: selectedWallet.institution?.name || (isPolygon ? 'Polygon' : (selectedWallet.red || 'TRON')),
+                network: selectedWallet.red,
+                fallbackIndex: 0,
+                isDark,
+              }),
+              border: '1px solid rgba(255, 255, 255, 0.12)',
             }}
             className="rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden"
           >
@@ -412,7 +416,7 @@ export const ActivosDigitalesView: React.FC = () => {
             </div>
 
             {/* Balances Row dynamically reacting to mode */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-white/10 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6 border-b border-white/10 relative z-10">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-1 flex items-center gap-1.5">
                   <i className={balanceMode === 'contable' ? "ri-coin-line text-emerald-400" : "ri-shield-check-line text-cyan-400"} />
@@ -459,22 +463,6 @@ export const ActivosDigitalesView: React.FC = () => {
                   ) : (
                     <span className="text-slate-400 italic">{chainMessage}</span>
                   )}
-                </span>
-              </div>
-
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-300 mb-1 flex items-center gap-1.5">
-                  <i className="ri-wallet-3-line text-cyan-400" />
-                  <span>Liquidez en COP (Tasa Tesorería)</span>
-                </div>
-                <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-cyan-200">
-                  {balanceMode === 'real' && selectedWallet.saldoReal == null ? '—' : formatCOP(
-                    (balanceMode === 'real' ? selectedWallet.saldoReal : selectedWallet.saldoUsdt || 0)
-                    * (selectedWallet.rateFinal || 3950)
-                  )}
-                </div>
-                <span className="text-xs text-cyan-200/70 block mt-1 font-mono">
-                  Tasa: ${formatRate(selectedWallet.rateFinal || 3950)} COP / USDT
                 </span>
               </div>
             </div>
