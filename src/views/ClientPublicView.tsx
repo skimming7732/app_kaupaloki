@@ -143,17 +143,24 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const clientComisiones = useMemo<PortalCommissionItem[]>(() => {
     if (internalClient) {
       const commRecord = data.comisionistas.find((cm) => {
-        const targetId = cm.comisionistaId || (cm as any).comisionistaClienteId;
+        const targetId = cm.comisionistaId || (cm as any).comisionistaClienteId || (cm as any).raw?.cliente_id;
         return targetId === internalClient.id || targetId === internalClient.codigo;
       });
-      if (!commRecord || !Array.isArray(commRecord.comisionaDeIds) || commRecord.comisionaDeIds.length === 0) {
+
+      const comisionaDeIds: string[] = (commRecord && Array.isArray(commRecord.comisionaDeIds) && commRecord.comisionaDeIds.length > 0)
+        ? commRecord.comisionaDeIds
+        : (Array.isArray(internalClient.comisionaDeIds) && internalClient.comisionaDeIds.length > 0
+            ? internalClient.comisionaDeIds
+            : (internalClient.esComisionista ? [internalClient.id] : []));
+
+      if (comisionaDeIds.length === 0) {
         return [];
       }
-      const pct = Number(commRecord.porcentajeComision || 0);
+      const pct = Number(commRecord?.porcentajeComision ?? internalClient.porcentajeComision ?? 0);
       const pctFactor = pct > 1 ? pct / 100 : pct;
 
-      return commRecord.comisionaDeIds
-        .map((refId) => data.clientes.find((c) => c.id === refId || c.codigo === refId))
+      const items = comisionaDeIds
+        .map((refId) => data.clientes.find((c) => c.id === refId || c.codigo === refId) || (refId === internalClient.id ? internalClient : undefined))
         .filter((c): c is NormalizedData['clientes'][number] => Boolean(c))
         .map((refClient) => {
           const allRefNegocios = data.negocios.filter(
@@ -168,9 +175,9 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
             ? filteredRefNegocios.length
             : (allRefNegocios.length > 0 ? allRefNegocios.length : (refClient.totalNegocios ?? 0));
           const refVolumen = hasFilter
-            ? filteredRefNegocios.reduce((sum, n) => sum + n.ingresoCOP, 0)
+            ? filteredRefNegocios.reduce((sum, n) => sum + (n.ingresoCOP || 0), 0)
             : (allRefNegocios.length > 0
-                ? allRefNegocios.reduce((sum, n) => sum + n.ingresoCOP, 0)
+                ? allRefNegocios.reduce((sum, n) => sum + (n.ingresoCOP || 0), 0)
                 : Math.max(0, (refClient.totalIngresosCOP || 0) - (refClient.totalComisionesCOP || 0)));
           return {
             id: refClient.id,
@@ -179,15 +186,26 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
             totalComisionesCOP: refVolumen * pctFactor,
           };
         });
+
+      if (items.length > 0) return items;
+
+      if (internalClient.esComisionista && (internalClient.totalComisionesCOP || 0) > 0) {
+        return [{
+          id: internalClient.id,
+          clienteMasked: maskClientCodeForPortal(internalClient.codigo, internalClient.nombre),
+          negocios: clientNegocios.length,
+          totalComisionesCOP: internalClient.totalComisionesCOP,
+        }];
+      }
     }
     return portal?.comisiones || [];
-  }, [internalClient, data.comisionistas, data.clientes, data.negocios, portal?.comisiones, fechaDesde, fechaHasta, selectedDivisa, hasFilter]);
+  }, [internalClient, data.comisionistas, data.clientes, data.negocios, portal?.comisiones, fechaDesde, fechaHasta, selectedDivisa, hasFilter, clientNegocios.length]);
 
-  const hasActiveComisiones = clientComisiones.length > 0;
-  const totalComisionesMonto = useMemo(
-    () => clientComisiones.reduce((sum, item) => sum + item.totalComisionesCOP, 0),
-    [clientComisiones]
-  );
+  const hasActiveComisiones = clientComisiones.length > 0 || Boolean(internalClient?.esComisionista && (internalClient?.totalComisionesCOP || 0) > 0);
+  const totalComisionesMonto = useMemo(() => {
+    const fromItems = clientComisiones.reduce((sum, item) => sum + item.totalComisionesCOP, 0);
+    return fromItems > 0 ? fromItems : (internalClient?.totalComisionesCOP || 0);
+  }, [clientComisiones, internalClient?.totalComisionesCOP]);
 
   const handleVerifyPin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -354,6 +372,11 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
             : formatCOP(hasFilter ? (totalFilteredNegociosMonto + totalFilteredIngresosMonto + totalComisionesMonto) : (totalNegociosMonto + totalIngresosMonto + totalComisionesMonto > 0 ? (totalNegociosMonto + totalIngresosMonto + totalComisionesMonto) : (client.totalIngresosCOP || 0))),
           icon: 'ri-arrow-down-circle-line',
         },
+        ...(hasActiveComisiones || totalComisionesMonto > 0 ? [{
+          label: hasFilter ? 'Comisiones en período' : 'Comisiones',
+          value: formatCOP(totalComisionesMonto),
+          icon: 'ri-hand-coin-line',
+        }] : []),
         {
           label: hasFilter ? 'Pagado en período' : 'Total pagado',
           value: formatCOP(hasFilter ? totalFilteredPagosMonto : (totalPagosMonto > 0 ? totalPagosMonto : (client.totalDispersadoCOP || 0))),
