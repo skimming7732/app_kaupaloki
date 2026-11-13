@@ -1,25 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
-  title?: string;
-  subtitle?: string;
   onExportCsv?: () => void;
   onToggleMobileMenu?: () => void;
-  onOpenModal?: (modalId: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  title: propTitle,
-  subtitle: propSubtitle,
   onExportCsv,
   onToggleMobileMenu,
-  onOpenModal,
 }) => {
   const { profile, user, theme, toggleTheme, logout } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -37,108 +29,6 @@ export const Header: React.FC<HeaderProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [menuOpen]);
-
-  // Dynamic route metadata
-  let title = propTitle;
-  let subtitle = propSubtitle;
-
-  if (!title) {
-    switch (location.pathname.split('/').slice(0, 2).join('/')) {
-      case '/inicio':
-        title = 'Inicio';
-        subtitle = 'Plataforma operativa Kaupaloki';
-        break;
-      case '/panel-control':
-      case '/dashboard':
-        title = 'Panel de Control';
-        subtitle = 'Liquidación y métricas en tiempo real';
-        break;
-      case '/negocios':
-        title = 'Negocios';
-        subtitle = 'Conversiones y operaciones cambiarias';
-        break;
-      case '/clientes':
-        title = 'Clientes';
-        subtitle = 'Gestión y estado de cuentas de clientes';
-        break;
-      case '/comisionistas':
-        title = 'Comisionistas';
-        subtitle = 'Liquidación y porcentaje de comisiones sobre clientes';
-        break;
-      case '/dispersiones':
-        title = 'Dispersiones';
-        subtitle = 'Pagos bancarios y transferencias';
-        break;
-      case '/compras-usdt':
-        title = 'Compras USDT';
-        subtitle = 'Adquisición de Tether en divisas internacionales';
-        break;
-      case '/ventas-usdt':
-        title = 'Ventas USDT';
-        subtitle = 'Liquidación y monetización de Tether a cuentas bancarias y caja';
-        break;
-      case '/transferencias-internas':
-        title = 'Transferencias Internas';
-        subtitle = 'Movimientos entre activos líquidos y digitales';
-        break;
-      case '/efectivo':
-        title = 'Efectivo';
-        subtitle = 'Efectivo Dosquebradas y pagos físicos';
-        break;
-      case '/gastos':
-        title = 'Gastos';
-        subtitle = 'Control contable de egresos y costos operativos';
-        break;
-      case '/activos':
-      case '/activos-liquidos':
-        title = 'Activos Líquidos';
-        subtitle = 'Saldos consolidados en instituciones y caja';
-        break;
-      case '/capital':
-        title = 'Capital';
-        subtitle = 'Capital, rendimientos y liquidaciones';
-        break;
-      case '/socios-inversionistas':
-        title = 'Socios & Inversionistas';
-        subtitle = 'Fichas y movimientos por persona';
-        break;
-      case '/activos-digitales':
-        title = 'Activos Digitales';
-        subtitle = 'Custodia en USDT y wallets corporativas';
-        break;
-      case '/divisas':
-        title = 'Divisas';
-        subtitle = 'Monedas habilitadas y saldo en custodia';
-        break;
-      case '/estadisticas':
-        title = 'Estadísticas';
-        subtitle = 'Liquidación, ganancia diaria e indicadores generales';
-        break;
-      case '/instituciones':
-        title = 'Instituciones';
-        subtitle = 'Bancos, billeteras, exchanges y sistemas de pago por divisa';
-        break;
-      case '/usuarios':
-        title = 'Usuarios & Accesos';
-        subtitle = 'Control de roles, operadores y permisos';
-        break;
-      case '/perfil':
-        title = 'Mi Perfil';
-        subtitle = 'Resumen general y estado de tu cuenta';
-        break;
-      case '/perfil/datos':
-        title = 'Datos Personales';
-        subtitle = 'Actualización de datos y confirmación de seguridad';
-        break;
-      case '/perfil/seguridad':
-        title = 'Seguridad & Accesos';
-        subtitle = 'Gestión de contraseña y autenticación 2FA';
-        break;
-      default:
-        title = 'Kaupaloki';
-        subtitle = 'Plataforma de finanzas';
-    }
-  }
 
   const fullName =
     profile?.full_name ||
@@ -176,10 +66,6 @@ export const Header: React.FC<HeaderProps> = ({
             <i className="ri-menu-2-line text-base" />
           </button>
         )}
-        <div>
-          <h1 className="text-lg sm:text-xl font-black text-foreground tracking-tight leading-tight">{title}</h1>
-          {subtitle && <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate max-w-[180px] sm:max-w-none">{subtitle}</p>}
-        </div>
       </div>
 
       <div className="flex items-center gap-2.5">
@@ -278,6 +164,15 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Divider */}
               <div className="my-2 border-t border-border" />
+
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+              >
+                <i className="ri-refresh-line text-sm text-primary" aria-hidden="true" />
+                <span>Actualizar</span>
+              </button>
 
               {/* Logout Button */}
               <button

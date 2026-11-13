@@ -125,6 +125,10 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
     const dirTotals = summarizeCapital(movements, people);
     return (
       <div className="space-y-4">
+        <div className="p-4 rounded-2xl bg-card border border-border">
+          <h1 className="text-base font-bold text-foreground">Socios & Inversionistas</h1>
+          <p className="text-xs text-muted-foreground">Fichas y movimientos por persona</p>
+        </div>
         <KpiStrip metrics={[
           { label: 'Total capital aportado', value: formatCOP(dirTotals.capital), featured: true },
           { label: 'Ganado por dividendos', value: formatCOP(dirTotals.dividends) },
@@ -236,6 +240,12 @@ export function CapitalSociosView({ directory = false, personId }: { directory?:
   return (
     <div className="space-y-4">
       {currentPerson && backLink}
+      {!currentPerson && (
+        <div className="p-4 rounded-2xl bg-card border border-border">
+          <h1 className="text-base font-bold text-foreground">Capital</h1>
+          <p className="text-xs text-muted-foreground">Capital, rendimientos y liquidaciones</p>
+        </div>
+      )}
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
         <div className="flex items-center gap-2 flex-wrap">
           {currentPerson ? (

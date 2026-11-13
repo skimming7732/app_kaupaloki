@@ -124,7 +124,7 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
                 </td>
               </tr>
             ) : (
-              <PaginatedRows columns={6} rows={movimientos} getDate={(movement) => movement.fecha}>
+              <PaginatedRows columns={6} rows={movimientos}>
                 {(item) => (
                   <tr key={item.tipo + '-' + item.id} className="hover:bg-muted/30 transition-colors">
                     <td className="whitespace-nowrap px-4 py-3 font-mono">{formatDate(item.fecha)}</td>
@@ -212,14 +212,15 @@ export const DivisasView: React.FC = () => {
     const term = search.trim().toLowerCase();
     const matchSearch = d.codigo.toLowerCase().includes(term) ||
       d.nombre.toLowerCase().includes(term) || (d.pais || '').toLowerCase().includes(term);
-    const matchSaldo = !saldoFilter || (saldoFilter === 'con-saldo' ? d.totalPendiente > 0 : d.totalPendiente === 0);
+    const matchSaldo = !saldoFilter || d[saldoFilter as 'totalRecibido' | 'totalComprado' | 'totalPendiente'] > 0;
     return matchSearch && matchSaldo;
   });
 
   const saldoOptions = <>
-    <option value="">Todos los saldos</option>
-    <option value="con-saldo">Con saldo pendiente</option>
-    <option value="sin-saldo">Sin saldo pendiente</option>
+    <option value="">Todas las divisas</option>
+    <option value="totalRecibido">Con total recibido</option>
+    <option value="totalComprado">Con total comprado</option>
+    <option value="totalPendiente">Con total pendiente</option>
   </>;
 
   if (codigo) {
@@ -244,6 +245,13 @@ export const DivisasView: React.FC = () => {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <div>
+          <h1 className="text-base font-bold text-foreground">Divisas</h1>
+          <p className="text-xs text-muted-foreground">Monedas habilitadas y saldo en custodia</p>
+        </div>
+        <AddCatalogButton table="divisas" />
+      </div>
       <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 flex-1 min-w-0 md:min-w-[260px] max-w-2xl">
@@ -259,7 +267,7 @@ export const DivisasView: React.FC = () => {
               />
             </div>
             <div className="hidden md:block shrink-0">
-              <TableSelectFilter label="Saldo pendiente" value={saldoFilter} onChange={setSaldoFilter}>
+              <TableSelectFilter label="Filtrar por total" value={saldoFilter} onChange={setSaldoFilter}>
                 {saldoOptions}
               </TableSelectFilter>
             </div>
@@ -269,7 +277,6 @@ export const DivisasView: React.FC = () => {
               <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} compact />
             </div>
             <FilterTriggerButton onClick={() => setIsFilterOpen(true)} activeCount={activeCount} />
-            <AddCatalogButton table="divisas" />
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
@@ -288,9 +295,9 @@ export const DivisasView: React.FC = () => {
       <FilterModal isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtros de Divisas" activeCount={activeCount} onClear={clearFilters}>
         <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Saldo pendiente</p>
+          <p className="text-xs font-medium text-muted-foreground">Mostrar divisas con total mayor que cero</p>
           <div>
-            <TableSelectFilter label="Saldo pendiente" value={saldoFilter} onChange={setSaldoFilter} className="w-full">
+            <TableSelectFilter label="Filtrar por total" value={saldoFilter} onChange={setSaldoFilter} className="w-full">
               {saldoOptions}
             </TableSelectFilter>
           </div>

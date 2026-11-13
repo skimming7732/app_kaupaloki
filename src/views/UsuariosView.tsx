@@ -90,6 +90,10 @@ export const UsuariosView: React.FC = () => {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      <div className="p-4 rounded-2xl bg-card border border-border">
+        <h1 className="text-base font-bold text-foreground">Usuarios & Accesos</h1>
+        <p className="text-xs text-muted-foreground">Control de roles, operadores y permisos</p>
+      </div>
       {/* Role Filter Bar & Search */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-card border border-border">
         {/* Roles pills */}

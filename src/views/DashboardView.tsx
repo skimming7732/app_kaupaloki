@@ -79,6 +79,10 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-5 pb-2 motion-safe:animate-[cash-percent-enter_250ms_ease-out] sm:space-y-7">
+      <div className="p-4 rounded-2xl bg-card border border-border">
+        <h1 className="text-base font-bold text-foreground">Panel de Control</h1>
+        <p className="text-xs text-muted-foreground">Liquidación y métricas en tiempo real</p>
+      </div>
       <section aria-labelledby="treasury-rate-title"
         className="rounded-2xl border border-primary/10 bg-card p-4 shadow-sm shadow-primary/5 sm:rounded-3xl sm:px-6 sm:py-5">
         <div className="flex flex-wrap items-center gap-4 lg:flex-nowrap lg:gap-6">
