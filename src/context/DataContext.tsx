@@ -1,4 +1,5 @@
 import { canRegisterBusiness, canDisperse, canManageClients, isAdminRole, canDeleteRole, isAuditorRole } from '../utils/roles';
+import { prepareSuccessSound } from '../utils/confirmationSound';
 import { readAllRows } from '../utils/supabasePagination';
 import type { CashToken } from '../utils/tokenVoucherGenerator';
 import { capitalLabels, loadCapitalRows, summarizeCapital, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
