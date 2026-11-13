@@ -13,6 +13,7 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { isAuditorRole } from '../utils/roles';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
+import { isLincoinAsset, useLincoinBalances } from '../hooks/useLincoinBalances';
 
 export const ActivosLiquidosView: React.FC = () => {
   const { metrics, data, marcarVentaRecibida } = useData();
@@ -23,10 +24,17 @@ export const ActivosLiquidosView: React.FC = () => {
   const { assetId: selectedActivoId } = useParams();
   const setSelectedActivoId = (id: string | null) => navigate(id ? '/activos-liquidos/' + encodeURIComponent(id) : '/activos-liquidos');
 
-  const activos = data.activosLiquidos || [];
+  const recordedAssets = data.activosLiquidos || [];
+  const { balances: lincoinBalances, loading: lincoinLoading, error: lincoinError, refresh: refreshLincoin } = useLincoinBalances(recordedAssets);
+  const activos = useMemo(() => recordedAssets.map((asset: any) => {
+    if (!isLincoinAsset(asset)) return asset;
+    const balance = lincoinBalances[`${asset.id}:${String(asset.apiId || '').trim().toUpperCase()}`];
+    return { ...asset, saldoReal: balance?.saldo_real ?? null, lincoinConsultadoAt: balance?.consultado_at };
+  }), [recordedAssets, lincoinBalances]);
 
   // Statement (Extracto) mode and filters state
   const [balanceMode, setBalanceMode] = React.useState<'contable' | 'real'>('contable');
+  const [receivingId, setReceivingId] = useState<string | null>(null);
   const [movSearch, setMovSearch] = React.useState('');
   const [fechaDesde, setFechaDesde] = React.useState('');
   const [fechaHasta, setFechaHasta] = React.useState('');
@@ -242,6 +250,28 @@ export const ActivosLiquidosView: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {isLincoinAsset(selectedActivo) && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 text-xs">
+              <div className="space-y-1" aria-live="polite">
+                <p className="text-muted-foreground">Lincoin · ID {selectedActivo.apiId || 'sin configurar'}
+                  {selectedActivo.lincoinConsultadoAt && ` · Última consulta: ${new Date(selectedActivo.lincoinConsultadoAt).toLocaleString('es-CO', { timeZone: 'America/Bogota' })} (Colombia)`}
+                </p>
+                {lincoinError && <p role="alert" className="text-amber-600 dark:text-amber-400">{lincoinError}</p>}
+                {!lincoinLoading && !lincoinError && selectedActivo.apiId && !selectedActivo.lincoinConsultadoAt && (
+                  <p className="text-amber-600 dark:text-amber-400">Lincoin no devolvió una empresa con este ID.</p>
+                )}
+                {selectedActivo.lincoinConsultadoAt && Date.now() - Date.parse(selectedActivo.lincoinConsultadoAt) > 180_000 && (
+                  <p className="text-amber-600 dark:text-amber-400">Saldo pendiente de actualización; corresponde a la última consulta indicada.</p>
+                )}
+              </div>
+              <button type="button" onClick={refreshLincoin} disabled={lincoinLoading || !selectedActivo.apiId}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 font-semibold hover:bg-muted disabled:opacity-50">
+                <i className={lincoinLoading ? 'ri-loader-4-line animate-spin' : 'ri-refresh-line'} aria-hidden="true" />
+                {lincoinLoading ? 'Consultando Lincoin' : 'Actualizar saldo real'}
+              </button>
+            </div>
+          )}
 
           {/* Master Horizon Bank Statement Card */}
           <div
@@ -655,6 +685,19 @@ export const ActivosLiquidosView: React.FC = () => {
               </h3>
             </div>
 
+            {recordedAssets.some((a: any) => isLincoinAsset(a) && a.apiId) && (
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs" aria-live="polite">
+                <span className={lincoinError ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}>
+                  {lincoinError || 'Lincoin: actualización automática cada minuto. Fecha de consulta en cada extracto.'}
+                </span>
+                <button type="button" onClick={refreshLincoin} disabled={lincoinLoading}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 font-semibold hover:bg-muted disabled:opacity-50">
+                  <i className={lincoinLoading ? 'ri-loader-4-line animate-spin' : 'ri-refresh-line'} aria-hidden="true" />
+                  {lincoinLoading ? 'Consultando Lincoin' : 'Actualizar Lincoin'}
+                </button>
+              </div>
+            )}
+
             <AssetCardsFilterBar
               saldoFilter={cardSaldoFilter}
               setSaldoFilter={setCardSaldoFilter}
@@ -754,6 +797,12 @@ export const ActivosLiquidosView: React.FC = () => {
                             <span className="text-white/40 font-sans text-xs font-normal">Sin sincronizar</span>
                           )}
                         </div>
+                        {a.lincoinConsultadoAt && (
+                          <span className="mt-1 text-[10px] text-white/60">
+                            {Date.now() - Date.parse(a.lincoinConsultadoAt) > 180_000 ? 'Último saldo: ' : 'Consultado: '}
+                            {new Date(a.lincoinConsultadoAt).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' })}
+                          </span>
+                        )}
                       </div>
                     </div>
 
