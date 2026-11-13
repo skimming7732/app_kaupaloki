@@ -20,6 +20,7 @@ export interface ChatSession {
 export interface ViewContextData {
   pathname: string;
   tabTitle: string;
+  capitalByPerson?: { nombre: string; tipo: string; aportadoCOP: number; retiradoCOP: number; capitalCOP: number }[] | null;
   usdtOperations?: {
     source: 'loaded_snapshot';
     syncedAt?: string;

@@ -86,5 +86,29 @@ async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actua
   assert.ok(instructions.includes('"cantidad":2'));
   assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('No puedes determinar sus conteos'));
   assert.ok(instructions.includes('MUESTRAS PARCIALES'));
+  const capitalModule = { exports: {} };
+  const capitalSource = fs.readFileSync(path.join(__dirname, '../src/utils/capitalSocios.ts'), 'utf8').replace(/^import .*;\r?\n/, '');
+  vm.runInNewContext(ts.transpile(capitalSource, { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS }), {
+    exports: capitalModule.exports, module: capitalModule,
+  });
+  const capital = capitalModule.exports.summarizeCapitalPeople([
+    { socio_id: 'a', tipo: 'CONTRATO', monto_cop: 100000 },
+    { socio_id: 'a', tipo: 'RETIRO', monto_cop: 70000 },
+    { socio_id: 'a', tipo: 'DIVIDENDO', monto_cop: 900000 },
+    { socio_id: 'b', tipo: 'CONTRATO', monto_cop: 50000 },
+    { socio_id: 'b', tipo: 'INTERES', monto_cop: 300000 },
+  ], [{ id: 'a', nombre: 'Socio ficticio', tipo: 'SOCIO' }, { id: 'b', nombre: 'Inversionista ficticio', tipo: 'INVERSIONISTA' }]);
+  assert.equal(capital[0].nombre, 'Inversionista ficticio');
+  assert.equal(capital[0].capitalCOP, 50000);
+  assert.equal(capital[1].capitalCOP, 30000);
+  const capitalAndAssets = await invoke({ context: { capitalByPerson: capital, metrics: {
+    totalActivosLiquidos: 1000000, totalActivosDigitales: 100, rateUsdtCop: 3280,
+  } } });
+  const assetInstructions = capitalAndAssets.sent.body.systemInstruction.parts[0].text;
+  assert.ok(assetInstructions.includes('"totalActivosCOP":1328000'));
+  assert.ok(assetInstructions.includes('Inversionista ficticio'));
+  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('El desglose de capital por persona no está disponible'));
+  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('Faltan valores o tasa válida'));
+  console.log('Capital/assets checks passed (net contributions, withdrawals, exclusion of profits, COP conversion, unavailable context).');
   console.log('AI assistant: provider scenarios and USDT regression checks passed (cross-tab purchases, >20 records, states, currencies, missing dates, sales, Bogota midnight, missing context).');
 })().catch((err) => { console.error(err); process.exitCode = 1; });

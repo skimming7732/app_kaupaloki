@@ -133,6 +133,21 @@ export function summarizeCapital(rows: CapitalMovement[], people?: CapitalPerson
   return initial;
 }
 
+export function summarizeCapitalPeople(rows: CapitalMovement[], people: CapitalPerson[]) {
+  const totals = new Map<string, { aportadoCOP: number; retiradoCOP: number }>();
+  for (const row of rows) {
+    const current = totals.get(row.socio_id) || { aportadoCOP: 0, retiradoCOP: 0 };
+    const amounts = capitalAmounts(row);
+    current.aportadoCOP += amounts.contribution;
+    current.retiradoCOP += amounts.withdrawal;
+    totals.set(row.socio_id, current);
+  }
+  return people.map((person) => {
+    const amounts = totals.get(person.id) || { aportadoCOP: 0, retiradoCOP: 0 };
+    return { nombre: person.nombre, tipo: person.tipo, ...amounts, capitalCOP: amounts.aportadoCOP - amounts.retiradoCOP };
+  }).sort((a, b) => b.capitalCOP - a.capitalCOP || a.nombre.localeCompare(b.nombre));
+}
+
 export async function loadCapitalRows<T>(table: 'capital_socios' | 'capital_movimientos'): Promise<T[]> {
   const rows: T[] = [];
   for (let offset = 0; ; offset += 500) {

@@ -2,7 +2,7 @@ import { canRegisterBusiness, canDisperse, canManageClients, isAdminRole, canDel
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { readAllRows } from '../utils/supabasePagination';
 import type { CashToken } from '../utils/tokenVoucherGenerator';
-import { capitalLabels, loadCapitalRows, summarizeCapital, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
+import { capitalLabels, loadCapitalRows, summarizeCapital, summarizeCapitalPeople, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -301,6 +301,7 @@ interface DataContextType {
   snapshot: DataSnapshot;
   data: NormalizedData;
   metrics: MetricsSummary;
+  capitalByPerson: ReturnType<typeof summarizeCapitalPeople> | null;
   loading: boolean;
   syncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   lastSyncTime: string;
@@ -1457,6 +1458,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [snapshot.resumenLiquidacion, data.gastos, data.dispersiones, data.clientes, data.activosLiquidos, data.activosDigitales, data.ventasUsdt, data.negocios, capitalLedger, userId]);
 
+  const capitalByPerson = useMemo(() => {
+    if (!userId || capitalLedger.userId !== userId) return null;
+    if (capitalLedger.rows.length && !capitalLedger.people.length) return null;
+    return summarizeCapitalPeople(capitalLedger.rows, capitalLedger.people);
+  }, [capitalLedger, userId]);
+
   // Direct Supabase operations (100% decoupled from Airtable)
   const createNegocio = async (payload: any): Promise<boolean> => {
     requireWrite('business');
@@ -2330,6 +2337,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         snapshot,
         data,
         metrics,
+        capitalByPerson,
         loading,
         syncStatus,
         lastSyncTime,

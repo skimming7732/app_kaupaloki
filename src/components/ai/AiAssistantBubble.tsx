@@ -213,7 +213,7 @@ const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
 
 export const AiAssistantBubble: React.FC = () => {
   const { profile, user } = useAuth();
-  const { data, metrics, snapshot, loading: dataLoading } = useData();
+  const { data, metrics, snapshot, loading: dataLoading, capitalByPerson } = useData();
   const location = useLocation();
 
   // Role Protection: Only super_admin and administrador
@@ -603,6 +603,7 @@ export const AiAssistantBubble: React.FC = () => {
       const contextData: ViewContextData = {
         pathname: location.pathname,
         tabTitle: currentViewDetails.title,
+        capitalByPerson,
         usdtOperations: {
           source: 'loaded_snapshot',
           syncedAt: snapshot.syncedAt,

@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { pathname, tabTitle, metrics, recordsSummary, globalSnapshot, usdtOperations } = context || {};
+    const { pathname, tabTitle, metrics, recordsSummary, globalSnapshot, usdtOperations, capitalByPerson } = context || {};
     const now = new Date();
     const colombiaDate = (date: Date) => new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -32,6 +32,17 @@ Deno.serve(async (req: Request) => {
     const operationContext = usdtOperations
       ? `RESUMEN DIARIO DE COMPRAS Y VENTAS USDT (todos los registros cargados, sin recorte por pestaña):\n${JSON.stringify(usdtOperations)}`
       : 'No se proporcionó el resumen de compras y ventas USDT. No puedes determinar sus conteos, ni afirmar que no existen operaciones. Pide recargar la aplicación para recibir el resumen actualizado.';
+    const capitalContext = Array.isArray(capitalByPerson)
+      ? `CAPITAL POR SOCIO / INVERSIONISTA (COP, capital vigente = aportes menos retiros):\n${JSON.stringify(capitalByPerson)}`
+      : 'El desglose de capital por persona no está disponible. No identifiques a un mayor aportante ni confundas clientes con socios; solicita actualizar los datos.';
+    const assetValues = [metrics?.totalActivosLiquidos, metrics?.totalActivosDigitales, metrics?.rateUsdtCop];
+    const assetContext = assetValues.every((v) => v !== null && v !== undefined && Number.isFinite(Number(v))) && Number(metrics.rateUsdtCop) > 0
+      ? `SUMA DE ACTIVOS CALCULADA POR LA APLICACIÓN (no es ganancia ni patrimonio neto):\n${JSON.stringify({
+        liquidosCOP: Number(metrics.totalActivosLiquidos), digitalesUSDT: Number(metrics.totalActivosDigitales),
+        tasaCOPporUSDT: Number(metrics.rateUsdtCop), digitalesConvertidosCOP: Number(metrics.totalActivosDigitales) * Number(metrics.rateUsdtCop),
+        totalActivosCOP: Number(metrics.totalActivosLiquidos) + Number(metrics.totalActivosDigitales) * Number(metrics.rateUsdtCop),
+      })}`
+      : 'Faltan valores o tasa válida para calcular la suma de activos. No uses ceros por defecto ni una tasa inventada.';
 
     const metricsString = metrics
       ? `MÉTRICAS GLOBALES:
@@ -112,6 +123,12 @@ FECHAS Y ALCANCE DE LOS DATOS:
 - El contexto actual prevalece sobre respuestas anteriores del chat, que pueden contener errores. No inventes registros ni resultados. Usa separadores numéricos con coma de miles y punto decimal.
 
 ${operationContext}
+${capitalContext}
+${assetContext}
+
+CONSULTAS DE CAPITAL Y ACTIVOS:
+- Para la persona con más capital compara capitalCOP en TODO el desglose; señala empates. Distingue SOCIO de INVERSIONISTA. No uses facturación de clientes, dividendos ni intereses como capital.
+- La suma solicitada de activos = líquidos COP + (digitales USDT * tasa COP/USDT). Usa la suma calculada arriba, muestra la tasa y el desglose. No sumes COP y USDT sin convertir ni uses la fórmula de ganancia.
 
 FILOSOFÍA DE AUDITORÍA CRÍTICA:
 - Eres crítico y riguroso. NUNCA justifiques números incoherentes inventando fondos no asignados u operaciones futuras.

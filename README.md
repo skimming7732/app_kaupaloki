@@ -99,6 +99,8 @@ El chat usa la Edge Function `ai-assistant`. Configurar `GEMINI_API_KEY` como se
 
 Los conteos de compras y ventas USDT usan resúmenes diarios calculados sobre todos los registros cargados, desde cualquier pestaña. Incluyen cantidad, unidades USDT, importes separados por divisa y estados. La función interpreta hoy/ayer en `America/Bogota`; las muestras recientes no permiten concluir que no hubo operaciones. Si falta sincronización o el resumen, debe indicar la limitación.
 
+El contexto también incluye capital vigente por socio/inversionista (aportes menos retiros, sin dividendos ni intereses), calculado con el libro de capital cargado bajo RLS. La suma de activos se calcula como líquidos COP + digitales USDT × tasa COP/USDT y se distingue de ganancia y patrimonio neto. Si falta el desglose de personas o la tasa, el asistente debe reconocer la falta de datos.
+
 Para activar el cambio hay que configurar el secreto, desplegar `supabase/functions/ai-assistant/index.ts` y publicar el frontend. Validación local del adaptador sin usar credenciales: `node scripts/test-ai-assistant.cjs`.
 
 ## Comprobantes
