@@ -239,8 +239,8 @@ export const DashboardView: React.FC = () => {
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Columna 1: Ya Pagado / Desembolsado */}
-              <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-border/70 pb-2">
+              <div className="rounded-xl border border-border bg-muted p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
                     <i className="ri-checkbox-circle-line" />
                     Ya pagado / desembolsado
@@ -252,7 +252,7 @@ export const DashboardView: React.FC = () => {
                 <p className="text-[11px] text-muted-foreground">Dinero que ya salió materialmente de las cuentas bancarias:</p>
 
                 <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between rounded-lg bg-card p-2.5 border border-border/60">
+                  <div className="flex items-center justify-between rounded-lg bg-card p-2.5 border border-border">
                     <div>
                       <p className="font-semibold text-foreground">Adelantos y liquidaciones a socios</p>
                       <p className="text-[11px] text-muted-foreground">Anticipos de utilidades pagados a socios</p>
@@ -260,7 +260,7 @@ export const DashboardView: React.FC = () => {
                     <span className="font-mono font-bold text-foreground">{formatCOP(metrics.distribucionPagadaSociosCOP)}</span>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg bg-card p-2.5 border border-border/60">
+                  <div className="flex items-center justify-between rounded-lg bg-card p-2.5 border border-border">
                     <div>
                       <p className="font-semibold text-foreground">Intereses pagados a inversionistas</p>
                       <p className="text-[11px] text-muted-foreground">Rendimientos pagados en efectivo / banco</p>
@@ -271,8 +271,8 @@ export const DashboardView: React.FC = () => {
               </div>
 
               {/* Columna 2: Pendiente por Liquidar */}
-              <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-border/70 pb-2">
+              <div className="rounded-xl border border-border bg-muted p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                     <i className="ri-time-line" />
                     Pendiente por liquidar
@@ -284,7 +284,7 @@ export const DashboardView: React.FC = () => {
                 <p className="text-[11px] text-muted-foreground">Dinero aún retenido en bancos pendiente de transferir:</p>
 
                 <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between rounded-lg bg-card p-2.5 border border-border/60">
+                  <div className="flex items-center justify-between rounded-lg bg-card p-2.5 border border-border">
                     <div>
                       <p className="font-semibold text-foreground">Saldo por liquidar a socios</p>
                       <p className="text-[11px] text-muted-foreground">Dividendos decretados menos adelantos previos</p>
@@ -294,7 +294,7 @@ export const DashboardView: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between rounded-lg bg-card p-2.5 border border-border/60">
+                  <div className="flex items-center justify-between rounded-lg bg-card p-2.5 border border-border">
                     <div>
                       <p className="font-semibold text-foreground">Intereses por pagar a inversionistas</p>
                       <p className="text-[11px] text-muted-foreground">Rendimientos acreditados al saldo de contratos</p>
@@ -308,7 +308,7 @@ export const DashboardView: React.FC = () => {
             </div>
 
             {/* Fila de totales decretados de referencia */}
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/40 px-4 py-2.5 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted px-4 py-2.5 text-xs">
               <span className="text-muted-foreground font-medium">Totales decretados de referencia:</span>
               <div className="flex flex-wrap items-center gap-4">
                 <div>
