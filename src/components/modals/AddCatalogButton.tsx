@@ -428,11 +428,13 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     <>
       {externalOpen === undefined && (
         <button type="button" className={buttonClassName ?? (edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass)}
+          aria-label={edit && isUsdt ? form.title : undefined}
+          title={edit && isUsdt ? form.title : undefined}
           onClick={() => {
             initFields();
             setOpen(true);
           }}>
-          <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
+          <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? (isUsdt ? null : 'Editar') : form.title}
         </button>
       )}
       {isModalOpen && (
