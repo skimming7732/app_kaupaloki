@@ -6,7 +6,7 @@ import { CurrencySelect } from './CurrencySelect';
 import { AccountSelect, type Account } from './AccountSelect';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 import { useAuth } from '../../context/AuthContext';
-import { canDeleteRole } from '../../utils/roles';
+import { canDeleteRole, isAdminRole } from '../../utils/roles';
 import { useData, type CatalogTable } from '../../context/DataContext';
 import { AmountEntryMode, type AmountMode } from '../common/AmountEntryMode';
 
@@ -29,15 +29,17 @@ type Form = {
 const dateField: Field = { name: 'fecha', label: 'Fecha de la operación', type: 'date' };
 const today = () => todayBogota();
 
-export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassName }: {
+export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassName, isOpen: externalOpen, onClose: externalOnClose }: {
   table: Exclude<CatalogTable, 'activos_liquidos' | 'activos_digitales'>;
   edit?: { id: string; historical?: boolean; fields: Record<string, any> };
   allowDelete?: boolean;
   buttonClassName?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }) => {
   const { data, createCatalogRecord, deleteCatalogRecord } = useData();
   const { profile } = useAuth();
-  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const isAdmin = isAdminRole(profile?.role) || profile?.role === 'supervisor';
   const canDelete = canDeleteRole(profile?.role);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -183,7 +185,35 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
   const showBalance = isUsdt && !edit?.historical;
   const sameWallet = isSale && showBalance && Boolean(sourceId) && sourceId === destinationId;
   const missingAccounts = isPurchase ? !destinationId : !edit?.historical && (!sourceId || !destinationId);
-  const onClose = () => setOpen(false);
+
+  const initFields = () => {
+    setError('');
+    const initSource = String(initial[sourceField] ?? '');
+    const fallbackWallet = isSale && !edit && !initSource ? wallets[0]?.id || '' : initSource;
+    setSourceId(fallbackWallet);
+    const fallbackDest = isPurchase && !edit ? wallets[0]?.id || '' : String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? '');
+    setDestinationId(fallbackDest);
+    setAmount(formatAmountInput(String(initial[amountField] ?? '')));
+    setFinalAmount('');
+    setAmountMode('initial');
+    const fallbackCurrency = isPurchase && !edit ? (data.divisas[0]?.codigo || '') : String(initial.divisa_codigo ?? '');
+    setCurrency(fallbackCurrency);
+    setRateInput(initialRate);
+    setFeeInput(isSale && initial.fee_usdt ? formatNumber(Number(initial.fee_usdt), 0, 6) : '');
+    setSelectedEstado((initial.estado as 'recibido' | 'pendiente') || 'recibido');
+  };
+
+  React.useEffect(() => {
+    if (externalOpen) {
+      initFields();
+    }
+  }, [externalOpen, edit?.id]);
+
+  const isModalOpen = externalOpen !== undefined ? externalOpen : open;
+  const onClose = () => {
+    setOpen(false);
+    externalOnClose?.();
+  };
 
   const handleDelete = async () => {
     if (!edit) return;
@@ -396,27 +426,16 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
 
   return (
     <>
-      <button type="button" className={buttonClassName ?? (edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass)}
-        onClick={() => {
-          setError('');
-          const initSource = String(initial[sourceField] ?? '');
-          const fallbackWallet = isSale && !edit && !initSource ? wallets[0]?.id || '' : initSource;
-          setSourceId(fallbackWallet);
-          const fallbackDest = isPurchase && !edit ? wallets[0]?.id || '' : String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? '');
-          setDestinationId(fallbackDest);
-          setAmount(formatAmountInput(String(initial[amountField] ?? '')));
-          setFinalAmount('');
-          setAmountMode('initial');
-          const fallbackCurrency = isPurchase && !edit ? (data.divisas[0]?.codigo || '') : String(initial.divisa_codigo ?? '');
-          setCurrency(fallbackCurrency);
-          setRateInput(initialRate);
-          setFeeInput(isSale && initial.fee_usdt ? formatNumber(Number(initial.fee_usdt), 0, 6) : '');
-          setSelectedEstado((initial.estado as 'recibido' | 'pendiente') || 'recibido');
-          setOpen(true);
-        }}>
-        <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
-      </button>
-      {open && (
+      {externalOpen === undefined && (
+        <button type="button" className={buttonClassName ?? (edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass)}
+          onClick={() => {
+            initFields();
+            setOpen(true);
+          }}>
+          <i className={edit ? 'ri-edit-line' : 'ri-add-line'} aria-hidden="true" />{edit ? 'Editar' : form.title}
+        </button>
+      )}
+      {isModalOpen && (
         <RecordDialog {...form} wide={isUsdt} busy={busy} error={error} onClose={onClose}>
           <form onSubmit={submit} className="space-y-6">
             <fieldset disabled={busy} className="min-w-0">

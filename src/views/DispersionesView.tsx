@@ -17,6 +17,7 @@ import React, { useState, useMemo } from 'react';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 import { AddDispersionModal } from '../components/modals/AddDispersionModal';
+import { DispersionStatusDropdown } from '../components/common/EstadoTransitoSelect';
 
 interface DispersionesViewProps {
   onOpenAddDispersion?: () => void;
@@ -32,14 +33,11 @@ const DispersionStatusSelect = ({ dispersion, onSaved }: {
   onSaved: () => Promise<void>;
 }) => {
   const canWrite = useWriteAccess('dispersion');
-  const [pending, setPending] = useState<DispersionStatus>();
   const [error, setError] = useState('');
   const current = isRejected(dispersion.estado) ? 'RECHAZADO' : 'COMPLETADO';
-  const status = pending ?? current;
 
-  const save = async (next: DispersionStatus) => {
-    if (!canWrite || pending || next === current) return;
-    setPending(next);
+  const save = async (next: 'COMPLETADO' | 'RECHAZADO') => {
+    if (!canWrite || next === current) return;
     setError('');
     const finishSound = prepareSuccessSound();
     try {
@@ -56,30 +54,21 @@ const DispersionStatusSelect = ({ dispersion, onSaved }: {
       finishSound(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el estado.');
+      throw err;
     } finally {
       finishSound(false);
-      setPending(undefined);
     }
   };
 
   return (
-    <>
-      <select
-        aria-label={'Estado de ' + dispersion.codigo}
-        value={status}
-        disabled={!canWrite || Boolean(pending)}
-        onChange={(event) => { void save(event.target.value as DispersionStatus); }}
-        className={'min-h-8 cursor-pointer rounded-lg border px-2 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-wait ' +
-          (status === 'RECHAZADO'
-            ? 'border-destructive/30 bg-destructive/10 text-destructive'
-            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400')}
-      >
-        <option value="COMPLETADO" className="bg-card text-foreground">Completado</option>
-        <option value="RECHAZADO" className="bg-card text-foreground">Rechazado</option>
-      </select>
-      {pending && <p role="status" className="mt-1 text-[10px] text-muted-foreground">Guardando…</p>}
+    <div className="inline-flex flex-col items-center">
+      <DispersionStatusDropdown
+        estado={dispersion.estado}
+        disabled={!canWrite}
+        onCambiarEstado={save}
+      />
       {error && <p role="alert" className="mx-auto mt-1 max-w-40 whitespace-normal text-[11px] text-destructive">{error}</p>}
-    </>
+    </div>
   );
 };
 

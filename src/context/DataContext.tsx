@@ -1110,6 +1110,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       costo: Number(c.costo ?? 0),
       walletDestino: c.walletDestino,
       walletDestinoId: c.walletDestinoId,
+      estado: ((c.estado || 'recibido').toLowerCase()) as 'pendiente' | 'recibido',
+      saldoCompraAplicado: c.saldoCompraAplicado ?? true,
+      fechaRecibido: c.fechaRecibido,
+      recibidoPor: c.recibidoPor,
       ...creationAudit(c),
       raw: c,
     }));
@@ -1128,6 +1132,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       walletOrigen: v.walletOrigen,
       walletOrigenId: v.walletOrigenId,
       destinoFondosId: v.destinoFondosId,
+      estado: ((v.estado || 'recibido').toLowerCase()) as 'pendiente' | 'recibido',
+      saldoVentaAplicado: v.saldoVentaAplicado ?? true,
       ...creationAudit(v),
       raw: v,
     }));
@@ -1231,8 +1237,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const movement = (
-      row: CreationAudit & { fecha: string; codigo: string }, concepto: string, monto: number
-    ): LinkedMovement => ({ ...creationAudit(row), fecha: row.fecha, origen: row.codigo, concepto, monto });
+      row: CreationAudit & { fecha: string; codigo: string; id?: string }, concepto: string, monto: number
+    ): LinkedMovement => ({ ...creationAudit(row), idOriginal: (row as any).id, fecha: row.fecha, origen: row.codigo, concepto, monto });
 
     const matchesAccount = (row: { origenFondosId?: string; origenFondos: string }, account: any) => {
       if (row.origenFondosId) return row.origenFondosId === account.id;
@@ -1261,21 +1267,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       movimientos: mergeMovements(account, [
         ...capitalEntries(account.id, false),
         ...gastos.filter((g) => g.divisa === 'COP' && matchesAccount(g, account))
-          .map((g) => movement(g, 'Gasto: ' + g.concepto, -Math.abs(g.monto))),
+          .map((g) => ({ ...movement(g, 'Gasto: ' + g.concepto, -Math.abs(g.monto)), idOriginal: g.id, tipoOperacion: 'GASTO' as const })),
         ...efectivo.filter((e) => matchesAccount(e, account))
           .map((e) => {
-            if (e.tipo === 'Ingreso') return movement(e, 'Ingreso de efectivo', e.monto);
+            if (e.tipo === 'Ingreso') return { ...movement(e, 'Ingreso de efectivo', e.monto), idOriginal: e.id, tipoOperacion: 'EFECTIVO' as const };
             const clientName = e.clienteId || e.clienteCodigo ? e.clienteNombre : '';
             const client = clientName ? ' a ' + clientName : '';
             const fee = clientName || e.comisionCop ? ' + Comisión ' + formatCOP(e.comisionCop) : '';
-            return { ...movement(e, 'Pago en efectivo' + client + fee, -(e.monto - e.comisionCop)), replaceConcept: true };
+            return { ...movement(e, 'Pago en efectivo' + client + fee, -(e.monto - e.comisionCop)), replaceConcept: true, idOriginal: e.id, tipoOperacion: 'EFECTIVO' as const };
           }),
         ...dispersiones.filter((d) => d.origenFondosId === account.id && d.estado.trim().toUpperCase() !== 'RECHAZADO')
           .flatMap((d) => [
-            movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto),
+            { ...movement(d, 'Dispersión a ' + d.clienteNombre, -d.monto), idOriginal: d.id, tipoOperacion: 'DISPERSION' as const },
             ...(d.costoOrigenAplicado && d.costoCop > 0 ? [{
               ...movement(d, 'Costo de dispersión · ' + d.clienteNombre, -d.costoCop),
               origen: d.codigo + '-FEE',
+              idOriginal: d.id,
+              tipoOperacion: 'DISPERSION' as const,
             }] : []),
           ]),
         ...ventasUsdt.filter((v) => v.destinoFondosId === account.id)
@@ -1288,17 +1296,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           })),
         ...transferenciasInternas.filter((t) => t.tipoOrigen === 'ACTIVO_LIQUIDO' && t.origenId === account.id)
           .flatMap((t) => [
-            movement(t, 'Transferencia a ' + (t.destinoNombre || 'cuenta') + (t.concepto ? ': ' + t.concepto : ''), -t.monto),
+            { ...movement(t, 'Transferencia a ' + (t.destinoNombre || 'cuenta') + (t.concepto ? ': ' + t.concepto : ''), -t.monto), idOriginal: t.id, tipoOperacion: 'TRANSFERENCIA' as const },
             ...(t.costo > 0 && t.divisaCosto === 'COP' ? [{
               ...creationAudit(t),
               fecha: t.fecha,
               origen: t.codigo + '-FEE',
               concepto: 'Comisión transferencia ' + t.codigo,
               monto: -t.costo,
+              idOriginal: t.id,
+              tipoOperacion: 'TRANSFERENCIA' as const,
             }] : []),
           ]),
         ...transferenciasInternas.filter((t) => t.tipoDestino === 'ACTIVO_LIQUIDO' && t.destinoId === account.id)
-          .map((t) => movement(t, 'Transferencia desde ' + (t.origenNombre || 'cuenta') + (t.concepto ? ': ' + t.concepto : ''), t.montoDestino)),
+          .map((t) => ({ ...movement(t, 'Transferencia desde ' + (t.origenNombre || 'cuenta') + (t.concepto ? ': ' + t.concepto : ''), t.montoDestino), idOriginal: t.id, tipoOperacion: 'TRANSFERENCIA' as const })),
       ], new Set([
         ...ventasUsdt.filter((v) => v.destinoFondosId && v.destinoFondosId !== account.id).map((v) => v.codigo),
         ...dispersiones
@@ -2202,35 +2212,115 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const marcarCompraRecibida = async (compraId: string): Promise<boolean> => {
-    requireWrite('admin');
-    const { data: res, error } = await supabase.rpc('marcar_compra_usdt_recibida', { p_compra_id: compraId });
-    if (error) throw dashboardWriteError(error, 'No se pudo marcar la compra como recibida.');
-    await scheduleRefresh();
-    return true;
+    if (isAuditorRole(profile?.role)) throw new Error('El rol de auditor es de solo lectura.');
+    const finishSound = prepareSuccessSound();
+    setSnapshot((current) => ({
+      ...current,
+      comprasUsdt: (current.comprasUsdt || []).map((c: any) =>
+        c.id === compraId ? { ...c, estado: 'recibido' } : c
+      ),
+    }));
+    try {
+      const { error: rpcError } = await supabase.rpc('marcar_compra_usdt_recibida', { p_compra_id: compraId });
+      const { data: updated, error: updError } = await supabase
+        .from('compras_usdt')
+        .update({ estado: 'recibido' })
+        .eq('id', compraId)
+        .select('*')
+        .maybeSingle();
+      if (updError && rpcError) throw updError || rpcError;
+      if (updated) publishMutation('compras_usdt', updated);
+      finishSound(true);
+      scheduleRefresh();
+      return true;
+    } catch (err) {
+      finishSound(false);
+      throw dashboardWriteError(err, 'No se pudo marcar la compra como recibida.');
+    }
   };
 
   const marcarVentaRecibida = async (ventaId: string): Promise<boolean> => {
-    requireWrite('admin');
-    const { data: res, error } = await supabase.rpc('marcar_venta_usdt_recibida', { p_venta_id: ventaId });
-    if (error) throw dashboardWriteError(error, 'No se pudo marcar la venta como recibida.');
-    await scheduleRefresh();
-    return true;
+    if (isAuditorRole(profile?.role)) throw new Error('El rol de auditor es de solo lectura.');
+    const finishSound = prepareSuccessSound();
+    setSnapshot((current) => ({
+      ...current,
+      ventasUsdt: (current.ventasUsdt || []).map((v: any) =>
+        v.id === ventaId ? { ...v, estado: 'recibido' } : v
+      ),
+    }));
+    try {
+      const { error: rpcError } = await supabase.rpc('marcar_venta_usdt_recibida', { p_venta_id: ventaId });
+      const { data: updated, error: updError } = await supabase
+        .from('ventas_usdt')
+        .update({ estado: 'recibido' })
+        .eq('id', ventaId)
+        .select('*')
+        .maybeSingle();
+      if (updError && rpcError) throw updError || rpcError;
+      if (updated) publishMutation('ventas_usdt', updated);
+      finishSound(true);
+      scheduleRefresh();
+      return true;
+    } catch (err) {
+      finishSound(false);
+      throw dashboardWriteError(err, 'No se pudo marcar la venta como recibida.');
+    }
   };
 
   const marcarCompraPendiente = async (compraId: string): Promise<boolean> => {
-    requireWrite('admin');
-    const { data: res, error } = await supabase.rpc('marcar_compra_usdt_pendiente', { p_compra_id: compraId });
-    if (error) throw dashboardWriteError(error, 'No se pudo pasar la compra a estado pendiente.');
-    await scheduleRefresh();
-    return true;
+    if (isAuditorRole(profile?.role)) throw new Error('El rol de auditor es de solo lectura.');
+    const finishSound = prepareSuccessSound();
+    setSnapshot((current) => ({
+      ...current,
+      comprasUsdt: (current.comprasUsdt || []).map((c: any) =>
+        c.id === compraId ? { ...c, estado: 'pendiente' } : c
+      ),
+    }));
+    try {
+      const { error: rpcError } = await supabase.rpc('marcar_compra_usdt_pendiente', { p_compra_id: compraId });
+      const { data: updated, error: updError } = await supabase
+        .from('compras_usdt')
+        .update({ estado: 'pendiente' })
+        .eq('id', compraId)
+        .select('*')
+        .maybeSingle();
+      if (updError && rpcError) throw updError || rpcError;
+      if (updated) publishMutation('compras_usdt', updated);
+      finishSound(true);
+      scheduleRefresh();
+      return true;
+    } catch (err) {
+      finishSound(false);
+      throw dashboardWriteError(err, 'No se pudo marcar la compra como pendiente.');
+    }
   };
 
   const marcarVentaPendiente = async (ventaId: string): Promise<boolean> => {
-    requireWrite('admin');
-    const { data: res, error } = await supabase.rpc('marcar_venta_usdt_pendiente', { p_venta_id: ventaId });
-    if (error) throw dashboardWriteError(error, 'No se pudo pasar la venta a estado pendiente.');
-    await scheduleRefresh();
-    return true;
+    if (isAuditorRole(profile?.role)) throw new Error('El rol de auditor es de solo lectura.');
+    const finishSound = prepareSuccessSound();
+    setSnapshot((current) => ({
+      ...current,
+      ventasUsdt: (current.ventasUsdt || []).map((v: any) =>
+        v.id === ventaId ? { ...v, estado: 'pendiente' } : v
+      ),
+    }));
+    try {
+      const { error: rpcError } = await supabase.rpc('marcar_venta_usdt_pendiente', { p_venta_id: ventaId });
+      const { data: updated, error: updError } = await supabase
+        .from('ventas_usdt')
+        .update({ estado: 'pendiente' })
+        .eq('id', ventaId)
+        .select('*')
+        .maybeSingle();
+      if (updError && rpcError) throw updError || rpcError;
+      if (updated) publishMutation('ventas_usdt', updated);
+      finishSound(true);
+      scheduleRefresh();
+      return true;
+    } catch (err) {
+      finishSound(false);
+      throw dashboardWriteError(err, 'No se pudo marcar la venta como pendiente.');
+    }
   };
 
   return (

@@ -14,7 +14,7 @@ import { CreatedByCell, CreatedByHeader, formatAuthorName } from '../components/
 import { CreatedByFilter } from '../components/common/CreatedByFilter';
 import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useData, type NormalizedData } from '../context/DataContext';
+import { useData, type NormalizedData, type GastoItem, type TransferenciaInterna } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { formatNumber, formatCOP, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { AddEfectivoModal, type EfectivoMode } from '../components/modals/AddEfectivoModal';
@@ -23,7 +23,6 @@ import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 import { AddTransferenciaModal } from '../components/modals/AddTransferenciaModal';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { EstadoTransitoSelect } from '../components/common/EstadoTransitoSelect';
-import { useData, type NormalizedData, type GastoItem } from '../context/DataContext';
 
 interface EfectivoViewProps {
   onOpenAddGasto?: () => void;
@@ -42,6 +41,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const [editingMovimiento, setEditingMovimiento] = useState<NormalizedData['efectivo'][number] | null>(null);
   const [editingGasto, setEditingGasto] = useState<GastoItem | null>(null);
   const [editingDispersion, setEditingDispersion] = useState<NormalizedData['dispersiones'][number] | null>(null);
+  const [editingVenta, setEditingVenta] = useState<NormalizedData['ventasUsdt'][number] | null>(null);
+  const [editingTransferencia, setEditingTransferencia] = useState<TransferenciaInterna | null>(null);
 
   const [params, setParams] = useSearchParams();
   const paymentId = params.get('pago');
@@ -385,17 +386,17 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                   const token = tokenByPayment.get(m.id);
                   const tokenState = token && getTokenState(token);
 
-                  const isGasto = m.codigo.startsWith('G') || m.referencia?.startsWith('Gasto') || m.raw?.concepto?.startsWith('Gasto');
-                  const matchingGasto = isGasto ? data.gastos.find((g) => g.codigo === m.codigo || g.id === m.id || (m.raw && m.raw.id === g.id)) : null;
+                  const isGasto = m.raw?.tipoOperacion === 'GASTO' || m.codigo.startsWith('G') || m.referencia?.startsWith('Gasto') || m.raw?.concepto?.startsWith('Gasto');
+                  const matchingGasto = isGasto ? data.gastos.find((g) => (m.raw?.idOriginal && g.id === m.raw.idOriginal) || g.codigo === m.codigo || g.id === m.id || (m.raw && m.raw.id === g.id)) : null;
 
                   const isVentaUsdt = m.raw?.tipoOperacion === 'VENTA_USDT' || m.codigo.startsWith('VNT-') || data.ventasUsdt.some((v) => v.codigo === m.codigo || v.id === m.raw?.idOriginal);
-                  const matchingVenta = isVentaUsdt ? data.ventasUsdt.find((v) => v.codigo === m.codigo || v.id === m.raw?.idOriginal || v.id === m.id) : null;
+                  const matchingVenta = isVentaUsdt ? data.ventasUsdt.find((v) => (m.raw?.idOriginal && v.id === m.raw.idOriginal) || v.codigo === m.codigo || v.id === m.id) : null;
 
-                  const isDispersion = m.codigo.startsWith('DISP-') || data.dispersiones.some((d) => d.codigo === m.codigo || d.id === m.id || d.codigo === m.raw?.origen);
-                  const matchingDispersion = isDispersion ? data.dispersiones.find((d) => d.codigo === m.codigo || d.id === m.id || d.codigo === m.raw?.origen) : null;
+                  const isDispersion = m.raw?.tipoOperacion === 'DISPERSION' || m.codigo.startsWith('DISP-') || m.codigo.startsWith('D') || data.dispersiones.some((d) => d.codigo === m.codigo || d.id === m.id || d.codigo === m.raw?.origen);
+                  const matchingDispersion = isDispersion ? data.dispersiones.find((d) => (m.raw?.idOriginal && d.id === m.raw.idOriginal) || d.codigo === m.codigo || d.id === m.id || d.codigo === m.raw?.origen) : null;
 
-                  const isTransferencia = m.codigo.startsWith('TRF-') || (data.transferenciasInternas || []).some((t: any) => t.codigo === m.codigo || t.id === m.id || t.codigo === m.raw?.origen);
-                  const matchingTransferencia = isTransferencia ? (data.transferenciasInternas || []).find((t: any) => t.codigo === m.codigo || t.id === m.id || t.codigo === m.raw?.origen) : null;
+                  const isTransferencia = m.raw?.tipoOperacion === 'TRANSFERENCIA' || m.codigo.startsWith('TRF-') || (data.transferenciasInternas || []).some((t: any) => t.codigo === m.codigo || t.id === m.id || t.codigo === m.raw?.origen);
+                  const matchingTransferencia = isTransferencia ? (data.transferenciasInternas || []).find((t: any) => (m.raw?.idOriginal && t.id === m.raw.idOriginal) || t.codigo === m.codigo || t.id === m.id || t.codigo === m.raw?.origen) : null;
 
                   return (
                     <tr key={m.id} className="hover:bg-muted/30 transition-colors">
@@ -500,69 +501,21 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       <CreatedByCell name={m.createdByName} />
                       <td className="py-2.5 px-4 text-center whitespace-nowrap">
                         {canWrite && (
-                          matchingVenta ? (
-                            <AddCatalogButton
-                              table="ventas_usdt"
-                              edit={{
-                                id: matchingVenta.id,
-                                historical: !matchingVenta.walletOrigenId || !matchingVenta.destinoFondosId,
-                                fields: {
-                                  fecha: matchingVenta.fecha?.slice(0, 10) || '',
-                                  concepto: matchingVenta.concepto,
-                                  usdt_vendido: matchingVenta.usdtVendido,
-                                  fee_usdt: matchingVenta.feeUsdt,
-                                  tasa: matchingVenta.tasa,
-                                  wallet_origen_id: matchingVenta.walletOrigenId || '',
-                                  destino_fondos_id: matchingVenta.destinoFondosId || '',
-                                  estado: matchingVenta.estado,
-                                },
-                              }}
-                            />
-                          ) : matchingTransferencia ? (
-                            <AddTransferenciaModal
-                              edit={matchingTransferencia}
-                              trigger={
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                                  title="Editar transferencia interna"
-                                >
-                                  <i className="ri-edit-line text-xs" />
-                                  <span>Editar</span>
-                                </button>
-                              }
-                            />
-                          ) : matchingDispersion ? (
-                            <button
-                              type="button"
-                              onClick={() => setEditingDispersion(matchingDispersion)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                              title="Editar dispersión"
-                            >
-                              <i className="ri-edit-line text-xs" />
-                              <span>Editar</span>
-                            </button>
-                          ) : matchingGasto ? (
-                            <button
-                              type="button"
-                              onClick={() => setEditingGasto(matchingGasto)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                              title="Editar gasto"
-                            >
-                              <i className="ri-edit-line text-xs" />
-                              <span>Editar</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setEditingMovimiento(m)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                              title={isAdmin ? 'Editar o eliminar movimiento' : 'Editar movimiento'}
-                            >
-                              <i className="ri-edit-line text-xs" />
-                              <span>Editar</span>
-                            </button>
-                          )
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (matchingVenta) setEditingVenta(matchingVenta);
+                              else if (matchingTransferencia) setEditingTransferencia(matchingTransferencia);
+                              else if (matchingDispersion) setEditingDispersion(matchingDispersion);
+                              else if (matchingGasto) setEditingGasto(matchingGasto);
+                              else setEditingMovimiento(m);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                            title="Editar operación"
+                          >
+                            <i className="ri-edit-line text-xs" />
+                            <span>Editar</span>
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -733,67 +686,21 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                       Por: <span className="font-medium text-foreground">{m.createdByName || '—'}</span>
                     </span>
                     {canWrite && (
-                      matchingVenta ? (
-                        <AddCatalogButton
-                          table="ventas_usdt"
-                          buttonClassName="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                          edit={{
-                            id: matchingVenta.id,
-                            historical: !matchingVenta.walletOrigenId || !matchingVenta.destinoFondosId,
-                            fields: {
-                              fecha: matchingVenta.fecha?.slice(0, 10) || '',
-                              concepto: matchingVenta.concepto,
-                              usdt_vendido: matchingVenta.usdtVendido,
-                              fee_usdt: matchingVenta.feeUsdt,
-                              tasa: matchingVenta.tasa,
-                              wallet_origen_id: matchingVenta.walletOrigenId || '',
-                              destino_fondos_id: matchingVenta.destinoFondosId || '',
-                              estado: matchingVenta.estado,
-                            },
-                          }}
-                        />
-                      ) : matchingTransferencia ? (
-                        <AddTransferenciaModal
-                          edit={matchingTransferencia}
-                          trigger={
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                              title="Editar transferencia interna"
-                            >
-                              <i className="ri-edit-line text-xs" />
-                              <span>Editar</span>
-                            </button>
-                          }
-                        />
-                      ) : matchingDispersion ? (
-                        <button
-                          type="button"
-                          onClick={() => setEditingDispersion(matchingDispersion)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                        >
-                          <i className="ri-edit-line text-xs" />
-                          <span>Editar</span>
-                        </button>
-                      ) : matchingGasto ? (
-                        <button
-                          type="button"
-                          onClick={() => setEditingGasto(matchingGasto)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                        >
-                          <i className="ri-edit-line text-xs" />
-                          <span>Editar</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setEditingMovimiento(m)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
-                        >
-                          <i className="ri-edit-line text-xs" />
-                          <span>Editar</span>
-                        </button>
-                      )
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (matchingVenta) setEditingVenta(matchingVenta);
+                          else if (matchingTransferencia) setEditingTransferencia(matchingTransferencia);
+                          else if (matchingDispersion) setEditingDispersion(matchingDispersion);
+                          else if (matchingGasto) setEditingGasto(matchingGasto);
+                          else setEditingMovimiento(m);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors text-foreground"
+                        title="Editar operación"
+                      >
+                        <i className="ri-edit-line text-xs" />
+                        <span>Editar</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -803,7 +710,55 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Modals for editing all movement types from cash view */}
+      {editingVenta && (
+        <AddCatalogButton
+          table="ventas_usdt"
+          isOpen={Boolean(editingVenta)}
+          onClose={() => setEditingVenta(null)}
+          edit={{
+            id: editingVenta.id,
+            historical: !editingVenta.walletOrigenId || !editingVenta.destinoFondosId,
+            fields: {
+              fecha: editingVenta.fecha?.slice(0, 10) || '',
+              concepto: editingVenta.concepto,
+              usdt_vendido: editingVenta.usdtVendido,
+              fee_usdt: editingVenta.feeUsdt,
+              tasa: editingVenta.tasa,
+              wallet_origen_id: editingVenta.walletOrigenId || '',
+              destino_fondos_id: editingVenta.destinoFondosId || '',
+              estado: editingVenta.estado,
+            },
+          }}
+        />
+      )}
+
+      {editingTransferencia && (
+        <AddTransferenciaModal
+          edit={editingTransferencia}
+          isOpen={Boolean(editingTransferencia)}
+          onClose={() => setEditingTransferencia(null)}
+        />
+      )}
+
+      {editingDispersion && (
+        <AddDispersionModal
+          isOpen
+          record={editingDispersion}
+          onClose={() => setEditingDispersion(null)}
+        />
+      )}
+
+      <AddGastoModal
+        isOpen={isAddGastoOpen || Boolean(editingGasto)}
+        record={editingGasto || undefined}
+        onClose={() => {
+          setIsAddGastoOpen(false);
+          setEditingGasto(null);
+        }}
+        isCashContext={true}
+      />
+
       <AddEfectivoModal
         isOpen={Boolean(movementMode || editingMovimiento)}
         mode={movementMode ?? (editingMovimiento?.tipo === 'Pago' ? 'pago' : 'ingreso')}
@@ -816,22 +771,6 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         }}
       />
       <TokenVoucherModal isOpen={Boolean(voucher)} token={voucher} onClose={() => setVoucher(null)} />
-      <AddGastoModal
-        isOpen={isAddGastoOpen || Boolean(editingGasto)}
-        record={editingGasto || undefined}
-        onClose={() => {
-          setIsAddGastoOpen(false);
-          setEditingGasto(null);
-        }}
-        isCashContext={true}
-      />
-      {editingDispersion && (
-        <AddDispersionModal
-          isOpen
-          record={editingDispersion}
-          onClose={() => setEditingDispersion(null)}
-        />
-      )}
     </div>
   );
 };

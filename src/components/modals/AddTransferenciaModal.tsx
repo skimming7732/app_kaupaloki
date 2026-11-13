@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData, type TransferenciaInterna } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { canDeleteRole } from '../../utils/roles';
+import { canDeleteRole, isAdminRole } from '../../utils/roles';
 import { formatNumber, formatCOP } from '../../utils/formatters';
 import { formatAmountField, formatAmountInput, parseAmountInput } from '../../utils/amountInput';
 import { prepareSuccessSound } from '../../utils/confirmationSound';
@@ -10,12 +10,14 @@ import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recor
 interface AddTransferenciaModalProps {
   edit?: TransferenciaInterna;
   trigger?: React.ReactNode;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ edit, trigger }) => {
+export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ edit, trigger, isOpen: externalOpen, onClose: externalOnClose }) => {
   const { data, createTransferenciaInterna, updateTransferenciaInterna, deleteTransferenciaInterna } = useData();
   const { profile } = useAuth();
-  const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
+  const isAdmin = isAdminRole(profile?.role) || profile?.role === 'supervisor';
   const canDelete = canDeleteRole(profile?.role);
 
   const [open, setOpen] = useState(false);
@@ -72,6 +74,18 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
     setNotas(edit?.notas || '');
     setFecha(edit?.fecha?.slice(0, 10) || new Date().toISOString().slice(0, 10));
     setOpen(true);
+  };
+
+  useEffect(() => {
+    if (externalOpen) {
+      openModal();
+    }
+  }, [externalOpen, edit?.id]);
+
+  const isModalOpen = externalOpen !== undefined ? externalOpen : open;
+  const handleClose = () => {
+    setOpen(false);
+    externalOnClose?.();
   };
 
   const handleTipoChange = (type: 'ACTIVO_LIQUIDO' | 'ACTIVO_DIGITAL') => {
@@ -169,20 +183,22 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
 
   return (
     <>
-      {trigger ? (
-        <span onClick={openModal}>{trigger}</span>
-      ) : (
-        <button
-          type="button"
-          onClick={openModal}
-          className={edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass}
-        >
-          <i className={edit ? 'ri-edit-line' : 'ri-arrow-left-right-line'} aria-hidden="true" />
-          <span>{edit ? 'Editar' : 'Nueva Transferencia'}</span>
-        </button>
+      {externalOpen === undefined && (
+        trigger ? (
+          <span onClick={openModal}>{trigger}</span>
+        ) : (
+          <button
+            type="button"
+            onClick={openModal}
+            className={edit ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass}
+          >
+            <i className={edit ? 'ri-edit-line' : 'ri-arrow-left-right-line'} aria-hidden="true" />
+            <span>{edit ? 'Editar' : 'Nueva Transferencia'}</span>
+          </button>
+        )
       )}
 
-      {open && (
+      {isModalOpen && (
         <RecordDialog
           title={edit ? 'Editar Transferencia Interna' : 'Registrar Transferencia Interna'}
           description="Movimiento entre cuentas bancarias de la misma empresa o entre billeteras USDT."
@@ -190,7 +206,7 @@ export const AddTransferenciaModal: React.FC<AddTransferenciaModalProps> = ({ ed
           wide
           busy={busy}
           error={error}
-          onClose={() => setOpen(false)}
+          onClose={handleClose}
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             <fieldset disabled={busy} className="min-w-0 space-y-6">
