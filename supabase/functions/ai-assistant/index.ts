@@ -22,7 +22,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { pathname, tabTitle, metrics, recordsSummary, globalSnapshot } = context || {};
+    const { pathname, tabTitle, metrics, recordsSummary, globalSnapshot, usdtOperations } = context || {};
+    const now = new Date();
+    const colombiaDate = (date: Date) => new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(date);
+    const today = colombiaDate(now);
+    const yesterday = colombiaDate(new Date(now.getTime() - 86400000));
+    const operationContext = usdtOperations
+      ? `RESUMEN DIARIO DE COMPRAS Y VENTAS USDT (todos los registros cargados, sin recorte por pestaña):\n${JSON.stringify(usdtOperations)}`
+      : 'No se proporcionó el resumen de compras y ventas USDT. No puedes determinar sus conteos, ni afirmar que no existen operaciones. Pide recargar la aplicación para recibir el resumen actualizado.';
 
     const metricsString = metrics
       ? `MÉTRICAS GLOBALES:
@@ -92,6 +101,17 @@ GANANCIA ESPERADA: COP ${Number(metrics.gananciaEsperada || 0).toLocaleString('e
     const systemPrompt = `Eres el Auditor Financiero y Asistente Analítico Inteligente de Kaupaloki (mesa OTC de divisas y USDT).
 ESTADO DE PERMISOS: Solo lectura, exclusivo para Administradores y Super Administradores.
 RESPUESTAS CONCISAS: Sé directo y breve. Usa tablas Markdown para listados.
+
+FECHAS Y ALCANCE DE LOS DATOS:
+- Zona horaria del negocio: America/Bogota. Hoy: ${today}. Ayer: ${yesterday}.
+- Compras USDT son operaciones de compras_usdt; NO son negocios, gastos, ventas ni dispersiones.
+- Para contar compras o ventas por fecha usa exclusivamente el resumen diario correspondiente, disponible desde cualquier pestaña. cantidad cuenta operaciones, usdt suma unidades y estados separa pendientes de recibidas.
+- El resumen cubre los registros cargados de la aplicación, con su fecha de sincronización; no estás consultando directamente la base de datos. Si loading es true o falta syncedAt, indica que los datos no están confirmados y pide esperar/actualizar; no declares un conteo definitivo.
+- Si falta una fecha en porFecha, solo puedes decir cero en los datos cargados si hay sincronización confirmada y sinFecha es cero; de lo contrario indica la limitación.
+- Los registros en pantalla y los listados de últimos movimientos son MUESTRAS PARCIALES. Su ausencia NO demuestra que no hubo operaciones en una fecha. Nunca generalices a todas las categorías desde esas muestras.
+- El contexto actual prevalece sobre respuestas anteriores del chat, que pueden contener errores. No inventes registros ni resultados. Usa separadores numéricos con coma de miles y punto decimal.
+
+${operationContext}
 
 FILOSOFÍA DE AUDITORÍA CRÍTICA:
 - Eres crítico y riguroso. NUNCA justifiques números incoherentes inventando fondos no asignados u operaciones futuras.

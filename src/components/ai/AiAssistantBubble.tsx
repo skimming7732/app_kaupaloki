@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { summarizeUsdtOperations } from '../../services/aiOperationSummary';
 import {
   askGeminiAssistant,
   ChatMessage,
@@ -212,7 +213,7 @@ const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
 
 export const AiAssistantBubble: React.FC = () => {
   const { profile, user } = useAuth();
-  const { data, metrics } = useData();
+  const { data, metrics, snapshot, loading: dataLoading } = useData();
   const location = useLocation();
 
   // Role Protection: Only super_admin and administrador
@@ -504,7 +505,7 @@ export const AiAssistantBubble: React.FC = () => {
         {
           id: `msg_welcome_${Date.now()}`,
           role: 'assistant',
-          content: `Hola **${profile?.nombre || profile?.full_name || 'Administrador'}**. Soy el **Auditor Financiero IA** de Kaupaloki.\n\nTengo acceso en tiempo real a tus clientes, métricas de liquidación y registros de **${currentViewDetails.title}**.\n\nMi acceso es **estrictamente de solo lectura**. ¿Qué consulta o auditoría deseas realizar?`,
+          content: `Hola **${profile?.nombre || profile?.full_name || 'Administrador'}**. Soy el **Auditor Financiero IA** de Kaupaloki.\n\nPuedo analizar los datos cargados de tus clientes, métricas de liquidación, compras y ventas de USDT, además de una muestra de registros de **${currentViewDetails.title}**.\n\nMi acceso es **estrictamente de solo lectura**. ¿Qué consulta o auditoría deseas realizar?`,
           timestamp: Date.now(),
         },
       ],
@@ -602,6 +603,13 @@ export const AiAssistantBubble: React.FC = () => {
       const contextData: ViewContextData = {
         pathname: location.pathname,
         tabTitle: currentViewDetails.title,
+        usdtOperations: {
+          source: 'loaded_snapshot',
+          syncedAt: snapshot.syncedAt,
+          loading: dataLoading,
+          compras: summarizeUsdtOperations(data.comprasUsdt || [], 'compra'),
+          ventas: summarizeUsdtOperations(data.ventasUsdt || [], 'venta'),
+        },
         metrics: {
           gananciaEsperada: metrics.gananciaEsperada,
           liquidezEsperada: metrics.liquidezEsperada,

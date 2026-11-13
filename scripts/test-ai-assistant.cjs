@@ -9,7 +9,7 @@ const code = ts.transpile(source.replace(/^import .*;\r?\n/, ''), {
   target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None,
 });
 
-async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actual', response, status = 200, method = 'POST' } = {}) {
+async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actual', response, status = 200, method = 'POST', context = { tabTitle: 'Clientes' } } = {}) {
   let handler;
   let sent;
   vm.runInNewContext(code, {
@@ -18,6 +18,7 @@ async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actua
       serve: (fn) => { handler = fn; },
     },
     Response, AbortSignal,
+    Date: class extends Date { constructor(value) { super(value ?? '2026-11-14T02:00:00Z'); } },
     fetch: async (url, options) => {
       sent = { url, headers: options.headers, body: JSON.parse(options.body) };
       return new Response(JSON.stringify(response ?? {
@@ -26,7 +27,7 @@ async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actua
     },
   });
   const result = await handler(new Request('https://example.test', {
-    method, ...(method === 'POST' ? { body: JSON.stringify({ prompt, history, context: { tabTitle: 'Clientes' } }) } : {}),
+    method, ...(method === 'POST' ? { body: JSON.stringify({ prompt, history, context }) } : {}),
   }));
   return { result, sent, body: method === 'OPTIONS' ? null : await result.json() };
 }
@@ -57,5 +58,33 @@ async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actua
   const cors = await invoke({ method: 'OPTIONS' });
   assert.equal(cors.result.status, 200);
   assert.equal(cors.sent, undefined);
-  console.log('AI assistant: 7 scenarios passed (Gemini payload, missing key, invalid prompt, quota, provider failure, empty reply, CORS).');
+  const summarySource = fs.readFileSync(path.join(__dirname, '../src/services/aiOperationSummary.ts'), 'utf8');
+  const summaryModule = { exports: {} };
+  vm.runInNewContext(ts.transpile(summarySource, { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS }), {
+    exports: summaryModule.exports, module: summaryModule,
+  });
+  const { summarizeUsdtOperations } = summaryModule.exports;
+  const purchases = summarizeUsdtOperations([
+    ...Array.from({ length: 30 }, () => ({ fecha: '2026-11-13', usdtComprado: 1, valorComprado: 4000, divisaCodigo: 'COP', estado: 'pendiente' })),
+    { fecha: '2026-11-12', usdtComprado: 10, valorComprado: 40000, divisaCodigo: 'COP', estado: 'recibido' },
+    { fecha: '2026-11-12T00:00:00Z', usdtComprado: 5, valorComprado: 5, divisaCodigo: 'USD', estado: 'pendiente' },
+  ], 'compra');
+  assert.equal(purchases.totalRegistros, 32);
+  assert.equal(purchases.porFecha[1].cantidad, 2);
+  assert.equal(purchases.porFecha[1].usdt, 15);
+  assert.equal(purchases.porFecha[1].importesPorDivisa.COP, 40000);
+  assert.equal(purchases.porFecha[1].importesPorDivisa.USD, 5);
+  assert.equal(purchases.porFecha[1].estados.pendiente, 1);
+  assert.equal(summarizeUsdtOperations([{ fecha: '' }], 'compra').sinFecha, 1);
+  assert.equal(summarizeUsdtOperations([{ fecha: '2026-11-12', usdtVendido: 5, totalCOP: 20000 }], 'venta').porFecha[0].usdt, 5);
+  const crossTab = await invoke({ context: { tabTitle: 'Dispersiones', usdtOperations: {
+    source: 'loaded_snapshot', loading: false, syncedAt: '2026-11-13T16:00:00Z', compras: purchases,
+    ventas: summarizeUsdtOperations([], 'venta'),
+  } } });
+  const instructions = crossTab.sent.body.systemInstruction.parts[0].text;
+  assert.ok(instructions.includes('Hoy: 2026-11-13. Ayer: 2026-11-12.'));
+  assert.ok(instructions.includes('"cantidad":2'));
+  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('No puedes determinar sus conteos'));
+  assert.ok(instructions.includes('MUESTRAS PARCIALES'));
+  console.log('AI assistant: provider scenarios and USDT regression checks passed (cross-tab purchases, >20 records, states, currencies, missing dates, sales, Bogota midnight, missing context).');
 })().catch((err) => { console.error(err); process.exitCode = 1; });

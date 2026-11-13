@@ -1,3 +1,5 @@
+import type { UsdtOperationSummary } from './aiOperationSummary';
+
 // Gemini AI Service for Kaupaloki Admin Assistant via Supabase Edge Function
 export interface ChatMessage {
   id: string;
@@ -18,6 +20,13 @@ export interface ChatSession {
 export interface ViewContextData {
   pathname: string;
   tabTitle: string;
+  usdtOperations?: {
+    source: 'loaded_snapshot';
+    syncedAt?: string;
+    loading: boolean;
+    compras: UsdtOperationSummary;
+    ventas: UsdtOperationSummary;
+  };
   metrics?: Record<string, any>;
   recordsSummary?: any[];
   globalSnapshot?: {

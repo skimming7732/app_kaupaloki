@@ -97,6 +97,8 @@ El registro de Auth no concede roles desde `user_metadata`. Las invitaciones asi
 
 El chat usa la Edge Function `ai-assistant`. Configurar `GEMINI_API_KEY` como secreto en Supabase, nunca como variable `VITE_*` ni dentro del código. `GEMINI_MODEL` es opcional; por defecto usa `gemini-3.5-flash-lite`, con nivel gratuito sujeto a las cuotas del proyecto de Google AI Studio. La clave por sí sola no determina si la cuenta tiene facturación activada.
 
+Los conteos de compras y ventas USDT usan resúmenes diarios calculados sobre todos los registros cargados, desde cualquier pestaña. Incluyen cantidad, unidades USDT, importes separados por divisa y estados. La función interpreta hoy/ayer en `America/Bogota`; las muestras recientes no permiten concluir que no hubo operaciones. Si falta sincronización o el resumen, debe indicar la limitación.
+
 Para activar el cambio hay que configurar el secreto, desplegar `supabase/functions/ai-assistant/index.ts` y publicar el frontend. Validación local del adaptador sin usar credenciales: `node scripts/test-ai-assistant.cjs`.
 
 ## Comprobantes
