@@ -811,7 +811,7 @@ export const ActivosDigitalesView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="asset-cards-grid">
                 {filteredWalletsCards.map((w: any, idx: number) => {
                   const isPoly = isPolygonNetwork(w.red);
                   const bgGradient = getInstitutionCardGradient({
@@ -832,12 +832,12 @@ export const ActivosDigitalesView: React.FC = () => {
                       key={w.id}
                       onClick={() => setSelectedWalletId(w.id)}
                       style={{ background: bgGradient }}
-                      className="relative rounded-3xl p-6 text-white shadow-lg flex flex-col justify-between min-h-[220px] overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl group select-none border border-white/10"
+                      className="asset-card relative rounded-3xl text-white shadow-lg flex flex-col justify-between overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-2xl group select-none border border-white/10"
                     >
                     <div className="absolute right-[-20px] top-[-20px] w-36 h-36 rounded-full bg-white/10 pointer-events-none group-hover:scale-110 transition-transform duration-300" />
 
-                    <div className="flex justify-between items-start gap-2 relative z-10">
-                      <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex flex-wrap justify-between items-start gap-x-3 gap-y-2 relative z-10">
+                      <div className="flex min-w-0 flex-1 basis-40 items-center gap-2">
                         <InstitutionLogo name={w.institution?.name || 'Institución sin vincular'} logoUrl={w.institution?.logo_url}
                             fallbackIcon="ri-wallet-3-line" sizeClass="size-8" />
                         <div className="min-w-0">
@@ -861,21 +861,21 @@ export const ActivosDigitalesView: React.FC = () => {
                     </div>
 
                     {/* Middle Row: Saldo Contable & Saldo Real */}
-                    <div className="my-3 flex items-end justify-between gap-3 relative z-10">
-                      <div>
+                    <div className="asset-card-balances my-4 relative z-10">
+                      <div className="min-w-0">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 block mb-0.5">
                           Saldo Contable
                         </span>
-                        <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white">
+                        <div className="asset-card-amount font-extrabold font-mono tracking-tight text-white">
                           {formatUSD(w.saldoUsdt || 0)}
                         </div>
                       </div>
 
-                      <div className="text-right flex flex-col items-end justify-end">
+                      <div className="asset-card-real min-w-0 flex flex-col justify-end">
                         <span className="text-[10px] font-medium uppercase tracking-wider text-white/60 block mb-1">
                           Saldo Real
                         </span>
-                        <div className="text-xs sm:text-sm font-semibold font-mono text-cyan-200/90 bg-black/25 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 inline-flex items-center gap-1 shadow-xs">
+                        <div className="asset-card-real-amount text-sm font-semibold font-mono text-cyan-200/90 bg-black/25 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 inline-flex items-center gap-1 shadow-xs">
                           {hasReal ? formatUSD(w.saldoReal) : <span className="text-white/40 font-sans text-xs font-normal">Sin sincronizar</span>}
                         </div>
                       </div>

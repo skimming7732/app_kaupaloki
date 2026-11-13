@@ -1,0 +1,48 @@
+/* Use the available content width, including when the sidebar is expanded. */
+.asset-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: 1.25rem;
+}
+
+.asset-card {
+  container-type: inline-size;
+  min-width: 0;
+  min-height: 14rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.asset-card-balances {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.asset-card-amount {
+  font-size: clamp(1.125rem, 8cqw, 1.875rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.asset-card-real {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.asset-card-real-amount {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* Two amounts share a row only when this card has room for both. */
+@container (min-width: 30rem) {
+  .asset-card-balances {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .asset-card-real {
+    align-items: flex-end;
+    text-align: right;
+  }
+}
