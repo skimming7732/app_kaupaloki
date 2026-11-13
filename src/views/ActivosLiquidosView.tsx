@@ -797,12 +797,6 @@ export const ActivosLiquidosView: React.FC = () => {
                             <span className="text-white/40 font-sans text-xs font-normal">Sin sincronizar</span>
                           )}
                         </div>
-                        {a.lincoinConsultadoAt && (
-                          <span className="mt-1 text-[10px] text-white/60">
-                            {Date.now() - Date.parse(a.lincoinConsultadoAt) > 180_000 ? 'Último saldo: ' : 'Consultado: '}
-                            {new Date(a.lincoinConsultadoAt).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota' })}
-                          </span>
-                        )}
                       </div>
                     </div>
 
