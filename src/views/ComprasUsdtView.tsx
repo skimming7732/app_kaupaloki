@@ -235,8 +235,8 @@ export const ComprasUsdtView: React.FC = () => {
             </ul>
           </details>
         )],
-        ['USDT confirmado', formatCurrency(totalUsdtRecibido, 'USDT')],
-        ['Por recibir (En tránsito)', (
+        ['USDT recibido (Confirmado)', formatCurrency(totalUsdtRecibido, 'USDT')],
+        ['USDT pendiente (En tránsito)', (
           <div className="flex items-center gap-1.5">
             <span className={totalUsdtEnTransito > 0 ? "text-amber-400 font-bold" : ""}>
               {formatCurrency(totalUsdtEnTransito, 'USDT')}

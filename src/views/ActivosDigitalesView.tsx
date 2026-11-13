@@ -4,7 +4,7 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { AssetCatalogButton } from '../components/modals/AssetCatalogButton';
 import { InstitutionLogo } from '../components/common/InstitutionLogo';
 import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCell';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { isAuditorRole } from '../utils/roles';
@@ -39,6 +39,8 @@ export const ActivosDigitalesView: React.FC = () => {
       saldoReal: chainBalances[addrKey] ?? null,
     };
   }), [recordedWallets, chainBalances]);
+
+  const [receivingId, setReceivingId] = useState<string | null>(null);
 
   // Statement (Extracto) mode and filters state
   const [balanceMode, setBalanceMode] = React.useState<'contable' | 'real'>('contable');

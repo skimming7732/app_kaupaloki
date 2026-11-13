@@ -246,15 +246,28 @@ export const VentasUsdtView: React.FC = () => {
       </FilterModal>
 
       <KpiStrip
-        metrics={(
-          [
-            ['Ventas', filteredVentas.length],
-            ['USDT vendidos', formatCurrency(totalUsdtVendidos, 'USDT')],
-            ['Tasa promedio', tasaPromedioVenta > 0 ? '$' + formatRate(tasaPromedioVenta) + ' COP' : '—'],
-            ['COP recibidos', formatCOP(totalCopRecibidos)],
-            ['Fee de envío', formatNumber(totalFeeUsdt, 0, 6) + ' USDT'],
-          ] as const
-        ).map(([label, value]) => ({ label, value }))}
+        metrics={[
+          { label: 'Ventas', value: filteredVentas.length },
+          { label: 'USDT vendidos', value: formatCurrency(totalUsdtVendidos, 'USDT') },
+          { label: 'Tasa promedio', value: tasaPromedioVenta > 0 ? '$' + formatRate(tasaPromedioVenta) + ' COP' : '—' },
+          { label: 'COP recibido (Confirmado)', value: formatCOP(totalCopRecibidos) },
+          {
+            label: 'COP pendiente (En tránsito)',
+            value: (
+              <div className="flex items-center gap-1.5">
+                <span className={totalCopEnTransito > 0 ? "text-amber-500 dark:text-amber-400 font-bold" : ""}>
+                  {formatCOP(totalCopEnTransito)}
+                </span>
+                {pendientesCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                    {pendientesCount} pend.
+                  </span>
+                )}
+              </div>
+            ),
+          },
+          { label: 'Fee de envío', value: formatNumber(totalFeeUsdt, 0, 6) + ' USDT' },
+        ]}
       />
 
       {/* Desktop Table View */}
