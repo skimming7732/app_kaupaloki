@@ -93,6 +93,12 @@ Los permisos se comprueban en rutas, formularios, operaciones compartidas, RLS y
 
 El registro de Auth no concede roles desde `user_metadata`. Las invitaciones asignan el rol mediante el servicio administrativo y generan el código interno correspondiente.
 
+## Asistente de preguntas (Gemini)
+
+El chat usa la Edge Function `ai-assistant`. Configurar `GEMINI_API_KEY` como secreto en Supabase, nunca como variable `VITE_*` ni dentro del código. `GEMINI_MODEL` es opcional; por defecto usa `gemini-3.5-flash-lite`, con nivel gratuito sujeto a las cuotas del proyecto de Google AI Studio. La clave por sí sola no determina si la cuenta tiene facturación activada.
+
+Para activar el cambio hay que configurar el secreto, desplegar `supabase/functions/ai-assistant/index.ts` y publicar el frontend. Validación local del adaptador sin usar credenciales: `node scripts/test-ai-assistant.cjs`.
+
 ## Comprobantes
 
 Los formularios de gastos y dispersiones y sus acciones de adjuntar, reemplazar y agregar otro comprobante usan el mismo selector. Permite elegir archivos, arrastrarlos o pegar una imagen con el teclado o el botón Pegar imagen. Muestra una vista previa y valida JPG, PNG, WEBP o PDF de hasta 10 MB antes de subir. El pegado de texto en otros campos conserva su comportamiento normal. Los comprobantes adicionales conservan los anteriores y el guardado comprueba si otro usuario cambió el registro.

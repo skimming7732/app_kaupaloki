@@ -3,11 +3,11 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import {
-  askGroqAssistant,
+  askGeminiAssistant,
   ChatMessage,
   ChatSession,
   ViewContextData,
-} from '../../services/groqService';
+} from '../../services/geminiService';
 
 const MAX_SESSIONS = 10;
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000; // 6 horas en milisegundos
@@ -585,7 +585,7 @@ export const AiAssistantBubble: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Filtrar clientes clave para auditoría sin desbordar el límite de tokens de Groq (8000 TPM)
+      // Filtrar clientes clave para mantener el contexto de auditoría compacto
       const allClients = data.clientes || [];
       const indebted = allClients.filter((c) => Number(c.porCobrarCOP || 0) > 0);
       const pendingDispersal = allClients.filter((c) => Number(c.saldoPendienteCOP || 0) > 0);
@@ -649,7 +649,7 @@ export const AiAssistantBubble: React.FC = () => {
         },
       };
 
-      const aiResponse = await askGroqAssistant(text, updatedMessages, contextData);
+      const aiResponse = await askGeminiAssistant(text, updatedMessages, contextData);
 
       const aiMsg: ChatMessage = {
         id: `msg_ai_${Date.now()}`,
@@ -802,7 +802,7 @@ export const AiAssistantBubble: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-300 truncate">
-                  Groq LLM • Privado ({profile?.role === 'super_admin' ? 'Super Admin' : 'Admin'})
+                  Gemini • Privado ({profile?.role === 'super_admin' ? 'Super Admin' : 'Admin'})
                 </p>
               </div>
             </div>

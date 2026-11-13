@@ -13,11 +13,11 @@ Deno.serve(async (req: Request) => {
   try {
     const { prompt, history, context } = await req.json();
 
-    const groqApiKey = Deno.env.get('GROQ_API_KEY') || '';
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY') || '';
 
-    if (!groqApiKey) {
+    if (!geminiApiKey) {
       return new Response(
-        JSON.stringify({ error: 'Falta configurar GROQ_API_KEY en Supabase.' }),
+        JSON.stringify({ error: 'Falta configurar GEMINI_API_KEY en Supabase.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -33,7 +33,7 @@ Total Gastos: COP ${Number(metrics.totalGastosCOP || 0).toLocaleString('es-CO')}
 GANANCIA ESPERADA: COP ${Number(metrics.gananciaEsperada || 0).toLocaleString('es-CO')}`
       : 'Métricas no disponibles.';
 
-    // Compact records in screen (max 20 items to stay safely below Groq 8000 TPM limit)
+    // Keep screen context compact to reduce latency and quota usage
     let recordsString = '';
     if (recordsSummary && recordsSummary.length > 0) {
       const sample = recordsSummary.slice(0, 20);
@@ -118,67 +118,62 @@ ${recordsString}
 ${globalDataString}
 `;
 
-    // Only last 4 messages to save tokens
-    const conversationMessages = (history || []).slice(-4).map((m: any) => ({
-      role: m.role,
-      content: m.content,
+    if (typeof prompt !== 'string' || !prompt.trim()) {
+      return new Response(JSON.stringify({ error: 'Escribe una pregunta para el asistente.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // The UI includes the current question in history; send it exactly once.
+    const recentHistory = (Array.isArray(history) ? history : [])
+      .filter((m: any) => ['user', 'assistant'].includes(m.role) && typeof m.content === 'string');
+    if (recentHistory.at(-1)?.role === 'user' && recentHistory.at(-1)?.content === prompt) {
+      recentHistory.pop();
+    }
+    const contents = recentHistory.slice(-8).map((m: any) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
     }));
+    contents.push({ role: 'user', parts: [{ text: prompt }] });
 
-    const messagesPayload = [
-      { role: 'system', content: systemPrompt },
-      ...conversationMessages,
-      { role: 'user', content: prompt },
-    ];
-
-    const callGroq = async (model: string, maxTokens: number = 600) => {
-      return await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const model = Deno.env.get('GEMINI_MODEL') || 'gemini-3.5-flash-lite';
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
+          'x-goog-api-key': geminiApiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model,
-          messages: messagesPayload,
-          temperature: 0.2,
-          max_tokens: maxTokens,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents,
+          generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
         }),
-      });
-    };
-
-    // Model cascading: 120b -> qwen 27b -> 20b
-    let groqRes = await callGroq('openai/gpt-oss-120b', 600);
-
-    if (!groqRes.ok) {
-      console.warn('Fallback a qwen3.8-27b...');
-      groqRes = await callGroq('qwen/qwen3.8-27b', 600);
-    }
-
-    if (!groqRes.ok) {
-      console.warn('Fallback a openai/gpt-oss-20b...');
-      groqRes = await callGroq('openai/gpt-oss-20b', 500);
-    }
-
-    if (!groqRes.ok) {
-      const errJson = await groqRes.json().catch(() => ({}));
-      const errCode = errJson?.error?.code || '';
-      const errMsg = errJson?.error?.message || '';
-
-      if (errCode === 'rate_limit_exceeded' || errMsg.includes('tokens per minute')) {
-        return new Response(
-          JSON.stringify({
-            reply: '⚠️ **Límite de velocidad de Groq alcanzado:** Se ha superado temporalmente la cuota de tokens por minuto. Por favor espera **10 segundos** y vuelve a enviar tu pregunta.',
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        signal: AbortSignal.timeout(60000),
       }
+    );
 
-      throw new Error(`Error en el servicio de IA (${groqRes.status}): ${errMsg || 'Servicio no disponible'}`);
+    if (!geminiRes.ok) {
+      // Do not return provider diagnostics, which may contain sensitive data.
+      const status = geminiRes.status === 429 ? 429 : 502;
+      const error = status === 429
+        ? 'Se alcanzó el límite de consultas o la cuota de Gemini. Intenta más tarde; si persiste, revisa la cuota en Google AI Studio.'
+        : 'Gemini no pudo responder. Revisa la clave, el modelo y su disponibilidad en Google AI Studio.';
+      return new Response(JSON.stringify({ error }), {
+        status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const data = await groqRes.json();
-    let content = data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning || '';
-    content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    const data = await geminiRes.json();
+    const content = (data.candidates?.[0]?.content?.parts || [])
+      .filter((part: any) => !part.thought && typeof part.text === 'string')
+      .map((part: any) => part.text).join('').trim();
+    if (!content) {
+      return new Response(JSON.stringify({ error: 'Gemini no generó una respuesta. Reformula la pregunta e inténtalo de nuevo.' }), {
+        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     return new Response(JSON.stringify({ reply: content }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

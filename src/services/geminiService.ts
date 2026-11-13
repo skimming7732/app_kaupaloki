@@ -1,4 +1,4 @@
-// Groq AI Service for Kaupaloki Admin Assistant via Supabase Edge Function
+// Gemini AI Service for Kaupaloki Admin Assistant via Supabase Edge Function
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -31,12 +31,12 @@ export interface ViewContextData {
 
 const EDGE_AI_URL = 'https://tjuqludeduydarwzhbor.supabase.co/functions/v1/ai-assistant';
 
-export async function askGroqAssistant(
+export async function askGeminiAssistant(
   prompt: string,
   history: ChatMessage[],
   context: ViewContextData
 ): Promise<string> {
-  const conversationMessages = (history || []).slice(-4).map((m) => ({
+  const conversationMessages = (history || []).slice(-8).map((m) => ({
     role: m.role,
     content: m.content,
   }));
@@ -56,16 +56,16 @@ export async function askGroqAssistant(
   if (!res.ok) {
     const errJson = await res.json().catch(() => ({}));
     const errMsg = errJson?.error || '';
-    if (res.status === 429 || errMsg.includes('Rate limit') || errMsg.includes('tokens per minute')) {
-      throw new Error('Groq está procesando muchas consultas en este momento. Por favor espera 10 segundos y vuelve a preguntar.');
+    if (res.status === 429 || errMsg.includes('RESOURCE_EXHAUSTED')) {
+      throw new Error(errMsg || 'Se alcanzó el límite de consultas o la cuota de Gemini. Intenta más tarde; si persiste, revisa la cuota en Google AI Studio.');
     }
     throw new Error(errMsg || `Error del servidor IA (${res.status})`);
   }
 
   const data = await res.json();
   if (data.error) {
-    if (data.error.includes('Rate limit') || data.error.includes('tokens per minute')) {
-      throw new Error('Groq está procesando muchas consultas en este momento. Por favor espera 10 segundos y vuelve a preguntar.');
+    if (data.error.includes('RESOURCE_EXHAUSTED')) {
+      throw new Error('Se alcanzó el límite de consultas o la cuota de Gemini. Intenta más tarde; si persiste, revisa la cuota en Google AI Studio.');
     }
     throw new Error(data.error);
   }
