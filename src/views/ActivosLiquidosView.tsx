@@ -776,7 +776,7 @@ export const ActivosLiquidosView: React.FC = () => {
                     </div>
 
                     {/* Middle Row: Saldo Contable & Saldo Real */}
-                    <div className="asset-card-balances my-4 relative z-10">
+                    <div className="asset-card-balances my-3 relative z-10">
                       <div className="min-w-0">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 block mb-0.5">
                           Saldo Contable
