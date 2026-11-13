@@ -1,4 +1,5 @@
 import type { UsdtOperationSummary } from './aiOperationSummary';
+import { supabase } from '../lib/supabase';
 
 // Gemini AI Service for Kaupaloki Admin Assistant via Supabase Edge Function
 export interface ChatMessage {
@@ -46,6 +47,8 @@ export async function askGeminiAssistant(
   history: ChatMessage[],
   context: ViewContextData
 ): Promise<string> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session?.access_token) throw new Error('Inicia sesión para consultar al asistente.');
   const conversationMessages = (history || []).slice(-8).map((m) => ({
     role: m.role,
     content: m.content,
@@ -55,6 +58,7 @@ export async function askGeminiAssistant(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
     },
     body: JSON.stringify({
       prompt,

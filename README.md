@@ -97,11 +97,17 @@ El registro de Auth no concede roles desde `user_metadata`. Las invitaciones asi
 
 El chat usa la Edge Function `ai-assistant`. Configurar `GEMINI_API_KEY` como secreto en Supabase, nunca como variable `VITE_*` ni dentro del código. `GEMINI_MODEL` es opcional; por defecto usa `gemini-3.5-flash-lite`, con nivel gratuito sujeto a las cuotas del proyecto de Google AI Studio. La clave por sí sola no determina si la cuenta tiene facturación activada.
 
+El frontend envía el Bearer de sesión. El servidor valida la sesión con Auth y el rol/estado actual en `profiles` antes de usar Gemini. Las herramientas `consultar_datos`, `resumir_datos` y `calcular_activos` usan exclusivamente lecturas con ese JWT y sus políticas RLS, nunca `service_role` ni SQL generado por el modelo. `usuarios` usa el directorio seguro `listar_perfiles_dashboard`; los autores de operaciones se identifican por `created_by`, sin confundirlos con clientes. `calcular_activos` hace la conversión y suma en el servidor para evitar errores de aritmética del modelo.
+
+Las consultas paginadas devuelven cobertura y total exacto; los resúmenes procesan hasta 20,000 filas y señalan explícitamente si faltan datos. El modelo debe acotar fechas cuando se alcanza ese límite. Una consulta admite hasta 12 llamadas a herramientas y 45 lecturas; las lecturas paginadas no representan una transacción única. No se ofrecen herramientas de escritura ni ejecución arbitraria de funciones, SQL o APIs externas.
+
+`catalog.ts` contiene una instantánea técnica del esquema, relaciones, firmas y fórmulas SQL, sin filas ni credenciales. `referencia_tecnica` la consulta por tema y nombre. Debe actualizarse al cambiar tablas o fórmulas. Los campos de autenticación, PIN y tokens de acceso no son consultables; los resultados también se redactan antes de enviarse a Gemini.
+
 Los conteos de compras y ventas USDT usan resúmenes diarios calculados sobre todos los registros cargados, desde cualquier pestaña. Incluyen cantidad, unidades USDT, importes separados por divisa y estados. La función interpreta hoy/ayer en `America/Bogota`; las muestras recientes no permiten concluir que no hubo operaciones. Si falta sincronización o el resumen, debe indicar la limitación.
 
 El contexto también incluye capital vigente por socio/inversionista (aportes menos retiros, sin dividendos ni intereses), calculado con el libro de capital cargado bajo RLS. La suma de activos se calcula como líquidos COP + digitales USDT × tasa COP/USDT y se distingue de ganancia y patrimonio neto. Si falta el desglose de personas o la tasa, el asistente debe reconocer la falta de datos.
 
-Para activar el cambio hay que configurar el secreto, desplegar `supabase/functions/ai-assistant/index.ts` y publicar el frontend. Validación local del adaptador sin usar credenciales: `node scripts/test-ai-assistant.cjs`.
+Para activar el cambio hay que configurar el secreto, desplegar `supabase/functions/ai-assistant/index.ts` junto con `reader.ts` y `catalog.ts`, y publicar el frontend. Validaciones locales sin credenciales: `node scripts/test-ai-assistant.cjs` y `node scripts/test-ai-reader.cjs`. La prueba opcional `scripts/test-ai-live.cjs` usa Gemini real y un transporte de base/auth simulado; requiere `GEMINI_API_KEY`, `AI_LIVE_FIXTURES` (JSON de tablas/filas) y `AI_LIVE_PROMPTS` (JSON con prompt y expected). Sus fixtures y credenciales se proporcionan por entorno y no se guardan en el repositorio. Esta prueba no valida RLS en producción.
 
 ## Comprobantes
 

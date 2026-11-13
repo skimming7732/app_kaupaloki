@@ -5,14 +5,19 @@ const vm = require('node:vm');
 const ts = require('typescript');
 
 const source = fs.readFileSync(path.join(__dirname, '../supabase/functions/ai-assistant/index.ts'), 'utf8');
-const code = ts.transpile(source.replace(/^import .*;\r?\n/, ''), {
+const code = ts.transpile(source.replace(/^import .*;\r?\n/gm, ''), {
   target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None,
 });
 
-async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actual', response, status = 200, method = 'POST', context = { tabTitle: 'Clientes' } } = {}) {
+async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actual', response, status = 200, method = 'POST', context = { tabTitle: 'Clientes' }, responses, run } = {}) {
   let handler;
   let sent;
+  const calls = [];
+  const executed = [];
+  class AccessError extends Error {}
   vm.runInNewContext(code, {
+    AccessError, redact: (value) => value, readTools: [{ functionDeclarations: [] }],
+    createReader: async () => ({ run: async (name, args) => { executed.push({ name, args }); return run ? run(name, args) : { completo: true, grupos: [{ usuario: 'Usuario ficticio', cantidad: 89 }] }; } }),
     Deno: {
       env: { get: (name) => name === 'GEMINI_API_KEY' ? key : undefined },
       serve: (fn) => { handler = fn; },
@@ -21,7 +26,8 @@ async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actua
     Date: class extends Date { constructor(value) { super(value ?? '2026-11-14T02:00:00Z'); } },
     fetch: async (url, options) => {
       sent = { url, headers: options.headers, body: JSON.parse(options.body) };
-      return new Response(JSON.stringify(response ?? {
+      calls.push(sent);
+      return new Response(JSON.stringify(responses?.shift() ?? response ?? {
         candidates: [{ content: { parts: [{ thought: true, text: 'internal' }, { text: 'Respuesta' }, { text: ' correcta' }] } }],
       }), { status });
     },
@@ -29,7 +35,7 @@ async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actua
   const result = await handler(new Request('https://example.test', {
     method, ...(method === 'POST' ? { body: JSON.stringify({ prompt, history, context }) } : {}),
   }));
-  return { result, sent, body: method === 'OPTIONS' ? null : await result.json() };
+  return { result, sent, calls, executed, body: method === 'OPTIONS' ? null : await result.json() };
 }
 
 (async () => {
@@ -84,7 +90,7 @@ async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actua
   const instructions = crossTab.sent.body.systemInstruction.parts[0].text;
   assert.ok(instructions.includes('Hoy: 2026-11-13. Ayer: 2026-11-12.'));
   assert.ok(instructions.includes('"cantidad":2'));
-  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('No puedes determinar sus conteos'));
+  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('Consulta sus tablas con resumir_datos'));
   assert.ok(instructions.includes('MUESTRAS PARCIALES'));
   const capitalModule = { exports: {} };
   const capitalSource = fs.readFileSync(path.join(__dirname, '../src/utils/capitalSocios.ts'), 'utf8').replace(/^import .*;\r?\n/, '');
@@ -107,8 +113,24 @@ async function invoke({ key = 'test-key', history = [], prompt = 'Pregunta actua
   const assetInstructions = capitalAndAssets.sent.body.systemInstruction.parts[0].text;
   assert.ok(assetInstructions.includes('"totalActivosCOP":1328000'));
   assert.ok(assetInstructions.includes('Inversionista ficticio'));
-  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('El desglose de capital por persona no está disponible'));
-  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('Faltan valores o tasa válida'));
+  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('El navegador no proporcionó el desglose de capital por persona'));
+  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('El navegador no proporcionó activos/tasa'));
+  const toolResult = await invoke({ responses: [
+    { candidates: [{ content: { role: 'model', parts: [{ thoughtSignature: 'preserved-signature', functionCall: { name: 'resumir_datos', args: { tabla: 'negocios', agrupar_por: ['created_by'] } } }] } }] },
+    { candidates: [{ content: { role: 'model', parts: [{ text: 'Usuario ficticio: 89 negocios' }] } }] },
+  ] });
+  assert.equal(toolResult.body.reply, 'Usuario ficticio: 89 negocios');
+  assert.equal(toolResult.executed[0].name, 'resumir_datos');
+  assert.equal(toolResult.calls[1].body.contents.at(-2).parts[0].thoughtSignature, 'preserved-signature');
+  assert.equal(toolResult.calls[1].body.contents.at(-1).parts[0].functionResponse.response.resultado.grupos[0].cantidad, 89);
+  const toolError = await invoke({ run: () => { throw new Error('Consulta no permitida'); }, responses: [
+    { candidates: [{ content: { role: 'model', parts: [{ functionCall: { name: 'borrar_todo', args: {} } }] } }] },
+    { candidates: [{ content: { role: 'model', parts: [{ text: 'No puedo modificar datos.' }] } }] },
+  ] });
+  assert.equal(toolError.calls[1].body.contents.at(-1).parts[0].functionResponse.response.resultado.datosNoDisponibles, true);
+  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('NUNCA sustituyas un usuario por un cliente'));
+  assert.ok(success.sent.body.systemInstruction.parts[0].text.includes('Frontend: Ganancia Esperada = líquidos COP'));
+  console.log('Tool loop checks passed (database results, signatures, tool errors, user/client distinction, corrected formulas).');
   console.log('Capital/assets checks passed (net contributions, withdrawals, exclusion of profits, COP conversion, unavailable context).');
   console.log('AI assistant: provider scenarios and USDT regression checks passed (cross-tab purchases, >20 records, states, currencies, missing dates, sales, Bogota midnight, missing context).');
 })().catch((err) => { console.error(err); process.exitCode = 1; });
