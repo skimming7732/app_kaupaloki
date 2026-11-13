@@ -5,7 +5,7 @@ type Metric = { label: string; value: React.ReactNode; icon?: string; featured?:
 
 export const KpiStrip = ({ metrics, label = 'Resumen filtrado' }: { metrics: Metric[]; label?: string }) => (
   <section aria-label={label}
-    style={{ '--kpi-columns': Math.max(1, Math.min(6, metrics.length)) } as React.CSSProperties}
+    style={{ '--kpi-columns': Math.max(1, Math.min(7, metrics.length)) } as React.CSSProperties}
     className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-[repeat(var(--kpi-columns),minmax(0,1fr))]">
     {metrics.map((metric) => (
       <div key={metric.label} className={`min-w-0 rounded-xl border px-4 py-3 ${metric.featured ? 'border-primary/30 bg-primary/10' : 'border-border bg-card'}`}>

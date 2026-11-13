@@ -1,4 +1,3 @@
-import { KpiStrip, totalsByCurrency } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { formatNumber, fallbackBanderaUrl } from '../utils/formatters';
@@ -7,6 +6,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useData, type NormalizedData } from '../context/DataContext';
 import { formatCurrency, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
+import { FilterModal, FilterTriggerButton } from '../components/common/FilterModal';
+import { TableSelectFilter } from '../components/common/TableSelectFilter';
+import { divisasForPeriod } from '../utils/divisas';
 
 const formatAmount = (value: number) => formatNumber(value, 0, 8);
 
@@ -185,19 +187,40 @@ export const DivisasView: React.FC = () => {
   const navigate = useNavigate();
   const { codigo } = useParams<{ codigo?: string }>();
   const [search, setSearch] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [saldoFilter, setSaldoFilter] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const hasDateFilter = Boolean(fechaDesde || fechaHasta);
+  const activeCount = Number(hasDateFilter) + Number(Boolean(saldoFilter));
+  const clearFilters = () => {
+    setFechaDesde('');
+    setFechaHasta('');
+    setSaldoFilter('');
+  };
 
   const selectedDivisa = useMemo(() => {
     if (!codigo) return null;
     return data.divisas.find((item) => item.codigo.toUpperCase() === codigo.toUpperCase()) || null;
   }, [data.divisas, codigo]);
 
-  const filteredDivisas = data.divisas.filter((d) => {
-    return (
-      d.codigo.toLowerCase().includes(search.toLowerCase()) ||
-      d.nombre.toLowerCase().includes(search.toLowerCase()) ||
-      (d.pais && d.pais.toLowerCase().includes(search.toLowerCase()))
-    );
+  const periodDivisas = useMemo(
+    () => divisasForPeriod(data, fechaDesde, fechaHasta),
+    [data.divisas, data.negocios, data.comprasUsdt, fechaDesde, fechaHasta],
+  );
+  const filteredDivisas = periodDivisas.filter((d) => {
+    const term = search.trim().toLowerCase();
+    const matchSearch = d.codigo.toLowerCase().includes(term) ||
+      d.nombre.toLowerCase().includes(term) || (d.pais || '').toLowerCase().includes(term);
+    const matchSaldo = !saldoFilter || (saldoFilter === 'con-saldo' ? d.totalPendiente > 0 : d.totalPendiente === 0);
+    return matchSearch && matchSaldo;
   });
+
+  const saldoOptions = <>
+    <option value="">Todos los saldos</option>
+    <option value="con-saldo">Con saldo pendiente</option>
+    <option value="sin-saldo">Sin saldo pendiente</option>
+  </>;
 
   if (codigo) {
     if (selectedDivisa) {
@@ -221,30 +244,63 @@ export const DivisasView: React.FC = () => {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Search Header */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border">
-        <div className="relative w-full sm:w-80">
-          <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por código ISO, nombre o país..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-          />
+      <div className="p-3 rounded-2xl bg-card border border-border space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 flex-1 min-w-0 md:min-w-[260px] max-w-2xl">
+            <div className="relative flex-1 min-w-0">
+              <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" aria-hidden="true" />
+              <input
+                type="search"
+                aria-label="Buscar divisas"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por código ISO, nombre o país..."
+                className="h-8 w-full pl-8 pr-3 rounded-lg border border-input bg-background text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary outline-none"
+              />
+            </div>
+            <div className="hidden md:block shrink-0">
+              <TableSelectFilter label="Saldo pendiente" value={saldoFilter} onChange={setSaldoFilter}>
+                {saldoOptions}
+              </TableSelectFilter>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="hidden md:block">
+              <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} compact />
+            </div>
+            <FilterTriggerButton onClick={() => setIsFilterOpen(true)} activeCount={activeCount} />
+            <AddCatalogButton table="divisas" />
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs text-muted-foreground">{filteredDivisas.length} divisas configuradas</span>
-          <AddCatalogButton table="divisas" />
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3">
+            <span>{formatNumber(filteredDivisas.length)} de {formatNumber(data.divisas.length)} divisas</span>
+            {(search || activeCount > 0) && (
+              <button type="button" onClick={() => { setSearch(''); clearFilters(); }} className="text-primary hover:underline font-semibold">
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+          <span>{hasDateFilter ? 'Totales del período seleccionado' : 'Totales de todo el histórico'}</span>
         </div>
       </div>
 
-      <KpiStrip metrics={([
-        ['Divisas', filteredDivisas.length],
-        ['Total recibido', totalsByCurrency(filteredDivisas, (d) => d.codigo, (d) => d.totalRecibido)],
-        ['Total comprado', totalsByCurrency(filteredDivisas, (d) => d.codigo, (d) => d.totalComprado)],
-        ['Total pendiente', totalsByCurrency(filteredDivisas, (d) => d.codigo, (d) => d.totalPendiente)],
-      ] as const).map(([label, value]) => ({ label, value }))} />
+      <FilterModal isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} title="Filtros de Divisas" activeCount={activeCount} onClear={clearFilters}>
+        <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Saldo pendiente</p>
+          <div>
+            <TableSelectFilter label="Saldo pendiente" value={saldoFilter} onChange={setSaldoFilter} className="w-full">
+              {saldoOptions}
+            </TableSelectFilter>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {hasDateFilter
+            ? 'Recibido y comprado incluyen solo las operaciones del período. Pendiente es la diferencia positiva entre ambos, sin incluir saldos anteriores.'
+            : 'Sin fechas se muestran los totales acumulados de cada divisa.'}
+        </p>
+      </FilterModal>
 
       {/* Desktop Table View */}
       <div className="hidden md:block rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -265,7 +321,7 @@ export const DivisasView: React.FC = () => {
               {filteredDivisas.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                    No hay divisas que coincidan con la búsqueda
+                    No hay divisas que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
@@ -313,7 +369,7 @@ export const DivisasView: React.FC = () => {
       <div className="block md:hidden space-y-2.5">
         {filteredDivisas.length === 0 ? (
           <div className="p-8 text-center text-xs text-muted-foreground bg-card border border-border rounded-xl">
-            No hay divisas que coincidan con la búsqueda
+            No hay divisas que coincidan con los filtros
           </div>
         ) : (
           filteredDivisas.map((d) => (
