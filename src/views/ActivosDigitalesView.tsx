@@ -171,6 +171,12 @@ export const ActivosDigitalesView: React.FC = () => {
     return sum || metrics?.totalActivosDigitales || 0;
   }, [wallets, metrics?.totalActivosDigitales]);
 
+  const totalEnTransitoWallet = useMemo(() => {
+    return (selectedWallet?.movimientos || [])
+      .filter((m: any) => m.esPendiente && (m.monto || 0) > 0)
+      .reduce((sum: number, m: any) => sum + (Number(m.monto) || 0), 0);
+  }, [selectedWallet?.movimientos]);
+
 
   const handleMarcarCompra = async (m: any) => {
     const idOriginal = m.idOriginal;
