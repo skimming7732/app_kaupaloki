@@ -11,11 +11,13 @@ import { AssetCardsFilterBar, type InstitutionOption, type CountryOption } from 
 import React, { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import { isAuditorRole } from '../utils/roles';
 import { formatNumber, formatCOP, formatDate } from '../utils/formatters';
 
 export const ActivosLiquidosView: React.FC = () => {
-  const { metrics, data } = useData();
-  const { theme } = useAuth();
+  const { metrics, data, marcarVentaRecibida } = useData();
+  const { theme, profile } = useAuth();
+  const canWrite = !isAuditorRole(profile?.role);
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const { assetId: selectedActivoId } = useParams();
