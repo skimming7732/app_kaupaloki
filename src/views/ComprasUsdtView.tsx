@@ -1,6 +1,6 @@
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
-import { formatNumber, formatRate, formatCurrency } from '../utils/formatters';
+import { formatNumber, formatRate, formatCurrency, fallbackBanderaUrl } from '../utils/formatters';
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -112,6 +112,18 @@ export const ComprasUsdtView: React.FC = () => {
     } finally {
       setReceivingId(null);
     }
+  };
+
+  const renderDivisa = (codigo: string) => {
+    const banderaUrl = fallbackBanderaUrl[codigo] || data.divisas.find((divisa) => divisa.codigo === codigo)?.banderaUrl;
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px]">
+        {banderaUrl && (
+          <img src={banderaUrl} alt="" width={12} height={8} className="h-2 w-3 shrink-0 rounded-[1px] object-cover" onError={(event) => { event.currentTarget.hidden = true; }} />
+        )}
+        {codigo}
+      </span>
+    );
   };
 
   const averageRate = [...rates].map(([currency, rate]) =>
@@ -297,17 +309,15 @@ export const ComprasUsdtView: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px]">
-                        {c.divisaCodigo}
-                      </span>
+                      {renderDivisa(c.divisaCodigo)}
                     </td>
-                    <td className="py-3 px-4 text-right font-medium text-foreground">
+                    <td className="py-3 px-4 text-right font-medium text-foreground whitespace-nowrap">
                       {formatNumber(c.valorComprado, 0, 2)} {c.divisaCodigo}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-muted-foreground">
                       {formatRate(c.tasa)}
                     </td>
-                    <td className="py-3 px-4 text-right font-bold text-emerald-500 font-mono">
+                    <td className="py-3 px-4 text-right font-bold text-emerald-500 font-mono whitespace-nowrap">
                       +{formatNumber(c.usdtComprado, 0, 2)} USDT
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-muted-foreground">
@@ -385,9 +395,7 @@ export const ComprasUsdtView: React.FC = () => {
                   <h4 className="font-bold text-sm text-foreground mt-0.5">{c.proveedor || 'Sin proveedor'}</h4>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                  <span className="px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px]">
-                    {c.divisaCodigo}
-                  </span>
+                  {renderDivisa(c.divisaCodigo)}
                   <EstadoTransitoSelect
                     estado={c.estado}
                     tipo="compra"
