@@ -1,3 +1,5 @@
+import { deliverCashToken, readCashToken } from '../utils/cashTokenActions';
+import { prepareSuccessSound } from '../utils/confirmationSound';
 import { useWriteAccess } from '../utils/useWriteAccess';
 import { readAllRows } from '../utils/supabasePagination';
 import { Link } from 'react-router-dom';
@@ -49,7 +51,7 @@ function VoucherThumbnail({ token, onOpen }: { token: CashToken; onOpen: () => v
 
 export const TokensView: React.FC = () => {
   const canWrite = useWriteAccess('admin');
-  const { profile, user } = useAuth();
+  const { profile } = useAuth();
   const isAdmin = profile?.role === 'administrador' || profile?.role === 'super_admin';
 
   // Tokens data state
@@ -118,23 +120,9 @@ export const TokensView: React.FC = () => {
     );
     if (!confirmed) return;
 
+    const finish = prepareSuccessSound();
     try {
-      const { data, error } = await supabase
-        .from('cash_tokens')
-        .update({
-          estado: 'entregado',
-          status: 'entregado',
-          redeemed_at: new Date().toISOString(),
-          redeemed_by: user?.id || null,
-          redeemed_by_name: profile?.full_name || user?.email || 'Cajero',
-        })
-        .eq('id', token.id)
-        .eq('estado', 'activo')
-        .gt('expires_at', new Date().toISOString())
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await deliverCashToken(token);
 
       // Update state locally
       setTokens((prev) =>
@@ -143,10 +131,13 @@ export const TokensView: React.FC = () => {
       if (selectedVoucherToken?.id === token.id) {
         setSelectedVoucherToken(data as CashToken);
       }
+      finish(true);
     } catch (err: any) {
+      const latest = await readCashToken(token.id);
+      if (latest) { setTokens(prev => prev.map(item => item.id === latest.id ? latest : item)); if (selectedVoucherToken?.id === latest.id) setSelectedVoucherToken(latest); }
       console.error('Error al redimir token:', err);
       alert('Error al marcar como entregado: ' + (err.message || 'Error desconocido'));
-    }
+    } finally { finish(false); }
   };
 
   // Cancel token
@@ -529,6 +520,7 @@ export const TokensView: React.FC = () => {
         token={selectedVoucherToken}
         onRedeem={canWrite ? handleRedeem : undefined}
         onCancel={isAdmin ? handleCancel : undefined}
+        onReopened={updated => { setTokens(prev => prev.map(item => item.id === updated.id ? updated : item)); setSelectedVoucherToken(updated); }}
       />
     </div>
   );

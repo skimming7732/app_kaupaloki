@@ -1,7 +1,8 @@
+import { deliverCashToken, readCashToken } from '../../utils/cashTokenActions';
+import { prepareSuccessSound } from '../../utils/confirmationSound';
 import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../context/AuthContext';
 import { RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 import { CashToken, formatCurrencyAmount, getTokenState } from '../../utils/tokenVoucherGenerator';
 
@@ -18,7 +19,6 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
   onTokenRedeemed,
   onViewVoucher,
 }) => {
-  const { user, profile } = useAuth();
   const [tab, setTab] = useState<'camera' | 'upload' | 'manual'>('camera');
   const [manualCode, setManualCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -191,32 +191,20 @@ export const ScanTokenModal: React.FC<ScanTokenModalProps> = ({
 
     setRedeeming(true);
     setError(null);
+    const finish = prepareSuccessSound();
 
     try {
-      const { data, error: updateErr } = await supabase
-        .from('cash_tokens')
-        .update({
-          estado: 'entregado',
-          status: 'entregado',
-          redeemed_at: new Date().toISOString(),
-          redeemed_by: user?.id || null,
-          redeemed_by_name: profile?.full_name || user?.email || 'Cajero',
-        })
-        .eq('id', foundToken.id)
-        .eq('estado', 'activo')
-        .gt('expires_at', new Date().toISOString())
-        .select()
-        .single();
-
-      if (updateErr) throw new Error(updateErr.message);
-
-      const updated = data as CashToken;
+      const updated = await deliverCashToken(foundToken);
       setFoundToken(updated);
       onTokenRedeemed(updated);
+      finish(true);
     } catch (err: any) {
+      const latest = await readCashToken(foundToken.id);
+      if (latest) setFoundToken(latest);
       console.error('Error redimiendo token:', err);
       setError(err.message || 'No se pudo redimir el token');
     } finally {
+      finish(false);
       setRedeeming(false);
     }
   };

@@ -15,12 +15,25 @@ export interface TokenVoucherData {
   redeemed_at?: string;
 }
 
+export interface CashTokenReopening {
+  reopened_at: string;
+  reopened_by: string;
+  reopened_by_name: string;
+  reason: string;
+  previous_redeemed_at?: string | null;
+  previous_redeemed_by?: string | null;
+  previous_redeemed_by_name?: string | null;
+  previous_expires_at?: string | null;
+}
+
 export interface CashToken extends TokenVoucherData {
   id: string;
   efectivo_id?: string | null;
   pago_codigo?: string | null;
   status?: string;
   created_at: string;
+  updated_at?: string;
+  reopen_history?: CashTokenReopening[];
 }
 
 export function getTokenState(token: TokenVoucherData & { status?: string }) {

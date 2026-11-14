@@ -112,3 +112,9 @@ Para activar el cambio hay que configurar el secreto, desplegar `supabase/functi
 ## Comprobantes
 
 Los formularios de gastos y dispersiones y sus acciones de adjuntar, reemplazar y agregar otro comprobante usan el mismo selector. Permite elegir archivos, arrastrarlos o pegar una imagen con el teclado o el botón Pegar imagen. Muestra una vista previa y valida JPG, PNG, WEBP o PDF de hasta 10 MB antes de subir. El pegado de texto en otros campos conserva su comportamiento normal. Los comprobantes adicionales conservan los anteriores y el guardado comprueba si otro usuario cambió el registro.
+
+## Corrección de entregas de tokens
+
+Solo Super Admin puede devolver un token entregado a pendiente desde Ver vale. La corrección requiere un motivo, conserva el mismo código y el pago vinculado, y renueva su vigencia por 48 horas. No modifica caja ni la deuda del cliente. El historial guarda autor, fecha, motivo y los datos de la entrega anterior; no puede editarse desde el cliente.
+
+Las confirmaciones de entrega se realizan con `entregar_token_efectivo`; comprueban el estado, la vigencia en el servidor y la versión del registro. Escanear un QR únicamente consulta el token. Una vez confirmada su entrega, el escáner muestra Token Ya Entregado y bloquea otra confirmación. Después de una corrección autorizada, el mismo código puede validarse y entregarse nuevamente.

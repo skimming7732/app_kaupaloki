@@ -770,7 +770,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
           setEditingMovimiento(null);
         }}
       />
-      <TokenVoucherModal isOpen={Boolean(voucher)} token={voucher} onClose={() => setVoucher(null)} />
+      <TokenVoucherModal isOpen={Boolean(voucher)} token={voucher} onClose={() => setVoucher(null)} onReopened={updated => { setVoucher(updated); setLinkedTokens(prev => prev.map(item => item.id === updated.id ? updated : item)); }} />
     </div>
   );
 };
