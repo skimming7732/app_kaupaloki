@@ -111,6 +111,8 @@ Para activar el cambio hay que configurar el secreto, desplegar `supabase/functi
 
 ## Comprobantes
 
+El portal con PIN devuelve los tipos de efectivo normalizados como `Pago` e `Ingreso`, igual que DataContext. No devolver directamente `PAGO`/`INGRESO` de la base: la vista filtra por esos nombres y omitiría movimientos aunque sus permisos sean correctos. Los pagos incluyen dispersiones no rechazadas y pagos de efectivo del cliente, sin comprobantes.
+
 Supervisor puede subir y vincular comprobantes de gastos y dispersiones, incluyendo agregar otro o reemplazar el actual. Storage y `guardar_comprobante_dashboard` deben mantener los mismos permisos: administrador, Super Admin y supervisor para ambas vistas; operador y dispersor para dispersiones con acceso COP. Auditor conserva solo lectura. Las subidas usan la carpeta del usuario autenticado y el bucket sigue siendo privado.
 
 Los formularios de gastos y dispersiones y sus acciones de adjuntar, reemplazar y agregar otro comprobante usan el mismo selector. Permite elegir archivos, arrastrarlos o pegar una imagen con el teclado o el botón Pegar imagen. Muestra una vista previa y valida JPG, PNG, WEBP o PDF de hasta 10 MB antes de subir. El pegado de texto en otros campos conserva su comportamiento normal. Los comprobantes adicionales conservan los anteriores y el guardado comprueba si otro usuario cambió el registro.
