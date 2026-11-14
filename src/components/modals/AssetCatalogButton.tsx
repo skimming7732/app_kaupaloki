@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, type FormEvent } from 'react';
+import { useEffect, useState, useMemo, useId, type FormEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { canDeleteRole } from '../../utils/roles';
 import { useData } from '../../context/DataContext';
@@ -11,6 +11,7 @@ import { prepareSuccessSound } from '../../utils/confirmationSound';
 import { AssetInstitutionLogo } from '../common/InstitutionLogo';
 import { RecordActions, RecordDialog, recordButtonClass, recordFieldClass, recordLabelClass } from './RecordDialog';
 import { JURISDICTION_COUNTRIES, getCountryFlag, getCountryCode, getCountryFlagUrl } from '../../utils/countryJurisdiction';
+import { DetailSearchSelect } from '../common/DetailSearchSelect';
 
 type Asset = {
   id: string;
@@ -83,6 +84,8 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
   const [catalog, setCatalog] = useState<AssetInstitution[]>([]);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [institution, setInstitution] = useState<AssetInstitution>();
+  const [country, setCountry] = useState(asset?.pais || 'Colombia');
+  const countryId = useId();
 
   const digital = table === 'activos_digitales';
   const currency = digital ? 'USDT' : 'COP';
@@ -108,8 +111,15 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
         });
       }
     }
-    return list;
-  }, [data.divisas]);
+    if (asset?.pais && !list.some((item) => item.value === asset.pais)) {
+      list.push({ value: asset.pais, label: asset.pais, flag: '', code: getCountryCode(asset.pais), flagUrl: getCountryFlagUrl(asset.pais) });
+    }
+    return list.sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
+  }, [data.divisas, asset?.pais]);
+
+  const renderCountryFlag = (flagUrl?: string) => flagUrl
+    ? <img key={flagUrl} src={flagUrl} alt="" width={16} height={10} className="h-2.5 w-4 shrink-0 rounded-[1px] object-cover" onError={(event) => { event.currentTarget.hidden = true; }} />
+    : <i className="ri-global-line text-sm text-muted-foreground" aria-hidden="true" />;
 
   useEffect(() => {
     if (!open) return;
@@ -219,6 +229,7 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
       <button type="button" className={buttonClassName ?? (asset ? 'inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs font-semibold hover:bg-muted' : recordButtonClass)}
         onClick={() => {
           setError('');
+          setCountry(asset?.pais || 'Colombia');
           setInstitution(asset?.institution ?? undefined);
           setCatalogStatus('loading');
           setCatalog([]);
@@ -273,23 +284,18 @@ export function AssetCatalogButton({ table, asset, allowDelete = false, buttonCl
                 />
               </label>
 
-              <label className={recordLabelClass}>
-                <span>País de jurisdicción</span>
-                <select
-                  name="pais"
-                  defaultValue={asset?.pais || 'Colombia'}
-                  className={recordFieldClass + ' cursor-pointer bg-card font-medium'}
-                >
-                  {countryOptions.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.flag} {c.label}
-                    </option>
-                  ))}
-                </select>
+              <div className={recordLabelClass}>
+                <label htmlFor={countryId}>País de jurisdicción</label>
+                <DetailSearchSelect id={countryId} name="pais" value={country} onChange={setCountry}
+                  placeholder="Buscar país" emptyMessage="No se encontraron países." required showSelectedDetails={false}
+                  leadingVisual={renderCountryFlag(countryOptions.find((item) => item.value === country)?.flagUrl)}
+                  options={countryOptions.map((item) => ({ id: item.value, label: item.label, search: item.label + ' ' + item.code,
+                    details: <span className="flex items-center gap-2 text-xs font-medium">{renderCountryFlag(item.flagUrl)}<span>{item.label}</span></span>,
+                  }))} />
                 <span className="text-[11px] text-muted-foreground block mt-0.5">
                   Jurisdicción legal o territorio de operación de los fondos.
                 </span>
-              </label>
+              </div>
 
               {digital ? (
                 <label className={recordLabelClass}>

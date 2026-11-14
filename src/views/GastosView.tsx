@@ -1,3 +1,4 @@
+import { AssetInstitutionLabel } from '../components/common/AssetInstitutionLabel';
 import { useWriteAccess } from '../utils/useWriteAccess';
 import { recordButtonClass } from '../components/modals/RecordDialog';
 import { KpiStrip } from '../components/common/KpiStrip';
@@ -300,8 +301,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
-                <th className="py-3 px-4">Código</th>
-                <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4">Fecha / Código</th>
                 <th className="py-3 px-4">Concepto</th>
                 <th className="py-3 px-4">Categoría Contable</th>
                 <th className="py-3 px-4">Institución / Origen</th>
@@ -314,15 +314,17 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
             <tbody className="divide-y divide-border">
               {filteredGastos.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     No se encontraron gastos registrados
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows pageSize={100} columns={9} rows={filteredGastos}>{(g) => (
+                <PaginatedRows pageSize={100} columns={8} rows={filteredGastos}>{(g) => (
                   <tr key={g.id} className="hover:bg-muted/30 transition-colors h-14">
-                    <td className="py-2.5 px-4 font-mono font-medium text-foreground whitespace-nowrap">{g.codigo}</td>
-                    <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">{formatDate(g.fecha)}</td>
+                    <td className="py-2.5 px-4 whitespace-nowrap">
+                      <div className="font-semibold text-foreground">{formatDate(g.fecha)}</div>
+                      <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">{g.codigo}</div>
+                    </td>
                     <td className="py-2.5 px-4 font-semibold text-foreground max-w-[220px] truncate" title={g.concepto}>{g.concepto}</td>
                     <td className="py-2.5 px-4 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-muted text-foreground border border-border">
@@ -330,7 +332,9 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                         <span>{g.categoria}</span>
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 text-muted-foreground whitespace-nowrap">{g.origenFondos}</td>
+                    <td className="py-2.5 px-4 whitespace-nowrap">
+                      <AssetInstitutionLabel assets={g.divisa === 'USDT' ? data.activosDigitales : data.activosLiquidos} assetId={g.origenFondosId} fallback={g.origenFondos} />
+                    </td>
 
                     {/* Receipt previews and '+' button */}
                     <td className="py-2.5 px-4 text-center whitespace-nowrap">
@@ -399,10 +403,10 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                       {canWrite && (<button
                         type="button"
                         onClick={() => setEditing(g)}
+                      aria-label="Editar gasto" title="Editar gasto"
                         className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
                       >
                         <i className="ri-edit-line" aria-hidden="true" />
-                        <span>Editar</span>
                       </button>)}
                     </td>
                   </tr>
@@ -423,8 +427,8 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
               <div key={g.id} className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="font-mono font-bold text-sm text-foreground">{g.codigo}</span>
-                    <div className="text-[11px] text-muted-foreground">{formatDate(g.fecha)}</div>
+                    <div className="text-sm font-semibold text-foreground">{formatDate(g.fecha)}</div>
+                    <span className="font-mono text-[11px] text-muted-foreground">{g.codigo}</span>
                   </div>
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-muted text-foreground border border-border">
                     <i className={`${getCategoryIcon(g.categoria)} text-primary text-xs`} />
@@ -435,7 +439,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                 <div>
                   <div className="text-xs font-semibold text-foreground">{g.concepto}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">
-                    <span className="font-medium text-foreground">Origen:</span> {g.origenFondos || '—'}
+                    <AssetInstitutionLabel assets={g.divisa === 'USDT' ? data.activosDigitales : data.activosLiquidos} assetId={g.origenFondosId} fallback={g.origenFondos} />
                   </div>
                 </div>
 
@@ -505,10 +509,10 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
                     <button
                       type="button"
                       onClick={() => setEditing(g)}
+                      aria-label="Editar gasto" title="Editar gasto"
                       className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
                     >
-                      <i className="ri-edit-line text-xs" />
-                      <span>Editar</span>
+                      <i className="ri-edit-line text-xs" aria-hidden="true" />
                     </button>
                   )}
                 </div>

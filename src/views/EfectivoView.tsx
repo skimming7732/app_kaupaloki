@@ -23,7 +23,7 @@ import { AddTransferenciaModal } from '../components/modals/AddTransferenciaModa
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { EstadoTransitoSelect } from '../components/common/EstadoTransitoSelect';
 
-const formatKpiCOP = (value: number) => formatCOP(value).replace(/,/g, '');
+const formatKpiCOP = (value: number) => '$' + formatNumber(value);
 
 interface EfectivoViewProps {
   onOpenAddGasto?: () => void;
@@ -337,7 +337,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
       </FilterModal>
 
       <KpiStrip metrics={([
-        ['Movimientos', String(visibleMovements.length)],
+        ['Movimientos', visibleMovements.length],
         ['Entradas COP', formatKpiCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? m.monto : 0))],
         ['Salidas COP', formatKpiCOP(sumRows(visibleMovements, (m) => m.tipo === 'Pago' ? m.monto - (m.comisionCop ?? 0) : 0))],
         ['Comisiones COP', formatKpiCOP(sumRows(visibleMovements, (m) => m.comisionCop ?? 0))],
@@ -349,7 +349,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             </span>
           </div>
         )],
-        ['Tokens pendientes', <span className="text-destructive">{String(pendingCount)}</span>],
+        ['Tokens pendientes', <span className="text-destructive">{formatNumber(pendingCount)}</span>],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {tokenError && <p role="alert" className="text-sm text-destructive">{tokenError}</p>}
