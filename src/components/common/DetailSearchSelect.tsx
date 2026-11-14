@@ -15,12 +15,13 @@ type Props = {
   showSelectedDetails?: boolean;
   inputClassName?: string;
   onAdd?: (query: string) => void;
+  leadingVisual?: ReactNode;
 };
 
 const normalize = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export const DetailSearchSelect = ({
-  id, name, options, value, onChange, placeholder, emptyMessage, required, compact, showSelectedDetails = true, inputClassName, onAdd,
+  id, name, options, value, onChange, placeholder, emptyMessage, required, compact, showSelectedDetails = true, inputClassName, onAdd, leadingVisual,
 }: Props) => {
   const listId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -53,7 +54,9 @@ export const DetailSearchSelect = ({
     }}>
       {name && <input type="hidden" name={name} value={selected?.id || ''} />}
       <div className="relative">
-        <i className="ri-search-line absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+        {leadingVisual && selected && !query
+          ? <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2">{leadingVisual}</span>
+          : <i className="ri-search-line absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />}
         <input
           ref={input}
           id={id}
@@ -95,7 +98,8 @@ export const DetailSearchSelect = ({
               if (option) select(option);
             }
           }}
-          className={'w-full min-w-0 rounded-xl border border-input bg-background pl-8 pr-8 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 ' +
+          className={'w-full min-w-0 rounded-xl border border-input bg-background pr-8 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 ' +
+            (leadingVisual && selected && !query ? 'pl-11 ' : 'pl-8 ') +
             (compact ? 'h-8 text-xs ' : 'min-h-11 text-sm ') + (inputClassName || '')}
         />
         {value ? (

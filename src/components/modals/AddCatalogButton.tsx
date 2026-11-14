@@ -192,10 +192,8 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     setError('');
     setCatalogCode(String(initial.codigo || ''));
     const initSource = String(initial[sourceField] ?? '');
-    const fallbackWallet = isSale && !edit && !initSource ? wallets[0]?.id || '' : initSource;
-    setSourceId(fallbackWallet);
-    const fallbackDest = isPurchase && !edit ? wallets[0]?.id || '' : String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? '');
-    setDestinationId(fallbackDest);
+    setSourceId(initSource);
+    setDestinationId(String(initial[isPurchase ? 'wallet_destino_id' : 'destino_fondos_id'] ?? ''));
     setAmount(formatAmountInput(String(initial[amountField] ?? '')));
     setFinalAmount('');
     setAmountMode('initial');
