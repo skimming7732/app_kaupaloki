@@ -103,9 +103,11 @@ export const EstadoTransitoSelect: React.FC<EstadoTransitoSelectProps> = ({
         type="button"
         disabled={disabled || busy}
         onClick={() => !disabled && !busy && setOpen((prev) => !prev)}
-        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all border shadow-xs ${
+        className={`inline-flex items-center whitespace-nowrap gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-all border shadow-xs ${
           currentOption.badgeClass
         } ${disabled ? 'opacity-50 cursor-not-allowed' : busy ? 'cursor-wait opacity-80' : 'cursor-pointer active:scale-95'}`}
+        aria-busy={busy}
+        aria-expanded={open}
         title="Clic para cambiar estado de recepción"
       >
         <i
@@ -115,11 +117,11 @@ export const EstadoTransitoSelect: React.FC<EstadoTransitoSelectProps> = ({
               : current === 'recibido'
               ? 'ri-checkbox-circle-fill'
               : 'ri-time-line animate-pulse'
-          } text-xs shrink-0`}
+          } text-[10px] shrink-0`}
         />
-        <span>{busy ? 'Guardando…' : currentOption.label}</span>
+        <span>{currentOption.label}</span>
         <i
-          className={`ri-arrow-down-s-line text-xs opacity-75 transition-transform duration-200 ${
+          className={`ri-arrow-down-s-line text-[10px] opacity-75 transition-transform duration-200 ${
             open ? 'rotate-180' : ''
           }`}
         />
@@ -275,9 +277,11 @@ export const DispersionStatusDropdown: React.FC<DispersionStatusDropdownProps> =
         type="button"
         disabled={disabled || busy}
         onClick={() => !disabled && !busy && setOpen((prev) => !prev)}
-        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all border shadow-xs ${
+        className={`inline-flex items-center whitespace-nowrap gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-all border shadow-xs ${
           currentOption.badgeClass
         } ${disabled ? 'opacity-50 cursor-not-allowed' : busy ? 'cursor-wait opacity-80' : 'cursor-pointer active:scale-95'}`}
+        aria-busy={busy}
+        aria-expanded={open}
         title="Clic para cambiar estado de la dispersión"
       >
         <i
@@ -287,11 +291,11 @@ export const DispersionStatusDropdown: React.FC<DispersionStatusDropdownProps> =
               : current === 'COMPLETADO'
               ? 'ri-checkbox-circle-fill'
               : 'ri-close-circle-fill'
-          } text-xs shrink-0`}
+          } text-[10px] shrink-0`}
         />
-        <span>{busy ? 'Guardando…' : currentOption.label}</span>
+        <span>{currentOption.label}</span>
         <i
-          className={`ri-arrow-down-s-line text-xs opacity-75 transition-transform duration-200 ${
+          className={`ri-arrow-down-s-line text-[10px] opacity-75 transition-transform duration-200 ${
             open ? 'rotate-180' : ''
           }`}
         />

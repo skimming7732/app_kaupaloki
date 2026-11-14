@@ -1,3 +1,4 @@
+import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
 import { formatNumber, formatRate, formatCurrency } from '../utils/formatters';
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
@@ -59,7 +60,6 @@ export const ComprasUsdtView: React.FC = () => {
     filteredCompras,
     totalUsdtEnTransito,
     totalUsdtRecibido,
-    pendientesCount,
   } = useMemo(() => {
     const divisasSet = new Set<string>();
 
@@ -90,7 +90,6 @@ export const ComprasUsdtView: React.FC = () => {
       filteredCompras: filtered,
       totalUsdtEnTransito: sumRows(enTransito, (c) => c.usdtComprado),
       totalUsdtRecibido: sumRows(recibidas, (c) => c.usdtComprado),
-      pendientesCount: enTransito.length,
     };
   }, [data.comprasUsdt, data.usuarios, search, filterDivisa, filterEstado, filterCreador, fechaDesde, fechaHasta]);
 
@@ -164,19 +163,20 @@ export const ComprasUsdtView: React.FC = () => {
             {/* Popup Filter Trigger Button */}
             <FilterTriggerButton
               onClick={() => setIsFilterOpen(true)}
-              activeCount={(filterDivisa ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+              activeCount={(filterEstado !== 'todos' ? 1 : 0) + (filterDivisa ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
             />
           </div>
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
           <span aria-live="polite">{formatNumber(filteredCompras.length)} de {formatNumber(totalOperaciones)} registros</span>
-          {(search || filterDivisa || filterCreador || fechaDesde || fechaHasta) && (
+          {(search || filterEstado !== 'todos' || filterDivisa || filterCreador || fechaDesde || fechaHasta) && (
             <button
               type="button"
               onClick={() => {
                 setSearch('');
                 setFilterDivisa('');
+                setFilterEstado('todos');
                 setFilterCreador('');
                 setFechaDesde('');
                 setFechaHasta('');
@@ -194,9 +194,10 @@ export const ComprasUsdtView: React.FC = () => {
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         title="Filtros de Compras USDT"
-        activeCount={(filterDivisa ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+        activeCount={(filterEstado !== 'todos' ? 1 : 0) + (filterDivisa ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
         onClear={() => {
           setFilterDivisa('');
+          setFilterEstado('todos');
           setFilterCreador('');
           setFechaDesde('');
           setFechaHasta('');
@@ -211,6 +212,15 @@ export const ComprasUsdtView: React.FC = () => {
           <div>
             <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
           </div>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Estado de recepción</p>
+          <TableSelectFilter label="Estado de recepción" value={filterEstado} onChange={(value) => setFilterEstado(value as typeof filterEstado)} className="w-full">
+            <option value="todos">Todos los estados</option>
+            <option value="pendiente">Solo pendientes (Por recibir)</option>
+            <option value="recibido">Solo recibidos</option>
+          </TableSelectFilter>
         </div>
 
         {/* Creador Filter */}
@@ -242,11 +252,6 @@ export const ComprasUsdtView: React.FC = () => {
             <span className={totalUsdtEnTransito > 0 ? "text-amber-400 font-bold" : ""}>
               {formatCurrency(totalUsdtEnTransito, 'USDT')}
             </span>
-            {pendientesCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
-                {pendientesCount} pend.
-              </span>
-            )}
           </div>
         )],
       ] as const).map(([label, value]) => ({ label, value }))} />
@@ -257,8 +262,7 @@ export const ComprasUsdtView: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
-                <th className="py-3 px-4">Código</th>
-                <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4">Fecha / Código</th>
                 <th className="py-3 px-4">Proveedor</th>
                 <th className="py-3 px-4">Divisa</th>
                 <th className="py-3 px-4 text-right">Valor Comprado</th>
@@ -266,7 +270,7 @@ export const ComprasUsdtView: React.FC = () => {
                 <th className="py-3 px-4 text-right">USDT Comprado</th>
                 <th className="py-3 px-4 text-right">Costo</th>
                 <th className="py-3 px-4">Destino</th>
-                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-2 text-center whitespace-nowrap">Estado</th>
                 <CreatedByHeader />
                 <th className="py-3 px-4">Acciones</th>
               </tr>
@@ -274,15 +278,17 @@ export const ComprasUsdtView: React.FC = () => {
             <tbody className="divide-y divide-border">
               {filteredCompras.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
                     No hay registros de compras USDT coincidentes con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows pageSize={100} columns={12} rows={filteredCompras}>{(c) => (
+                <PaginatedRows pageSize={100} columns={11} rows={filteredCompras}>{(c) => (
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-foreground">{c.codigo}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{formatDate(c.fecha)}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="font-semibold text-foreground">{formatDate(c.fecha)}</div>
+                      <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{c.codigo}</div>
+                    </td>
                     <td className="py-3 px-4">
                       {c.proveedor ? (
                         <span className="font-semibold text-foreground">{c.proveedor}</span>
@@ -311,7 +317,7 @@ export const ComprasUsdtView: React.FC = () => {
                       <AssetInstitutionLabel assets={data.activosDigitales} assetId={c.walletDestinoId} fallback={c.walletDestino} />
                     </td>
 
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-2 text-center">
                       <EstadoTransitoSelect
                         estado={c.estado}
                         tipo="compra"
@@ -373,8 +379,8 @@ export const ComprasUsdtView: React.FC = () => {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-xs text-foreground">{c.codigo}</span>
-                    <span className="text-[11px] text-muted-foreground">{formatDate(c.fecha)}</span>
+                    <span className="font-semibold text-xs text-foreground">{formatDate(c.fecha)}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">{c.codigo}</span>
                   </div>
                   <h4 className="font-bold text-sm text-foreground mt-0.5">{c.proveedor || 'Sin proveedor'}</h4>
                 </div>
