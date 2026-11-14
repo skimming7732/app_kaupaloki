@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getTokenState, type CashToken } from '../utils/tokenVoucherGenerator';
 import { TokenVoucherModal } from '../components/modals/TokenVoucherModal';
-import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { recordButtonClass } from '../components/modals/RecordDialog';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
@@ -23,6 +22,8 @@ import { AddDispersionModal } from '../components/modals/AddDispersionModal';
 import { AddTransferenciaModal } from '../components/modals/AddTransferenciaModal';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
 import { EstadoTransitoSelect } from '../components/common/EstadoTransitoSelect';
+
+const formatKpiCOP = (value: number) => formatCOP(value).replace(/,/g, '');
 
 interface EfectivoViewProps {
   onOpenAddGasto?: () => void;
@@ -294,65 +295,61 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
           setFilterCreador('');
         }}
       >
-        {/* Mobile-only visible filters */}
-        <div className="md:hidden space-y-3 pb-3 border-b border-border">
-          <div>
-            <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+        <DateRangeFilter from={fechaDesde} to={fechaHasta} setFrom={setFechaDesde} setTo={setFechaHasta} />
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Tipo de movimiento</p>
+            <TableSelectFilter label="Tipo de movimiento" value={filterTipo} onChange={setFilterTipo} className="w-full">
+              <option value="">Todos los tipos</option>
+              <option value="Ingreso">Ingreso a caja</option>
+              <option value="Pago">Salida de caja</option>
+            </TableSelectFilter>
           </div>
-        </div>
-
-        {/* Tipo Filter */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Movimiento</label>
-          <TableSelectFilter label="Tipo" value={filterTipo} onChange={setFilterTipo} className="w-full">
-            <option value="">Todos los tipos</option>
-            <option value="Ingreso">Ingreso a Caja</option>
-            <option value="Pago">Salida de Caja</option>
-          </TableSelectFilter>
-        </div>
-
-        <label className="flex items-center gap-2 text-xs font-medium text-foreground">
-          <input type="checkbox" checked={pendingReceiptOnly} onChange={(event) => setPendingReceiptOnly(event.target.checked)} className="h-4 w-4 accent-primary" />
-          Solo pendientes por recibir en caja
-        </label>
-
-        {/* Cliente Filter */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Cliente</label>
-          <ClientSearchSelect value={selectedCliente} onChange={setSelectedCliente} placeholder="Todos los clientes" compact />
-        </div>
-
-        {/* Creador Filter */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Creado por</label>
-          <CreatedByFilter
-            value={filterCreador}
-            onChange={setFilterCreador}
-            records={movimientos}
-            className="w-full"
-          />
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Recepción en caja</p>
+            <TableSelectFilter label="Recepción en caja" value={pendingReceiptOnly ? 'pendientes' : ''} onChange={(value) => setPendingReceiptOnly(value === 'pendientes')} className="w-full">
+              <option value="">Todos los movimientos</option>
+              <option value="pendientes">Solo por recibir</option>
+            </TableSelectFilter>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Tokens de pago</p>
+            <TableSelectFilter label="Tokens de pago" value={pendingOnly ? 'pendientes' : ''} onChange={(value) => setPendingOnly(value === 'pendientes')} className="w-full">
+              <option value="">Todos los movimientos</option>
+              <option value="pendientes">Tokens pendientes</option>
+            </TableSelectFilter>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Cliente</p>
+            <TableSelectFilter label="Cliente" value={selectedCliente} onChange={setSelectedCliente} className="w-full">
+              <option value="">Todos los clientes</option>
+              {[...data.clientes].sort((a, b) => a.nombre.localeCompare(b.nombre)).map((cliente) => (
+                <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
+              ))}
+            </TableSelectFilter>
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <p className="text-xs font-medium text-muted-foreground">Creado por</p>
+            <CreatedByFilter value={filterCreador} onChange={setFilterCreador} records={movimientos} className="w-full" />
+          </div>
         </div>
       </FilterModal>
 
       <KpiStrip metrics={([
-        ['Movimientos', visibleMovements.length],
-        ['Entradas COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? m.monto : 0))],
-        ['Salidas COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Pago' ? m.monto - (m.comisionCop ?? 0) : 0))],
-        ['Comisiones COP', formatCOP(sumRows(visibleMovements, (m) => m.comisionCop ?? 0))],
-        ['Neto COP', formatCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? (m.raw?.esPendiente ? 0 : m.monto) : -(m.monto - (m.comisionCop ?? 0))))],
+        ['Movimientos', String(visibleMovements.length)],
+        ['Entradas COP', formatKpiCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? m.monto : 0))],
+        ['Salidas COP', formatKpiCOP(sumRows(visibleMovements, (m) => m.tipo === 'Pago' ? m.monto - (m.comisionCop ?? 0) : 0))],
+        ['Comisiones COP', formatKpiCOP(sumRows(visibleMovements, (m) => m.comisionCop ?? 0))],
+        ['Neto COP', formatKpiCOP(sumRows(visibleMovements, (m) => m.tipo === 'Ingreso' ? (m.raw?.esPendiente ? 0 : m.monto) : -(m.monto - (m.comisionCop ?? 0))))],
         ['Por recibir en caja', (
           <div className="flex items-center gap-1.5">
             <span className={totalEnTransitoCaja > 0 ? "text-amber-400 font-bold" : ""}>
-              {formatCOP(totalEnTransitoCaja)}
+              {formatKpiCOP(totalEnTransitoCaja)}
             </span>
           </div>
         )],
-        ['Pendientes', (
-          <button type="button" aria-pressed={pendingOnly} aria-label={`Filtrar ${pendingCount} pendientes`}
-            onClick={() => setPendingOnly(!pendingOnly)} className="text-destructive hover:underline">
-            {formatNumber(pendingCount)} <i className="ri-filter-3-line text-sm" aria-hidden="true" />
-          </button>
-        )],
+        ['Tokens pendientes', <span className="text-destructive">{String(pendingCount)}</span>],
       ] as const).map(([label, value]) => ({ label, value }))} />
 
       {tokenError && <p role="alert" className="text-sm text-destructive">{tokenError}</p>}
