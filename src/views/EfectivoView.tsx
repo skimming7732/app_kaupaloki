@@ -103,6 +103,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   // Filters
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
+  const [pendingReceiptOnly, setPendingReceiptOnly] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState('');
   const [filterCreador, setFilterCreador] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -169,9 +170,9 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
       const matchCreador = !filterCreador || formatAuthorName(m.createdByName, m.createdBy, data.usuarios).toLowerCase() === filterCreador.toLowerCase();
 
-      return matchSearch && matchTipo && matchCliente && matchFecha && matchCreador && (!paymentId || m.id === paymentId);
+      return matchSearch && matchTipo && matchCliente && matchFecha && matchCreador && (!pendingReceiptOnly || Boolean(m.raw?.esPendiente)) && (!paymentId || m.id === paymentId);
     });
-  }, [movimientos, data.usuarios, search, filterTipo, selectedCliente, fechaDesde, fechaHasta, filterCreador, paymentId]);
+  }, [movimientos, data.usuarios, search, filterTipo, selectedCliente, fechaDesde, fechaHasta, filterCreador, paymentId, pendingReceiptOnly]);
 
   const isPending = (id: string) => {
     const token = tokenByPayment.get(id);
@@ -183,7 +184,6 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
   const totalEnTransitoCaja = visibleMovements
     .filter((m) => m.raw?.esPendiente)
     .reduce((sum, m) => sum + (Number(m.monto) || 0), 0);
-  const transitoCount = visibleMovements.filter((m) => m.raw?.esPendiente).length;
   const tokenLabels = { activo: 'Pendiente', entregado: 'Entregado', cancelado: 'Cancelado', expirado: 'Vencido' };
 
   const handleRecibirEnCaja = async (movimiento: any) => {
@@ -248,14 +248,14 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             {/* Popup Filter Trigger Button */}
             <FilterTriggerButton
               onClick={() => setIsFilterOpen(true)}
-              activeCount={(filterTipo ? 1 : 0) + (selectedCliente ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+              activeCount={(pendingReceiptOnly ? 1 : 0) + (pendingOnly ? 1 : 0) + (filterTipo ? 1 : 0) + (selectedCliente ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
             />
           </div>
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
           <span>{formatNumber(visibleMovements.length)} de {formatNumber(movimientos.length)} registros</span>
-          {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta || filterCreador || paymentId || pendingOnly) && (
+          {(search || filterTipo || selectedCliente || fechaDesde || fechaHasta || filterCreador || paymentId || pendingOnly || pendingReceiptOnly) && (
             <button
               onClick={() => {
                 setSearch('');
@@ -265,6 +265,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 setFechaHasta('');
                 setFilterCreador('');
                 setPendingOnly(false);
+                setPendingReceiptOnly(false);
                 setParams((current) => { const next = new URLSearchParams(current); next.delete('pago'); return next; });
               }}
               type="button"
@@ -282,8 +283,10 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         title="Filtros de Efectivo"
-        activeCount={(filterTipo ? 1 : 0) + (selectedCliente ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
+        activeCount={(pendingReceiptOnly ? 1 : 0) + (pendingOnly ? 1 : 0) + (filterTipo ? 1 : 0) + (selectedCliente ? 1 : 0) + (filterCreador ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0)}
         onClear={() => {
+          setPendingReceiptOnly(false);
+          setPendingOnly(false);
           setFilterTipo('');
           setSelectedCliente('');
           setFechaDesde('');
@@ -307,6 +310,11 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             <option value="Pago">Salida de Caja</option>
           </TableSelectFilter>
         </div>
+
+        <label className="flex items-center gap-2 text-xs font-medium text-foreground">
+          <input type="checkbox" checked={pendingReceiptOnly} onChange={(event) => setPendingReceiptOnly(event.target.checked)} className="h-4 w-4 accent-primary" />
+          Solo pendientes por recibir en caja
+        </label>
 
         {/* Cliente Filter */}
         <div>
@@ -337,11 +345,6 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             <span className={totalEnTransitoCaja > 0 ? "text-amber-400 font-bold" : ""}>
               {formatCOP(totalEnTransitoCaja)}
             </span>
-            {transitoCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
-                {transitoCount} pend.
-              </span>
-            )}
           </div>
         )],
         ['Pendientes', (
@@ -361,8 +364,7 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
-                <th className="py-3 px-4">Código</th>
-                <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4">Fecha / Código</th>
                 <th className="py-3 px-4">Tipo</th>
                 <th className="py-3 px-4">Estado</th>
                 <th className="py-3 px-4">Cliente / tercero</th>
@@ -377,12 +379,12 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
             <tbody className="divide-y divide-border">
               {visibleMovements.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No hay movimientos de efectivo que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows pageSize={100} columns={11} rows={visibleMovements}>{(m) => {
+                <PaginatedRows pageSize={100} columns={10} rows={visibleMovements}>{(m) => {
                   const token = tokenByPayment.get(m.id);
                   const tokenState = token && getTokenState(token);
 
@@ -400,8 +402,10 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
 
                   return (
                     <tr key={m.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-mono font-medium text-foreground">{m.codigo}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{formatDate(m.fecha)}</td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="font-semibold text-foreground">{formatDate(m.fecha)}</div>
+                        <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">{m.codigo}</div>
+                      </td>
                       <td className="py-3 px-4">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -553,8 +557,8 @@ export const EfectivoView: React.FC<EfectivoViewProps> = ({
                 <div key={m.id} className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="font-mono font-bold text-sm text-foreground">{m.codigo}</span>
-                      <div className="text-[11px] text-muted-foreground">{formatDate(m.fecha)}</div>
+                      <div className="text-sm font-semibold text-foreground">{formatDate(m.fecha)}</div>
+                      <span className="font-mono text-[11px] text-muted-foreground">{m.codigo}</span>
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
                       <span

@@ -214,7 +214,7 @@ export const DivisasView: React.FC = () => {
       d.nombre.toLowerCase().includes(term) || (d.pais || '').toLowerCase().includes(term);
     const matchSaldo = !saldoFilter || d[saldoFilter as 'totalRecibido' | 'totalComprado' | 'totalPendiente'] > 0;
     return matchSearch && matchSaldo;
-  });
+  }).sort((a, b) => b.totalPendiente - a.totalPendiente || a.codigo.localeCompare(b.codigo));
 
   const saldoOptions = <>
     <option value="">Todas las divisas</option>
