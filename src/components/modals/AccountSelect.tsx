@@ -4,6 +4,7 @@ import { DetailSearchSelect } from '../common/DetailSearchSelect';
 import { recordLabelClass } from './RecordDialog';
 import { InstitutionLogo } from '../common/InstitutionLogo';
 import type { AssetInstitution } from '../../utils/institutions';
+import { JURISDICTION_COUNTRIES } from '../../utils/countryJurisdiction';
 
 export type Account = {
   id: string;
@@ -14,6 +15,7 @@ export type Account = {
   red?: string;
   titular?: string;
   divisa?: string;
+  pais?: string;
   saldoReal?: number | null;
   saldoCop?: number | null;
   saldoUsdt?: number | null;
@@ -40,10 +42,19 @@ export const AccountSelect = ({ label, accounts, name, value, onChange, compactS
   const selected = accounts.find((account) => account.id === value);
   const selectedCurrency = selected?.divisa || (selected?.saldoUsdt != null || selected?.wallet ? 'USDT' : 'COP');
   const selectedBalance = selected?.saldoReal ?? selected?.saldoCop ?? selected?.saldoUsdt;
-  const logo = (account: Account, sizeClass: string) => <InstitutionLogo
-    name={account.institution?.name || account.institucion || accountLabel(account)}
-    logoUrl={account.institution?.logo_url} websiteUrl={account.institution?.website_url}
-    sizeClass={sizeClass} />;
+  const logo = (account: Account, sizeClass: string) => {
+    const countryName = normalizeDetail((account.pais || '').replace(/\s*\([^)]*\)\s*$/, ''));
+    const jurisdiction = JURISDICTION_COUNTRIES.find((country) => countryName &&
+      (normalizeDetail(country.value) === countryName || country.code === countryName));
+    return <span className="relative inline-flex shrink-0">
+      <InstitutionLogo name={account.institution?.name || account.institucion || accountLabel(account)}
+        logoUrl={account.institution?.logo_url} websiteUrl={account.institution?.website_url} sizeClass={sizeClass} />
+      {jurisdiction?.flagUrl && <img src={jurisdiction.flagUrl} alt={jurisdiction.label} title={'Jurisdicción: ' + jurisdiction.label}
+        width={12} height={8} loading="lazy"
+        className="absolute -bottom-0.5 -right-1 h-2 w-3 rounded-[1px] object-cover ring-1 ring-card"
+        onError={(event) => { event.currentTarget.hidden = true; }} />}
+    </span>;
+  };
   const options = accounts.map((account) => {
     const title = accountLabel(account);
     const digital = account.saldoUsdt != null || Boolean(account.red || account.wallet);
@@ -63,7 +74,7 @@ export const AccountSelect = ({ label, accounts, name, value, onChange, compactS
     return {
       id: account.id,
       label: title,
-      search: [title, institution, currency, account.titular, account.red, reference, digital ? 'activo digital billetera' : 'activo líquido cuenta'].filter(Boolean).join(' '),
+      search: [title, institution, currency, account.titular, account.red, account.pais, reference, digital ? 'activo digital billetera' : 'activo líquido cuenta'].filter(Boolean).join(' '),
       details: (
         <span className="flex min-w-0 items-center gap-2 text-xs">
           {logo(account, 'h-7 w-7')}
