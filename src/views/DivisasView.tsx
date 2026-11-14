@@ -1,6 +1,6 @@
 import { PaginatedRows } from '../components/common/PaginatedRows';
 import { AddCatalogButton } from '../components/modals/AddCatalogButton';
-import { formatNumber, fallbackBanderaUrl } from '../utils/formatters';
+import { formatNumber, currencyFlagUrl } from '../utils/formatters';
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData, type NormalizedData } from '../context/DataContext';
@@ -53,9 +53,9 @@ const ExtractoDivisa = ({ divisa, data, onBack }: { divisa: Divisa; data: Normal
 
       <div>
         <h2 className="text-xl font-bold flex items-center gap-2">
-          {(fallbackBanderaUrl[codigo] || divisa.banderaUrl) && (
+          {(currencyFlagUrl(codigo, divisa.banderaUrl)) && (
             <img
-              src={fallbackBanderaUrl[codigo] || divisa.banderaUrl}
+              src={currencyFlagUrl(codigo, divisa.banderaUrl)}
               alt=""
               className="inline-block h-6 w-8 rounded-sm object-cover shadow-sm"
               onError={(event) => { event.currentTarget.hidden = true; }}
@@ -223,6 +223,9 @@ export const DivisasView: React.FC = () => {
     <option value="totalPendiente">Con total pendiente</option>
   </>;
 
+  const editDivisa = (divisa: Divisa) => <AddCatalogButton table="divisas" allowDelete={false}
+    edit={{ id: divisa.id, fields: { codigo: divisa.codigo, nombre_divisa: divisa.nombre, pais: divisa.pais, bandera_url: divisa.banderaUrl || '' } }} />;
+
   if (codigo) {
     if (selectedDivisa) {
       return <ExtractoDivisa divisa={selectedDivisa} data={data} onBack={() => navigate('/divisas')} />;
@@ -322,17 +325,18 @@ export const DivisasView: React.FC = () => {
                 <th className="py-3 px-4 text-right">Total Comprado</th>
                 <th className="py-3 px-4 text-right">Total Pendiente</th>
                 <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredDivisas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     No hay divisas que coincidan con los filtros
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows columns={7} rows={filteredDivisas}>{(d) => (
+                <PaginatedRows columns={8} rows={filteredDivisas}>{(d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4">
                       <button
@@ -341,8 +345,8 @@ export const DivisasView: React.FC = () => {
                         aria-label={'Ver extracto de ' + d.codigo}
                         className="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary hover:bg-primary/20 transition-colors inline-flex items-center gap-1.5"
                       >
-                        {(fallbackBanderaUrl[d.codigo] || d.banderaUrl) && (
-                          <img src={fallbackBanderaUrl[d.codigo] || d.banderaUrl} alt="" className="inline-block h-[1em] w-[1.35em] rounded-sm object-cover align-[-0.1em]" onError={(event) => { event.currentTarget.hidden = true; }} />
+                        {(currencyFlagUrl(d.codigo, d.banderaUrl)) && (
+                          <img src={currencyFlagUrl(d.codigo, d.banderaUrl)} alt="" className="inline-block h-[1em] w-[1.35em] rounded-sm object-cover align-[-0.1em]" onError={(event) => { event.currentTarget.hidden = true; }} />
                         )}
                         <span>{d.codigo}</span>
                         <i className="ri-arrow-right-s-line" aria-hidden="true" />
@@ -364,6 +368,7 @@ export const DivisasView: React.FC = () => {
                         {d.estado || 'Activo'}
                       </span>
                     </td>
+                    <td className="py-3 px-4 text-center">{editDivisa(d)}</td>
                   </tr>
                 )}</PaginatedRows>
               )}
@@ -388,9 +393,9 @@ export const DivisasView: React.FC = () => {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary inline-flex items-center gap-1.5">
-                    {(fallbackBanderaUrl[d.codigo] || d.banderaUrl) && (
+                    {(currencyFlagUrl(d.codigo, d.banderaUrl)) && (
                       <img
-                        src={fallbackBanderaUrl[d.codigo] || d.banderaUrl}
+                        src={currencyFlagUrl(d.codigo, d.banderaUrl)}
                         alt=""
                         className="inline-block h-[1em] w-[1.35em] rounded-sm object-cover align-[-0.1em]"
                         onError={(event) => { event.currentTarget.hidden = true; }}
@@ -408,6 +413,7 @@ export const DivisasView: React.FC = () => {
 
               <div className="text-[11px] text-muted-foreground">
                 <span>{d.pais || 'Internacional'}</span>
+                <div className="mt-2" onClick={(event) => event.stopPropagation()}>{editDivisa(d)}</div>
               </div>
 
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50 text-center font-mono">

@@ -1,6 +1,7 @@
+import { CurrencyBadge } from '../components/common/CurrencyBadge';
 import { TableSelectFilter } from '../components/common/TableSelectFilter';
 import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
-import { formatNumber, formatRate, formatCurrency, fallbackBanderaUrl } from '../utils/formatters';
+import { formatNumber, formatRate, formatCurrency } from '../utils/formatters';
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { PaginatedRows } from '../components/common/PaginatedRows';
@@ -114,17 +115,7 @@ export const ComprasUsdtView: React.FC = () => {
     }
   };
 
-  const renderDivisa = (codigo: string) => {
-    const banderaUrl = fallbackBanderaUrl[codigo] || data.divisas.find((divisa) => divisa.codigo === codigo)?.banderaUrl;
-    return (
-      <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 text-[11px]">
-        {banderaUrl && (
-          <img src={banderaUrl} alt="" width={12} height={8} className="h-2 w-3 shrink-0 rounded-[1px] object-cover" onError={(event) => { event.currentTarget.hidden = true; }} />
-        )}
-        {codigo}
-      </span>
-    );
-  };
+  const renderDivisa = (codigo: string) => <CurrencyBadge codigo={codigo} banderaUrl={data.divisas.find((divisa) => divisa.codigo === codigo)?.banderaUrl} />;
 
   const averageRate = [...rates].map(([currency, rate]) =>
     formatRate(rate.total / rate.count) + ' ' + currency + '/USDT'

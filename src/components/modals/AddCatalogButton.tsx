@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { canDeleteRole, isAdminRole } from '../../utils/roles';
 import { useData, type CatalogTable } from '../../context/DataContext';
 import { AmountEntryMode, type AmountMode } from '../common/AmountEntryMode';
+import { CurrencyFlagField } from './CurrencyFlagField';
 
 type Field = {
   name: string;
@@ -53,6 +54,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
   const [rateInput, setRateInput] = useState('');
   const [feeInput, setFeeInput] = useState('');
   const [selectedEstado, setSelectedEstado] = useState<'recibido' | 'pendiente'>('recibido');
+  const [catalogCode, setCatalogCode] = useState('');
 
   const isPurchase = table === 'compras_usdt';
   const isSale = table === 'ventas_usdt';
@@ -173,12 +175,12 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
     },
   };
 
-  const initial = { estado: 'recibido', ...(edit?.fields || {}) };
+  const initial: Record<string, any> = { estado: 'recibido', ...(edit?.fields || {}) };
   const base = forms[table];
   const form = edit ? {
     ...base,
-    title: isPurchase ? 'Editar compra USDT' : 'Editar venta USDT',
-    description: 'Modifica los datos, montos o billetera de la operación.',
+    title: table === 'divisas' ? 'Editar divisa' : isPurchase ? 'Editar compra USDT' : 'Editar venta USDT',
+    description: table === 'divisas' ? 'Actualiza el nombre, el país o la bandera de la divisa.' : 'Modifica los datos, montos o billetera de la operación.',
     fields: base.fields,
   } : base;
 
@@ -188,6 +190,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
 
   const initFields = () => {
     setError('');
+    setCatalogCode(String(initial.codigo || ''));
     const initSource = String(initial[sourceField] ?? '');
     const fallbackWallet = isSale && !edit && !initSource ? wallets[0]?.id || '' : initSource;
     setSourceId(fallbackWallet);
@@ -315,11 +318,21 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
 
     if (table === 'divisas') {
       const code = String(record.codigo).toUpperCase();
-      if (!/^[A-Z]{3,4}(?:-[A-Z]{2})?$/.test(code) || currencies.some((currency) => currency.value === code)) {
+      if (!/^[A-Z]{3,4}(?:-[A-Z]{2})?$/.test(code) || data.divisas.some((divisa) => divisa.codigo === code && divisa.id !== edit?.id)) {
         setError('Ingresa un código válido que aún no esté registrado, como USD, USDT o USD-EC.');
         return;
       }
       record.codigo = code;
+      const flag = String(values.get('bandera_url') || '').trim();
+      if (flag && !/^https:\/\//i.test(flag) && !/^data:image\/(png|jpeg|webp);base64,/i.test(flag)) {
+        setError('La bandera debe ser una URL HTTPS o una imagen PNG, JPG o WebP.');
+        return;
+      }
+      if (flag.length > 360000) {
+        setError('La imagen de la bandera no debe superar 256 KB.');
+        return;
+      }
+      record.bandera_url = flag;
     }
 
     setBusy(true);
@@ -383,6 +396,9 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
                 if (isAmount) (fromFinal ? setFinalAmount : setAmount)(value);
                 if (isRate) setRateInput(value);
                 if (isFee) setFeeInput(value);
+              } : table === 'divisas' && field.name === 'codigo' ? (event) => {
+                event.currentTarget.value = event.currentTarget.value.toUpperCase();
+                setCatalogCode(event.currentTarget.value);
               } : isUppercase ? (event) => {
                 event.currentTarget.value = event.currentTarget.value.toUpperCase();
               } : undefined}
@@ -392,6 +408,7 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
               inputMode={field.type === 'number' ? 'decimal' : undefined}
               placeholder={isRate ? '0.0000' : isAmount || isFee ? '0.00' : field.name === 'proveedor' ? 'NOMBRE O EMPRESA DEL PROVEEDOR' : field.name === 'concepto' ? 'CONCEPTO DE LA OPERACIÓN' : undefined}
               required={!field.optional}
+              readOnly={Boolean(table === 'divisas' && edit && field.name === 'codigo')}
               className={`${recordFieldClass} ${isUppercase ? 'uppercase' : ''}`}
             />
           )}
@@ -538,7 +555,10 @@ export const AddCatalogButton = ({ table, edit, allowDelete = true, buttonClassN
                   </section>
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">{form.fields.map(renderField)}</div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {form.fields.map(renderField)}
+                  {table === 'divisas' && <CurrencyFlagField key={edit?.id || 'new'} codigo={catalogCode} initialUrl={edit?.fields.bandera_url} />}
+                </div>
               )}
             </fieldset>
             <RecordActions submitDisabled={exceedsBalance || sameWallet || (isPurchase && (!validPurchaseQuote || !currency || missingAccounts)) || (isSale && (!validSaleQuote || !validFee || missingAccounts))} busy={busy} label={edit ? 'Guardar cambios' : 'Guardar registro'} onClose={onClose} onDelete={edit && canDelete && allowDelete ? handleDelete : undefined} deleteLabel={isPurchase ? 'Eliminar compra' : isSale ? 'Eliminar venta' : 'Eliminar registro'} />

@@ -1944,7 +1944,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!editId && fields.wallet) record.id_wallet = fields.wallet;
         break;
       case 'divisas':
-        record = { ...record, divisa: fields.codigo, total_recibido: 0, total_comprado: 0, total_pendiente: 0 };
+        record = { ...record, divisa: fields.codigo, ...(!editId ? { total_recibido: 0, total_comprado: 0, total_pendiente: 0 } : {}) };
         break;
     }
 

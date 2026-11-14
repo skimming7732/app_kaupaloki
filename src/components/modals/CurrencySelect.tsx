@@ -1,6 +1,6 @@
 import React, { useId, useRef, useState, type ReactNode } from 'react';
 import { DIVISAS, type Divisa } from '../../data/appData';
-import { fallbackBanderaUrl, normalizeSearch } from '../../utils/formatters';
+import { currencyFlagUrl, normalizeSearch } from '../../utils/formatters';
 
 const fieldClass = 'w-full min-h-11 rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
 const labelClass = 'mb-1.5 block text-sm font-medium text-foreground';
@@ -10,8 +10,7 @@ const currencyName = (currency: Divisa) =>
 
 const CurrencyLabel = ({ currency, showName = true }: { currency: Divisa; showName?: boolean }) => {
   const catalogCurrency = DIVISAS.find((item) => item.codigo === currency.codigo);
-  const flag = currency.fallbackBanderaUrl || catalogCurrency?.fallbackBanderaUrl ||
-    fallbackBanderaUrl[currency.codigo] || currency.banderaUrl;
+  const flag = currencyFlagUrl(currency.codigo, currency.banderaUrl) || currency.fallbackBanderaUrl || catalogCurrency?.fallbackBanderaUrl;
   const name = currencyName(currency);
 
   return (

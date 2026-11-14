@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useData } from '../../context/DataContext';
-import { fallbackBanderaUrl } from '../../utils/formatters';
+import { fallbackBanderaUrl, currencyFlagUrl } from '../../utils/formatters';
 
 const DEFAULT_CURRENCY_COUNTRIES: Record<string, string> = {
   COP: 'Colombia',
@@ -67,7 +67,7 @@ export const CurrencyFilterDropdown: React.FC<CurrencyFilterDropdownProps> = ({
       map.set(code, {
         codigo: code,
         pais: cleanCountryName(d.pais, code) || d.nombre || '',
-        banderaUrl: fallbackBanderaUrl[code] || d.banderaUrl,
+        banderaUrl: currencyFlagUrl(code, d.banderaUrl),
       });
     }
 

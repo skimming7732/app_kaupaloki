@@ -144,11 +144,35 @@ export const fallbackBanderaUrl: Record<string, string> = {
   HNL: 'https://flagcdn.com/w80/hn.png',
   VES: 'https://flagcdn.com/w80/ve.png',
   USDT: 'https://cryptologos.cc/logos/tether-usdt-logo.png',
-  'USD-PY': 'https://flagcdn.com/w80/py.png',
+  'USD-PY': 'https://flagcdn.com/w80/pa.png',
   USD: 'https://flagcdn.com/w80/us.png',
   ARS: 'https://flagcdn.com/w80/ar.png',
   UYU: 'https://flagcdn.com/w80/uy.png',
   CLP: 'https://flagcdn.com/w80/cl.png',
   COP: 'https://flagcdn.com/w80/co.png',
   MXN: 'https://flagcdn.com/w80/mx.png',
+  BOB: 'https://flagcdn.com/w80/bo.png',
+  CRC: 'https://flagcdn.com/w80/cr.png',
+  PYG: 'https://flagcdn.com/w80/py.png',
+  GTQ: 'https://flagcdn.com/w80/gt.png',
+  NIO: 'https://flagcdn.com/w80/ni.png',
+  DOP: 'https://flagcdn.com/w80/do.png',
+  CUP: 'https://flagcdn.com/w80/cu.png',
+  HTG: 'https://flagcdn.com/w80/ht.png',
+  PAB: 'https://flagcdn.com/w80/pa.png',
+  BZD: 'https://flagcdn.com/w80/bz.png',
+  GYD: 'https://flagcdn.com/w80/gy.png',
+  SRD: 'https://flagcdn.com/w80/sr.png',
+  JMD: 'https://flagcdn.com/w80/jm.png',
+  EUR: 'https://flagcdn.com/w80/eu.png',
+  'USD-PA': 'https://flagcdn.com/w80/pa.png',
+  'USD-SV': 'https://flagcdn.com/w80/sv.png',
 };
+
+export function currencyFlagUrl(code: string, customUrl?: string): string | undefined {
+  // Legacy Airtable attachment links expire; prefer the stable automatic image.
+  if (customUrl && !customUrl.includes('airtableusercontent.com/')) return customUrl;
+  const normalized = code.trim().toUpperCase();
+  const country = normalized.match(/^[A-Z]{3,4}-([A-Z]{2})$/)?.[1];
+  return fallbackBanderaUrl[normalized] || (country ? `https://flagcdn.com/w80/${country.toLowerCase()}.png` : customUrl);
+}

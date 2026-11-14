@@ -1,3 +1,4 @@
+import { AssetInstitutionLabel } from '../components/common/AssetInstitutionLabel';
 import { useWriteAccess } from '../utils/useWriteAccess';
 import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { KpiStrip, sumRows } from '../components/common/KpiStrip';
@@ -258,8 +259,7 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border text-muted-foreground uppercase tracking-wider font-semibold">
               <tr>
-                <th className="py-2.5 px-2.5 whitespace-nowrap">Código</th>
-                <th className="py-2.5 px-2.5 whitespace-nowrap">Fecha</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Fecha / Código</th>
                 <th className="py-2.5 px-2.5">Cliente</th>
                 <th className="py-2.5 px-2.5 text-right whitespace-nowrap">Monto</th>
                 <th className="py-2.5 px-2 text-right whitespace-nowrap">Costo (COP)</th>
@@ -274,25 +274,25 @@ export const DispersionesView: React.FC<DispersionesViewProps> = ({ onOpenAddDis
             <tbody className="divide-y divide-border">
               {filteredDispersiones.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No se encontraron dispersiones registradas
                   </td>
                 </tr>
               ) : (
-                <PaginatedRows pageSize={100} columns={11} rows={filteredDispersiones}
+                <PaginatedRows pageSize={100} columns={10} rows={filteredDispersiones}
                   resetKey={JSON.stringify([search, selectedCliente, fechaDesde, fechaHasta])}>{(d) => (
                   <tr key={d.id} className="hover:bg-muted/30 transition-colors h-14">
-                    <td className="py-2 px-2.5 font-mono font-medium text-foreground whitespace-nowrap">{d.codigo}</td>
-                    <td className="py-2 px-2.5 text-muted-foreground whitespace-nowrap">{formatDate(d.fecha)}</td>
+                    <td className="py-2 px-2.5 whitespace-nowrap">
+                      <div className="font-semibold text-foreground">{formatDate(d.fecha)}</div>
+                      <div className="mt-0.5 min-w-[6ch] font-mono text-[11px] font-medium text-muted-foreground">{d.codigo}</div>
+                    </td>
                     <td className="py-2 px-2.5 font-semibold text-foreground max-w-[140px] truncate" title={d.clienteNombre}>{d.clienteNombre}</td>
                     <td className="py-2 px-2.5 text-right font-bold text-foreground whitespace-nowrap">
                       {formatCOP(d.monto)}
                     </td>
                     <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-[11px]">{formatCOP(d.costoCop)}</td>
                     <td className="py-2 px-2.5 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[10px] font-medium border border-border">
-                        {d.origenFondos || 'Bancolombia'}
-                      </span>
+                      <AssetInstitutionLabel assets={data.activosLiquidos} assetId={d.origenFondosId} fallback={d.origenFondos} />
                     </td>
                     <td className="py-2 px-2.5 font-mono text-muted-foreground text-[11px] max-w-[130px] break-all leading-tight uppercase">{d.referencia || '—'}</td>
 

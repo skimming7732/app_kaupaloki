@@ -14,7 +14,7 @@ import {
   recordFieldClass,
   recordLabelClass,
 } from '../components/modals/RecordDialog';
-import { fallbackBanderaUrl, formatNumber } from '../utils/formatters';
+import { currencyFlagUrl, formatNumber } from '../utils/formatters';
 import { POPULAR_PRESET_COLORS, getInstitutionCardGradient, resolveBrandColor } from '../utils/institutionGradient';
 
 const TYPE_BADGE_CLASSES: Record<InstitutionType, string> = {
@@ -365,7 +365,7 @@ export const InstitucionesView: React.FC = () => {
     currencyFilter !== 'ALL' ? divisaMap.get(currencyFilter.toUpperCase()) : undefined;
   const selectedCurrencyFlag =
     currencyFilter !== 'ALL'
-      ? fallbackBanderaUrl[currencyFilter.toUpperCase()] || selectedCurrencyObj?.banderaUrl
+      ? currencyFlagUrl(currencyFilter, selectedCurrencyObj?.banderaUrl)
       : undefined;
 
   return (
@@ -551,7 +551,7 @@ export const InstitucionesView: React.FC = () => {
                   {(inst) => {
                     const code = inst.currency.toUpperCase();
                     const linkedDivisa = divisaMap.get(code);
-                    const flagUrl = fallbackBanderaUrl[code] || linkedDivisa?.banderaUrl;
+                    const flagUrl = currencyFlagUrl(code, linkedDivisa?.banderaUrl);
                     const domain = extractDomain(inst.website_url);
                     const externalHref = inst.website_url
                       ? /^https?:\/\//i.test(inst.website_url)

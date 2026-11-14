@@ -1,3 +1,4 @@
+import { CurrencyBadge } from '../components/common/CurrencyBadge';
 import { useWriteAccess } from '../utils/useWriteAccess';
 import { ClientSearchSelect } from '../components/common/ClientSearchSelect';
 import { KpiStrip, sumRows, totalsByCurrency } from '../components/common/KpiStrip';
@@ -250,9 +251,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                       <td className="py-3 px-4 text-muted-foreground">{formatDate(n.fecha)}</td>
                       <td className="py-3 px-4 font-semibold text-foreground">{n.clienteNombre}</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold text-[11px]">
-                          {n.divisaCodigo}
-                        </span>
+                        <CurrencyBadge codigo={n.divisaCodigo} banderaUrl={data.divisas.find((divisa) => divisa.codigo === n.divisaCodigo)?.banderaUrl} />
                       </td>
                       <td className="py-3 px-4 text-right font-semibold text-foreground">
                         {formatNumber(n.montoDivisa, 2)}
@@ -317,9 +316,7 @@ export const NegociosView: React.FC<NegociosViewProps> = ({ onOpenAddNegocio }) 
                 <div className="bg-muted/30 p-2.5 rounded-xl">
                   <span className="text-[10px] font-medium text-muted-foreground block">Monto en Divisa</span>
                   <div className="flex items-center gap-1.5 font-bold text-foreground mt-0.5">
-                    <span className="px-1.5 py-0.2 rounded bg-primary/10 text-primary text-[10px] font-bold">
-                      {n.divisaCodigo}
-                    </span>
+                    <CurrencyBadge codigo={n.divisaCodigo} banderaUrl={data.divisas.find((divisa) => divisa.codigo === n.divisaCodigo)?.banderaUrl} />
                     <span>{formatNumber(n.montoDivisa, 2)}</span>
                   </div>
                 </div>

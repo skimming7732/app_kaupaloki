@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { formatNumber, formatCOP, formatUSD, fallbackBanderaUrl } from '../utils/formatters';
+import { formatNumber, formatCOP, formatUSD, currencyFlagUrl } from '../utils/formatters';
 
 export interface DailyIngreso {
   dia: string;       // YYYY-MM-DD
@@ -486,7 +486,7 @@ export const InicioView = () => {
         {divisas.length ? (
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {divisas.map((currency) => {
-              const flag = fallbackBanderaUrl[currency.codigo] || currency.banderaUrl;
+              const flag = currencyFlagUrl(currency.codigo, currency.banderaUrl);
               return (
                 <li key={currency.id} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
                   {flag ? (
