@@ -7,7 +7,7 @@ import { CreatedByCell, CreatedByHeader } from '../components/common/CreatedByCe
 import React, { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { isAuditorRole } from '../utils/roles';
+import { useWriteAccess } from '../utils/useWriteAccess';
 import { isTronAddress, isTronNetwork } from '../utils/tronUsdtBalance';
 import { isPolygonAddress, isPolygonNetwork } from '../utils/polygonUsdtBalance';
 import { useTronUsdtBalances } from '../hooks/useTronUsdtBalances';
@@ -20,7 +20,7 @@ import { AssetCardsFilterBar, type InstitutionOption, type CountryOption } from 
 export const ActivosDigitalesView: React.FC = () => {
   const { data, metrics, loading: dataLoading, marcarCompraRecibida } = useData();
   const { theme, profile } = useAuth();
-  const canWrite = !isAuditorRole(profile?.role);
+  const canWrite = useWriteAccess('admin');
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const { assetId: selectedWalletId } = useParams();

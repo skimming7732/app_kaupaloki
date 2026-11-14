@@ -12,7 +12,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMore }) 
   const isAdmin = role === 'administrador' || role === 'super_admin';
   const canDisperse = isAdmin || ['operador', 'dispersor', 'supervisor', 'auditor'].includes(role);
 
-  const tabs = [
+  const tabs = role === 'contador' ? [
+    { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line', activeIcon: 'ri-home-5-fill' },
+    { to: '/gastos', label: 'Gastos', icon: 'ri-file-list-3-line', activeIcon: 'ri-file-list-3-fill' },
+    { to: '/activos-liquidos', label: 'Líquidos', icon: 'ri-bank-line', activeIcon: 'ri-bank-fill' },
+    { to: '/activos-digitales', label: 'Digitales', icon: 'ri-coin-line', activeIcon: 'ri-coin-fill' },
+  ] : [
     { to: '/inicio', label: 'Inicio', icon: 'ri-home-5-line', activeIcon: 'ri-home-5-fill' },
     ...(isAdmin || ['comercial', 'operador', 'supervisor', 'auditor'].includes(role)
       ? [{ to: '/negocios', label: 'Negocios', icon: 'ri-briefcase-4-line', activeIcon: 'ri-briefcase-4-fill' }]

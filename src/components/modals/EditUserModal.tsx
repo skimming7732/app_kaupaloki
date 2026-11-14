@@ -190,6 +190,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
                 <option value="administrador">Admin</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="auditor">Auditor</option>
+                <option value="contador">Contador</option>
                 <option value="comercial">Comercial</option>
                 <option value="operador">Operador</option>
                 <option value="dispersor">Dispersor</option>

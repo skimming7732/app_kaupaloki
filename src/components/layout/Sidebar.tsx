@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { contadorCanRead } from '../../utils/roles';
 
 interface SidebarProps {
   isMobileOpen?: boolean;
@@ -70,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
         { to: '/divisas', label: 'Divisas', icon: 'ri-global-line' },
       ] : []),
     ] },
-    { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin || isSupervisor || isAuditor ? [
+    { label: 'Tesorería', icon: 'ri-safe-line', items: isAdmin || isSupervisor || isAuditor || role === 'contador' ? [
       { to: '/efectivo', label: 'Efectivo', icon: 'ri-money-dollar-circle-line' },
       { to: '/tokens', label: 'Tokens de retiro', icon: 'ri-ticket-2-line' },
       { to: '/activos-liquidos', label: 'Activos líquidos', icon: 'ri-bank-line' },
@@ -87,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onMobileClose })
       { to: '/instituciones', label: 'Instituciones', icon: 'ri-building-2-line' },
       { to: '/usuarios', label: 'Usuarios y accesos', icon: 'ri-shield-user-line' },
     ] : [] },
-  ].filter((section) => section.items.length > 0);
+  ].map(section => role === 'contador' ? { ...section, items: section.items.filter(item => contadorCanRead(item.to)) } : section).filter((section) => section.items.length > 0);
 
   // Active expanded state on desktop: expands on hover or if pinned
   const isExpanded = isHovered || isPinned || hasKeyboardFocus;

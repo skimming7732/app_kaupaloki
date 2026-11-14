@@ -1,4 +1,4 @@
-import { canRegisterBusiness, canDisperse, canManageClients, isAdminRole, canDeleteRole, isAuditorRole } from '../utils/roles';
+import { canRegisterBusiness, canDisperse, canManageClients, canRegisterExpense, isAdminRole, canDeleteRole, isAuditorRole } from '../utils/roles';
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { readAllRows } from '../utils/supabasePagination';
 import type { CashToken } from '../utils/tokenVoucherGenerator';
@@ -576,7 +576,7 @@ type SnapshotTable = keyof typeof snapshotTables;
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, refreshProfile } = useAuth();
-  const requireWrite = (scope: 'business' | 'dispersion' | 'clients' | 'admin' | 'delete') => {
+  const requireWrite = (scope: 'business' | 'dispersion' | 'clients' | 'expenses' | 'admin' | 'delete') => {
     if (isAuditorRole(profile?.role)) {
       throw new Error('El rol de auditor es de solo lectura y no permite modificaciones.');
     }
@@ -589,6 +589,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ? canDisperse(profile?.role, profile?.authorized_currencies)
         : scope === 'clients'
         ? canManageClients(profile?.role)
+        : scope === 'expenses'
+        ? canRegisterExpense(profile?.role)
         : isAdminRole(profile?.role) || profile?.role === 'supervisor';
     if (!allowed) throw new Error('Tu rol no permite modificar estos registros.');
   };
@@ -1801,7 +1803,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createGasto = async (payload: any): Promise<boolean> => {
-    requireWrite('admin');
+    requireWrite('expenses');
     try {
       const montoNum = Number(payload.monto || payload['Monto'] || 0);
 

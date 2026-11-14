@@ -15,6 +15,7 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { isAuditorRole } from '../utils/roles';
 import { formatDate } from '../utils/formatters';
+import { AssetInstitutionLabel } from '../components/common/AssetInstitutionLabel';
 
 export const ComprasUsdtView: React.FC = () => {
   const { data, marcarCompraRecibida, marcarCompraPendiente } = useData();
@@ -307,9 +308,7 @@ export const ComprasUsdtView: React.FC = () => {
                       {formatRate(c.costo)}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                        {c.walletDestino || (c.walletDestinoId && data.activosDigitales.find((a) => a.id === c.walletDestinoId)?.activo) || data.activosDigitales[0]?.activo || 'Sin registro'}
-                      </span>
+                      <AssetInstitutionLabel assets={data.activosDigitales} assetId={c.walletDestinoId} fallback={c.walletDestino} />
                     </td>
 
                     <td className="py-3 px-4 text-center">
@@ -420,9 +419,7 @@ export const ComprasUsdtView: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] text-muted-foreground block">Destino</span>
-                  <span className="text-xs font-semibold text-foreground">
-                    {c.walletDestino || (c.walletDestinoId && data.activosDigitales.find((a) => a.id === c.walletDestinoId)?.activo) || 'Billetera'}
-                  </span>
+                  <AssetInstitutionLabel assets={data.activosDigitales} assetId={c.walletDestinoId} fallback={c.walletDestino} />
                 </div>
               </div>
 

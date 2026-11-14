@@ -109,7 +109,13 @@ El contexto también incluye capital vigente por socio/inversionista (aportes me
 
 Para activar el cambio hay que configurar el secreto, desplegar `supabase/functions/ai-assistant/index.ts` junto con `reader.ts` y `catalog.ts`, y publicar el frontend. Validaciones locales sin credenciales: `node scripts/test-ai-assistant.cjs` y `node scripts/test-ai-reader.cjs`. La prueba opcional `scripts/test-ai-live.cjs` usa Gemini real y un transporte de base/auth simulado; requiere `GEMINI_API_KEY`, `AI_LIVE_FIXTURES` (JSON de tablas/filas) y `AI_LIVE_PROMPTS` (JSON con prompt y expected). Sus fixtures y credenciales se proporcionan por entorno y no se guardan en el repositorio. Esta prueba no valida RLS en producción.
 
-## Comprobantes
+## Rol Contador
+
+`contador` accede a Inicio, Gastos, Activos líquidos, Activos digitales y su perfil personal. Puede registrar gastos COP desde una cuenta líquida o USDT desde una billetera, con comprobante opcional. Los saldos se descuentan por los mismos triggers de contabilidad existentes. No puede editar/eliminar gastos, modificar activos, registrar operaciones ni administrar usuarios. No requiere selección de divisas al invitarlo; su código usa el prefijo `UCT`. Los permisos se aplican tanto en navegación/formularios como en RLS y Storage. Las instituciones y divisas se consultan como catálogos de apoyo.
+
+Compras y ventas USDT muestran la institución y su logo de la cuenta o billetera vinculada, con el titular como dato secundario. Si un activo histórico ya no existe, se conserva su etiqueta registrada; no se usa una cuenta distinta como reemplazo.
+
+## Adjuntos de gastos y dispersiones
 
 El portal con PIN devuelve los tipos de efectivo normalizados como `Pago` e `Ingreso`, igual que DataContext. No devolver directamente `PAGO`/`INGRESO` de la base: la vista filtra por esos nombres y omitiría movimientos aunque sus permisos sean correctos. Los pagos incluyen dispersiones no rechazadas y pagos de efectivo del cliente, sin comprobantes.
 

@@ -23,6 +23,7 @@ interface GastosViewProps {
 
 export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
   const canWrite = useWriteAccess('admin');
+  const canCreate = useWriteAccess('expenses');
   const { data, metrics, syncData } = useData();
   const tasaUsdtCop = metrics?.rateUsdtCop || 3950;
   const [attachingTo, setAttachingTo] = useState<{ id: string; url?: string; append?: boolean } | null>(null);
@@ -132,7 +133,7 @@ export const GastosView: React.FC<GastosViewProps> = ({ onOpenAddGasto }) => {
           <p className="text-xs text-muted-foreground">Registro de egresos y comprobantes</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {canWrite && (<button
+          {canCreate && (<button
             onClick={onOpenAddGasto ? onOpenAddGasto : () => setIsAddOpen(true)}
             type="button"
             className={recordButtonClass}

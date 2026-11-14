@@ -44,6 +44,7 @@ const ROLES_OPTIONS: {
   { id: 'comercial', title: 'Comercial', badge: 'Negocios', desc: 'Registra negocios y consulta clientes con divisas asignadas.', icon: 'ri-briefcase-4-line', colorClass: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
   { id: 'supervisor', title: 'Supervisor', badge: 'Supervisión', desc: 'Supervisa operaciones, edita registros autorizados y gestiona eliminaciones.', icon: 'ri-eye-line', colorClass: 'text-violet-500 bg-violet-500/10 border-violet-500/20' },
   { id: 'auditor', title: 'Auditor', badge: 'Solo lectura', desc: 'Auditoría integral en todas las vistas y reportes. Sin permisos de edición ni eliminación.', icon: 'ri-file-search-line', colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
+  { id: 'contador', title: 'Contador', badge: 'Contabilidad', desc: 'Registra gastos en COP o USDT y consulta activos líquidos y digitales. Acceso a Inicio.', icon: 'ri-calculator-line', colorClass: 'text-teal-500 bg-teal-500/10 border-teal-500/20' },
   {
     id: 'dispersor',
     title: 'Dispersor',

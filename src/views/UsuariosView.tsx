@@ -44,6 +44,7 @@ export const UsuariosView: React.FC = () => {
     comercial: 'Comercial',
     supervisor: 'Supervisor',
     auditor: 'Auditor',
+    contador: 'Contador',
   };
 
   const filteredUsers = useMemo(() => {

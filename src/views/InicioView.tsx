@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { formatNumber, formatCOP, fallbackBanderaUrl } from '../utils/formatters';
+import { formatNumber, formatCOP, formatUSD, fallbackBanderaUrl } from '../utils/formatters';
 
 export interface DailyIngreso {
   dia: string;       // YYYY-MM-DD
@@ -390,6 +390,27 @@ export const InicioView = () => {
   const authorized = profile?.authorized_currencies || [];
   const divisas = admin || !authorized.length ? data.divisas
     : data.divisas.filter((currency) => authorized.includes(currency.codigo));
+
+  if (profile?.role === 'contador') return (
+    <div className="mx-auto max-w-5xl space-y-5 py-4">
+      <div className="rounded-3xl border border-border bg-gradient-to-br from-primary/15 via-card to-card p-5 shadow-sm sm:p-8">
+        <span className="text-xs font-semibold text-primary">Contabilidad</span>
+        <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Bienvenido, {profile.full_name || user?.email}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Registra gastos y consulta los saldos de las cuentas y billeteras.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          { to: '/gastos', label: 'Gastos registrados', value: formatNumber(data.gastos.length), icon: 'ri-file-list-3-line' },
+          { to: '/activos-liquidos', label: 'Activos líquidos', value: formatCOP(data.activosLiquidos.reduce((sum, asset) => sum + Number(asset.saldoCop || 0), 0)), icon: 'ri-bank-line' },
+          { to: '/activos-digitales', label: 'Activos digitales', value: formatUSD(data.activosDigitales.reduce((sum, asset) => sum + Number(asset.saldoUsdt || 0), 0)), icon: 'ri-coin-line' },
+        ].map(item => <Link key={item.to} to={item.to} className="min-w-0 rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/50">
+          <i className={item.icon + ' text-xl text-primary'} aria-hidden="true" />
+          <p className="mt-3 text-sm text-muted-foreground">{item.label}</p>
+          <p className="mt-1 break-words text-xl font-bold tabular-nums">{item.value}</p>
+        </Link>)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 py-4">

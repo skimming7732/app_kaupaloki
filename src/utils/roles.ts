@@ -1,4 +1,4 @@
-export const staffRoles = ['super_admin', 'administrador', 'supervisor', 'operador', 'comercial', 'dispersor', 'auditor'] as const;
+export const staffRoles = ['super_admin', 'administrador', 'supervisor', 'operador', 'comercial', 'dispersor', 'auditor', 'contador'] as const;
 export type StaffRole = typeof staffRoles[number];
 export const roleLabels: Record<StaffRole, string> = {
   super_admin: 'Super Admin',
@@ -8,6 +8,7 @@ export const roleLabels: Record<StaffRole, string> = {
   comercial: 'Comercial',
   dispersor: 'Dispersor',
   auditor: 'Auditor',
+  contador: 'Contador',
 };
 export const isAdminRole = (role?: string) => role === 'administrador' || role === 'super_admin';
 export const canDeleteRole = (role?: string) => ['super_admin', 'administrador', 'supervisor'].includes(role || '');
@@ -24,3 +25,6 @@ export const currencyAllowed = (role: string | undefined, authorized: string[] |
 export const supervisorCanRead = (path: string) =>
   !['/panel-control', '/dashboard', '/capital', '/capital-socios', '/socios-inversionistas'].some((root) => path === root || path.startsWith(root + '/'));
 export const auditorCanRead = (_path: string) => true;
+export const contadorCanRead = (path: string) =>
+  ['/inicio', '/gastos', '/activos-liquidos', '/activos-digitales', '/perfil'].some(root => path === root || path.startsWith(root + '/'));
+export const canRegisterExpense = (role?: string) => isAdminRole(role) || role === 'supervisor' || role === 'contador';

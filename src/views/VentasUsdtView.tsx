@@ -12,6 +12,7 @@ import { UsdtVoucherModal } from '../components/modals/UsdtVoucherModal';
 import { UsdtTransactionVoucherData } from '../utils/usdtVoucherGenerator';
 import { EstadoTransitoSelect } from '../components/common/EstadoTransitoSelect';
 import React, { useState, useMemo } from 'react';
+import { AssetInstitutionLabel } from '../components/common/AssetInstitutionLabel';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { isAuditorRole } from '../utils/roles';
@@ -305,9 +306,7 @@ export const VentasUsdtView: React.FC = () => {
                       <td className="py-3 px-4 text-muted-foreground">{formatDate(v.fecha)}</td>
                       <td className="py-3 px-4 font-semibold text-foreground">{v.concepto || 'Venta USDT'}</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                          {v.walletOrigen || 'Sin registro'}
-                        </span>
+                        <AssetInstitutionLabel assets={data.activosDigitales} assetId={v.walletOrigenId} fallback={v.walletOrigen} />
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-rose-500">
                         -{formatNumber(v.usdtVendido, 0, 2)} USDT
@@ -318,9 +317,7 @@ export const VentasUsdtView: React.FC = () => {
                         {formatCOP(v.totalCOP)}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-md bg-muted text-foreground text-[11px] font-medium border border-border">
-                          {v.destinoFondosNombre || 'Sin registro'}
-                        </span>
+                        <AssetInstitutionLabel assets={data.activosLiquidos} assetId={v.destinoFondosId} fallback={v.destinoFondosNombre} />
                       </td>
                       <td className="py-3 px-4 text-center">
                         <EstadoTransitoSelect
@@ -429,13 +426,9 @@ export const VentasUsdtView: React.FC = () => {
 
               {/* Origin -> Destination Route */}
               <div className="flex items-center gap-2 text-xs p-2.5 rounded-xl bg-muted/40 border border-border">
-                <span className="px-1.5 py-0.5 rounded bg-card text-foreground font-semibold text-[10px] truncate max-w-[120px]">
-                  {v.walletOrigen || 'Billetera'}
-                </span>
+                <AssetInstitutionLabel assets={data.activosDigitales} assetId={v.walletOrigenId} fallback={v.walletOrigen} />
                 <i className="ri-arrow-right-line text-muted-foreground" />
-                <span className="px-1.5 py-0.5 rounded bg-card text-foreground font-semibold text-[10px] truncate max-w-[120px]">
-                  {v.destinoFondosNombre || 'Cuenta Destino'}
-                </span>
+                <AssetInstitutionLabel assets={data.activosLiquidos} assetId={v.destinoFondosId} fallback={v.destinoFondosNombre} />
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
