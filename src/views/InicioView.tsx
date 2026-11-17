@@ -137,6 +137,14 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
   const dailyData = useMemo(() => buildDailyIngresos(negocios, efectivo, daysRange), [negocios, efectivo, daysRange]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
+  // Por defecto seleccionar el día con transacciones más reciente o hoy
+  const defaultIdx = useMemo(() => {
+    for (let i = dailyData.length - 1; i >= 0; i--) {
+      if (dailyData[i].montoCop > 0) return i;
+    }
+    return dailyData.length - 1;
+  }, [dailyData]);
+
   if (loading) {
     return (
       <section className="h-full min-h-[300px] rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm flex flex-col items-center justify-center gap-3">
@@ -150,14 +158,6 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
   const max = Math.max(1, ...amounts);
   const total = amounts.reduce((sum, amount) => sum + amount, 0);
   const average = total / daysRange;
-
-  // Por defecto seleccionar el día con transacciones más reciente o hoy
-  const defaultIdx = useMemo(() => {
-    for (let i = dailyData.length - 1; i >= 0; i--) {
-      if (dailyData[i].montoCop > 0) return i;
-    }
-    return dailyData.length - 1;
-  }, [dailyData]);
 
   const activeIdx = selectedIdx !== null && selectedIdx >= 0 && selectedIdx < dailyData.length ? selectedIdx : defaultIdx;
   const activeDay = dailyData[activeIdx] || dailyData[dailyData.length - 1];

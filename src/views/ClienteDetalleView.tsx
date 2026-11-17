@@ -1,6 +1,7 @@
 import { canRegisterBusiness } from '../utils/roles';
 import { useWriteAccess } from '../utils/useWriteAccess';
 import { getClientCountryIso } from '../data/clientCountries';
+import { getCountryFlagUrl } from '../utils/countryJurisdiction';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData, type NormalizedData } from '../context/DataContext';
@@ -314,93 +315,57 @@ export const ClienteDetalleView: React.FC = () => {
       </div>
 
       {/* Client Identity Dossier Card */}
-      <div className="rounded-2xl border border-border bg-card p-5 md:p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xl border border-primary/20 shrink-0">
-              {cliente.nombre ? cliente.nombre.slice(0, 2).toUpperCase() : 'CL'}
+      <div className="grid gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-xl font-bold text-primary">
+            {cliente.nombre ? cliente.nombre.slice(0, 2).toUpperCase() : 'CL'}
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                {getCountryFlagUrl(cliente.pais) && <img src={getCountryFlagUrl(cliente.pais)} alt="" className="h-2 w-3 shrink-0 object-cover" onError={(event) => { event.currentTarget.hidden = true; }} />}
+                {getClientCountryIso(cliente.pais)} · {cliente.pais || 'Colombia'}
+              </span>
+              {cliente.esComisionista && <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                <i className="ri-hand-coin-line" aria-hidden="true" /> Comisionista
+              </span>}
             </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-muted text-muted-foreground border border-border">
-                  {getClientCountryIso(cliente.pais)}
-                </span>
-                <span className="text-xs font-medium text-muted-foreground">
-                  {cliente.pais || 'Colombia'}
-                </span>
-                {cliente.esComisionista && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
-                    <i className="ri-hand-coin-line" />
-                    <span>Comisionista</span>
-                  </span>
-                )}
-                {referidoPor && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/clientes/${referidoPor.codigo.toLowerCase()}`)}
-                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center gap-1 hover:bg-indigo-500/20 transition-colors"
-                  >
-                    <i className="ri-user-shared-line" />
-                    <span>Comisionista: {referidoPor.nombre}</span>
-                  </button>
-                )}
-              </div>
-
-              <h1 className="text-2xl font-black text-foreground tracking-tight">
-                {cliente.nombre || 'Sin nombre'}
-              </h1>
-
-              <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5 font-mono font-semibold bg-muted/60 px-2.5 py-1 rounded-lg border border-border/80">
-                  <span>{cliente.codigo}</span>
-                  <button
-                    onClick={handleCopyCode}
-                    title="Copiar código"
-                    className="text-muted-foreground hover:text-foreground transition-colors ml-1"
-                  >
-                    <i className={copiedCode ? "ri-check-line text-emerald-500" : "ri-file-copy-line"} />
-                  </button>
-                </div>
-                {(() => {
-                  const author = formatAuthorName(cliente.createdByName, cliente.createdBy, data.usuarios);
-                  return author && author !== 'Sin registro' ? (
-                    <div className="flex items-center gap-1">
-                      <i className="ri-user-smile-line text-muted-foreground" />
-                      <span>Registrado por: <strong>{author}</strong></span>
-                    </div>
-                  ) : null;
-                })()}
-                {(cliente.createdAt || cliente.createdAtAudit || cliente.fechaCreacion || cliente.raw?.created_at) && (
-                  <div className="flex items-center gap-1">
-                    <i className="ri-calendar-line text-muted-foreground" />
-                    <span>Fecha alta: {formatDate(cliente.createdAt || cliente.createdAtAudit || cliente.fechaCreacion || cliente.raw?.created_at)}</span>
-                  </div>
-                )}
-              </div>
+            <h1 className="break-words text-xl font-black tracking-tight text-foreground">{cliente.nombre || 'Sin nombre'}</h1>
+            <div className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              <span className="break-all">{cliente.codigo}</span>
+              <button type="button" onClick={handleCopyCode} title="Copiar código" aria-label="Copiar código del cliente" className="shrink-0 p-1 hover:text-foreground">
+                <i className={copiedCode ? 'ri-check-line text-emerald-500' : 'ri-file-copy-line'} aria-hidden="true" />
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Quick Balance Status Widget (matching shared client portal style) */}
-          <div className="min-w-0 md:text-right flex flex-col md:items-end justify-center">
-            <div className="inline-flex">{getStatusBadge(cliente.estado)}</div>
-            {!isOperador && (
-              <>
-                <p className={'mt-2 break-words text-3xl font-black tabular-nums sm:text-4xl font-mono ' + (
-                  saldoCliente < 0 ? 'text-destructive' : saldoCliente > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'
-                )}>
-                  <span className="sr-only">Saldo de la cuenta </span>
-                  {signoSaldo}{formatCOP(Math.abs(saldoCliente))}
-                </p>
-                <span className="text-[11px] text-muted-foreground mt-0.5">
-                  {saldoCliente > 0
-                    ? 'Pendiente por pagar al cliente'
-                    : saldoCliente < 0
-                    ? 'El cliente debe al sistema'
-                    : 'Cuentas perfectamente al día'}
-                </span>
-              </>
-            )}
+        <div className="min-w-0 space-y-2 border-t border-border pt-3 text-[11px] text-muted-foreground lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+          <div className="flex items-start gap-2">
+            <i className="ri-group-line shrink-0 text-sm" aria-hidden="true" />
+            <span className="min-w-0 break-words">Comisionista: {referidoPor
+              ? <button type="button" onClick={() => navigate(`/clientes/${referidoPor.codigo.toLowerCase()}`)} className="font-bold text-foreground hover:text-primary">{referidoPor.nombre}</button>
+              : <strong className="text-foreground">{cliente.esComisionista ? cliente.nombre : 'Sin asignar'}</strong>}
+            </span>
           </div>
+          <div className="flex items-start gap-2">
+            <i className="ri-user-line shrink-0 text-sm" aria-hidden="true" />
+            <span className="min-w-0 break-words">Registrado por: <strong className="text-foreground">{formatAuthorName(cliente.createdByName, cliente.createdBy, data.usuarios)}</strong></span>
+          </div>
+          {(cliente.createdAtAudit || cliente.raw?.created_at || cliente.raw?.fecha_creacion) && <div className="flex items-start gap-2">
+            <i className="ri-calendar-line shrink-0 text-sm" aria-hidden="true" />
+            <span>Fecha de alta: <strong className="text-foreground">{formatDate(cliente.createdAtAudit || cliente.raw?.created_at || cliente.raw?.fecha_creacion)}</strong></span>
+          </div>}
+        </div>
+
+        <div className="flex min-w-0 flex-col justify-center rounded-xl bg-primary/5 px-4 py-3 lg:items-end lg:self-stretch lg:text-right">
+          <div className="inline-flex">{getStatusBadge(cliente.estado)}</div>
+          {!isOperador && <>
+            <p className={'mt-1 break-words text-2xl font-black tabular-nums xl:text-[28px] ' + (saldoCliente < 0 ? 'text-destructive' : saldoCliente > 0 ? 'text-primary' : 'text-foreground')}>
+              <span className="sr-only">Saldo de la cuenta </span>{signoSaldo}{formatCOP(Math.abs(saldoCliente))}
+            </p>
+            <span className="mt-0.5 text-[11px] text-muted-foreground">{saldoCliente > 0 ? 'Por pagar al cliente' : saldoCliente < 0 ? 'El cliente debe al sistema' : 'Cuentas al día'}</span>
+          </>}
         </div>
       </div>
 

@@ -213,8 +213,6 @@ const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
 
 export const AiAssistantBubble: React.FC = () => {
   const { profile, user } = useAuth();
-  const { data, metrics, snapshot, loading: dataLoading, capitalByPerson } = useData();
-  const location = useLocation();
 
   // Role Protection: Only super_admin and administrador
   const role = (profile?.role || '').toLowerCase();
@@ -223,6 +221,14 @@ export const AiAssistantBubble: React.FC = () => {
   if (!isAdmin || !user) {
     return null;
   }
+
+  return <AdminAiAssistantBubble key={user.id || profile?.id} />;
+};
+
+const AdminAiAssistantBubble: React.FC = () => {
+  const { profile, user } = useAuth();
+  const { data, metrics, snapshot, loading: dataLoading, capitalByPerson } = useData();
+  const location = useLocation();
 
   const storageKey = `kaupaloki_ai_sessions_${user.id || profile?.id}`;
 
