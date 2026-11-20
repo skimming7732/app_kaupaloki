@@ -1,7 +1,7 @@
 import { PublicHeader } from '../components/common/PublicHeader';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData, type NormalizedData } from '../context/DataContext';
@@ -11,6 +11,11 @@ import { DateRangeFilter, matchesDateRange } from '../components/common/DateRang
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
 import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
 import { ReceiptLightboxModal } from '../components/modals/ReceiptLightboxModal';
+import { CurrencyBadge } from '../components/common/CurrencyBadge';
+import { TokenVoucherModal } from '../components/modals/TokenVoucherModal';
+import { loadClientTokenReceipts, type ClientCashToken } from '../utils/clientTokenReceipts';
+
+type PortalCash = NormalizedData['efectivo'][number] & { tokenComprobante?: ClientCashToken | null };
 
 type PortalCommissionItem = {
   id: string;
@@ -23,7 +28,7 @@ type PortalData = {
   client: Pick<NormalizedData['clientes'][number], 'codigo' | 'nombre' | 'pais' | 'saldoPendienteCOP' | 'totalIngresosCOP' | 'totalDispersadoCOP' | 'estado'>;
   negocios: NormalizedData['negocios'];
   dispersiones: NormalizedData['dispersiones'];
-  efectivo: NormalizedData['efectivo'];
+  efectivo: PortalCash[];
   comisiones?: PortalCommissionItem[];
 };
 
@@ -65,6 +70,8 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const [pinError, setPinError] = useState('');
   const [verifyingPin, setVerifyingPin] = useState(false);
   const [receiptIndex, setReceiptIndex] = useState<number | null>(null);
+  const [tokenReceipt, setTokenReceipt] = useState<ClientCashToken | null>(null);
+  const [previewTokens, setPreviewTokens] = useState<Record<string, ClientCashToken>>({});
 
   // Filters state: Date range defaults to Máximo (empty strings = all dates)
   const [fechaDesde, setFechaDesde] = useState('');
@@ -82,16 +89,26 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const client = internalClient || portal?.client;
   const clientNegocios = internalClient ? data.negocios.filter(matches) : portal?.negocios || [];
   const dispersiones = internalClient ? data.dispersiones.filter(matches) : portal?.dispersiones || [];
-  const efectivo = internalClient ? data.efectivo.filter(matches) : portal?.efectivo || [];
+  const efectivo: PortalCash[] = internalClient ? data.efectivo.filter(matches) : portal?.efectivo || [];
+
+  useEffect(() => {
+    let active = true;
+    setPreviewTokens({});
+    if (!internalClient) return;
+    const ids = data.efectivo.filter(item => item.tipo === 'Pago' && (item.clienteId ? item.clienteId === internalClient.id : item.clienteCodigo === internalClient.codigo)).map(item => item.id);
+    loadClientTokenReceipts(ids).then(tokens => { if (active) setPreviewTokens(tokens); }).catch(error => console.error('No se pudieron consultar comprobantes de tokens:', error));
+    return () => { active = false; };
+  }, [internalClient?.id, data.efectivo]);
 
   const clientPagos = useMemo(() => [
     ...dispersiones.filter((item) => item.estado?.trim().toUpperCase() !== 'RECHAZADO').map((item) => ({
-      ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos,
+      ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos, tokenComprobante: undefined as ClientCashToken | undefined,
     })),
     ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({
       ...item, tipo: 'Pago en efectivo', origen: item.origenFondos, comprobanteUrl: undefined,
+      tokenComprobante: (internalClient ? previewTokens[item.id] : item.tokenComprobante) || undefined,
     })),
-  ].sort(compareChronologicalDesc), [dispersiones, efectivo]);
+  ].sort(compareChronologicalDesc), [dispersiones, efectivo, internalClient, previewTokens]);
 
   const clientIngresos = useMemo(() => efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
     ...item, concepto: item.referencia || 'Ingreso en efectivo', origen: item.origenFondos,
@@ -527,9 +544,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                       <td className="py-3 px-4 font-mono font-medium">{n.codigo}</td>
                       <td className="py-3 px-4 text-muted-foreground font-mono">{formatDate(n.fecha)}</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-bold">
-                          {n.divisaCodigo}
-                        </span>
+                        <CurrencyBadge codigo={n.divisaCodigo} banderaUrl={data.divisas.find(divisa => divisa.codigo === n.divisaCodigo)?.banderaUrl} />
                       </td>
                       <td className="py-3 px-4 text-right font-medium font-mono">
                         {formatCurrency(n.montoDivisa, n.divisaCodigo)}
@@ -598,7 +613,11 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                               <ReceiptThumbnail receipt={receipt} />
                             </button>
                           ))}
-                        </div> : <span className="block text-center text-muted-foreground">—</span>}
+                        </div> : p.tokenComprobante?.estado === 'entregado' ? (
+                          <button type="button" onClick={() => setTokenReceipt(p.tokenComprobante!)} title="Ver comprobante de entrega" className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20">
+                            <i className="ri-ticket-2-line" aria-hidden="true" />{p.tokenComprobante.codigo || 'Ver comprobante'}
+                          </button>
+                        ) : <span className="block text-center text-muted-foreground">—</span>}
                       </td>
                     </tr>
                   )}</PaginatedRows>
@@ -610,6 +629,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       )}
 
       {receiptIndex !== null && receiptIndex >= 0 && <ReceiptLightboxModal isOpen currentIndex={receiptIndex} items={receiptItems} onClose={() => setReceiptIndex(null)} onNavigate={setReceiptIndex} />}
+      <TokenVoucherModal isOpen={Boolean(tokenReceipt)} token={tokenReceipt} onClose={() => setTokenReceipt(null)} />
 
       {/* Tab 3: INGRESOS */}
       {activeTab === 'ingresos' && (
