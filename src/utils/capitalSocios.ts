@@ -1,4 +1,15 @@
 import { supabase } from '../lib/supabase';
+import { readAllRows } from './supabasePagination';
+
+export async function loadTreasuryCapital() {
+  const { data, error } = await readAllRows(() => supabase.rpc('listar_movimientos_tesoreria'));
+  if (error) throw error;
+  const rows = (data || []) as (CapitalMovement & { socio_nombre?: string })[];
+  const people = Array.from(new Map(rows.map(row => [row.socio_id, {
+    id: row.socio_id, nombre: row.socio_nombre || '', tipo: 'SOCIO' as const,
+  }])).values());
+  return { rows, people };
+}
 
 export type CapitalPerson = {
   id: string;

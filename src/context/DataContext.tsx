@@ -2,7 +2,7 @@ import { canRegisterBusiness, canDisperse, canManageClients, canRegisterExpense,
 import { prepareSuccessSound } from '../utils/confirmationSound';
 import { readAllRows } from '../utils/supabasePagination';
 import type { CashToken } from '../utils/tokenVoucherGenerator';
-import { capitalLabels, loadCapitalRows, summarizeCapital, summarizeCapitalPeople, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
+import { capitalLabels, loadCapitalRows, loadTreasuryCapital, summarizeCapital, summarizeCapitalPeople, type CapitalMovement, type CapitalPerson } from '../utils/capitalSocios';
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -633,10 +633,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSyncStatus('syncing');
     try {
       const capitalPromise = userId
-        ? loadCapitalRows<CapitalMovement>('capital_movimientos').then(async (rows) => ({
+        ? (profile?.role === 'supervisor' ? loadTreasuryCapital() : loadCapitalRows<CapitalMovement>('capital_movimientos').then(async (rows) => ({
           rows,
           people: rows.length ? await loadCapitalRows<CapitalPerson>('capital_socios').catch(() => []) : [],
-        })).catch(() => null)
+        }))).catch(() => null)
         : Promise.resolve({ rows: [], people: [] });
       const results = await Promise.all([
         readAllRows(() => supabase.from('clientes').select('*').order('numero', { ascending: false }).order('id')),
@@ -743,7 +743,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       if (request === latestFetch.current) setLoading(false);
     }
-  }, [applySnapshot, userId]);
+  }, [applySnapshot, userId, profile?.role]);
 
   const fetchFromSupabase = useCallback(() => {
     refreshRequested.current = true;

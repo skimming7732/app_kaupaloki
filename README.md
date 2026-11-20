@@ -117,7 +117,9 @@ Compras y ventas USDT muestran la institución y su logo de la cuenta o billeter
 
 ## Adjuntos de gastos y dispersiones
 
-El portal con PIN devuelve los tipos de efectivo normalizados como `Pago` e `Ingreso`, igual que DataContext. No devolver directamente `PAGO`/`INGRESO` de la base: la vista filtra por esos nombres y omitiría movimientos aunque sus permisos sean correctos. Los pagos incluyen dispersiones no rechazadas y pagos de efectivo del cliente, sin comprobantes.
+El portal con PIN devuelve los tipos de efectivo normalizados como `Pago` e `Ingreso`, igual que DataContext. No devolver directamente `PAGO`/`INGRESO` de la base: la vista filtra por esos nombres y omitiría movimientos aunque sus permisos sean correctos. Los pagos incluyen dispersiones no rechazadas y pagos de efectivo del cliente. Los comprobantes de dispersiones sí se muestran: la Edge Function `portal-cliente` valida el enlace y PIN mediante `abrir_portal_cliente` y firma únicamente los archivos asociados a esas dispersiones por una hora. El bucket permanece privado y la respuesta no se almacena en caché. Desplegar la función con `verify_jwt=false`: su autenticación es el enlace y PIN, con los bloqueos y vencimiento del RPC existente. Al vencer los enlaces de archivo, se puede recargar el portal e ingresar el PIN nuevamente.
+
+Supervisor carga `listar_movimientos_tesoreria` para completar los extractos de activos y Efectivo con aportes, retiros y liquidaciones vinculados a cuentas. Esta proyección conserva código, monto, contraparte y auditoría, pero no devuelve condiciones de contratos ni da acceso a Capital/Socios. No sustituirla por consultas directas a `capital_movimientos`, cuyo RLS mantiene esas vistas restringidas.
 
 Supervisor puede subir y vincular comprobantes de gastos y dispersiones, incluyendo agregar otro o reemplazar el actual. Storage y `guardar_comprobante_dashboard` deben mantener los mismos permisos: administrador, Super Admin y supervisor para ambas vistas; operador y dispersor para dispersiones con acceso COP. Auditor conserva solo lectura. Las subidas usan la carpeta del usuario autenticado y el bucket sigue siendo privado.
 

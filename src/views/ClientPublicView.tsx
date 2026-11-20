@@ -9,6 +9,8 @@ import { supabase } from '../lib/supabase';
 import { formatNumber, formatRate, formatCOP, formatCurrency, formatDate, compareChronologicalDesc } from '../utils/formatters';
 import { DateRangeFilter, matchesDateRange } from '../components/common/DateRangeFilter';
 import { CurrencyFilterDropdown } from '../components/common/CurrencyFilterDropdown';
+import { ReceiptThumbnail } from '../components/common/ReceiptThumbnail';
+import { ReceiptLightboxModal } from '../components/modals/ReceiptLightboxModal';
 
 type PortalCommissionItem = {
   id: string;
@@ -62,6 +64,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
   const [verifyingPin, setVerifyingPin] = useState(false);
+  const [receiptIndex, setReceiptIndex] = useState<number | null>(null);
 
   // Filters state: Date range defaults to Máximo (empty strings = all dates)
   const [fechaDesde, setFechaDesde] = useState('');
@@ -117,6 +120,11 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
       return matchesDateRange(item.fecha, fechaDesde, fechaHasta);
     });
   }, [clientPagos, fechaDesde, fechaHasta]);
+
+  const receiptItems = useMemo(() => filteredPagos.flatMap(payment => (payment.comprobanteUrl || '').split(',').map(value => value.trim()).filter(Boolean).map((receipt, index) => ({
+    id: payment.id + ':' + index, codigo: payment.codigo, clienteNombre: client?.nombre || '',
+    monto: payment.monto, comprobanteUrl: receipt,
+  }))), [filteredPagos, client?.nombre]);
 
   const filteredIngresos = useMemo(() => {
     return clientIngresos.filter((item) => {
@@ -217,7 +225,7 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
         setPinError('Pide a tu asesor un enlace de acceso vigente.');
         return;
       }
-      const { data: result, error } = await supabase.rpc('abrir_portal_cliente', { p_token: token, p_pin: pin });
+      const { data: result, error } = await supabase.functions.invoke('portal-cliente', { body: { token, pin } });
       if (error) throw error;
       if (!result) {
         setPinError('El PIN o el enlace no es válido, o el acceso está temporalmente bloqueado.');
@@ -554,19 +562,20 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4">Origen / Banco</th>
                   <th className="py-3 px-4">Referencia</th>
                   <th className="py-3 px-4 text-right">Monto Pagado (COP)</th>
+                  <th className="py-3 px-4 text-center">Comprobante</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredPagos.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-10 text-center text-muted-foreground">
+                    <td colSpan={7} className="py-10 text-center text-muted-foreground">
                       {hasFilter
                         ? 'No hay pagos ni dispersiones en el rango de fechas seleccionado'
                         : 'No hay pagos ni dispersiones registradas'}
                     </td>
                   </tr>
                 ) : (
-                  <PaginatedRows columns={6} rows={filteredPagos}>{(p) => (
+                  <PaginatedRows columns={7} rows={filteredPagos}>{(p) => (
                     <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-medium">{p.codigo}</td>
                       <td className="py-3 px-4 text-muted-foreground font-mono">{formatDate(p.fecha)}</td>
@@ -580,6 +589,17 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                       <td className="py-3 px-4 text-right font-bold text-emerald-500 font-mono">
                         {formatCOP(p.monto)}
                       </td>
+                      <td className="py-2 px-3">
+                        {p.comprobanteUrl ? <div className="flex items-center justify-center gap-1.5">
+                          {p.comprobanteUrl.split(',').map(value => value.trim()).filter(Boolean).map((receipt, index) => (
+                            <button key={index} type="button" title="Ver comprobante" aria-label={'Ver comprobante ' + (index + 1) + ' de ' + p.codigo}
+                              onClick={() => setReceiptIndex(receiptItems.findIndex(item => item.id === p.id + ':' + index))}
+                              className="h-10 w-9 shrink-0 overflow-hidden rounded-lg border border-border hover:border-primary">
+                              <ReceiptThumbnail receipt={receipt} />
+                            </button>
+                          ))}
+                        </div> : <span className="block text-center text-muted-foreground">—</span>}
+                      </td>
                     </tr>
                   )}</PaginatedRows>
                 )}
@@ -588,6 +608,8 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
           </div>
         </div>
       )}
+
+      {receiptIndex !== null && receiptIndex >= 0 && <ReceiptLightboxModal isOpen currentIndex={receiptIndex} items={receiptItems} onClose={() => setReceiptIndex(null)} onNavigate={setReceiptIndex} />}
 
       {/* Tab 3: INGRESOS */}
       {activeTab === 'ingresos' && (
