@@ -123,6 +123,10 @@ Supervisor carga `listar_movimientos_tesoreria` para completar los extractos de 
 
 El portal también permite abrir y descargar el comprobante de un pago en efectivo cuando su token vinculado está entregado. `abrir_portal_cliente` incluye una proyección limitada de ese token dentro del pago, después de validar el PIN. No muestra tokens pendientes/cancelados, datos de otros clientes ni historial de correcciones. La vista interna consulta la misma proyección de campos bajo su sesión. Ambos usan el vale existente en modo de consulta. Las divisas del portal usan `CurrencyBadge`, igual que Negocios.
 
+El portal público no muestra la cuenta, banco, caja o billetera de origen de los movimientos. El RPC tampoco devuelve esos campos, tanto para pagos como para ingresos. La tabla de pagos conserva tipo, fecha, código, referencia, monto y comprobantes.
+
+Cada apertura del portal de cliente empieza en tema claro. El cliente puede cambiar a oscuro desde el encabezado durante su visita. Este tema temporal no modifica la preferencia guardada del dashboard o del login; al salir del portal se restaura esa preferencia.
+
 Los códigos de negocios usan cinco dígitos (`N00048-MXN` a `N99999-MXN`). La generación rechaza números superiores para evitar truncarlos o repetir códigos. La migración conserva IDs, números e importes y actualiza las referencias históricas de negocios en los movimientos JSON de los activos.
 
 Supervisor puede subir y vincular comprobantes de gastos y dispersiones, incluyendo agregar otro o reemplazar el actual. Storage y `guardar_comprobante_dashboard` deben mantener los mismos permisos: administrador, Super Admin y supervisor para ambas vistas; operador y dispersor para dispersiones con acceso COP. Auditor conserva solo lectura. Las subidas usan la carpeta del usuario autenticado y el bucket sigue siendo privado.

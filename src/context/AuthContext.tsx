@@ -1,5 +1,5 @@
 import { roleLabels, type StaffRole } from '../utils/roles';
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { clearTwoFactorVerification, connectTwoFactorTabs, getTwoFactorSessionKey } from '../utils/twoFactorTabs';
 import { normalizeBiometricCredentials, type BiometricCredentialRecord } from '../utils/biometricAuth';
@@ -30,6 +30,7 @@ interface AuthContextType {
   loading: boolean;
   is2faVerified: boolean;
   theme: 'dark' | 'light';
+  setThemeOverride: (theme: 'dark' | 'light' | null) => void;
   toggleTheme: () => void;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -60,20 +61,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('kaupaloki_theme') as 'dark' | 'light') || 'dark';
   });
+  const [themeOverride, setThemeOverride] = useState<'dark' | 'light' | null>(null);
 
-  const syncThemeToDOM = (t: 'dark' | 'light') => {
+  const syncThemeToDOM = (t: 'dark' | 'light', persist = true) => {
     if (t === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('kaupaloki_theme', t);
+    if (persist) localStorage.setItem('kaupaloki_theme', t);
   };
 
   const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    syncThemeToDOM(next);
+    const next = (themeOverride ?? theme) === 'dark' ? 'light' : 'dark';
+    if (themeOverride !== null) setThemeOverride(next);
+    else setTheme(next);
+    syncThemeToDOM(next, themeOverride === null);
   };
 
   const fetchProfile = async (email: string, authUser: any, isCurrent = () => true) => {
@@ -170,9 +173,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.replace('/login');
   };
 
-  useEffect(() => {
-    syncThemeToDOM(theme);
+  useLayoutEffect(() => {
+    syncThemeToDOM(themeOverride ?? theme, themeOverride === null);
+  }, [theme, themeOverride]);
 
+  useEffect(() => {
     let mounted = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session: Session | null) => {
       if (!session?.user?.email) {
@@ -253,7 +258,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profile,
         loading,
         is2faVerified,
-        theme,
+        theme: themeOverride ?? theme,
+        setThemeOverride,
         toggleTheme,
         logout,
         refreshProfile,

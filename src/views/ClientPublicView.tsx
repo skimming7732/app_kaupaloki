@@ -1,7 +1,7 @@
 import { PublicHeader } from '../components/common/PublicHeader';
 import { KpiStrip } from '../components/common/KpiStrip';
 import { PaginatedRows } from '../components/common/PaginatedRows';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData, type NormalizedData } from '../context/DataContext';
@@ -57,6 +57,11 @@ const maskClientCodeForPortal = (codigo: string, nombre?: string): string => {
 export const ClientPublicView = () => {
   const { id } = useParams<{ id: string }>();
   const [params] = useSearchParams();
+  const { setThemeOverride } = useAuth();
+  useLayoutEffect(() => {
+    setThemeOverride('light');
+    return () => setThemeOverride(null);
+  }, [setThemeOverride]);
   return <><PublicHeader /><ClientPortal key={id || params.get('ref') || ''} token={id || params.get('ref') || ''} preview={(params.get('from') === 'dashboard' || params.get('from') === 'panel-control')} /></>;
 };
 
@@ -102,16 +107,16 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
 
   const clientPagos = useMemo(() => [
     ...dispersiones.filter((item) => item.estado?.trim().toUpperCase() !== 'RECHAZADO').map((item) => ({
-      ...item, tipo: 'Dispersión bancaria', origen: item.origenFondos, tokenComprobante: undefined as ClientCashToken | undefined,
+      ...item, tipo: 'Dispersión bancaria', tokenComprobante: undefined as ClientCashToken | undefined,
     })),
     ...efectivo.filter((item) => item.tipo === 'Pago').map((item) => ({
-      ...item, tipo: 'Pago en efectivo', origen: item.origenFondos, comprobanteUrl: undefined,
+      ...item, tipo: 'Pago en efectivo', comprobanteUrl: undefined,
       tokenComprobante: (internalClient ? previewTokens[item.id] : item.tokenComprobante) || undefined,
     })),
   ].sort(compareChronologicalDesc), [dispersiones, efectivo, internalClient, previewTokens]);
 
   const clientIngresos = useMemo(() => efectivo.filter((item) => item.tipo === 'Ingreso').map((item) => ({
-    ...item, concepto: item.referencia || 'Ingreso en efectivo', origen: item.origenFondos,
+    ...item, concepto: item.referencia || 'Ingreso en efectivo',
   })).sort(compareChronologicalDesc), [efectivo]);
 
   // Available currencies from the client's transactions
@@ -574,7 +579,6 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4">Código</th>
                   <th className="py-3 px-4">Fecha</th>
                   <th className="py-3 px-4">Tipo de Pago</th>
-                  <th className="py-3 px-4">Origen / Banco</th>
                   <th className="py-3 px-4">Referencia</th>
                   <th className="py-3 px-4 text-right">Monto Pagado (COP)</th>
                   <th className="py-3 px-4 text-center">Comprobante</th>
@@ -583,14 +587,14 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
               <tbody className="divide-y divide-border">
                 {filteredPagos.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-muted-foreground">
+                    <td colSpan={6} className="py-10 text-center text-muted-foreground">
                       {hasFilter
                         ? 'No hay pagos ni dispersiones en el rango de fechas seleccionado'
                         : 'No hay pagos ni dispersiones registradas'}
                     </td>
                   </tr>
                 ) : (
-                  <PaginatedRows columns={7} rows={filteredPagos}>{(p) => (
+                  <PaginatedRows columns={6} rows={filteredPagos}>{(p) => (
                     <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-medium">{p.codigo}</td>
                       <td className="py-3 px-4 text-muted-foreground font-mono">{formatDate(p.fecha)}</td>
@@ -599,7 +603,6 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                           {p.tipo}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground">{p.origen}</td>
                       <td className="py-3 px-4 font-mono text-muted-foreground">{p.referencia || '—'}</td>
                       <td className="py-3 px-4 text-right font-bold text-emerald-500 font-mono">
                         {formatCOP(p.monto)}
@@ -641,26 +644,24 @@ const ClientPortal = ({ token, preview }: { token: string; preview: boolean }) =
                   <th className="py-3 px-4">Código</th>
                   <th className="py-3 px-4">Fecha</th>
                   <th className="py-3 px-4">Concepto / Detalle</th>
-                  <th className="py-3 px-4">Caja / Receptor</th>
                   <th className="py-3 px-4 text-right">Monto Ingresado (COP)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredIngresos.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-10 text-center text-muted-foreground">
+                    <td colSpan={4} className="py-10 text-center text-muted-foreground">
                       {hasFilter
                         ? 'No hay ingresos de caja en el rango de fechas seleccionado'
                         : 'No hay ingresos de caja registrados para este cliente'}
                     </td>
                   </tr>
                 ) : (
-                  <PaginatedRows columns={5} rows={filteredIngresos}>{(i) => (
+                  <PaginatedRows columns={4} rows={filteredIngresos}>{(i) => (
                     <tr key={i.id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-mono font-medium">{i.codigo}</td>
                       <td className="py-3 px-4 text-muted-foreground font-mono">{formatDate(i.fecha)}</td>
                       <td className="py-3 px-4 font-medium text-foreground">{i.concepto}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{i.origen}</td>
                       <td className="py-3 px-4 text-right font-bold text-foreground font-mono">
                         {formatCOP(i.monto)}
                       </td>
