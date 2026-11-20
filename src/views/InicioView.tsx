@@ -2,7 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { formatNumber, formatCOP, formatUSD, currencyFlagUrl } from '../utils/formatters';
+import { formatNumber, currencyFlagUrl } from '../utils/formatters';
+
+const formatInicioMoney = (amount: number | undefined | null) => '$' + formatNumber(amount);
 
 export interface DailyIngreso {
   dia: string;       // YYYY-MM-DD
@@ -183,7 +185,7 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
 
   const activePoint = points[activeIdx] || points[points.length - 1];
   const activeAmount = activeDay?.montoCop || 0;
-  const tooltipText = formatCOP(activeAmount);
+  const tooltipText = formatInicioMoney(activeAmount);
   const pillWidth = Math.max(85, tooltipText.length * 6.5 + 16);
   const tooltipX = activePoint ? Math.max(pillWidth / 2 + 8, Math.min(width - pillWidth / 2 - 8, activePoint.x)) : 360;
 
@@ -234,7 +236,7 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
               </button>
             </div>
             <span className="text-[11px] text-muted-foreground hidden sm:inline">
-              Promedio diario: <strong className="font-mono text-foreground">{formatCOP(average)}</strong>
+              Promedio diario: <strong className="font-mono text-foreground">{formatInicioMoney(average)}</strong>
             </span>
           </div>
           <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
@@ -248,7 +250,7 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
               Ingresos de clientes ({daysRange} días)
             </h2>
             <p className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground mt-0.5 font-mono">
-              {formatCOP(total)}
+              {formatInicioMoney(total)}
             </p>
           </div>
           <div className="text-left sm:text-right">
@@ -369,7 +371,7 @@ const GrowthChart = ({ negocios, efectivo = [], loading }: { negocios: any[]; ef
                   key={day.dia}
                   className="hover:text-foreground cursor-pointer transition-colors"
                   onClick={() => setSelectedIdx(idx)}
-                  title={`${day.fullDate}: ${formatCOP(day.montoCop)}`}
+                  title={`${day.fullDate}: ${formatInicioMoney(day.montoCop)}`}
                 >
                   {day.fullDate}
                 </span>
@@ -401,8 +403,8 @@ export const InicioView = () => {
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           { to: '/gastos', label: 'Gastos registrados', value: formatNumber(data.gastos.length), icon: 'ri-file-list-3-line' },
-          { to: '/activos-liquidos', label: 'Activos líquidos', value: formatCOP(data.activosLiquidos.reduce((sum, asset) => sum + Number(asset.saldoCop || 0), 0)), icon: 'ri-bank-line' },
-          { to: '/activos-digitales', label: 'Activos digitales', value: formatUSD(data.activosDigitales.reduce((sum, asset) => sum + Number(asset.saldoUsdt || 0), 0)), icon: 'ri-coin-line' },
+          { to: '/activos-liquidos', label: 'Activos líquidos', value: formatInicioMoney(data.activosLiquidos.reduce((sum, asset) => sum + Number(asset.saldoCop || 0), 0)), icon: 'ri-bank-line' },
+          { to: '/activos-digitales', label: 'Activos digitales', value: formatInicioMoney(data.activosDigitales.reduce((sum, asset) => sum + Number(asset.saldoUsdt || 0), 0)), icon: 'ri-coin-line' },
         ].map(item => <Link key={item.to} to={item.to} className="min-w-0 rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/50">
           <i className={item.icon + ' text-xl text-primary'} aria-hidden="true" />
           <p className="mt-3 text-sm text-muted-foreground">{item.label}</p>
@@ -446,8 +448,8 @@ export const InicioView = () => {
                 <i className="ri-hand-coin-line" />
               </div>
             </div>
-            <div className="text-xl sm:text-2xl font-extrabold text-foreground font-mono mt-2 truncate" title={formatCOP(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP)}>
-              {formatCOP(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP)}
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground font-mono mt-2 truncate" title={formatInicioMoney(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP)}>
+              {formatInicioMoney(metrics.totalClientesIngresosCOP || metrics.totalNegocioCOP)}
             </div>
             <span className="text-[11px] text-muted-foreground mt-0.5">Histórico consolidado</span>
           </div>

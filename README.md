@@ -63,6 +63,8 @@ npm run preview
 
 ## Formato de números
 
+Inicio presenta todos sus importes sin decimales, incluidos los totales, promedio y tooltips del gráfico. Este redondeo es solo visual: los cálculos y datos conservan su precisión.
+
 En el dashboard, el portal del cliente y los formularios, usa coma para agrupar miles y punto decimal: `1,234.56`. Las tasas se muestran con exactamente cuatro decimales: `3,950.0000`. Los valores se guardan en Supabase como números, sin separadores de miles.
 
 ## Publicación de cambios en GitHub
@@ -138,3 +140,5 @@ Los formularios de gastos y dispersiones y sus acciones de adjuntar, reemplazar 
 Solo Super Admin puede devolver un token entregado a pendiente desde Ver vale. La corrección requiere un motivo, conserva el mismo código y el pago vinculado, y renueva su vigencia por 48 horas. No modifica caja ni la deuda del cliente. El historial guarda autor, fecha, motivo y los datos de la entrega anterior; no puede editarse desde el cliente.
 
 Las confirmaciones de entrega se realizan con `entregar_token_efectivo`; comprueban el estado, la vigencia en el servidor y la versión del registro. Escanear un QR únicamente consulta el token. Una vez confirmada su entrega, el escáner muestra Token Ya Entregado y bloquea otra confirmación. Después de una corrección autorizada, el mismo código puede validarse y entregarse nuevamente.
+
+Las notificaciones push usan `silent: false`, `renotify: true` y vibración en dispositivos compatibles. Al recuperar un service worker existente se solicita su actualización. El navegador y el sistema operativo controlan el sonido final y pueden silenciarlo según sus ajustes o el modo No molestar; una aplicación web no puede forzarlo.

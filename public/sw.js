@@ -34,6 +34,7 @@ self.addEventListener('push', (event) => {
     badge: data.badge || '/icono-social.png',
     tag: data.tag || 'kaupaloki-update',
     renotify: true,
+    silent: false,
     data: {
       url: data.url || '/perfil/notificaciones',
       version: data.version || null,

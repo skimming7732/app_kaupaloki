@@ -138,7 +138,10 @@ export async function getOrRegisterServiceWorker(): Promise<ServiceWorkerRegistr
   }
   try {
     const existing = await navigator.serviceWorker.getRegistration();
-    if (existing) return existing;
+    if (existing) {
+      void existing.update().catch(err => console.warn('[PushService] No se pudo actualizar el service worker:', err));
+      return existing;
+    }
     return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
   } catch (err) {
     console.warn('[PushService] Error registrando service worker:', err);
