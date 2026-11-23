@@ -1,0 +1,81 @@
+{
+  "marca": "Kaupaloki",
+  "fecha": "2026-11-23",
+  "procedencia": "src/index.css, tailwind.config.js y recursos originales PNG",
+  "arte_original": {
+    "logotipo_violeta": "#4318FF",
+    "isotipo_violeta": "#441AFF",
+    "icono_social": "#313D9B",
+    "blanco": "#FFFFFF"
+  },
+  "claro": {
+    "bg-main": "#F4F7FE",
+    "bg-card": "#FFFFFF",
+    "bg-card-secondary": "#F7FAFC",
+    "bg-sidebar": "#FFFFFF",
+    "border-main": "#E0E5F2",
+    "text-primary": "#2B3674",
+    "text-secondary": "#707EAE",
+    "text-muted": "#A3AED0",
+    "brand-primary": "#4318FF",
+    "brand-primary-light": "rgba(67, 24, 255, 0.08)",
+    "success": "#05CD99",
+    "success-light": "rgba(5, 205, 153, 0.1)",
+    "warning": "#FFB547",
+    "warning-light": "rgba(255, 181, 71, 0.1)",
+    "danger": "#EE5D50",
+    "danger-light": "rgba(238, 93, 80, 0.1)",
+    "info": "#38BDF8",
+    "info-light": "rgba(56, 189, 248, 0.1)",
+    "shadow-card": "0px 18px 40px rgba(112, 144, 176, 0.12)",
+    "shadow-nav": "0px 10px 30px rgba(112, 144, 176, 0.1)"
+  },
+  "oscuro": {
+    "bg-main": "#0B1437",
+    "bg-card": "#111C44",
+    "bg-card-secondary": "#1B254B",
+    "bg-sidebar": "#111C44",
+    "border-main": "#1B254B",
+    "text-primary": "#FFFFFF",
+    "text-secondary": "#A3AED0",
+    "text-muted": "#707EAE",
+    "brand-primary": "#7551FF",
+    "brand-primary-light": "rgba(117, 81, 255, 0.15)",
+    "success": "#05CD99",
+    "success-light": "rgba(5, 205, 153, 0.15)",
+    "warning": "#FFB547",
+    "warning-light": "rgba(255, 181, 71, 0.15)",
+    "danger": "#EE5D50",
+    "danger-light": "rgba(238, 93, 80, 0.15)",
+    "info": "#38BDF8",
+    "info-light": "rgba(56, 189, 248, 0.15)",
+    "shadow-card": "0px 18px 40px rgba(0, 0, 0, 0.35)",
+    "shadow-nav": "0px 10px 30px rgba(0, 0, 0, 0.3)"
+  },
+  "comprobantes": {
+    "degradado_inicio": "#0B2540",
+    "degradado_fin": "#080F1E",
+    "tarjeta": "#101D30",
+    "borde": "#284461"
+  },
+  "correo": {
+    "degradado_inicio": "#0B1426",
+    "degradado_medio": "#172554",
+    "degradado_fin": "#4318FF"
+  },
+  "tipografia": {
+    "familia": "Plus Jakarta Sans",
+    "rango_variable": [
+      200,
+      800
+    ],
+    "pesos_app": [
+      400,
+      500,
+      600,
+      700,
+      800
+    ],
+    "licencia": "SIL Open Font License 1.1"
+  }
+}

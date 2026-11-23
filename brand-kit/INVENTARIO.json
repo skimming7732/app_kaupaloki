@@ -1,0 +1,100 @@
+{
+  "marca": "Kaupaloki",
+  "fecha": "2026-11-23",
+  "archivos": [
+    {
+      "archivo": "GUIA-DE-MARCA.md",
+      "bytes": 11766,
+      "sha256": "d90d86757f28aec8716bc3e222622ec7758b126494ae34ddcb06c8a8c7db7d50"
+    },
+    {
+      "archivo": "README.md",
+      "bytes": 605,
+      "sha256": "f1b5e8f86b2de88e01ca991c09cb89b5652eb48a3d6b187c95a32313b2f36807"
+    },
+    {
+      "archivo": "VISTA-PREVIA.html",
+      "bytes": 10203,
+      "sha256": "81fa682be8e3baf51c355d8c6752df4d9dbe0092fde008cb768ca6f9c4122e54"
+    },
+    {
+      "archivo": "logos/kaupaloki-logo-violeta.png",
+      "bytes": 48681,
+      "sha256": "836ab1cfc10a2e7b13f1cd0842e8e846a9d1dfb08c810e0561156d5323f03bdc",
+      "ancho_px": 1024,
+      "alto_px": 222,
+      "original": "public/logo-blue.png"
+    },
+    {
+      "archivo": "logos/kaupaloki-logo-blanco.png",
+      "bytes": 30728,
+      "sha256": "c8a710f466713c79efb6d918f18546a44906e3bdc2cd3022f6f58d00e1d457e7",
+      "ancho_px": 1024,
+      "alto_px": 222,
+      "original": "public/logo.png"
+    },
+    {
+      "archivo": "logos/kaupaloki-isotipo-violeta.png",
+      "bytes": 72160,
+      "sha256": "9b624f20dd46cbc4445686726c17beb223e34f3501802e527c5345a739293c5c",
+      "ancho_px": 512,
+      "alto_px": 512,
+      "original": "public/iso-type-blue.png"
+    },
+    {
+      "archivo": "logos/kaupaloki-isotipo-blanco.png",
+      "bytes": 44841,
+      "sha256": "1c5bc642cfc47aa1606111e5e913d59b768d10ce5d738a68598f0ad179d318dc",
+      "ancho_px": 512,
+      "alto_px": 512,
+      "original": "public/iso-type-white.png"
+    },
+    {
+      "archivo": "logos/kaupaloki-icono-social.png",
+      "bytes": 47146,
+      "sha256": "4806afa29137ffe7ee3bf377ab926f04fc33f359825de4688a41b0c0dccf276f",
+      "ancho_px": 512,
+      "alto_px": 512,
+      "original": "public/icono-social.png"
+    },
+    {
+      "archivo": "fuentes/PlusJakartaSans-Variable.ttf",
+      "bytes": 176288,
+      "sha256": "89b3fb38aa0d275d7a731d0d817a4f1622b316b4d7fbdedcf02ee9099ff68bc8",
+      "procedencia": "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/PlusJakartaSans%5Bwght%5D.ttf"
+    },
+    {
+      "archivo": "fuentes/PlusJakartaSans-Italic-Variable.ttf",
+      "bytes": 183188,
+      "sha256": "9529eb888668b6a3c6dd75b6341a2fc5263fb6c9e788822e6117c29dd9e8b115",
+      "procedencia": "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/PlusJakartaSans-Italic%5Bwght%5D.ttf"
+    },
+    {
+      "archivo": "fuentes/OFL.txt",
+      "bytes": 4402,
+      "sha256": "995c7199cab65954f545996326755daee7b63cc6b42b06c13da1f9502ab08a99",
+      "procedencia": "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/OFL.txt"
+    },
+    {
+      "archivo": "fuentes/METADATA.pb",
+      "bytes": 1396,
+      "sha256": "f425be3b547253a92002c27ca8d01239db36c5438c55b47dfb1745c3bfec8688",
+      "procedencia": "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/METADATA.pb"
+    },
+    {
+      "archivo": "colores/paleta.json",
+      "bytes": 2354,
+      "sha256": "fc0ab74e85cc0f014da5b7263201cf7df7737470b0b20d76049c4bb32633e662"
+    },
+    {
+      "archivo": "colores/kaupaloki.css",
+      "bytes": 2067,
+      "sha256": "4de4923a76fb141774e9b39cec545390a8ad815af0ef75907310977f92389374"
+    },
+    {
+      "archivo": "colores/paleta.gpl",
+      "bytes": 949,
+      "sha256": "0de8e77be30d08a4c792cb0170d134d0fbaf60a728fee53f1fda8904e23ee7c0"
+    }
+  ]
+}

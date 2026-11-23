@@ -1,0 +1,28 @@
+GIMP Palette
+Name: Kaupaloki
+Columns: 5
+# Colores originales de la marca y temas de la app
+ 67  24 255	arte_original / logotipo_violeta
+ 68  26 255	arte_original / isotipo_violeta
+ 49  61 155	arte_original / icono_social
+255 255 255	arte_original / blanco
+244 247 254	claro / bg-main
+247 250 252	claro / bg-card-secondary
+224 229 242	claro / border-main
+ 43  54 116	claro / text-primary
+112 126 174	claro / text-secondary
+163 174 208	claro / text-muted
+  5 205 153	claro / success
+255 181  71	claro / warning
+238  93  80	claro / danger
+ 56 189 248	claro / info
+ 11  20  55	oscuro / bg-main
+ 17  28  68	oscuro / bg-card
+ 27  37  75	oscuro / bg-card-secondary
+117  81 255	oscuro / brand-primary
+ 11  37  64	comprobantes / degradado_inicio
+  8  15  30	comprobantes / degradado_fin
+ 16  29  48	comprobantes / tarjeta
+ 40  68  97	comprobantes / borde
+ 11  20  38	correo / degradado_inicio
+ 23  37  84	correo / degradado_medio
