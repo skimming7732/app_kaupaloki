@@ -193,7 +193,7 @@ export const TokenVoucherModal: React.FC<TokenVoucherModalProps> = ({
               {confirmReopen ? (
                 <form onSubmit={handleReopen} className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
                   <p className="text-sm font-semibold">Volver a pendiente de entrega</p>
-                  <p className="text-xs leading-relaxed text-muted-foreground">Confirma solo si el dinero no fue entregado. El mismo código quedará vigente por 48 horas. El pago y el saldo de caja no cambian.</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">Confirma solo si el dinero no fue entregado. El mismo código quedará vigente por 2 meses. El pago y el saldo de caja no cambian.</p>
                   <label className="block space-y-1.5 text-xs font-medium">Motivo de la corrección
                     <textarea value={reopenReason} onChange={event => setReopenReason(event.target.value)} required minLength={3} maxLength={500} rows={2} disabled={reopening} className="w-full resize-none rounded-xl border border-border bg-background p-2.5 text-sm outline-none focus:border-primary" />
                   </label>

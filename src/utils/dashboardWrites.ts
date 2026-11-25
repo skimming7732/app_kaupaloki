@@ -34,7 +34,7 @@ export function dashboardWriteError(error: unknown, fallback: string): Error {
   if (error instanceof Error) return error;
   const code = (error as WriteError | null)?.code;
   const message = (error as WriteError | null)?.message;
-  if (code === 'P0001' && message && /^(Vincula una cuenta de origen|Ingresa un monto válido para completar la dispersión|La cuenta de origen no está disponible o su saldo contable)/.test(message)) {
+  if (['P0001', '22023'].includes(code || '') && message && /^(Vincula una cuenta de origen|Ingresa un monto válido para completar la dispersión|La cuenta de origen no está disponible o su saldo contable|La cuenta no está disponible o el saldo es insuficiente para la venta y su fee|No se puede revertir el abono de esta venta|Saldo insuficiente en la billetera de origen para la venta y su fee|La cuenta de destino de esta venta ya no está disponible|La billetera de origen de esta venta ya no está disponible|Ingresa un monto, una tasa, un fee y una fecha válidos|Selecciona una billetera de origen y una cuenta de destino válidas)/.test(message)) {
     return new Error(message);
   }
   if (code === '42501' || code === 'PGRST301') return new Error('Tu sesión no tiene permiso para guardar este registro.');

@@ -137,8 +137,14 @@ Los formularios de gastos y dispersiones y sus acciones de adjuntar, reemplazar 
 
 ## Corrección de entregas de tokens
 
-Solo Super Admin puede devolver un token entregado a pendiente desde Ver vale. La corrección requiere un motivo, conserva el mismo código y el pago vinculado, y renueva su vigencia por 48 horas. No modifica caja ni la deuda del cliente. El historial guarda autor, fecha, motivo y los datos de la entrega anterior; no puede editarse desde el cliente.
+Los tokens nuevos vencen dos meses calendario después de emitirse. La migración del 25 de noviembre de 2026 amplía los tokens que siguen activos y vigentes a un mínimo de dos meses desde su ejecución, sin acortar plazos mayores ni reactivar los vencidos, cancelados o entregados. El cambio conserva códigos, pagos, montos e historial y no mueve saldos.
+
+Solo Super Admin puede devolver un token entregado a pendiente desde Ver vale. La corrección requiere un motivo, conserva el mismo código y el pago vinculado, y renueva su vigencia por dos meses. No modifica caja ni la deuda del cliente. El historial guarda autor, fecha, motivo y los datos de la entrega anterior; no puede editarse desde el cliente.
 
 Las confirmaciones de entrega se realizan con `entregar_token_efectivo`; comprueban el estado, la vigencia en el servidor y la versión del registro. Escanear un QR únicamente consulta el token. Una vez confirmada su entrega, el escáner muestra Token Ya Entregado y bloquea otra confirmación. Después de una corrección autorizada, el mismo código puede validarse y entregarse nuevamente.
 
 Las notificaciones push usan `silent: false`, `renotify: true` y vibración en dispositivos compatibles. Al recuperar un service worker existente se solicita su actualización. El navegador y el sistema operativo controlan el sonido final y pueden silenciarlo según sus ajustes o el modo No molestar; una aplicación web no puede forzarlo.
+
+## Cambios y anulaciones de ventas USDT
+
+Editar o eliminar una venta mantiene la misma validación de saldos: se devuelve a la billetera el USDT y fee anteriores y se revierte el abono COP que corresponda. Si los fondos de destino ya se utilizaron y no alcanzan para el ajuste, la operación se rechaza completa, sin cambios parciales. Las correcciones de concepto sin variación financiera siguen permitidas. El formulario muestra el motivo de validación y los montos requerido/disponible; no oculta estas validaciones detrás de un código genérico `P0001` o `22023`. Esta validación también se aplica a administradores y Super Admin.
